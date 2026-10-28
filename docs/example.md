@@ -1,3 +1,12 @@
+<!-- nimblescape-markdown-notes format=1 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
+AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
+A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].
+Its reference ends the passage of the note; an HTML comment with "[" and the label directly before the
+passage starts it. The definition follows the block of the passage: "[^note-7k2q]: **login** · date",
+a blank line, and the body indented by four spaces. Each reply is a block quote with its own header.
+-->
+
 <!--
 SPDX-License-Identifier: MIT
 © 2026 Hannes Stauss (scalarion@nimblescape.com)

@@ -16,6 +16,7 @@
  * would start another answer or end the note early never reaches the file.
  */
 
+import { doctypeEdit } from './doctype';
 import { before, findNotes, type Note, type Position, type Range, read, type Reading, same, type TextBlock } from './notes';
 import { type AnswerText, type Header, markerText, newLabel, noteLines, referenceText, usedLabels } from './syntax';
 
@@ -30,9 +31,17 @@ export interface Edit {
  * Problem is the reason why a change cannot be written: `empty` for an answer without a text, `structure` for a text
  * that markdown-it would not read back as the same note, `place` for a new note outside the text of a paragraph, a
  * heading, a list or a table, `signIn` for a new note or answer without a GitHub sign-in
- * ([R-GEN-006](../../docs/requirements.md#r-gen-006)), and `missing` for a note that the document no longer holds.
+ * ([R-GEN-006](../../docs/requirements.md#r-gen-006)), `missing` for a note that the document no longer holds, and
+ * `format` for a document whose comment of the format names a newer version than the extension knows
+ * ([R-NOTE-007](../../docs/requirements.md#r-note-007)).
  */
-export type Problem = { kind: 'empty' } | { kind: 'structure' } | { kind: 'place' } | { kind: 'signIn' } | { kind: 'missing' };
+export type Problem =
+  | { kind: 'empty' }
+  | { kind: 'structure' }
+  | { kind: 'place' }
+  | { kind: 'signIn' }
+  | { kind: 'missing' }
+  | { kind: 'format'; format: number };
 
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };
@@ -58,6 +67,42 @@ export function applyEdit(lines: readonly string[], edit: Edit): string[] {
   const head = lines[edit.start.line].slice(0, edit.start.character);
   const tail = lines[edit.end.line].slice(edit.end.character);
   return [...lines.slice(0, edit.start.line), ...`${head}${edit.text}${tail}`.split('\n'), ...lines.slice(edit.end.line + 1)];
+}
+
+/** Edits are the edits of one change of a text, which refer to its lines before the change and do not overlap. */
+export interface Edits {
+  edits: Edit[];
+  /**
+   * shift returns the place of a position of the text after the edit of the extension once the comment of the format
+   * is written too, for a position after the comment.
+   */
+  shift: (position: Position) => Position;
+}
+
+/**
+ * withDoctype returns the edit of a change of the extension together with the change of the comment that marks a
+ * text with notes ([R-NOTE-007](../../docs/requirements.md#r-note-007)): the comment at the top of a text that has
+ * notes after the change, written anew when it differs, and removed from a text without notes. Both edits refer to
+ * the lines before the change, as VS Code applies the edits of one workspace edit; edits that would overlap become one.
+ * @param lines - The lines of the text.
+ * @param edit - The edit of the change.
+ */
+export function withDoctype(lines: readonly string[], edit: Edit): Edits {
+  const top = doctypeEdit(lines, findNotes(applyEdit(lines, edit)).length > 0);
+  if (!top) {
+    return { edits: [edit], shift: (position) => position };
+  }
+  const shift = (position: Position): Position => (before(position, top.end) ? position : { line: position.line + top.lines, character: position.character });
+  const change: Edit = { start: top.start, end: top.end, text: top.text };
+  if (same(top.start, top.end) && same(top.start, edit.start)) {
+    return { edits: [{ start: edit.start, end: edit.end, text: top.text + edit.text }], shift };
+  }
+  const [first, second] = before(edit.start, top.start) ? [edit, change] : [change, edit];
+  if (before(second.start, first.end)) {
+    // The edits would overlap: one edit writes the text after both.
+    return { edits: [editBetween(lines, applyEdit(applyEdit(lines, second), first))], shift };
+  }
+  return { edits: [first, second], shift };
 }
 
 /**

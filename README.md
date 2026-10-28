@@ -19,8 +19,9 @@ footnote in the file, with the GitHub login of the author.
   VS Code for the Web.
 - **Markdown files.** The extension reads the open Markdown files to find
   their notes. It changes the text of a file only when you save, add, answer
-  or delete a note, and only the footnote of that note, its reference and its
-  start marker; you save the file as usual, and Undo takes the change back.
+  or delete a note, and only the footnote of that note, its reference, its
+  start marker and the comment of the format at the top of the file; you save
+  the file as usual, and Undo takes the change back.
   Other footnotes, for example `[^1]`, stay as they are.
 - **GitHub sign-in.** New notes and answers need a sign-in with GitHub, so
   that the author is always known. The extension uses the GitHub sign-in of
@@ -103,6 +104,11 @@ describes each step and where its protection ends.
   off the callout on hover. A click on the icon or on the highlighted passage
   opens the note in the side view. The eye in the title of the preview hides
   and shows the notes.
+- **For AI agents.** A comment at the top of each file with notes names the
+  format of the notes, like a DOCTYPE, and links to its
+  [specification](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md),
+  so that an AI agent can read, answer and add notes itself. A front matter
+  stays the first block of the file.
 - **Comments view.** The Comments view lists the notes of the open Markdown
   files; a click goes to the note.
 - **Warnings.** The text editor and the Problems view warn at each form of a

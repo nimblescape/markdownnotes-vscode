@@ -44,9 +44,10 @@
  */
 
 import * as vscode from 'vscode';
-import { appendAnswer, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, type Result } from './notes/edits';
+import { appendAnswer, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, type Result, withDoctype } from './notes/edits';
 import { commandAddress, commandLinks, openLinkCommand } from './links';
 import { checksOf } from './notes/checks';
+import { formatVersion, newerFormat } from './notes/doctype';
 import { findNotes, type Note, noteAt, type Position, type Reading, readNotes } from './notes/notes';
 import { type Answer, formatDate, normalizeBody, parseDate } from './notes/syntax';
 import { type Settings, showsInline } from './settings';
@@ -196,6 +197,18 @@ export function problemMessage(problem: Problem): string {
       return 'The change was not saved: sign in with GitHub, so that the note names its author. The extension asks for the sign-in when you add a note or an answer.';
     case 'missing':
       return 'The change was not saved: the file no longer holds the note.';
+    case 'format':
+      return `The change was not saved: the file uses version ${problem.format} of the format of the notes, and this version of the extension knows only version ${formatVersion}. Update the extension.`;
+  }
+}
+
+/**
+ * showProblem shows the message of a problem of a change, if there is one.
+ * @param problem - The problem, or undefined.
+ */
+function showProblem(problem: Problem | undefined): void {
+  if (problem) {
+    void vscode.window.showErrorMessage(problemMessage(problem));
   }
 }
 
@@ -612,18 +625,21 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * apply writes an edit of the lines of a text into a document, with the line breaks of the document.
+   * apply writes the edits of the lines of a text into a document in one workspace edit, with the line breaks of the
+   * document.
    * @param document - The document.
-   * @param edit - The edit.
+   * @param edits - The edits, which refer to the lines before the change and do not overlap.
    */
-  private async apply(document: vscode.TextDocument, edit: Edit): Promise<boolean> {
+  private async apply(document: vscode.TextDocument, edits: readonly Edit[]): Promise<boolean> {
     const workspaceEdit = new vscode.WorkspaceEdit();
     const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-    workspaceEdit.replace(
-      document.uri,
-      new vscode.Range(edit.start.line, edit.start.character, edit.end.line, edit.end.character),
-      edit.text.replace(/\n/g, eol),
-    );
+    for (const edit of edits) {
+      workspaceEdit.replace(
+        document.uri,
+        new vscode.Range(edit.start.line, edit.start.character, edit.end.line, edit.end.character),
+        edit.text.replace(/\n/g, eol),
+      );
+    }
     return vscode.workspace.applyEdit(workspaceEdit);
   }
 
@@ -649,12 +665,19 @@ export class NoteThreads implements vscode.Disposable {
     if (!entry) {
       return { kind: 'missing' };
     }
-    const result = edit(linesOf(document), entry.note);
+    const lines = linesOf(document);
+    const format = newerFormat(lines);
+    if (format !== undefined) {
+      return { kind: 'format', format };
+    }
+    const result = edit(lines, entry.note);
     if ('problem' in result) {
       return result.problem;
     }
-    entry.expected = keepsNote(entry.note) ? entry.note.start : undefined;
-    if (!(await this.apply(document, result.edit))) {
+    // The comment of the format of the notes comes with each change of the extension (R-NOTE-007).
+    const { edits, shift } = withDoctype(lines, result.edit);
+    entry.expected = keepsNote(entry.note) ? shift(entry.note.start) : undefined;
+    if (!(await this.apply(document, edits))) {
       entry.expected = undefined;
       return { kind: 'structure' };
     }
@@ -734,15 +757,22 @@ export class NoteThreads implements vscode.Disposable {
       return { problem: { kind: 'signIn' } };
     }
     const document = await vscode.workspace.openTextDocument(uri);
-    const result = insertNote(linesOf(document), range, normalizeBody(text), { author, date: formatDate(new Date()) });
+    const before = linesOf(document);
+    const format = newerFormat(before);
+    if (format !== undefined) {
+      return { problem: { kind: 'format', format } };
+    }
+    const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()) });
     if ('problem' in result) {
       return result;
     }
-    if (!(await this.apply(document, result.edit))) {
+    const { edits, shift } = withDoctype(before, result.edit);
+    if (!(await this.apply(document, edits))) {
       return { problem: { kind: 'structure' } };
     }
     const lines = linesOf(document);
-    const note = findNotes(lines).find((candidate) => candidate.start.line === result.start!.line && candidate.start.character === result.start!.character);
+    const start = shift(result.start!);
+    const note = findNotes(lines).find((candidate) => candidate.start.line === start.line && candidate.start.character === start.character);
     if (!note) {
       return { problem: { kind: 'structure' } };
     }
@@ -854,7 +884,7 @@ export class NoteThreads implements vscode.Disposable {
   private async deleteFrom(comment: NoteComment): Promise<void> {
     const entry = this.entryOfThread(comment.thread);
     if (entry && comment.index !== undefined) {
-      await this.deleteAnswer(comment.thread.uri, entry.id, comment.index);
+      showProblem(await this.deleteAnswer(comment.thread.uri, entry.id, comment.index));
     }
   }
 
@@ -865,7 +895,7 @@ export class NoteThreads implements vscode.Disposable {
   private async deleteThread(thread: vscode.CommentThread): Promise<void> {
     const entry = this.entryOfThread(thread);
     if (entry) {
-      await this.deleteNote(thread.uri, entry.id);
+      showProblem(await this.deleteNote(thread.uri, entry.id));
     }
   }
 

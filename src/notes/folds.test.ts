@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { doctypeLines } from './doctype';
 import { foldsOf, headersOf, isText } from './folds';
 import { findNotes } from './notes';
 
@@ -55,6 +56,15 @@ describe('the folds of the notes', () => {
       'Next.',
     ].join('\n');
     expect(folds(text)).toEqual([{ start: 0, end: 12, notes: 2, hidesFirst: false }]);
+  });
+
+  test('the comment of the format of the notes folds into its first line, before the folds of the notes (R-NOTE-007)', () => {
+    const text = [...doctypeLines, '', 'Text[^note-aaaa].', '', '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00', '', '    Body.', ''];
+    const end = doctypeLines.length - 1;
+    expect(foldsOf(text, findNotes(text)).map(({ start, end: last, notes }) => [start, last, notes.length])).toEqual([
+      [0, end, 0],
+      [end + 2, end + 6, 1],
+    ]);
   });
 
   test('a line of text is no heading, list item, block quote, fence, table row, thematic break, HTML or definition of a footnote', () => {

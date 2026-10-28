@@ -69,6 +69,12 @@ The first version.
   hover and keyboard focus, and opens it in the side view on a click, as a
   click on the highlighted passage does. The eye
   in the title of the preview hides and shows the notes.
+- A comment at the top of each file with notes, after a front matter, names
+  the format of the notes with its version and links to the specification
+  `docs/format.md`, so that programs and AI agents know how to read and add
+  notes. The extension writes it with the first note and removes it with the
+  last one, and changes no note of a file whose comment names a newer
+  version.
 - The text editor and the Problems view warn at each form of a note that
   GitHub shows differently: no blank line before or after the note, lines
   without the indentation of four spaces, a second note of a label, a

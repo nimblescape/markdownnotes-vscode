@@ -12,6 +12,8 @@
  * does.
  */
 
+import { doctypeLines } from '../notes/doctype';
+
 /** FakeUri stands for a vscode.Uri. */
 export class FakeUri {
   constructor(
@@ -610,9 +612,17 @@ export class Fake {
    * @param edit - The edit.
    */
   async applyEdit(edit: FakeWorkspaceEdit): Promise<boolean> {
-    for (const { uri, range, text } of edit.replacements) {
+    const changed = new Set<FakeDocument>();
+    // The ranges of the replacements refer to the text before the edit, so they apply from the end of the text.
+    const replacements = edit.replacements.map(({ uri, range, text }) => {
       const document = this.documents.find((candidate) => candidate.uri.toString() === uri.toString())!;
-      document.text = document.text.slice(0, document.offsetAt(range.start)) + text + document.text.slice(document.offsetAt(range.end));
+      return { document, start: document.offsetAt(range.start), end: document.offsetAt(range.end), text };
+    });
+    for (const { document, start, end, text } of replacements.sort((a, b) => b.start - a.start)) {
+      document.text = document.text.slice(0, start) + text + document.text.slice(end);
+      changed.add(document);
+    }
+    for (const document of changed) {
       document.version++;
       this.fire('change', { document });
     }
@@ -678,3 +688,11 @@ export async function settle(): Promise<void> {
  * @param comment - The comment.
  */
 export const bodyOf = (comment: FakeComment): string => (typeof comment.body === 'string' ? comment.body : comment.body.value);
+
+/**
+ * marked returns a text with the comment of the format of the notes at its top, as the extension writes it with a
+ * change of a file without a front matter ([R-NOTE-007](../../docs/requirements.md#r-note-007)).
+ * @param text - The text.
+ * @param eol - The line break of the text.
+ */
+export const marked = (text: string, eol = '\n'): string => doctypeLines.join(eol) + eol + eol + text;

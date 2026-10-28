@@ -18,9 +18,13 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { Api } from '../../src/extension';
 import { headingLine } from '../../src/links';
+import { doctypeLines } from '../../src/notes/doctype';
 
 /** extensionId is the identifier of the extension. */
 const extensionId = 'nimblescape.nimblescape-markdown-notes';
+
+/** marked returns a text with the comment of the format at its top, as a change of the extension writes it (R-NOTE-007). */
+const marked = (text: string): string => `${doctypeLines.join('\n')}\n\n${text}`;
 
 /** commandOf returns the full name of a command of the extension. */
 const commandOf = (name: string): string => `nimblescape.markdownNotes.${name}`;
@@ -155,7 +159,7 @@ describe('nimblescape Markdown Notes', () => {
     const saved = header.exec(document.getText())?.[1];
     assert.ok(saved && saved !== '2026-10-28 11:00+01:00', `the date of the save, not ${saved}`);
     const dated = (text: string) => text.replace(header, '    > **bob** · DATE');
-    assert.equal(dated(document.getText()), dated(note.replace('    > An answer.', '    > A new *answer*.\n    >\n    > A second paragraph.')));
+    assert.equal(dated(document.getText()), dated(marked(note).replace('    > An answer.', '    > A new *answer*.\n    >\n    > A second paragraph.')));
     assert.equal(comment.mode, vscode.CommentMode.Preview);
     const extension = await api();
     await waitFor(() => (bodyOf(extension.threadsOf(document.uri)[0].comments[1]) === 'A new *answer*.\n\nA second paragraph.' ? true : undefined), 'the saved body');
@@ -175,9 +179,9 @@ describe('nimblescape Markdown Notes', () => {
     // The reply of bob becomes the first answer.
     const shorter = note.replace(first, '[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n');
     await vscode.commands.executeCommand(commandOf('deleteAnswer'), threads[0].comments[0]);
-    assert.equal(document.getText(), shorter);
+    assert.equal(document.getText(), marked(shorter));
     await vscode.commands.executeCommand(commandOf('deleteNote'), threads[1]);
-    assert.equal(document.getText(), shorter.replace('<!--[note-bbbb-->', '').replace('[^note-bbbb]', '').replace('[^note-bbbb]: **carl** · 2026-10-28 12:00Z\n\n    Inline\n\n', ''));
+    assert.equal(document.getText(), marked(shorter).replace('<!--[note-bbbb-->', '').replace('[^note-bbbb]', '').replace('[^note-bbbb]: **carl** · 2026-10-28 12:00Z\n\n    Inline\n\n', ''));
     const extension = await api();
     await waitFor(() => (extension.threadsOf(document.uri).length === 1 && extension.threadsOf(document.uri)[0].comments.length === 1 ? true : undefined), 'one thread with one answer');
   });

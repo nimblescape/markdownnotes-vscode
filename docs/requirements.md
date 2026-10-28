@@ -41,6 +41,7 @@ Markdown preview.
 | 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
 | 18 | The collapse at the start of VS Code, the buttons "Hide Note Text" and "Show Note Text", the marker beside the comment mark, the settings `showNotesIn` and `openLinksIn`, the funnel of the selected thread | [R-GEN-009](#r-gen-009), [R-GEN-010](#r-gen-010), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
 | 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a passage that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done |
+| 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents | [R-NOTE-007](#r-note-007) | done |
 
 ## General
 
@@ -50,7 +51,8 @@ Markdown preview.
 Markdown files: the text editor, the Comments view and the Markdown preview.
 It adds one view of its own, the side view of [R-SIDE-001](#r-side-001). It
 changes no other part of a Markdown file than the parts of a note: its
-definition, its reference and its start marker.
+definition, its reference and its start marker, and the comment of the format
+at the top of a file with notes ([R-NOTE-007](#r-note-007)).
 
 The Markdown Editor of VS Code (the visual editor `vscode.markdown.editor`)
 offers extensions no stable API to show or edit content there: it renders
@@ -74,7 +76,8 @@ not accept extensions that use one. It supports VS Code 1.125 and later.
 virtual workspaces. It runs no program and collects no telemetry. Its own code
 connects to no address; the sign-in of [R-GEN-006](#r-gen-006) goes through the
 GitHub authentication of VS Code. It changes a file only when the user saves,
-adds, answers or deletes a note.
+adds, answers or deletes a note; the comment of the format comes with such a
+change ([R-NOTE-007](#r-note-007)).
 
 ### R-GEN-004
 
@@ -342,6 +345,39 @@ The user selects the passage in the text editor and adds the note
   comment of a pull request belongs to its lines ([R-TEXT-001](#r-text-001)).
 
 This is [decision 6](#decisions).
+
+### R-NOTE-007
+
+**Comment of the format.** Each file with notes holds a comment that names
+the format of the notes, like a DOCTYPE, so that a program knows that the file
+is a document with notes and how to read it (Hannes, 2026-10-28: "the
+extension shall leave a hint for ai agents on how to process the notes as a
+comment in the file", "this comment is also the "DOCTYPE" so the extension
+always knows it is a notes md document"). The
+[specification of the format](format.md) is a file of the repository (Hannes:
+"the public specification is a file in the github repo").
+
+- The first line names the format, its version and the address of the
+  specification: `<!-- nimblescape-markdown-notes format=1
+  spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`.
+  Short lines of words follow, which tell an AI agent to read the
+  specification before it reads, changes or adds a note, and the last line is
+  `-->`. GitHub and the Markdown preview do not show the comment.
+- The comment stands at the top of the file, with a blank line after it. It
+  does not interfere with a front matter (Hannes: "it shall not interfere with
+  frontmatter"): a YAML (`---`) or TOML (`+++`) front matter stays the first
+  block of the file, and the comment follows it.
+- The extension writes the comment only together with a change of a note that
+  it writes, never when it opens a file: the first note brings it, a comment
+  of another text or version is written anew, and the last note takes it
+  away with the blank line after it. Undo removes the comment with the note.
+- A file without the comment has notes too, for example a file from before
+  this version: the extension reads its notes as always
+  ([decision 11](#decisions)).
+- When the comment names a newer version of the format than the extension
+  knows, the extension changes no note of the file and says why.
+- The text editor folds the comment into its first line, as it folds a note
+  ([R-TEXT-005](#r-text-005)).
 
 ## Text editor and Comments view
 
@@ -665,7 +701,8 @@ from the note. Its replies stay: they move up one level and reply to the
 answer that the removed answer replied to. After the first answer, its first
 reply becomes the first answer. Deleting the only answer, or the whole thread
 with "Delete Thread", removes the note: its definition with one blank line,
-its reference and its start marker. The editor of the file can undo the
+its reference and its start marker, and the last note also the comment of the
+format ([R-NOTE-007](#r-note-007)). The editor of the file can undo the
 change.
 
 ### R-EDIT-005
@@ -827,6 +864,13 @@ them.
     were a funnel without the strip that ends at the edge of the view at an
     estimated height, which is wrong where lines wrap, and the strong
     highlight without the strip and the funnel.
+11. **Place of the comment of the format** ([R-NOTE-007](#r-note-007),
+    Hannes, 2026-10-28): the comment stands at the top of the file, after a
+    front matter, and the notes of a file without it work as before. The
+    other choices were the top with notes only in files that hold the
+    comment, which hides the notes of older files, and the end of the file,
+    where a program finds it only after it read the whole file. This choice
+    is the recommendation; Hannes has not answered yet.
 
 ---
 

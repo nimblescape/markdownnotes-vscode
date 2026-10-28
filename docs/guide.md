@@ -198,6 +198,36 @@ hidden start marker `<!--[note-7k2q-->` to the reference `[^note-7k2q]`.
 The extension writes the start marker and the reference itself when you add a
 note ([Add a note](#add-a-note)).
 
+### Comment of the format
+
+A file with notes starts with a comment that names the format of the notes,
+like a DOCTYPE. It tells programs, for example AI agents, that the file holds
+notes, and links to the [specification of the format](format.md), so that an
+agent can read, answer and add notes itself:
+
+```markdown
+<!-- nimblescape-markdown-notes format=1 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
+AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
+…
+-->
+```
+
+- The first line names the format, its version `format=1` and the address of
+  the specification `spec=`. Short lines of words follow, and `-->` ends the
+  comment. GitHub and the Markdown preview do not show it, and the text
+  editor folds it into its first line.
+- The comment stands at the top of the file with a blank line after it. A
+  front matter stays the first block of the file: the comment follows the
+  line `---` or `+++` that ends it.
+- The extension writes the comment only together with a change of a note:
+  the first note of a file brings it, and the last note takes it away. Undo
+  removes the comment with the note. Opening a file never changes it.
+- A file without the comment, for example an older file, has notes too.
+- When the comment names a newer version of the format than the extension
+  knows, the extension changes no note of the file and says that you update
+  the extension.
+
 ### Footnotes in the preview
 
 The Markdown preview of VS Code shows no footnotes on its own. The extension

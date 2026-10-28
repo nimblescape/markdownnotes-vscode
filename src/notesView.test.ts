@@ -17,7 +17,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
 import { markdownModes, notesViewId, viewCommands } from './notesView';
-import { Fake, FakeEditor, FakePosition, FakeRange, FakeUri, type FakeView, settle } from './testing/fakeVscode';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -249,7 +249,7 @@ test('Answer, Reply and Add Note need the GitHub sign-in, and write the login an
 test('Delete and Delete Thread remove an answer and a note, and a missing note shows a message (R-EDIT-004)', async () => {
   const { document, view } = await start();
   await send(view, { type: 'deleteAnswer', id: '1', index: 0 });
-  expect(document.text).toBe('# Title\n\nThe text[^note-aaaa] of the page.\n\n[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n\nMore.\n');
+  expect(document.text).toBe(marked('# Title\n\nThe text[^note-aaaa] of the page.\n\n[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n\nMore.\n'));
   expect(view.state().threads[0].answers).toHaveLength(1);
   await send(view, { type: 'deleteNote', id: '1' });
   expect(document.text).toBe('# Title\n\nThe text of the page.\n\nMore.\n');

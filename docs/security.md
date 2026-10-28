@@ -25,7 +25,8 @@ links to its details.
 - **Markdown files.** The extension reads the text of the open Markdown
   files to find their notes. It changes the text of a file only when you
   save, add, answer or delete a note, and only the footnote of that note, its
-  reference and its start marker; the file then has unsaved changes, which you save as usual. See
+  reference, its start marker and the comment of the format at the top of the
+  file; the file then has unsaved changes, which you save as usual. See
   [Changes of a file](#changes-of-a-file).
 - **GitHub sign-in.** New notes and answers need a GitHub session of VS Code
   with the scope `read:user`. The extension reads only the name of the
@@ -177,6 +178,12 @@ web page, so the extension:
   or the word on the other side of the marker in the active text editor
   (`TextEditor.edit`); the keybindings apply only in a Markdown file, without
   a selection, while the cursor is next to a hidden marker.
+  The comment of the format at the top of a file with notes
+  (`src/notes/doctype.ts`) comes in the same edit as the change of a note:
+  the first note brings it, and the last note removes it. Its text is fixed
+  in the code; it holds the address of the specification, which the
+  extension never opens. A file whose comment names a newer version of the
+  format gets no change of a note.
   Undo in the text editor takes the edit back. The extension saves no file:
   the document has unsaved changes, unless you use the automatic save of
   VS Code.

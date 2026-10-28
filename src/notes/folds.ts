@@ -26,6 +26,7 @@
  * ([R-TEXT-007](../../docs/requirements.md#r-text-007)).
  */
 
+import { findDoctype } from './doctype';
 import type { Note } from './notes';
 import { displayDate } from './syntax';
 
@@ -35,7 +36,7 @@ export interface Fold {
   start: number;
   /** end is the index of the last line of the fold. */
   end: number;
-  /** notes are the notes of the fold, at least one. */
+  /** notes are the notes of the fold, at least one, or none for the fold of the comment of the format of the notes. */
   notes: Note[];
   /** hidesFirst tells whether the first line of the fold is the first line of a note, which the editor hides then. */
   hidesFirst: boolean;
@@ -78,6 +79,12 @@ export function foldsOf(lines: readonly string[], notes: readonly Note[]): Fold[
       folds.push({ start, end: endOf(lines, note, onText), notes: [note], hidesFirst: start === note.start.line });
     }
     previous = note;
+  }
+  // The comment of the format at the top of the file folds into its first line (R-NOTE-007).
+  const doctype = findDoctype(lines);
+  if (doctype && !folds.some((fold) => fold.start <= doctype.end && doctype.start <= fold.end)) {
+    folds.push({ start: doctype.start, end: doctype.end, notes: [], hidesFirst: false });
+    folds.sort((a, b) => a.start - b.start);
   }
   return folds.filter((fold) => fold.end > fold.start);
 }
