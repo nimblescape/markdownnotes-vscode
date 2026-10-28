@@ -32,11 +32,11 @@ the extension and in the Markdown preview.
 | 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | done |
 | 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
 | 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview, inline notes without breaks | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-NOTE-005](#r-note-005), [R-PREV-004](#r-prev-004), [R-PREV-005](#r-prev-005) | done |
-| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker | [R-TEXT-003](#r-text-003) to [R-TEXT-006](#r-text-006) | in progress: dimming, collapsed notes and markers done |
+| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered front matter | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | in progress: dimming, collapsed notes, markers and rendered front matter done |
 | 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | planned |
 | 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
 | 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | planned |
-| 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006) | planned |
+| 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done; the command that converts inline notes waits for the decision on the storage form (footnotes are under study) |
 
 ## General
 
@@ -358,6 +358,18 @@ the overview ruler of the editor, and at the thread in the side view
 ([R-SIDE-007](#r-side-007)). A note with a selection
 ([R-NOTE-006](#r-note-006)) has its marker at the first line of the
 selection, and while the note is open also at the first line of the note.
+
+### R-TEXT-007
+
+**Rendered front matter.** The extension writes the front matter of each
+answer itself, and the user does not edit it (Hannes, 2026-10-28). The text
+editor therefore shows each front matter as one rendered line with the author
+and the date, for example "hannes · 2026-10-28 10:15", never as its raw lines:
+the front matter has a fold of its own inside the fold of the note, which the
+extension collapses the first time it sees it in the active editor, also when
+the setting `collapseInEditor` is off. On the line of the cursor, the first
+line of the front matter shows as it is, and the arrow of the fold opens the
+front matter for a correction by hand.
 
 ### R-VIEW-001
 

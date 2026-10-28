@@ -29,6 +29,11 @@
  *   stands at the start and at the end of the selection, and a dot at a point
  *   `<!--[a1]-->`. On the line of the cursor the markers show as they are,
  *   dimmed, so that the cursor never moves through hidden text.
+ * - **Headers** ([R-TEXT-007](../docs/requirements.md#r-text-007)): the front
+ *   matter of each answer has a fold of its own, which the extension collapses
+ *   when it first sees it in the active editor. A collapsed front matter
+ *   shows as one rendered line with the author and the date, for example
+ *   `hannes · 2026-10-28 10:15`; on the line of the cursor it shows as it is.
  *
  * VS Code tells an extension which lines are folded only by the visible
  * ranges of the editor, which end at the first line of a collapsed fold and
@@ -37,7 +42,7 @@
 
 import * as vscode from 'vscode';
 import { colorIndexOf, colorOf, noteColors } from './notes/colors';
-import { type Fold, foldOf, foldsOf } from './notes/folds';
+import { type Fold, foldOf, foldsOf, type Header, headersOf } from './notes/folds';
 import type { Marker, Note, Position } from './notes/notes';
 import { isNoteDocument, type NoteThreads, rangeOf } from './noteThreads';
 import type { Settings } from './settings';
@@ -107,7 +112,7 @@ function edgeOf(marker: Marker, number: number): vscode.DecorationOptions {
  * @param editor - The text editor.
  * @param fold - The fold.
  */
-function isCollapsed(editor: vscode.TextEditor, fold: Fold): boolean {
+function isCollapsed(editor: vscode.TextEditor, fold: Pick<Fold, 'start' | 'end'>): boolean {
   const ranges = editor.visibleRanges;
   return ranges.some((range, index) => {
     const next = ranges[index + 1];
@@ -127,10 +132,14 @@ export class NoteEditor implements vscode.Disposable {
   private readonly edges = vscode.window.createTextEditorDecorationType({});
   /** faint dims the markers of the selections on the line of the cursor. */
   private readonly faint = vscode.window.createTextEditorDecorationType({ opacity: '0.45' });
+  /** headers shows the rendered header of a collapsed front matter in place of its first line. */
+  private readonly headers = vscode.window.createTextEditorDecorationType({});
   /** markers holds the decoration of the marker of each number of a note. */
   private readonly markers: vscode.TextEditorDecorationType[] = [];
   /** collapsed holds the documents whose notes the extension collapsed once, by their URIs. */
   private readonly collapsed = new Set<string>();
+  /** known holds the keys of the front matters that the extension saw in the active editor, by the URIs of their documents. */
+  private readonly known = new Map<string, Set<string>>();
 
   /**
    * @param threads - The threads of the notes, which read the notes of each document and tell their changes.
@@ -146,26 +155,42 @@ export class NoteEditor implements vscode.Disposable {
     const registrations = [
       vscode.languages.registerFoldingRangeProvider('markdown', {
         provideFoldingRanges: (document) =>
-          isNoteDocument(document) ? this.foldsIn(document).map((fold) => new vscode.FoldingRange(fold.start, fold.end, vscode.FoldingRangeKind.Comment)) : [],
+          isNoteDocument(document)
+            ? [
+                ...this.foldsIn(document).map((fold) => new vscode.FoldingRange(fold.start, fold.end, vscode.FoldingRangeKind.Comment)),
+                ...headersOf(this.notesIn(document)).map((header) => new vscode.FoldingRange(header.start, header.end)),
+              ]
+            : [],
       }),
       vscode.commands.registerCommand(editorCommands.collapseNote, (thread?: vscode.CommentThread) => this.collapseNote(thread)),
       vscode.commands.registerCommand(editorCommands.collapseAll, () => this.foldAll(true)),
       vscode.commands.registerCommand(editorCommands.expandAll, () => this.foldAll(false)),
       vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => this.decorate(editor))),
-      vscode.window.onDidChangeActiveTextEditor((editor) => this.collapseOnce(editor)),
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        this.collapseOnce(editor);
+        this.foldNewHeaders(editor);
+      }),
       vscode.window.onDidChangeTextEditorSelection((event) => this.decorate(event.textEditor)),
       vscode.window.onDidChangeTextEditorVisibleRanges((event) => this.decorate(event.textEditor)),
-      vscode.workspace.onDidCloseTextDocument((document) => this.collapsed.delete(document.uri.toString())),
+      vscode.workspace.onDidCloseTextDocument((document) => {
+        this.collapsed.delete(document.uri.toString());
+        this.known.delete(document.uri.toString());
+      }),
       this.threads.onDidChange((document) => {
         for (const editor of vscode.window.visibleTextEditors) {
           if (editor.document.uri.toString() === document.toString()) {
             this.decorate(editor);
           }
         }
+        const active = vscode.window.activeTextEditor;
+        if (active?.document.uri.toString() === document.toString()) {
+          this.foldNewHeaders(active);
+        }
       }),
     ];
     vscode.window.visibleTextEditors.forEach((editor) => this.decorate(editor));
     this.collapseOnce(vscode.window.activeTextEditor);
+    this.foldNewHeaders(vscode.window.activeTextEditor);
     return registrations;
   }
 
@@ -256,6 +281,19 @@ export class NoteEditor implements vscode.Disposable {
       }
     });
     this.highlights.forEach((highlight, index) => editor.setDecorations(highlight, highlighted[index]));
+    const headers: vscode.DecorationOptions[] = [];
+    for (const header of headersOf(notes)) {
+      if (header.start !== cursor.line && isCollapsed(editor, header)) {
+        const line = document.lineAt(header.start);
+        const fence = line.text.indexOf('---');
+        hidden.push(new vscode.Range(header.start, fence, header.start, line.text.length));
+        headers.push({
+          range: new vscode.Range(header.start, fence, header.start, fence),
+          renderOptions: { before: { contentText: header.text, color: new vscode.ThemeColor('descriptionForeground'), fontStyle: 'italic' } },
+        });
+      }
+    }
+    editor.setDecorations(this.headers, headers);
     editor.setDecorations(this.hidden, hidden);
     editor.setDecorations(this.edges, edges);
     editor.setDecorations(this.faint, faint);
@@ -266,7 +304,7 @@ export class NoteEditor implements vscode.Disposable {
    * @param folds - The folds.
    * @param collapse - Whether to collapse them.
    */
-  private async fold(folds: readonly Fold[], collapse: boolean): Promise<void> {
+  private async fold(folds: readonly Pick<Fold, 'start'>[], collapse: boolean): Promise<void> {
     if (folds.length > 0) {
       await vscode.commands.executeCommand(collapse ? 'editor.fold' : 'editor.unfold', { levels: 1, direction: 'down', selectionLines: folds.map((fold) => fold.start) });
     }
@@ -289,6 +327,25 @@ export class NoteEditor implements vscode.Disposable {
     if (this.settingsOf(editor.document.uri).collapseInEditor) {
       void this.fold(this.foldsIn(editor.document), true);
     }
+  }
+
+  /**
+   * foldNewHeaders collapses the front matters of the active editor that the extension has not seen there before,
+   * except the one with the cursor, so that the user can edit a front matter that is open. It also collapses them when
+   * the setting collapseInEditor is off, because a front matter shows as its rendered header.
+   * @param editor - The active text editor, or undefined.
+   */
+  private foldNewHeaders(editor: vscode.TextEditor | undefined): void {
+    if (!editor || editor !== vscode.window.activeTextEditor || !isNoteDocument(editor.document)) {
+      return;
+    }
+    const key = editor.document.uri.toString();
+    const known = this.known.get(key) ?? new Set<string>();
+    const headers: Header[] = headersOf(this.notesIn(editor.document));
+    const cursor = editor.selection.active.line;
+    const fresh = headers.filter((header) => !known.has(header.key) && (cursor < header.start || cursor > header.end));
+    this.known.set(key, new Set(headers.map((header) => header.key)));
+    void this.fold(fresh, true);
   }
 
   /**
@@ -326,7 +383,7 @@ export class NoteEditor implements vscode.Disposable {
 
   /** dispose removes the decorations. */
   dispose(): void {
-    for (const decoration of [this.dimmed, this.hidden, this.edges, this.faint, ...this.highlights, ...this.markers]) {
+    for (const decoration of [this.dimmed, this.hidden, this.edges, this.faint, this.headers, ...this.highlights, ...this.markers]) {
       decoration.dispose();
     }
   }

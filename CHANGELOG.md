@@ -30,6 +30,8 @@ The first version.
   mail links with the system, files in VS Code at a line or a heading. The
   view is in the secondary side bar, and the button "Show or Hide Notes" in
   the title of the Markdown editors opens and closes it, also in Zen Mode.
+- The text editor shows the front matter of each answer as one rendered line
+  with the author and the date, for example "hannes · 2026-10-28 10:15".
 - Notes on a selection: a note can belong to an exact passage of the text,
   with two hidden markers `<!--[a1-->` and `<!--a1]-->` around the passage
   and `selection: a1` in its front matter, or to a point `<!--[a1]-->`. The

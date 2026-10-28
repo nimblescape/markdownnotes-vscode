@@ -8,13 +8,14 @@
  * ([src/testing/fakeVscode.ts](testing/fakeVscode.ts)): the dimming after the
  * cursor (R-TEXT-003), the collapse of the notes the first time a file is in
  * the active editor and the commands of the folds (R-TEXT-005), the
- * markers in the left margin (R-TEXT-006), and the highlight and the hidden
- * markers of the selections (R-NOTE-006).
+ * markers in the left margin (R-TEXT-006), the highlight and the hidden
+ * markers of the selections (R-NOTE-006), and the rendered front matters
+ * (R-TEXT-007).
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { colorOf, editorCommands, markerImage, noteColors } from './noteEditor';
-import { Fake, FakeEditor, FakePosition, FakeRange } from './testing/fakeVscode';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeThemeColor, FakeWorkspaceEdit } from './testing/fakeVscode';
 
 // The static import of the module reads only its constants; each test imports the extension with a new fake of the
 // editor API.
@@ -56,6 +57,17 @@ const typesOf = (editor: FakeEditor, option: string): DecorationType[] =>
  * @param editor - The editor.
  */
 const markerLines = (editor: FakeEditor): (number | undefined)[] => typesOf(editor, 'gutterIconPath').map((type) => editor.linesOf(type)[0]);
+
+/** Attachment is a decoration with a `before` attachment of its own. */
+type Attachment = { range: FakeRange; renderOptions: { before: Record<string, unknown> } };
+
+/**
+ * attachmentType returns the decoration type of an editor whose decorations have attachments that a test accepts.
+ * @param editor - The editor.
+ * @param accepts - Tells whether an attachment is of the type.
+ */
+const attachmentType = (editor: FakeEditor, accepts: (before: Record<string, unknown>) => boolean): object =>
+  [...editor.decorations.entries()].find(([, items]) => items.length > 0 && items.every((item) => 'renderOptions' in item && accepts((item as Attachment).renderOptions.before)))![0];
 
 /**
  * start opens the text in the active editor with the cursor at a line and activates the extension.
@@ -153,10 +165,10 @@ test('a selection has a highlight in the color of its note, and its markers vani
   expect(editor.decorations.get(second)).toEqual([]);
   const [hidden] = typesOf(editor, 'textDecoration');
   const [, faint] = typesOf(editor, 'opacity');
-  const edges = [...editor.decorations.keys()].find((type) => Object.keys((type as DecorationType).options).length === 0)!;
+  const edges = attachmentType(editor, (before) => before.contentText === '' || before.contentText === '●');
   expect(editor.decorations.get(hidden)).toEqual([new FakeRange(0, 11, 0, 21), new FakeRange(0, 36, 0, 46), new FakeRange(8, 8, 8, 19)]);
   expect(editor.decorations.get(faint)).toEqual([]);
-  const shown = editor.decorations.get(edges) as { range: FakeRange; renderOptions: { before: Record<string, string> } }[];
+  const shown = editor.decorations.get(edges) as Attachment[];
   expect(shown.map(({ range }) => range)).toEqual([new FakeRange(0, 21, 0, 21), new FakeRange(0, 36, 0, 36), new FakeRange(8, 8, 8, 8)]);
   expect(shown.map(({ renderOptions }) => renderOptions.before)).toEqual([
     expect.objectContaining({ contentText: '', width: '2px', backgroundColor: colorOf(1) }),
@@ -178,4 +190,40 @@ test('a selection has a highlight in the color of its note, and its markers vani
   expect(editor.decorations.get(faint)).toEqual([new FakeRange(0, 11, 0, 21), new FakeRange(0, 36, 0, 46)]);
   expect(editor.decorations.get(hidden)).toEqual([new FakeRange(8, 8, 8, 19)]);
   expect(editor.linesOf(edges)).toEqual([8]);
+});
+
+test('each front matter collapses into one rendered line with the author and the date, except on the line of the cursor (R-TEXT-007)', async () => {
+  const content = 'Intro.\n\n<!-- note\n---\nauthor: hannes\ndate: 2026-10-28T10:15+01:00\n---\nFirst\n---\nauthor: anna\n---\nSecond\n-->\n\nEnd.\n';
+  fake.settings.set('', { collapseInEditor: false });
+  const editor = await start(14, content);
+  // The front matters collapse also when the notes stay open.
+  expect(fake.calls).toEqual([{ command: 'editor.fold', args: [{ levels: 1, direction: 'down', selectionLines: [3, 8] }] }]);
+  editor.visibleRanges = [new FakeRange(0, 0, 3, 3), new FakeRange(7, 0, 8, 3), new FakeRange(11, 0, 15, 0)];
+  fake.fire('visibleRanges', { textEditor: editor });
+  const headers = attachmentType(editor, (before) => before.fontStyle === 'italic');
+  const rendered = () => (editor.decorations.get(headers) as Attachment[]).map(({ range, renderOptions }) => [range.start.line, renderOptions.before.contentText]);
+  expect(rendered()).toEqual([
+    [3, 'hannes · 2026-10-28 10:15'],
+    [8, 'anna'],
+  ]);
+  expect((editor.decorations.get(headers) as Attachment[])[0].renderOptions.before.color).toEqual(new FakeThemeColor('descriptionForeground'));
+  const [hidden] = typesOf(editor, 'textDecoration');
+  expect(editor.decorations.get(hidden)).toEqual([new FakeRange(3, 0, 3, 3), new FakeRange(8, 0, 8, 3)]);
+  // On the line of the cursor the first line of the front matter shows as it is.
+  editor.selection = { active: new FakePosition(8, 1) };
+  fake.fire('selection', { textEditor: editor });
+  expect(rendered()).toEqual([[3, 'hannes · 2026-10-28 10:15']]);
+  expect(editor.decorations.get(hidden)).toEqual([new FakeRange(3, 0, 3, 3)]);
+});
+
+test('a new front matter collapses when it appears, and a front matter that the user opened stays open (R-TEXT-007)', async () => {
+  fake.settings.set('', { collapseInEditor: false });
+  const editor = await start(0, 'Intro.\n\n<!-- note\n---\nauthor: hannes\n---\nFirst\n-->\n');
+  expect(fake.calls.map(({ args }) => (args[0] as { selectionLines: number[] }).selectionLines)).toEqual([[3]]);
+  // An answer adds a front matter; the first one stays as the user left it.
+  const edit = new FakeWorkspaceEdit();
+  edit.replace(editor.document.uri, new FakeRange(7, 0, 7, 0), '---\nauthor: anna\n---\nSecond\n');
+  await fake.applyEdit(edit);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(fake.calls.map(({ args }) => (args[0] as { selectionLines: number[] }).selectionLines)).toEqual([[3], [7]]);
 });

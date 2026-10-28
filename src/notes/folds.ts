@@ -22,9 +22,14 @@
  * line of the text of a paragraph, or else on the first blank line before the
  * note, or on the first line of the note itself. The module uses no API of
  * VS Code.
+ *
+ * The front matter of each answer has a fold of its own inside the fold of
+ * the note: while it is collapsed, the editor shows its first line as one
+ * rendered line with the author and the date (Hannes, 2026-10-28).
  */
 
 import type { Note } from './notes';
+import { type Answer, displayDate } from './syntax';
 
 /** Fold is the lines that one or more collapsed notes fold into the first of them. */
 export interface Fold {
@@ -116,3 +121,45 @@ function endOf(lines: readonly string[], note: Note, onText: boolean): number {
  * @param note - The note.
  */
 export const foldOf = (folds: readonly Fold[], note: Note): Fold | undefined => folds.find((fold) => fold.notes.includes(note));
+
+/** Header is the front matter of one answer, which folds into its first line, the rendered header of the answer. */
+export interface Header {
+  /** start is the index of the line of the opening `---`. */
+  start: number;
+  /** end is the index of the line of the closing `---`. */
+  end: number;
+  /** text is the rendered header: the author and the date of the answer. */
+  text: string;
+  /** key tells the header apart from the other headers of the text, also after lines before it changed. */
+  key: string;
+}
+
+/**
+ * headerText returns the rendered header of an answer: its author and its date, for example `hannes · 2026-10-28 10:15`.
+ * @param answer - The answer.
+ */
+export const headerText = (answer: Answer): string => [answer.author, answer.date && displayDate(answer.date)].filter(Boolean).join(' · ') || 'Note';
+
+/**
+ * headersOf returns the front matters of the answers of the notes of a text. A note that holds another comment has
+ * none, because its answers are uncertain.
+ * @param notes - The notes of the text, in the order of the text.
+ */
+export function headersOf(notes: readonly Note[]): Header[] {
+  const seen = new Map<string, number>();
+  return notes.flatMap((note) =>
+    note.nested
+      ? []
+      : note.answers.flatMap((answer) => {
+          const lines = answer.frontMatter?.lines;
+          if (!lines || lines.length < 2) {
+            return [];
+          }
+          const content = lines.join('\n');
+          const count = (seen.get(content) ?? 0) + 1;
+          seen.set(content, count);
+          const start = note.start.line + answer.start;
+          return [{ start, end: start + lines.length - 1, text: headerText(answer), key: `${content}#${count}` }];
+        }),
+  );
+}

@@ -410,10 +410,11 @@ test('a note that holds the start of another comment gets a warning (R-NOTE-003)
   expect(fake.diagnostics.get(document.uri.toString())).toMatchObject([{ range: new FakeRange(0, 0, 2, 3), severity: 1, source: 'Markdown Notes' }]);
 });
 
-test('the editor folds each note on lines of its own into the line before it, and no note in the text of a line (R-TEXT-005)', async () => {
+test('the editor folds each note on lines of its own into the line before it, no note in the text of a line, and each front matter (R-TEXT-005, R-TEXT-007)', async () => {
   const document = fake.open(`${note}\nA sentence <!-- note inline\nInline\n--> end.\n`);
   await fake.activate();
   // The heading keeps the fold of the Markdown extension, so the fold of the note starts on the blank line after it,
-  // and takes the blank line after the note, so that one blank line stays between the heading and the text.
-  expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(1, 14, 1)]);
+  // and takes the blank line after the note, so that one blank line stays between the heading and the text. The front
+  // matter of each answer has a fold of its own inside it.
+  expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(1, 14, 1), new FakeFoldingRange(3, 6), new FakeFoldingRange(8, 11)]);
 });

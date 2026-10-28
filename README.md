@@ -53,6 +53,8 @@ describes each step and where its protection ends.
   so that each note vanishes and an inline note leaves no paragraph break. A
   numbered marker in the color of the note stays in the left margin, where
   VS Code shows its comment markers; its folding arrow opens the note.
+- **Rendered front matter.** In an open note, the front matter of each answer
+  shows as one rendered line, for example "hannes · 2026-10-28 10:15".
 - **Edit, answer, delete.** "Edit" turns an answer into an editor of
   Markdown, and "Save" writes the text back into the comment. The reply field
   of a box adds an answer. "Delete" removes an answer, and "Delete Thread"

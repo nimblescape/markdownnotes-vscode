@@ -122,8 +122,13 @@ export class FakeFoldingRange {
   constructor(
     readonly start: number,
     readonly end: number,
-    readonly kind: number,
+    readonly kind?: number,
   ) {}
+}
+
+/** FakeThemeColor stands for a vscode.ThemeColor. */
+export class FakeThemeColor {
+  constructor(readonly id: string) {}
 }
 
 /** FakeComment is the part of a vscode.Comment that the tests read and that VS Code writes. */
@@ -339,6 +344,7 @@ export class Fake {
       WorkspaceEdit: FakeWorkspaceEdit,
       Diagnostic: FakeDiagnostic,
       FoldingRange: FakeFoldingRange,
+      ThemeColor: FakeThemeColor,
       CommentMode: { Editing: 0, Preview: 1 },
       CommentThreadCollapsibleState: { Collapsed: 0, Expanded: 1 },
       DiagnosticSeverity: { Error: 0, Warning: 1 },

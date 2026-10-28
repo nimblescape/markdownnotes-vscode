@@ -28,6 +28,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [GitHub sign-in](#github-sign-in) | VS Code | available | [R-GEN-006](requirements.md#r-gen-006) |
 | [Boxes of the notes](#notes-in-the-text-editor) | text editor | available | [R-TEXT-001](requirements.md#r-text-001), [R-TEXT-002](requirements.md#r-text-002) |
 | [Collapsed notes with markers](#collapsed-notes) | text editor | available | [R-TEXT-005](requirements.md#r-text-005), [R-TEXT-006](requirements.md#r-text-006) |
+| [Rendered front matter](#rendered-front-matter) | text editor | available | [R-TEXT-007](requirements.md#r-text-007) |
 | [Dimmed source](#dimmed-source) | text editor | available | [R-TEXT-003](requirements.md#r-text-003) |
 | [List of the notes](#comments-view) | Comments view | available | [R-VIEW-001](requirements.md#r-view-001) |
 | [Side view "Notes"](#side-view-notes) | secondary side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-003](requirements.md#r-side-003), [R-SIDE-005](requirements.md#r-side-005), [R-SIDE-006](requirements.md#r-side-006) |
@@ -313,6 +314,21 @@ color. The folding arrow next to the marker opens the note again.
 The boxes follow the text: when you type, each box moves with its note after a
 short pause, and an open box stays open. A box goes away when you remove its
 note from the text.
+
+### Rendered front matter
+
+The extension writes the front matter of each answer itself, with the author,
+the date and the ID of a selection, and you do not need to edit it. When a
+note is open in the text editor, each front matter therefore shows as one
+rendered line in italics, for example "hannes · 2026-10-28 10:15", and not as
+its lines of YAML:
+
+- The front matter folds into its first line, also when the setting
+  `nimblescape.markdownNotes.collapseInEditor` keeps the notes open. A front
+  matter that a new note or a new answer adds folds in the same way.
+- On the line of the cursor, the line shows as it is (`---`). The folding
+  arrow next to the line opens the front matter, for a correction by hand; it
+  stays open until you close and open the file again.
 
 ### Dimmed source
 

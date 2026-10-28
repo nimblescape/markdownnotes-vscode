@@ -19,7 +19,7 @@ describes its security model.
 | `src/notes/colors.ts` | The color of each number of a note, which the text editor, the preview and the side view share. It uses no API of VS Code. |
 | `src/notes/edits.ts` | The edits of the text when an answer is saved, added or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected answers. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the warning at a nested note, and the operations that the side view uses too. |
-| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", the numbered markers in the left margin and the overview ruler, and the highlight and the hidden markers of the selections. |
+| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", the numbered markers in the left margin and the overview ruler, the highlight and the hidden markers of the selections, and the rendered front matters. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes without a paragraph break. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, the actions of its script, and the commands "Hide Notes" and "Show or Hide Notes". |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
@@ -265,6 +265,14 @@ extensions of Markdown stay as they are
   the cursor never moves through hidden text. The thread of a note with a
   selection has the selection as its range; VS Code gives the `+` on
   selected text the exact characters of the selection.
+- **Headers** ([R-TEXT-007](docs/requirements.md#r-text-007)): `headersOf` in
+  `src/notes/folds.ts` gives a fold for the front matter of each answer, which
+  the folding range provider returns without a kind, inside the fold of the
+  note. `foldNewHeaders` collapses each front matter that the extension has
+  not seen in the active editor before, by a key of its text, except the one
+  with the cursor; so a front matter that the user opened stays open. A
+  collapsed front matter gets the hidden decoration on its `---` and a
+  `before` attachment with the author and the date.
 
 The operations `saveAnswer`, `answer`, `addNote`, `deleteAnswer` and
 `deleteNote` of `NoteThreads` write the changes for the boxes and for the side
