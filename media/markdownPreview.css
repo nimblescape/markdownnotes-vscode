@@ -1,0 +1,76 @@
+/*
+ * SPDX-License-Identifier: MIT
+ * © 2026 Hannes Stauss (scalarion@nimblescape.com)
+ * Licensed under the MIT License. See LICENSE in the repository root for details.
+ */
+
+/*
+ * The styles of the callouts of the notes in the built-in Markdown preview
+ * (R-PREV-001, R-PREV-002). They apply to the elements of the extension only,
+ * so the rest of the preview keeps its look. The colors come from the theme of
+ * VS Code; each one has a fallback for a page without the variables of the
+ * theme, such as the HTML that another extension exports from the preview.
+ *
+ * A callout is a box with a colored bar at its left side, a header with the
+ * number of an inline note, the author and the date, and the body of the note.
+ * The number of an inline note also shows in its text, as a small badge.
+ */
+
+.nimblescape-note {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid var(--vscode-editorInfo-foreground, #3794ff);
+  border-radius: 0 4px 4px 0;
+  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1));
+}
+
+.nimblescape-note-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5em;
+  margin-bottom: 0.25em;
+  color: var(--vscode-descriptionForeground, inherit);
+  font-size: 0.9em;
+}
+
+.nimblescape-note-author {
+  color: var(--vscode-foreground, inherit);
+  font-weight: 600;
+}
+
+.nimblescape-note-number {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 0.4em;
+  border-radius: 0.75em;
+  background: var(--vscode-badge-background, #616161);
+  color: var(--vscode-badge-foreground, #ffffff);
+  font-size: 0.8em;
+  font-weight: 600;
+  line-height: 1.5em;
+  text-align: center;
+}
+
+/* The number of an inline note in its text: a badge that does not change the height of the line. */
+.nimblescape-note-reference {
+  margin-left: 0.15em;
+  line-height: 0;
+}
+
+.nimblescape-note-body > :first-child {
+  margin-top: 0;
+}
+
+.nimblescape-note-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* A note that holds the start of another comment: the message, and the text of the note as it is. */
+.nimblescape-note-problem {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.nimblescape-note-text {
+  white-space: pre-wrap;
+}

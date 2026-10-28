@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+# © 2026 Hannes Stauss (scalarion@nimblescape.com)
+# Licensed under the MIT License. See LICENSE in the repository root for details.
+
+# Keep the installed development tools, the bundle, the built tests, the
+# downloaded VS Code and the built packages out of Git.
+node_modules/
+dist/
+out/
+.vscode-test/
+*.vsix

@@ -1,0 +1,211 @@
+{
+  "name": "nimblescape-markdown-note",
+  "displayName": "nimblescape Markdown Note",
+  "description": "Notes in Markdown files, written as HTML comments: the text editor shows each note in a box with its author and date that edits the note as Markdown, the Comments view lists the notes, and the Markdown preview shows them as callouts. Every change of a note goes back into the comment in the file.",
+  "publisher": "nimblescape",
+  "author": {
+    "name": "nimblescape e.U.",
+    "url": "https://nimblescape.com"
+  },
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "notes",
+    "comments",
+    "callout",
+    "review"
+  ],
+  "license": "MIT",
+  "homepage": "https://nimblescape.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimblescape/nimblescape-markdown-note.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nimblescape/nimblescape-markdown-note/issues"
+  },
+  "pricing": "Free",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#e8eef6",
+    "theme": "light"
+  },
+  "preview": true,
+  "qna": "https://github.com/nimblescape/nimblescape-markdown-note/issues",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:vscode": "node esbuild.mjs && node scripts/build-vscode-tests.mjs && vscode-test --label vscode",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package": "vsce package --no-dependencies",
+    "install-local": "node scripts/install-local.mjs",
+    "uninstall-local": "node scripts/uninstall-local.mjs"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.2.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.19.2",
+    "@types/vscode": "~1.125.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "markdown-it": "^14.3.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "The extension reads the notes of open Markdown files and changes a file only when you add, edit or delete a note. It runs no program of the workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./media/markdownPreview.css"
+    ],
+    "commands": [
+      {
+        "command": "nimblescape.markdownNote.addNote",
+        "title": "Add Note",
+        "category": "Markdown Note"
+      },
+      {
+        "command": "nimblescape.markdownNote.discardNewNote",
+        "title": "Cancel",
+        "category": "Markdown Note"
+      },
+      {
+        "command": "nimblescape.markdownNote.editNote",
+        "title": "Edit Note",
+        "category": "Markdown Note",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "nimblescape.markdownNote.deleteNote",
+        "title": "Delete Note",
+        "category": "Markdown Note",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "nimblescape.markdownNote.saveNote",
+        "title": "Save",
+        "category": "Markdown Note"
+      },
+      {
+        "command": "nimblescape.markdownNote.cancelEdit",
+        "title": "Cancel",
+        "category": "Markdown Note"
+      }
+    ],
+    "menus": {
+      "comments/commentThread/context": [
+        {
+          "command": "nimblescape.markdownNote.addNote",
+          "group": "inline@1",
+          "when": "commentController == nimblescape.markdownNote && commentThreadIsEmpty"
+        },
+        {
+          "command": "nimblescape.markdownNote.discardNewNote",
+          "group": "inline@2",
+          "when": "commentController == nimblescape.markdownNote && commentThreadIsEmpty"
+        }
+      ],
+      "comments/comment/title": [
+        {
+          "command": "nimblescape.markdownNote.editNote",
+          "group": "inline@1",
+          "when": "commentController == nimblescape.markdownNote && comment == nimblescape.markdownNote.note"
+        },
+        {
+          "command": "nimblescape.markdownNote.deleteNote",
+          "group": "inline@2",
+          "when": "commentController == nimblescape.markdownNote && comment == nimblescape.markdownNote.note"
+        }
+      ],
+      "comments/comment/context": [
+        {
+          "command": "nimblescape.markdownNote.saveNote",
+          "group": "inline@1",
+          "when": "commentController == nimblescape.markdownNote"
+        },
+        {
+          "command": "nimblescape.markdownNote.cancelEdit",
+          "group": "inline@2",
+          "when": "commentController == nimblescape.markdownNote"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nimblescape.markdownNote.addNote",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNote.discardNewNote",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNote.editNote",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNote.deleteNote",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNote.saveNote",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNote.cancelEdit",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "nimblescape Markdown Note",
+      "properties": {
+        "nimblescape.markdownNote.author": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The author that a new note names in its front matter (`author:`). When the value is empty, the extension takes `user.name` of the Git configuration of the file; without one, a new note names no author. A note that exists keeps its author."
+        },
+        "nimblescape.markdownNote.expandInEditor": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "markdownDescription": "Open the box of each note in the text editor when the file opens. The value `false` shows only a mark at the line of each note; a click on the mark opens the box."
+        },
+        "nimblescape.markdownNote.showInPreview": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Show the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension, without the notes."
+        }
+      }
+    }
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "@vscode/vsce-sign": true,
+    "fsevents": false
+  }
+}
