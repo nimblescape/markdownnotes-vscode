@@ -373,8 +373,14 @@ core rule `nimblescape_notes` after the rules of markdown-it:
   callout is a `div` with the class `nimblescape-note`, `role="note"`, the
   attribute `hidden`, and one part for each answer with the author, the date
   and the body, which the plugin parses with the same markdown-it instance
-  and the same environment as the document, so that the plugins of the
-  preview apply to it.
+  as the document, so that the plugins of the preview apply to it. The
+  environment of a body is a copy of the environment of the document without
+  `footnotes`, so that markdown-it-footnote gives each body its own footnotes;
+  the render rules give each body the `docId` `<ID of the note>-<number of the
+  answer>`, the prefix of the IDs of its footnotes. A body renders with the
+  method `render` of the class of the renderer, because a plugin can wrap the
+  method of the renderer to frame the page, as the GitHub styles of Matt
+  Bierner do.
 - The icon is a link `vscode://nimblescape.nimblescape-markdown-notes/open`
   with the document and the line of the note
   ([R-PREV-003](docs/requirements.md#r-prev-003)), and names its callout with
@@ -401,7 +407,19 @@ color, and the icon of the note after the end. The script highlights each
 selection with the CSS Custom Highlight API (`CSS.highlights`, one highlight
 `nimblescape-note-N` for each color and a stronger one while the callout of
 the note shows), which changes no element of the page; a browser without the
-API shows no highlight.
+API shows no highlight. The preview loads the scripts of the extensions with
+`async` and adds its content to the page with a script of its own when the
+page is parsed, so the script highlights at its start, at `DOMContentLoaded`
+and at `load`.
+
+`src/markdown/compatibility.test.ts` renders the notes together with the
+markdown-it plugins of other Markdown extensions
+([R-GEN-007](docs/requirements.md#r-gen-007)), in both orders of the plugins:
+markdown-it-footnote, markdown-it-emoji and markdown-it-task-lists, which are
+development dependencies in the major versions of the extensions of Matt
+Bierner, and stand-ins for the fences of Mermaid and the frame of the GitHub
+styles. `src/testing/markdownItPlugins.d.ts` declares the types of the three
+packages, which have none.
 
 The preview gives every token with lines the attribute `data-line` and the
 class `code-line` after the plugins of the extensions, for the scrolling with

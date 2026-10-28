@@ -561,6 +561,13 @@ preview for the notes.
   in a Git diff, shows no boxes; the preview shows its icons.
 - The box of a note shows the HTML of its body only as far as the comments of
   VS Code allow it; the preview and the side view show more of it.
+- A note ends at the first `-->`, so a Mermaid diagram in a note cannot use
+  the arrow `-->`; use `==>` or `-.->`.
+- A note has its own footnotes. A reference in a note to a footnote of the
+  document, for example `[^1]`, stays text.
+- VS Code 1.143 draws Mermaid diagrams in the preview itself. When the
+  extension "Markdown Preview Mermaid Support" is also active, the preview
+  draws no diagram; this happens also without this extension.
 
 ---
 

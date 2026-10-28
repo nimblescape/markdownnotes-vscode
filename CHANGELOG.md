@@ -52,6 +52,10 @@ The first version.
   the notes.
 - A note must not contain another comment: the extension refuses such a text
   and warns at such a note in the file.
+- The notes work together with the Markdown extensions of other publishers,
+  for example the extensions of Matt Bierner for Mermaid diagrams, emoji,
+  footnotes, checkboxes and the GitHub styles: in the text and in the
+  callouts. Each note has its own footnotes.
 - The settings `nimblescape.markdownNotes.collapseInEditor`,
   `nimblescape.markdownNotes.expandInEditor` and
   `nimblescape.markdownNotes.showInPreview`.

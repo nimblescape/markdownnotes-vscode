@@ -35,7 +35,7 @@ the extension and in the Markdown preview.
 | 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered front matter | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | in progress: dimming, collapsed notes, markers and rendered front matter done |
 | 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
 | 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
-| 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | planned |
+| 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | done |
 | 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done; the command that converts inline notes waits for the decision on the storage form (footnotes are under study) |
 
 ## General
@@ -115,6 +115,16 @@ preview. The extension adds:
   plugins;
 - styles and a script of the preview that apply only to its own elements;
 - the side view ([R-SIDE-001](#r-side-001)).
+
+The tests render the notes together with the markdown-it plugins of these
+extensions, in both orders of the plugins: markdown-it-footnote,
+markdown-it-emoji and markdown-it-task-lists in the major versions of the
+extensions, the fences of Mermaid, and the frame of the GitHub styles around
+the page. The body of a note is a Markdown text of its own: it has its own
+footnotes, with IDs of their own, and gets no frame of the page. A check in
+VS Code 1.143 with the five extensions of Matt Bierner showed the emoji, the
+footnotes, the checkboxes, a Mermaid diagram and the GitHub styles in the
+text and in the callouts.
 
 ## Notes
 

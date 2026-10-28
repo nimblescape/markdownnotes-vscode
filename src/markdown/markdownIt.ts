@@ -36,7 +36,7 @@
  */
 
 import type MarkdownIt from 'markdown-it';
-import type { StateCore, Token } from 'markdown-it';
+import type { Options, Renderer, StateCore, Token } from 'markdown-it';
 import { colorIndexOf } from '../notes/colors';
 import { addNoteRules, inlineParents } from '../notes/notes';
 import {
@@ -121,8 +121,8 @@ const counts = new WeakMap<object, number>();
 const noEnvironment = {};
 
 /**
- * nextId returns a new ID of a callout of a parsing. The parsing of the bodies shares the environment, so each ID is
- * unique in the page.
+ * nextId returns a new ID of a callout of a parsing. The IDs count for each environment of a parsing, and a body holds
+ * no note, so each ID is unique in the page.
  * @param env - The environment of the parsing.
  */
 function nextId(env: unknown): string {
@@ -156,15 +156,20 @@ function hideLines(tokens: readonly Token[]): void {
  * @param state - The state of the core rule.
  * @param note - The content of the comment.
  * @param line - The index of the first line of the note in the document.
+ * @param number - The number of the note, from 1.
  */
 function noteMeta(state: StateCore, note: NoteText, line: number, number: number): NoteMeta {
+  // Each body is a Markdown text of its own (R-TEXT-004). It has the environment of the document, for example the
+  // document of the preview, except the footnotes of markdown-it-footnote (the plugin of the extension Markdown
+  // Footnotes): with them, the last core rule of that plugin would add the list of the footnotes of the document, or
+  // of an answer before, to the body. So each body has only its own footnotes (R-GEN-007).
   // A note that holds the start of another comment shows its text as it is: as Markdown, that start would open an
   // HTML comment in the page and hide the rest of the page.
   const bodies = note.answers.map((answer) => {
     if (note.nested || answer.body === '') {
       return [];
     }
-    const tokens = state.md.parse(answer.body, state.env);
+    const tokens = state.md.parse(answer.body, { ...(state.env as object), footnotes: undefined });
     hideLines(tokens);
     return tokens;
   });
@@ -512,9 +517,9 @@ function iconHtml(md: MarkdownIt, meta: NoteMeta, link: string | undefined): str
  * calloutHtml returns the HTML of the hidden callout of a note: each answer with its header and its body.
  * @param md - The markdown-it instance.
  * @param meta - The meta of the note.
- * @param render - Renders the tokens of a body.
+ * @param render - Renders the tokens of the body of the answer with the index.
  */
-function calloutHtml(md: MarkdownIt, meta: NoteMeta, render: (tokens: Token[]) => string): string {
+function calloutHtml(md: MarkdownIt, meta: NoteMeta, render: (tokens: Token[], index: number) => string): string {
   const escape = md.utils.escapeHtml;
   const problem = meta.note.nested
     ? `<p class="${noteClass}-problem">This note contains the start of another comment, <code>&lt;!--</code>, and shows its text as it is.</p>\n`
@@ -526,10 +531,30 @@ function calloutHtml(md: MarkdownIt, meta: NoteMeta, render: (tokens: Token[]) =
       `<span class="${noteClass}-author">${escape(author || 'Note')}</span>`,
       date ? `<time class="${noteClass}-date" datetime="${escape(date)}">${escape(displayDate(date))}</time>` : '',
     ].join('');
-    const body = meta.note.nested ? `<pre class="${noteClass}-text">${escape(answer.body)}</pre>\n` : render(meta.bodies[index]);
+    const body = meta.note.nested ? `<pre class="${noteClass}-text">${escape(answer.body)}</pre>\n` : render(meta.bodies[index], index);
     return `<div class="${noteClass}-answer">\n<div class="${noteClass}-header">${header}</div>\n<div class="${noteClass}-body">\n${body}</div>\n</div>\n`;
   });
   return `<div class="${noteClass} ${colorClassOf(meta.number)}" id="${meta.id}" role="note" aria-label="${escape(labelOf(meta))}" hidden>\n${problem}${answers.join('')}</div>\n`;
+}
+
+/**
+ * renderBody renders the tokens of the body of an answer with the rules of the renderer (R-GEN-007).
+ *
+ * It calls the method `render` of the class of the renderer, not the method of the renderer itself: a plugin can wrap
+ * the method of the renderer to frame the whole page, as the extension "Markdown Preview Github Styling" does, and a
+ * body is no page. The footnotes of the body get the ID of the note and the number of the answer as the prefix of
+ * their IDs (`docId` of markdown-it-footnote), so that they differ from the footnotes of the document, of the other
+ * notes and of the other answers.
+ * @param renderer - The renderer of the page.
+ * @param tokens - The tokens of the body.
+ * @param options - The options of the renderer.
+ * @param env - The environment of the page.
+ * @param meta - The meta of the note.
+ * @param answer - The index of the answer.
+ */
+function renderBody(renderer: Renderer, tokens: Token[], options: Options, env: unknown, meta: NoteMeta, answer: number): string {
+  const render = (Object.getPrototypeOf(renderer) as Renderer).render;
+  return render.call(renderer, tokens, options, { ...(env as object), docId: `${meta.id}-${answer + 1}` });
 }
 
 /**
@@ -553,14 +578,16 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
     const meta = tokens[index].meta as EdgeMeta;
     return shows(env) ? `<span class="${noteClass}-edge" data-selection="${meta.id}" data-edge="${meta.edge}" data-color="${colorIndexOf(meta.number) + 1}"></span>` : '';
   };
-  md.renderer.rules[calloutTokenType] = (tokens, index, rendererOptions, env, self) =>
-    shows(env) ? calloutHtml(md, tokens[index].meta as NoteMeta, (body) => self.render(body, rendererOptions, env)) : '';
+  md.renderer.rules[calloutTokenType] = (tokens, index, rendererOptions, env, self) => {
+    const meta = tokens[index].meta as NoteMeta;
+    return shows(env) ? calloutHtml(md, meta, (body, answer) => renderBody(self, body, rendererOptions, env, meta, answer)) : '';
+  };
   md.renderer.rules[blockTokenType] = (tokens, index, rendererOptions, env, self) => {
     const meta = tokens[index].meta as NoteMeta;
     if (!shows(env)) {
       return '';
     }
-    const callout = calloutHtml(md, meta, (body) => self.render(body, rendererOptions, env));
+    const callout = calloutHtml(md, meta, (body, answer) => renderBody(self, body, rendererOptions, env, meta, answer));
     return `<div class="${noteClass}-anchor">${iconHtml(md, meta, options.linkOf(env, meta.line))}</div>\n${callout}`;
   };
   return md;

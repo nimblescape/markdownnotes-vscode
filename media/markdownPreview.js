@@ -228,9 +228,10 @@
     hide();
     highlight();
   });
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', highlight);
-  } else {
-    highlight();
-  }
+  // The preview loads this script with `async`, and its own script adds the content to the page when the page is
+  // parsed. This script can run before or after that, so it highlights now, when the page is parsed and when it is
+  // loaded; highlight replaces the highlights of before.
+  highlight();
+  document.addEventListener('DOMContentLoaded', highlight);
+  window.addEventListener('load', highlight);
 })();
