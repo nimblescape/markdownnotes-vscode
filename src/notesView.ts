@@ -34,7 +34,10 @@
  * view, next to the text editor, has a strip that stands for the whole file,
  * with a mark for each note, or for the lines of its selection, and the part
  * of the file that the text editor shows. A funnel leads from the selected
- * thread to the mark of its note. The setting `showFunnels` and the buttons
+ * thread to the passage of its note (decision 12): to the end of the band that
+ * a Markdown preview of the file draws from the passage, else to the rows of
+ * the passage in the text editor ([src/editorLayout.ts](editorLayout.ts)), and
+ * else to the mark of its note. The setting `showFunnels` and the buttons
  * "Show Funnels" and "Hide Funnels" in the title of the view show and hide
  * them. The position of the cursor, not only its line, selects the thread,
  * because the selections of several notes can share a line. The text editor
@@ -49,6 +52,7 @@
  */
 
 import * as vscode from 'vscode';
+import { columnsOf, type EditorLayout, placeOf } from './editorLayout';
 import { githubProvider } from './github';
 import { openLink } from './links';
 import { colorOf } from './notes/colors';
@@ -74,6 +78,7 @@ export const viewCommands = {
 /** Message is a message of the script of the view. */
 export type Message =
   | { type: 'ready' }
+  | { type: 'size'; height: number }
   | { type: 'signIn' }
   | { type: 'reveal'; id: string; focus?: boolean }
   | { type: 'deselect' }
@@ -115,6 +120,12 @@ interface Visible {
   /** lines are the first and the last visible line, or undefined while no text editor shows the file. */
   lines: [number, number] | undefined;
   lineCount: number;
+  /**
+   * start is the top and the bottom of the start of the funnel of the selected thread at the left edge of the view, in
+   * pixels from its top: the end of the band of the preview, or the rows of the passage in the text editor; undefined
+   * for the mark of the note in the strip.
+   */
+  start: [number, number] | undefined;
 }
 
 /** State is the content of the view, which the script shows. */
@@ -147,26 +158,87 @@ export const markdownModes = { preview: 'vscode.markdown.preview.editor', editor
 
 /**
  * modeOf returns how the active tab of a group shows a document without a text editor, with the column of the group:
- * in the Markdown preview, which is the preview to the side or the mode "Markdown Preview" of VS Code, or in the mode
- * "Markdown Editor" of VS Code; undefined for no such tab. VS Code tells an extension the URI of the document of a custom
- * editor, and of the preview to the side the type of its webview and its label, "Preview paper.md", only.
+ * in the Markdown preview, which is the preview to the side (`toSide`) or the mode "Markdown Preview" of VS Code, or in
+ * the mode "Markdown Editor" of VS Code; undefined for no such tab. VS Code tells an extension the URI of the document
+ * of a custom editor, and of the preview to the side the type of its webview and its label, "Preview paper.md", only.
  * @param document - The URI of the document.
  */
-function modeOf(document: vscode.Uri): { mode: 'preview' | 'editor'; column: vscode.ViewColumn } | undefined {
+function modeOf(document: vscode.Uri): { mode: 'preview' | 'editor'; column: vscode.ViewColumn; toSide: boolean } | undefined {
   const name = document.path.split('/').pop() ?? '';
   for (const group of vscode.window.tabGroups.all) {
     const tab = group.activeTab;
     const input = tab?.input as { viewType?: unknown; uri?: vscode.Uri } | undefined;
     const viewType = typeof input?.viewType === 'string' ? input.viewType : '';
     const own = input?.uri?.toString() === document.toString();
-    if ((own && viewType === markdownModes.preview) || (viewType.includes('markdown.preview') && input?.uri === undefined && tab!.label.includes(name))) {
-      return { mode: 'preview', column: group.viewColumn };
+    if (own && viewType === markdownModes.preview) {
+      return { mode: 'preview', column: group.viewColumn, toSide: false };
+    }
+    if (viewType.includes('markdown.preview') && input?.uri === undefined && tab!.label.includes(name)) {
+      return { mode: 'preview', column: group.viewColumn, toSide: true };
     }
     if (own && viewType === markdownModes.editor) {
-      return { mode: 'editor', column: group.viewColumn };
+      return { mode: 'editor', column: group.viewColumn, toSide: false };
     }
   }
   return undefined;
+}
+
+/**
+ * meeting is the end of the band of the preview from the passage of the selected note to the right edge of the preview:
+ * its top and its bottom in pixels from the top of the preview. The funnel of the side view starts there, so that both
+ * meet at the top, where the selected thread stands (decision 12 of Hannes, 2026-10-28: "Preview draws its part").
+ */
+export const meeting: readonly [number, number] = [8, 28];
+
+/**
+ * workbench holds sizes of the window of VS Code in pixels, measured in VS Code 1.143 with its default settings: the
+ * height of the bar of the tabs and of the breadcrumbs, the top of the page of the side view below the top of the bar of
+ * the tabs, and the bottom of the text of a text editor below the bottom of the page of the side view. VS Code tells an
+ * extension no place of a part of the window.
+ */
+const workbench = { tabs: 32, breadcrumbs: 22, viewTop: 28, editorBottom: 9 };
+
+/**
+ * topOf returns the top of the content of an editor in pixels from the top of the page of the side view, which stands
+ * at the same height of the window: a text editor and the mode "Markdown Preview" below the bar of the tabs and the
+ * breadcrumbs, the preview to the side below the bar of the tabs.
+ * @param toSide - Whether the editor is the preview to the side.
+ */
+function topOf(toSide: boolean): number {
+  const tabs = vscode.workspace.getConfiguration('workbench.editor').get<unknown>('showTabs');
+  const breadcrumbs = vscode.workspace.getConfiguration('breadcrumbs').get<boolean>('enabled') ?? true;
+  return (tabs === 'none' || tabs === false ? 0 : workbench.tabs) + (breadcrumbs && !toSide ? workbench.breadcrumbs : 0) - workbench.viewTop;
+}
+
+/**
+ * lineHeightOf returns the height of a row of a text editor in pixels, as VS Code computes it from the settings
+ * `editor.fontSize` and `editor.lineHeight`.
+ * @param configuration - The settings `editor` of the document.
+ */
+function lineHeightOf(configuration: vscode.WorkspaceConfiguration): number {
+  const mac = process.platform === 'darwin';
+  const fontSize = configuration.get<number>('fontSize') ?? (mac ? 12 : 14);
+  const lineHeight = configuration.get<number>('lineHeight') ?? 0;
+  const height = lineHeight === 0 ? fontSize * (mac ? 1.5 : 1.35) : lineHeight < 8 ? fontSize * lineHeight : lineHeight;
+  return Math.max(8, Math.round(height));
+}
+
+/**
+ * wrapOf returns how a text editor wraps its lines, from the settings `editor.wordWrap` and `editor.wordWrapColumn`.
+ * @param configuration - The settings `editor` of the document.
+ */
+function wrapOf(configuration: vscode.WorkspaceConfiguration): Pick<EditorLayout, 'wrap' | 'bound'> {
+  const column = configuration.get<number>('wordWrapColumn') ?? 80;
+  switch (configuration.get<string>('wordWrap')) {
+    case 'on':
+      return { wrap: undefined };
+    case 'bounded':
+      return { wrap: undefined, bound: column };
+    case 'wordWrapColumn':
+      return { wrap: column };
+    default:
+      return { wrap: Infinity };
+  }
 }
 
 /** NotesView is the provider of the side view. */
@@ -184,6 +256,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private readonly rendered = new Map<string, string>();
   /** version counts the states, so that only the newest one reaches the view. */
   private version = 0;
+  /** height is the height of the page of the view in pixels, which its script tells. */
+  private height: number | undefined;
+  /** columns holds the estimated number of columns of the rows of the text editor of each document, by its URI. */
+  private readonly columns = new Map<string, number>();
+  /** shownListeners are the listeners of the changes of the visibility of the view. */
+  private readonly shownListeners = new Set<() => void>();
   private readonly registrations: vscode.Disposable[];
 
   /**
@@ -204,12 +282,18 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   ) {
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
-      vscode.window.tabGroups.onDidChangeTabs(() => this.followTab()),
-      vscode.window.tabGroups.onDidChangeTabGroups(() => this.followTab()),
+      vscode.window.tabGroups.onDidChangeTabs(() => {
+        this.followTab();
+        this.postVisible();
+      }),
+      vscode.window.tabGroups.onDidChangeTabGroups(() => {
+        this.followTab();
+        this.postVisible();
+      }),
       vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor, event.kind === vscode.TextEditorSelectionChangeKind.Mouse)),
       vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
         if (event.textEditor.document.uri.toString() === this.document?.toString()) {
-          void this.view?.webview.postMessage({ type: 'visible', visible: this.visible() });
+          this.postVisible();
         }
       }),
       threads.onDidChange((document) => {
@@ -246,6 +330,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         this.followTab();
         void this.refresh();
       }
+      this.shownListeners.forEach((listener) => listener());
     });
     view.onDidDispose(() => {
       if (this.view === view) {
@@ -418,7 +503,70 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
     const document = editor?.document ?? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri);
     const ranges = editor?.visibleRanges ?? [];
-    return { lines: ranges.length > 0 ? [ranges[0].start.line, ranges[ranges.length - 1].end.line] : undefined, lineCount: document?.lineCount ?? 1 };
+    return {
+      lines: ranges.length > 0 ? [ranges[0].start.line, ranges[ranges.length - 1].end.line] : undefined,
+      lineCount: document?.lineCount ?? 1,
+      start: this.startOf(editor),
+    };
+  }
+
+  /**
+   * startOf returns the start of the funnel of the selected thread ([R-SIDE-007](../docs/requirements.md#r-side-007)):
+   * the end of the band of a Markdown preview of the document, which draws the band from the passage; else the rows of
+   * the passage in the text editor of the document, an estimate when the editor wraps its lines at its width; undefined
+   * while the editor shows no row of the passage, so that the funnel starts at the mark in the strip.
+   * @param editor - The first visible text editor of the document, or undefined.
+   */
+  private startOf(editor: vscode.TextEditor | undefined): [number, number] | undefined {
+    const document = this.document;
+    const entry = document && this.selected !== undefined ? this.threads.entriesOf(document).find((candidate) => candidate.id === this.selected) : undefined;
+    if (!document || !entry || this.height === undefined) {
+      return undefined;
+    }
+    const mode = modeOf(document);
+    if (mode?.mode === 'preview') {
+      const top = topOf(mode.toSide);
+      return [meeting[0] + top, meeting[1] + top];
+    }
+    if (!editor) {
+      return undefined;
+    }
+    const configuration = vscode.workspace.getConfiguration('editor', editor.document);
+    const top = topOf(false) + (configuration.get<{ top?: number }>('padding')?.top ?? 0);
+    const layout: EditorLayout = {
+      ranges: editor.visibleRanges,
+      lineHeight: lineHeightOf(configuration),
+      top,
+      height: Math.max(this.height + workbench.editorBottom - top, 0),
+      ...wrapOf(configuration),
+      lineCount: editor.document.lineCount,
+    };
+    const lineAt = (line: number): string => editor.document.lineAt(line).text;
+    const key = document.toString();
+    const columns = columnsOf(layout, lineAt, this.columns.get(key));
+    this.columns.set(key, columns);
+    const { note } = entry;
+    return placeOf(layout, lineAt, columns, note.selection ?? { start: note.start, end: note.end });
+  }
+
+  /** postVisible sends the visible part of the file and the start of the funnel to the script of the view. */
+  private postVisible(): void {
+    void this.view?.webview.postMessage({ type: 'visible', visible: this.visible() });
+  }
+
+  /**
+   * onDidChangeShown adds a listener of the changes of the visibility of the view, after which the preview draws or
+   * removes its band.
+   * @param listener - The listener.
+   */
+  onDidChangeShown(listener: () => void): vscode.Disposable {
+    this.shownListeners.add(listener);
+    return { dispose: () => this.shownListeners.delete(listener) };
+  }
+
+  /** shown tells whether the view is visible. */
+  get shown(): boolean {
+    return this.view?.visible ?? false;
   }
 
   /** settingsChanged shows the view again after a change of the settings, for the setting showFunnels. */
@@ -528,6 +676,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     switch (message.type) {
       case 'ready':
         await this.refresh();
+        return;
+      case 'size':
+        this.height = message.height;
+        this.postVisible();
         return;
       case 'signIn':
         await this.login(true);

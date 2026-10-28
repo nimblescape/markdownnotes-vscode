@@ -100,9 +100,11 @@ describes each step and where its protection ends.
   so the Explorer stays usable; the button "Show or Hide Notes" in the title
   of the Markdown editors opens and closes it with one click, also in Zen
   Mode. Each thread has a badge with the number and the color of its note,
-  and a funnel leads from each thread to the mark of its note in a strip that
-  stands for the whole file. The selected thread scrolls to the top of the
-  view.
+  and a funnel leads from the selected thread to the passage of its note:
+  in the preview with a band from the passage that follows the scrolling, in
+  the text editor from the height of the passage, and else to the mark of the
+  note in a strip that stands for the whole file. The selected thread
+  scrolls to the top of the view.
 - **Icons in the Markdown preview.** The preview shows each note as a small
   icon at its reference, and never as a footnote at the end of the page. On
   hover or keyboard focus, the icon shows the rendered callout with all
@@ -189,7 +191,7 @@ extension to everyone who opens it.
 | `nimblescape.markdownNotes.showNotesIn` | `sideView` | Where the text of the notes shows: `sideView` in the side view "Notes", `inline` in boxes in the text editor, never in both. |
 | `nimblescape.markdownNotes.collapseInEditor` | `true` | Collapses the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. |
 | `nimblescape.markdownNotes.keepNotesCollapsed` | `false` | Keeps the notes collapsed in the text editor: nothing opens them, and the buttons and the command that open them do not show. |
-| `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnel from the selected thread to its mark in the side view "Notes". |
+| `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnel from the selected thread to the passage of its note in the side view "Notes", with a band from the passage in the Markdown preview. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor, with `showNotesIn` set to `inline`. The value `false` shows only the mark at each note. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The eye in the title of the preview changes it. |
 | `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus. A click on the icon never shows it. |

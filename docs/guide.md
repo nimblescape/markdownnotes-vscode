@@ -458,15 +458,28 @@ line at the bottom:
   lines of the note when it has no selection;
 - a frame around the part of the file that the text editor shows.
 
-A funnel in the color of the note leads from the selected thread to its
-mark, so you see which place of the file the thread belongs to. The text
-editor and the preview show the passage of this note with a strong highlight
-and a frame in its color. The buttons "Hide Funnels" and "Show Funnels"
-(the eye) in the title of the view hide and show the strip and the funnels.
-They change the setting `nimblescape.markdownNotes.showFunnels`: in the
-settings of the workspace when they hold a value, else in your user
-settings. VS Code does not let a view draw into the text editor, so the
-funnels end at the edge of the view.
+A funnel in the color of the note leads from the selected thread to the
+passage of its note, so you see which place of the file the thread belongs
+to. The text editor and the preview show the passage of this note with a
+strong highlight and a frame in its color.
+
+- **In the Markdown preview**, the preview draws a band from the passage to
+  its right edge, at the top, where the selected thread stands in the side
+  view, and the funnel of the side view continues the band to the thread.
+  When you scroll the page, the band follows the passage.
+- **In the text editor**, the funnel starts at the left edge of the side view
+  at the height of the rows of the passage, and follows them when you scroll
+  the text. VS Code does not let a view draw into the text editor, so the
+  funnel ends at the edge of the view. Where the editor wraps long lines,
+  the height is an estimate, and an open panel below the editor, such as the
+  terminal, moves the rows away from the computed height.
+- When the editor shows no row of the passage, the funnel leads to the mark
+  of the note in the strip.
+
+The buttons "Hide Funnels" and "Show Funnels" (the eye) in the title of the
+view hide and show the strip, the funnels and the band of the preview. They
+change the setting `nimblescape.markdownNotes.showFunnels`: in the settings
+of the workspace when they hold a value, else in your user settings.
 
 ### Editors of the side view
 
@@ -676,7 +689,7 @@ block, for example `"esbenp.prettier-vscode"`.
 | `nimblescape.markdownNotes.showNotesIn` | `sideView` | Where the text of the notes shows: `sideView` in the side view "Notes", `inline` in the boxes of the text editor, never in both ([Notes in the text editor](#notes-in-the-text-editor)). |
 | `nimblescape.markdownNotes.collapseInEditor` | `true` | Collapses the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.keepNotesCollapsed` | `false` | Keeps the notes collapsed in the text editor: nothing opens them, and the buttons and the command that open them do not show ([Collapsed notes](#collapsed-notes)). |
-| `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnel from the selected thread to its mark in the side view "Notes". The buttons "Show Funnels" and "Hide Funnels" in the title of the view change it. |
+| `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnel from the selected thread to the passage of its note in the side view "Notes", with a band from the passage in the Markdown preview. The buttons "Show Funnels" and "Hide Funnels" in the title of the view change it. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens, with `showNotesIn` set to `inline`. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes, icons and callouts. The buttons of the preview change it. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus. A click on the icon or the passage never shows it; it selects the note in the side view. |

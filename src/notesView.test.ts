@@ -156,7 +156,7 @@ test('the view shows the threads of the active Markdown file with the rendered a
       },
     ],
     funnels: true,
-    visible: { lines: [0, 19], lineCount: 20 },
+    visible: { lines: [0, 19], lineCount: 20, start: undefined },
   });
   expect(fake.sessions.map((session) => session.options)).toContainEqual({ silent: true });
   expect(fake.sessions.map((session) => session.options)).not.toContainEqual({ createIfNone: true });
@@ -395,7 +395,7 @@ test('the view sends the visible lines of the text editor, and the setting showF
   const { editor, view } = await start();
   editor.visibleRanges = [new FakeRange(3, 0, 8, 0)];
   fake.fire('visibleRanges', { textEditor: editor });
-  expect(view.messages.at(-1)).toEqual({ type: 'visible', visible: { lines: [3, 8], lineCount: 14 } });
+  expect(view.messages.at(-1)).toEqual({ type: 'visible', visible: { lines: [3, 8], lineCount: 14, start: undefined } });
   // The button "Hide Funnels" writes the setting in the user settings, and the view shows the new state.
   await fake.run(viewCommands.hideFunnels);
   await settle();
@@ -404,6 +404,40 @@ test('the view sends the visible lines of the text editor, and the setting showF
   await fake.run(viewCommands.showFunnels);
   await settle();
   expect(view.state()).toMatchObject({ funnels: true });
+});
+
+test('the funnel of the selected thread starts at the rows of its passage in the text editor, or at the end of the band of the preview (R-SIDE-007, decision 12)', async () => {
+  // Rows of 20 pixels; the text of the editor starts 26 pixels below the top of the view, below the tabs and the breadcrumbs.
+  fake.settings.set('workspace', { addFormatComment: false, lineHeight: 20 });
+  const { editor, view } = await start(note, 2);
+  await send(view, { type: 'size', height: 600 });
+  const funnelStart = () => (view.messages.filter((message) => message.type === 'visible' || message.type === 'state').at(-1)?.visible as { start?: unknown } | undefined)?.start;
+  // The passage of the note is line 2, the third row.
+  expect(funnelStart()).toEqual([66, 86]);
+  // The editor scrolls one line down, so the passage is on the second row, which starts half a row lower, because the
+  // editor can show a part of the row above; scrolled further, the funnel starts at the mark.
+  editor.visibleRanges = [new FakeRange(1, 0, 13, 0)];
+  fake.fire('visibleRanges', { textEditor: editor });
+  expect(funnelStart()).toEqual([56, 76]);
+  editor.visibleRanges = [new FakeRange(4, 0, 13, 0)];
+  fake.fire('visibleRanges', { textEditor: editor });
+  expect(funnelStart()).toBeUndefined();
+  // At five columns, the title of seven characters takes two rows, and the passage "The text" too.
+  fake.settings.set('workspace', { addFormatComment: false, lineHeight: 20, wordWrap: 'wordWrapColumn', wordWrapColumn: 5 });
+  editor.visibleRanges = [new FakeRange(0, 0, 13, 0)];
+  fake.fire('visibleRanges', { textEditor: editor });
+  expect(funnelStart()).toEqual([86, 126]);
+  // The preview to the side draws the band from the passage, and the funnel starts at its end, below the bar of the tabs.
+  fake.tabGroups = [{ viewColumn: 2, tabs: [], activeTab: { input: { viewType: 'mainThreadWebview-markdown.preview' }, label: 'Preview a.md' } }];
+  fake.fire('tabs', {});
+  expect(funnelStart()).toEqual([12, 32]);
+  // The mode "Markdown Preview" has the breadcrumbs too.
+  fake.tabGroups = [{ viewColumn: 1, tabs: [], activeTab: { input: { viewType: markdownModes.preview, uri: editor.document.uri }, label: 'a.md' } }];
+  fake.fire('tabs', {});
+  expect(funnelStart()).toEqual([34, 54]);
+  // Without a selected thread, there is no funnel.
+  await send(view, { type: 'deselect' });
+  expect(funnelStart()).toBeUndefined();
 });
 
 test('without an active Markdown file the view shows no threads, and an action returns that no note is there', async () => {

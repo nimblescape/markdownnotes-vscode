@@ -124,6 +124,13 @@ export interface PreviewOptions {
    * @param env - The environment of the rendering.
    */
   deselectLinkOf?(env: unknown): string | undefined;
+  /**
+   * funnelOf returns the end of the band that the preview draws from the passage of the selected note to its right
+   * edge, where the funnel of the side view starts: its top and its bottom in pixels from the top of the preview, while
+   * the side view shows the funnels; else undefined ([R-SIDE-007](../../docs/requirements.md#r-side-007)).
+   * @param env - The environment of the rendering.
+   */
+  funnelOf?(env: unknown): readonly [number, number] | undefined;
 }
 
 /** PreviewNote is the meta of the token that opens a note, after the core rule, and of the tokens of its icons. */
@@ -150,6 +157,8 @@ interface IconLook {
   selected: { label: string | undefined; reveal: number | undefined } | undefined;
   /** deselect is the link that deselects the selected note, or undefined. */
   deselect: string | undefined;
+  /** funnel is the end of the band of the selected note at the right edge of the preview, or undefined for no band. */
+  funnel: readonly [number, number] | undefined;
 }
 
 /** IconMeta is the meta of the token of an icon at a reference. */
@@ -381,7 +390,8 @@ const colorClassOf = (number: number): string => `${noteClass}-color-${colorInde
  * element that takes the focus, which shows the callout too. The attribute `data-note` holds the label of the note. The
  * script of the preview reads the attributes `data-hover="off"` of an icon whose callout the pointer does not show,
  * `data-icon="hidden"` of an icon that does not show, and of the icon of the selected note `data-selected`, with a
- * request to scroll to it `data-reveal` with its number, and `data-deselect` with the link that deselects it.
+ * request to scroll to it `data-reveal` with its number, `data-deselect` with the link that deselects it, and
+ * `data-funnel` with the top and the bottom of the end of its band at the right edge of the preview.
  * @param md - The markdown-it instance.
  * @param note - The note.
  * @param link - The link, or undefined.
@@ -390,10 +400,10 @@ const colorClassOf = (number: number): string => `${noteClass}-color-${colorInde
 function iconHtml(md: MarkdownIt, note: PreviewNote, link: string | undefined, look: IconLook): string {
   const escape = md.utils.escapeHtml;
   const count = note.answers.length > 1 ? `<span class="${noteClass}-count">${note.answers.length}</span>` : '';
-  const { selected, deselect } = look;
+  const { selected, deselect, funnel } = look;
   const chosen =
     selected?.label === note.label
-      ? ` data-selected="true"${selected.reveal === undefined ? '' : ` data-reveal="${selected.reveal}"`}${deselect === undefined ? '' : ` data-deselect="${escape(deselect)}"`}`
+      ? ` data-selected="true"${selected.reveal === undefined ? '' : ` data-reveal="${selected.reveal}"`}${deselect === undefined ? '' : ` data-deselect="${escape(deselect)}"`}${funnel === undefined ? '' : ` data-funnel="${funnel.join(' ')}"`}`
       : '';
   const attributes = `class="${noteClass}-icon ${colorClassOf(note.number)}" aria-label="${escape(labelOf(note))}" aria-describedby="${note.id}" data-note="${escape(note.label)}"${look.hover ? '' : ' data-hover="off"'}${look.shown ? '' : ' data-icon="hidden"'}${chosen}`;
   return link === undefined
@@ -494,7 +504,13 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
   const shows = (env: unknown): boolean => options.settingsOf(env).showInPreview;
   const lookOf = (env: unknown): IconLook => {
     const settings = options.settingsOf(env);
-    return { hover: settings.showCalloutOnHover ?? true, shown: settings.showIconsInPreview ?? true, selected: options.selectedOf?.(env), deselect: options.deselectLinkOf?.(env) };
+    return {
+      hover: settings.showCalloutOnHover ?? true,
+      shown: settings.showIconsInPreview ?? true,
+      selected: options.selectedOf?.(env),
+      deselect: options.deselectLinkOf?.(env),
+      funnel: options.funnelOf?.(env),
+    };
   };
   md.renderer.rules[noteOpenType] = (tokens, index, rendererOptions, env, self) => {
     const note = tokens[index].meta as PreviewNote;

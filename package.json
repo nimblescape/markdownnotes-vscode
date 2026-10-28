@@ -535,7 +535,7 @@
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "markdownDescription": "Show the funnel in the side view Notes: the strip at its left edge with a mark for each note of the file, and a funnel from the selected thread to the mark of its note. The buttons \"Show Funnels\" and \"Hide Funnels\" in the title of the view change this setting."
+          "markdownDescription": "Show the funnel in the side view Notes: the strip at its left edge with a mark for each note of the file, and a funnel from the selected thread to the passage of its note, with a band from the passage in the Markdown preview. The buttons \"Show Funnels\" and \"Hide Funnels\" in the title of the view change this setting."
         },
         "nimblescape.markdownNotes.showNotesIn": {
           "type": "string",

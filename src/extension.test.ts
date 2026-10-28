@@ -174,6 +174,24 @@ test('the selected icon of the preview has the link that deselects its note, and
   expect(md.render(note, { currentDocument: document.uri })).not.toContain('data-selected');
 });
 
+test('the selected icon of the preview has the end of its band while the side view shows the funnels, and the previews render again when the view shows or hides (R-SIDE-007, decision 12)', async () => {
+  const document = fake.open(note);
+  const { api, extension } = await fake.activate();
+  const view = fake.resolveView(notesViewId);
+  await fake.uriHandler!.handleUri(FakeUri.parse(`vscode://${extension.extensionId}${extension.openPath}?${new URLSearchParams({ document: document.uri.toString(), line: '5' }).toString()}`));
+  await settle();
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  expect(md.render(note, { currentDocument: document.uri })).toContain(' data-funnel="8 28"');
+  fake.settings.set(document.uri.path, { showFunnels: false });
+  expect(md.render(note, { currentDocument: document.uri })).not.toContain('data-funnel');
+  fake.settings.set(document.uri.path, {});
+  const refreshes = fake.executed.length;
+  view.visible = false;
+  view.visibility.forEach((listener) => listener());
+  expect(fake.executed.slice(refreshes)).toEqual(['markdown.preview.refresh']);
+  expect(md.render(note, { currentDocument: document.uri })).not.toContain('data-funnel');
+});
+
 test('the formatter of Markdown documents gives one edit of the changed lines with the line breaks of the document, and none for a formatted document (R-FMT-001)', async () => {
   await fake.activate();
   const formatter = fake.formatters.get('markdown')!;

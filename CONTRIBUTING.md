@@ -25,12 +25,13 @@ describes its security model.
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
 | `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
-| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their numbers, colors and marks, the visible lines of the text editor, the actions of its script, and the commands "Hide Notes", "Show or Hide Notes", "Show Funnels" and "Hide Funnels". |
+| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their numbers, colors and marks, the visible lines of the text editor, the start of the funnel of the selected thread, the actions of its script, and the commands "Hide Notes", "Show or Hide Notes", "Show Funnels" and "Hide Funnels". |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, which VS Code also runs on save: one edit of the changed lines with the line breaks of the document. |
+| `src/editorLayout.ts` | The rows of a passage in the text editor, where the funnel of the side view starts: the rows of the visible ranges, the lines wrapped by words, and the estimate of the number of columns of a row. It uses no API of VS Code. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes the reference of each note as an icon with a hidden callout, the start marker as the start of its selection, and leaves every other token, also every other footnote, as it is. |
-| `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code and of the notes, and the script that shows the callout of an icon on hover and focus and highlights the selections. |
+| `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code and of the notes, and the script that shows the callout of an icon on hover and focus, highlights the selections, selects and deselects a note on a click, and draws the band of the selected note to the right edge of the preview. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their badges, the answers, the editors with the tabs "Write" and "Preview", the strip and the funnels, and the messages to the extension. |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
@@ -361,7 +362,7 @@ the preview does, and keeps up to 200 rendered texts.
 - The script sends the actions of the user as messages: `save`, `answer`
   (with the index of the answer that a reply replies to), `add`, `deleteAnswer`, `deleteNote`, `reveal`, `render` (the tab
   "Preview"), `openLink` (a click on a link of a rendered text, which
-  `src/links.ts` opens), `signIn` and `ready`. A message of an editor has the number of
+  `src/links.ts` opens), `deselect`, `signIn`, `ready` and `size` (the height of the page). A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
   refused text, or with `rendered`. The script keeps the open editors and the
   focus when a new state arrives.
@@ -384,11 +385,26 @@ the preview does, and keeps up to 200 rendered texts.
 - **Badges and funnels** ([R-SIDE-007](docs/requirements.md#r-side-007)):
   each thread of the state has the number and the color of its note
   (`src/notes/colors.ts`) and its mark, the lines of its selection or of the
-  note; the state also has the setting `showFunnels` and the visible lines
-  of the text editor, which the message `visible` updates on each scroll of
-  the editor. The script draws the strip with `div` elements and the funnels
+  note; the state also has the setting `showFunnels`, the visible lines of
+  the text editor and the start of the funnel of the selected thread, which
+  the message `visible` updates on each scroll of the editor and each change
+  of the tabs. The script draws the strip with `div` elements and the funnels
   as SVG paths in a fixed layer at the left edge, again on each change of the
-  state, of the visible lines, of the scrolling of the view and of its size.
+  state, of the visible lines, of the scrolling of the view and of its size,
+  and tells the extension its height with the message `size`.
+- **Start of the funnel** ([R-SIDE-007](docs/requirements.md#r-side-007), decision 12):
+  while a Markdown preview of the file is the active tab of a group, the
+  funnel starts at the end of the band of the preview (`meeting` in
+  `src/notesView.ts`, below the top of the preview by the bar of the tabs and,
+  in the mode "Markdown Preview", the breadcrumbs). The plugin writes this end
+  as `data-funnel` on the selected icon while the view is visible and
+  `showFunnels` is on, and the previews render again when the view shows or
+  hides. Else `src/editorLayout.ts` computes the rows of the passage in the
+  text editor from `visibleRanges`, the settings `editor.fontSize`,
+  `editor.lineHeight`, `editor.wordWrap` and `editor.wordWrapColumn`, and
+  the height of the view. The sizes of the bars of VS Code (`workbench` in
+  `src/notesView.ts`) are measured in VS Code 1.143 with its default
+  settings; a later version of VS Code can change them.
   The buttons "Show Funnels" and "Hide Funnels" (`view/title`, with
   `when` clauses on `config.nimblescape.markdownNotes.showFunnels`) write the
   setting. A click on a thread sends `reveal` with `focus: false`, which

@@ -33,7 +33,7 @@ import { parse } from '../notes/notes';
 import { noteCloseType, noteOpenType } from '../notes/syntax';
 
 /** hiddenText matches the start markers and the references of the notes, which the text editor hides. */
-const hiddenText = /<!--\[note-[a-z0-9]{4}-->|\[\^note-[a-z0-9]{4}\]/g;
+export const hiddenText = /<!--\[note-[a-z0-9]{4}-->|\[\^note-[a-z0-9]{4}\]/g;
 
 /** wideRanges are the ranges of the code points that a text editor shows two columns wide: East Asian wide and full-width characters. */
 const wideRanges: readonly (readonly [number, number])[] = [

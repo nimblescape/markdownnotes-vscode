@@ -43,6 +43,7 @@ Markdown preview.
 | 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a passage that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done |
 | 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done |
 | 21 | A click on a passage of the preview that keeps the page, no callout on a click, a click outside a passage that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint passages of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done |
+| 22 | The funnel that follows the passage of the selected note: the band of the preview from the passage to its right edge, and the start of the funnel at the rows of the passage in the text editor | [R-SIDE-007](#r-side-007) | done |
 
 ## General
 
@@ -661,12 +662,24 @@ user sees which callout of the view belongs to which note of the text
   outside an editor deselects it too.
 - **Dimming:** while a thread is selected, the view dims the other threads;
   a thread under the pointer or with the focus shows clear.
-- **Funnel:** the left edge of the view, next to the text editor, has a
-  narrow strip that stands for the whole file, with a mark for each note and
-  the part of the file that the text editor shows. A funnel leads from the
-  selected thread to the mark of its note (Hannes, 2026-10-28: only the
-  selected one); for a note with a selection ([R-NOTE-006](#r-note-006)), the
-  mark and the funnel span the lines of the selection.
+- **Strip:** the left edge of the view, next to the editor, has a narrow
+  strip that stands for the whole file, with a mark for each note and the
+  part of the file that the text editor shows; for a note with a selection
+  ([R-NOTE-006](#r-note-006)), the mark spans the lines of the selection.
+- **Funnel:** a funnel leads from the selected thread to the passage of its
+  note (Hannes, 2026-10-28: only the selected one; "the funnel shall stick to
+  the position of the selected item so when the text scrolls it directs to
+  the selected item", "the funnel shall point to the green selected area";
+  [decision 12](#decisions)):
+  - While a Markdown preview of the file shows, the preview draws a band in
+    the color of the note from the passage to its right edge, and draws it
+    again when the page scrolls. The band ends at the top, where the
+    selected thread stands in the view, and the funnel of the view starts at
+    this end, so that both form one band.
+  - Else the funnel starts at the left edge of the view at the rows of the
+    passage in the text editor, and follows them when the text scrolls.
+  - While the editor shows no row of the passage, the funnel starts at the
+    mark of the note in the strip.
 - **Option:** the title of the view has a button that shows or hides the
   funnels (Hannes, 2026-10-28). The buttons "Show Funnels" and "Hide
   Funnels" change the setting `nimblescape.markdownNotes.showFunnels`, which
@@ -674,7 +687,15 @@ user sees which callout of the view belongs to which note of the text
 
 VS Code lets no view draw into the text editor and tells no extension where a
 line of the text is on the screen, so the funnel ends at the edge of the
-view.
+view. VS Code tells an extension the rows that the text editor shows,
+also inside a wrapped line; the extension counts the rows from there, so
+the start of the funnel is exact without wrapped lines, apart from a part
+of a row at the top. Where the editor wraps lines at its width, the
+extension estimates the number of columns of a row from the rows that fill
+the editor, and wraps the lines by words. The heights of the bars of VS Code
+come from VS Code 1.143 with its default settings; the extension reads the
+settings of the tabs, the breadcrumbs, the font and the wrapping, but not
+other changes of the layout, for example an open panel below the editor.
 
 ## Editing
 
@@ -962,6 +983,16 @@ them.
     other choices were the top with notes only in files that hold the
     comment, which hides the notes of older files, and the end of the file,
     where a program finds it only after it read the whole file.
+12. **The funnel reaches the passage** ([R-SIDE-007](#r-side-007), Hannes,
+    2026-10-28, 17:16, confirmed 17:21): the preview draws its part of the
+    funnel, a band from the passage to its right edge that follows the
+    scrolling, and the side view continues it to the thread; the two parts
+    meet at the top, where the selected thread stands. In the text editor,
+    the funnel starts at the rows of the passage, which the extension
+    computes from the visible lines, an estimate where lines wrap. This
+    replaces the part of decision 10 that keeps the funnel at the strip. The
+    other choices were the start at the computed rows in the text editor
+    only, with the strip in the preview, and the strip in both.
 
 ---
 

@@ -22,7 +22,9 @@
  * --nimblescape-note-color for the icon and the bar of the callout. The script
  * highlights the selection of a note in the same color (R-NOTE-006): faint,
  * strong under the pointer, and the selection of the selected note of the
- * side view strong with a frame, while the other notes are dimmed.
+ * side view strong with a frame, while the other notes are dimmed, and a band
+ * from it to the right edge of the preview, where the funnel of the side view
+ * starts.
  */
 
 .nimblescape-note-color-1 { --nimblescape-note-color: #1a7fe0; }
@@ -62,6 +64,22 @@
   left: 0;
   width: 0;
   height: 0;
+}
+
+/* The band from the passage of the selected note to the right edge of the preview, where the funnel of the side view starts. */
+.nimblescape-note-band {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nimblescape-note-band path {
+  fill: var(--nimblescape-note-color);
+  opacity: 0.3;
 }
 
 .nimblescape-note-frame {

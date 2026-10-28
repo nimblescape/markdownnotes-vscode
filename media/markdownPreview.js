@@ -46,7 +46,12 @@
 // lines in the color of the note, one for each line of the text, and the
 // passages and the icons of the other notes are dimmed. An icon with the
 // attribute data-reveal asks the preview to scroll to the note; the script
-// scrolls once for each number of the attribute.
+// scrolls once for each number of the attribute. While the side view shows
+// the funnels, the icon has the attribute data-funnel with the top and the
+// bottom of the end of a band at the right edge of the preview: the script
+// draws the band from the passage of the note to this end, and draws it again
+// on scrolling, so that it follows the passage; the funnel of the side view
+// starts at this end (decision 12).
 
 (() => {
   'use strict';
@@ -96,6 +101,19 @@
   const frames = document.createElement('div');
   frames.className = 'nimblescape-note-frames';
   frames.setAttribute('aria-hidden', 'true');
+
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+
+  /** band is the drawing of the band from the passage of the selected note to the right edge of the preview. */
+  const band = document.createElementNS(svgNamespace, 'svg');
+  band.setAttribute('class', 'nimblescape-note-band');
+  band.setAttribute('aria-hidden', 'true');
+
+  /** @type {{ icon: Element, range: Range | undefined, color: string, end: [number, number] } | undefined} the band of the selected note. */
+  let funnel;
+
+  /** @type {number | undefined} the frame of the animation in which the script draws the band again. */
+  let bandFrame;
 
   /**
    * calloutOf returns the callout of an icon.
@@ -217,6 +235,9 @@
     }
     const selection = icon ? selections.get(icon) : undefined;
     frame(selection?.range, selection?.color ?? '');
+    const end = (icon?.getAttribute('data-funnel') ?? '').split(' ').map(Number);
+    funnel = icon && end.length === 2 && end.every(Number.isFinite) ? { icon, range: selection?.range, color: selection?.color ?? colorOf(icon), end: [end[0], end[1]] } : undefined;
+    drawBand();
     const request = icon?.getAttribute('data-reveal') ?? undefined;
     if (icon && request !== undefined && request !== revealed) {
       revealed = request;
@@ -256,6 +277,46 @@
       box.style.width = `${line.right - line.left + 2}px`;
       box.style.height = `${line.bottom - line.top + 2}px`;
       frames.append(box);
+    }
+  };
+
+  /**
+   * colorOf returns the number of the color of an icon, from its class nimblescape-note-color-N.
+   * @param {Element} icon
+   */
+  const colorOf = (icon) => /nimblescape-note-color-(\d+)/.exec(icon.className)?.[1] ?? '1';
+
+  /**
+   * drawBand draws the band from the passage of the selected note, or from its icon for a note without a passage, to the
+   * end at the right edge of the preview, with curved sides, or removes it without a band.
+   */
+  const drawBand = () => {
+    bandFrame = undefined;
+    band.replaceChildren();
+    const rects = funnel ? [...(funnel.range?.getClientRects() ?? [funnel.icon.getBoundingClientRect()])].filter((rect) => rect.width > 0 && rect.height > 0) : [];
+    if (!funnel || rects.length === 0) {
+      band.remove();
+      return;
+    }
+    if (!band.isConnected) {
+      document.body.append(band);
+    }
+    const width = document.documentElement.clientWidth;
+    const right = Math.min(Math.max(...rects.map((rect) => rect.right)), width);
+    const top = Math.min(...rects.map((rect) => rect.top));
+    const bottom = Math.max(...rects.map((rect) => rect.bottom));
+    const [endTop, endBottom] = funnel.end;
+    const middle = (right + width) / 2;
+    const path = document.createElementNS(svgNamespace, 'path');
+    path.setAttribute('d', `M ${right} ${top} C ${middle} ${top} ${middle} ${endTop} ${width} ${endTop} L ${width} ${endBottom} C ${middle} ${endBottom} ${middle} ${bottom} ${right} ${bottom} Z`);
+    path.setAttribute('class', `nimblescape-note-color-${funnel.color}`);
+    band.append(path);
+  };
+
+  /** drawBandLater draws the band before the next frame, once for several scroll events. */
+  const drawBandLater = () => {
+    if (funnel && bandFrame === undefined) {
+      bandFrame = requestAnimationFrame(drawBand);
     }
   };
 
@@ -477,6 +538,7 @@
     }
   });
   window.addEventListener('scroll', hide, { passive: true });
+  window.addEventListener('scroll', drawBandLater, { passive: true });
   window.addEventListener('resize', paint);
   window.addEventListener('vscode.markdown.updateContent', () => {
     hide();

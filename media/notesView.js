@@ -30,13 +30,16 @@
 // a click on a thread, outside its buttons and editors, selects its note in
 // the text editor (R-SIDE-007). The view scrolls the selected thread to its
 // top, and dims the other threads while a thread is selected. A click on the
-// empty part of the view, or Escape outside an editor, deselects the thread. While the setting showFunnels is on, the left
-// edge of the view has a strip that stands for the whole file, with a mark
-// for each note and a frame for the part of the file that the text editor
-// shows, and a funnel leads from the selected thread, while it is visible, to
-// the mark of its note.
-// The script draws them again on each change of the state, of the visible
-// part of the file, of the scrolling of the view and of its size.
+// empty part of the view, or Escape outside an editor, deselects the thread.
+// While the setting showFunnels is on, the left edge of the view has a strip
+// that stands for the whole file, with a mark for each note and a frame for
+// the part of the file that the text editor shows, and a funnel leads from
+// the selected thread, while it is visible, to its passage: to the end of the
+// band that the Markdown preview draws from the passage, to the rows of the
+// passage in the text editor, which the extension computes, or else to the
+// mark of its note in the strip (decision 12). The script draws them again on
+// each change of the state, of the visible part of the file, of the scrolling
+// of the view and of its size, and tells the extension its height.
 
 (() => {
   'use strict';
@@ -47,13 +50,13 @@
   /**
    * @typedef {{ author: string, date: string, authorDate: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
    * @typedef {{ id: string, line: number, number: number, color: string, mark: [number, number], answers: AnswerState[] }} ThreadState
-   * @typedef {{ lines: [number, number] | undefined, lineCount: number }} Visible
+   * @typedef {{ lines: [number, number] | undefined, lineCount: number, start: [number, number] | undefined }} Visible
    * @typedef {{ file: string | undefined, line: number | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], funnels: boolean, visible: Visible }} State
    * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined }} Editor
    */
 
   /** @type {State} */
-  let state = { file: undefined, line: undefined, account: undefined, selected: undefined, threads: [], funnels: false, visible: { lines: undefined, lineCount: 1 } };
+  let state = { file: undefined, line: undefined, account: undefined, selected: undefined, threads: [], funnels: false, visible: { lines: undefined, lineCount: 1, start: undefined } };
 
   const svgNamespace = 'http://www.w3.org/2000/svg';
 
@@ -430,14 +433,16 @@
       if (!card || card.bottom <= 0 || card.top >= height) {
         continue;
       }
-      // The funnel leads from the mark in the strip to the visible part of the thread, with curved sides.
+      // The funnel leads from its start to the visible part of the thread, with curved sides: from the left edge of the
+      // view at the passage or at the end of the band of the preview, or else from the mark in the strip.
       const cardTop = Math.max(card.top, 0);
       const cardBottom = Math.min(card.bottom, height);
-      const middle = (stripWidth + funnelEnd) / 2;
+      const [from, startTop, startBottom] = state.visible.start ? [0, ...state.visible.start] : [stripWidth, top, bottom];
+      const middle = (from + funnelEnd) / 2;
       const path = document.createElementNS(svgNamespace, 'path');
       path.setAttribute(
         'd',
-        `M ${stripWidth} ${top} C ${middle} ${top} ${middle} ${cardTop} ${funnelEnd} ${cardTop} L ${funnelEnd} ${cardBottom} C ${middle} ${cardBottom} ${middle} ${bottom} ${stripWidth} ${bottom} Z`,
+        `M ${from} ${startTop} C ${middle} ${startTop} ${middle} ${cardTop} ${funnelEnd} ${cardTop} L ${funnelEnd} ${cardBottom} C ${middle} ${cardBottom} ${middle} ${startBottom} ${from} ${startBottom} Z`,
       );
       path.setAttribute('class', 'funnel selected');
       path.setAttribute('fill', thread.color);
@@ -535,9 +540,24 @@
     }
   });
 
+  /** told is the last height of the page that the script told the extension. */
+  let told = 0;
+
+  /** tellSize tells the extension the height of the page, from which it estimates the height of the text editor. */
+  const tellSize = () => {
+    if (window.innerHeight !== told) {
+      told = window.innerHeight;
+      vscode.postMessage({ type: 'size', height: told });
+    }
+  };
+
   window.addEventListener('scroll', drawLater, { passive: true });
-  window.addEventListener('resize', drawLater);
+  window.addEventListener('resize', () => {
+    tellSize();
+    drawLater();
+  });
 
   show();
   vscode.postMessage({ type: 'ready' });
+  tellSize();
 })();

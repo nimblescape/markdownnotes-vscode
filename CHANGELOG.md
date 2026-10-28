@@ -45,9 +45,13 @@ The first version.
   the button "Show or Hide Notes" in the title of the Markdown editors opens
   and closes it, also in Zen Mode.
 - The side view shows a badge with the number and the color of each note,
-  and a funnel from the selected thread to the mark of its note in a strip
-  that stands for the whole file; "Show Funnels" and "Hide Funnels" in its
-  title turn them on and off. A click on a thread selects its note and shows
+  a strip that stands for the whole file with a mark for each note, and a
+  funnel from the selected thread to the passage of its note: the preview
+  draws a band from the passage to its right edge, which follows the
+  scrolling, and the funnel continues it; in the text editor the funnel
+  starts at the height of the rows of the passage, an estimate where lines
+  wrap; else it leads to the mark in the strip. "Show Funnels" and "Hide
+  Funnels" in its title turn them on and off. A click on a thread selects its note and shows
   it in the mode of the file, and the passage of the selected note has a
   strong highlight with a frame in the text editor and the preview.
 - A saved change of an answer gets the date of the save.

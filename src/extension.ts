@@ -31,7 +31,7 @@ import { extendMarkdownIt, type PreviewSettings } from './markdown/markdownIt';
 import { isFileLink, openLink, openLinkCommand } from './links';
 import { NoteEditor } from './noteEditor';
 import { isNoteDocument, NoteThreads } from './noteThreads';
-import { notesViewId, NotesView, viewCommands } from './notesView';
+import { meeting, notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
 import { checkedSettings, type Settings, settingsSection, showsInSideView } from './settings';
 
@@ -281,6 +281,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.commands.registerCommand(viewCommands.hideFunnels, () => setSetting('showFunnels', false)),
     // The preview shows the selected note with a strong highlight, and scrolls to it on a request.
     selected.onDidChange(() => refreshMarkdownPreviews()),
+    // The preview draws the band of the selected note only while the side view shows its funnel.
+    view.onDidChangeShown(() => refreshMarkdownPreviews()),
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
@@ -301,6 +303,10 @@ export function activate(context: vscode.ExtensionContext): Api {
           return document && { label: selected.labelOf(document), reveal: selected.revealOf(document) };
         },
         deselectLinkOf: deselectLink,
+        funnelOf: (env) => {
+          const document = documentOf(env);
+          return document && view.shown && readSettings(document).showFunnels ? meeting : undefined;
+        },
       }),
     threadsOf: (document) => threads.threadsOf(document),
   };

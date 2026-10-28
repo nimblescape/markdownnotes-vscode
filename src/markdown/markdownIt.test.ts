@@ -313,7 +313,7 @@ describe('the plugin', () => {
     expect(plain(preview(true, false).render(text))).toBe('<p>One two three.</p>\n<blockquote>\n<p><strong>anna</strong> · 2026-10-28 11:02+01:00</p>\n</blockquote>\n<p>Next.</p>\n');
   });
 
-  test('marks the icons for the script of the preview: without a callout on hover after the setting showCalloutOnHover, hidden after the setting showIconsInPreview, and the selected note with its request to scroll and its link that deselects it (R-PREV-002, R-PREV-003, R-PREV-007, R-SIDE-007)', () => {
+  test('marks the icons for the script of the preview: without a callout on hover after the setting showCalloutOnHover, hidden after the setting showIconsInPreview, and the selected note with its request to scroll, its link that deselects it and the end of its band (R-PREV-002, R-PREV-003, R-PREV-007, R-SIDE-007)', () => {
     const selections = new Map<unknown, { label: string | undefined; reveal: number | undefined }>();
     const md = extendMarkdownIt(new MarkdownIt({ html: true }), {
       settingsOf: (env) => ({ showInPreview: true, showCalloutOnHover: (env as { hover?: boolean }).hover, showIconsInPreview: (env as { icons?: boolean }).icons }),
@@ -321,10 +321,11 @@ describe('the plugin', () => {
       fileLinkOf: () => undefined,
       selectedOf: (env) => selections.get((env as { id?: string }).id),
       deselectLinkOf: (env) => (env as { deselect?: string }).deselect,
+      funnelOf: (env) => (env as { funnel?: [number, number] }).funnel,
     });
     const text = `A[^note-aaaa] B[^note-bbbb]\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}\n`;
     const attributes = (env: object) =>
-      [...md.render(text, env).matchAll(/<a class="[^"]*-icon[^>]*>/g)].map((match) => [...match[0].matchAll(/ data-(?:hover|icon|selected|reveal|deselect)="[^"]*"/g)].join(''));
+      [...md.render(text, env).matchAll(/<a class="[^"]*-icon[^>]*>/g)].map((match) => [...match[0].matchAll(/ data-(?:hover|icon|selected|reveal|deselect|funnel)="[^"]*"/g)].join(''));
     // A missing setting shows the callout and the icon, as the default of the setting does.
     expect(attributes({})).toEqual(['', '']);
     expect(attributes({ hover: true, icons: true })).toEqual(['', '']);
@@ -335,6 +336,8 @@ describe('the plugin', () => {
     expect(attributes({ id: 'x' })).toEqual(['', ' data-selected="true"']);
     expect(attributes({ id: 'y' })).toEqual([' data-selected="true" data-reveal="4"', '']);
     expect(attributes({ id: 'x', deselect: 'vscode://a.b/deselect?d="1"' })).toEqual(['', ' data-selected="true" data-deselect="vscode://a.b/deselect?d=&quot;1&quot;"']);
+    // The selected icon has the end of its band at the right edge of the preview, while the side view shows the funnels.
+    expect(attributes({ id: 'x', funnel: [8, 28] })).toEqual(['', ' data-selected="true" data-funnel="8 28"']);
     // Each icon names its note, for the script of the preview.
     expect([...md.render(text, {}).matchAll(/ data-note="([^"]*)"/g)].map((match) => match[1])).toEqual(['note-aaaa', 'note-bbbb']);
   });
