@@ -20,6 +20,15 @@
 // elements and attributes that run code or load other pages before it shows
 // the HTML, as the Markdown preview of VS Code does. A click on a link of
 // the HTML sends the link to the extension, which opens it (R-SIDE-005).
+//
+// Each thread shows the badge with the number and the color of its note, and
+// a click on a thread, outside its buttons and editors, selects its note in
+// the text editor (R-SIDE-007). While the setting showFunnels is on, the left
+// edge of the view has a strip that stands for the whole file, with a mark
+// for each note and a frame for the part of the file that the text editor
+// shows, and a funnel leads from each visible thread to the mark of its note.
+// The script draws them again on each change of the state, of the visible
+// part of the file, of the scrolling of the view and of its size.
 
 (() => {
   'use strict';
@@ -29,13 +38,34 @@
 
   /**
    * @typedef {{ author: string, date: string, body: string, html: string }} AnswerState
-   * @typedef {{ id: string, line: number, kind: 'block' | 'inline', nested: boolean, answers: AnswerState[] }} ThreadState
-   * @typedef {{ file: string | undefined, line: number | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[] }} State
+   * @typedef {{ id: string, line: number, number: number, color: string, mark: [number, number], kind: 'block' | 'inline', nested: boolean, answers: AnswerState[] }} ThreadState
+   * @typedef {{ lines: [number, number] | undefined, lineCount: number }} Visible
+   * @typedef {{ file: string | undefined, line: number | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], funnels: boolean, visible: Visible }} State
    * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined }} Editor
    */
 
   /** @type {State} */
-  let state = { file: undefined, line: undefined, account: undefined, selected: undefined, threads: [] };
+  let state = { file: undefined, line: undefined, account: undefined, selected: undefined, threads: [], funnels: false, visible: { lines: undefined, lineCount: 1 } };
+
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+
+  /** strip is the strip at the left edge of the view that stands for the whole file. */
+  const strip = document.createElement('div');
+  strip.className = 'strip';
+  strip.setAttribute('aria-hidden', 'true');
+
+  /** funnels is the drawing of the funnels between the strip and the threads. */
+  const funnels = document.createElementNS(svgNamespace, 'svg');
+  funnels.setAttribute('class', 'funnels');
+  funnels.setAttribute('aria-hidden', 'true');
+  document.body.prepend(strip, funnels);
+
+  /** stripWidth is the width of the strip in pixels, and funnelEnd the left edge of the threads, where a funnel ends. */
+  const stripWidth = 6;
+  const funnelEnd = 28;
+
+  /** @type {number | undefined} */
+  let frame;
 
   /** editors holds the open editors by their keys: `new`, `answer:<thread>:<index>` and `reply:<thread>`. @type {Map<string, Editor>} */
   const editors = new Map();
@@ -260,10 +290,18 @@
   const threadOf = (thread) => {
     const section = element('section', `thread${thread.id === state.selected ? ' selected' : ''}`, undefined, {
       'data-id': thread.id,
-      'aria-label': `Note at line ${thread.line + 1}`,
+      'aria-label': `Note ${thread.number} at line ${thread.line + 1}`,
+    });
+    section.style.setProperty('--note-color', thread.color);
+    // A click on the thread outside its buttons, links and editors selects its note, and the focus stays in the view.
+    section.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element) || !event.target.closest('button, a, textarea, .editor')) {
+        vscode.postMessage({ type: 'reveal', id: thread.id, focus: false });
+      }
     });
     const header = element('div', 'thread-header');
     header.append(
+      element('span', 'badge', String(thread.number), { title: `Note ${thread.number}` }),
       button(`Line ${thread.line + 1}`, 'link reveal', () => vscode.postMessage({ type: 'reveal', id: thread.id }), { title: 'Show the note in the text editor' }),
       element('span', 'kind', thread.kind === 'inline' ? 'inline note' : 'note'),
       button('Delete Thread', 'link delete', () => vscode.postMessage({ type: 'deleteNote', id: thread.id })),
@@ -318,6 +356,7 @@
     for (const thread of state.threads) {
       root.append(threadOf(thread));
     }
+    drawLater();
     const key = focusKey ?? activeKey;
     const field = key ? root.querySelector(`.editor[data-key="${CSS.escape(key)}"] textarea`) : null;
     if (field instanceof HTMLTextAreaElement) {
@@ -325,6 +364,67 @@
       if (!focusKey && selection) {
         field.setSelectionRange(selection[0], selection[1]);
       }
+    }
+  };
+
+  /**
+   * place returns the place of a line of the file in the strip, in pixels from the top of the view.
+   * @param {number} line
+   * @param {number} height - The height of the view.
+   */
+  const place = (line, height) => (line / Math.max(state.visible.lineCount, 1)) * height;
+
+  /** draw draws the strip and the funnels, or removes them while the setting showFunnels is off. */
+  const draw = () => {
+    frame = undefined;
+    const shown = state.funnels && state.file !== undefined;
+    document.body.classList.toggle('with-funnels', shown);
+    strip.replaceChildren();
+    funnels.replaceChildren();
+    if (!shown) {
+      return;
+    }
+    const height = window.innerHeight;
+    funnels.setAttribute('viewBox', `0 0 ${funnelEnd} ${height}`);
+    if (state.visible.lines) {
+      const [first, last] = state.visible.lines;
+      const visible = element('div', 'visible');
+      visible.style.top = `${place(first, height)}px`;
+      visible.style.height = `${Math.max(place(last + 1, height) - place(first, height), 4)}px`;
+      strip.append(visible);
+    }
+    for (const thread of state.threads) {
+      const top = place(thread.mark[0], height);
+      const bottom = Math.max(place(thread.mark[1] + 1, height), top + 3);
+      const mark = element('div', `mark${thread.id === state.selected ? ' selected' : ''}`);
+      mark.style.top = `${top}px`;
+      mark.style.height = `${bottom - top}px`;
+      mark.style.backgroundColor = thread.color;
+      strip.append(mark);
+      const section = root.querySelector(`.thread[data-id="${CSS.escape(thread.id)}"]`);
+      const card = section?.getBoundingClientRect();
+      if (!card || card.bottom <= 0 || card.top >= height) {
+        continue;
+      }
+      // The funnel leads from the mark in the strip to the visible part of the thread, with curved sides.
+      const cardTop = Math.max(card.top, 0);
+      const cardBottom = Math.min(card.bottom, height);
+      const middle = (stripWidth + funnelEnd) / 2;
+      const path = document.createElementNS(svgNamespace, 'path');
+      path.setAttribute(
+        'd',
+        `M ${stripWidth} ${top} C ${middle} ${top} ${middle} ${cardTop} ${funnelEnd} ${cardTop} L ${funnelEnd} ${cardBottom} C ${middle} ${cardBottom} ${middle} ${bottom} ${stripWidth} ${bottom} Z`,
+      );
+      path.setAttribute('class', thread.id === state.selected ? 'funnel selected' : 'funnel');
+      path.setAttribute('fill', thread.color);
+      funnels.append(path);
+    }
+  };
+
+  /** drawLater draws the strip and the funnels before the next frame, once for several changes. */
+  const drawLater = () => {
+    if (frame === undefined) {
+      frame = requestAnimationFrame(draw);
     }
   };
 
@@ -363,6 +463,9 @@
       if (selectionChanged) {
         scrollToSelected();
       }
+    } else if (message.type === 'visible') {
+      state.visible = message.visible;
+      drawLater();
     } else if (message.type === 'line') {
       state.line = message.line;
       const title = root.querySelector('.new-title');
@@ -392,6 +495,9 @@
       }
     }
   });
+
+  window.addEventListener('scroll', drawLater, { passive: true });
+  window.addEventListener('resize', drawLater);
 
   show();
   vscode.postMessage({ type: 'ready' });

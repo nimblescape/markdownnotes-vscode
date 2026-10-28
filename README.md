@@ -75,7 +75,9 @@ describes each step and where its protection ends.
   links of the notes open. The view is in the secondary side bar, beside the
   chat, so the Explorer stays usable; the button "Show or Hide Notes" in the
   title of the Markdown editors opens and closes it with one click, also in
-  Zen Mode.
+  Zen Mode. Each thread has a badge with the number and the color of its
+  note, and a funnel leads from each thread to the mark of its note in a
+  strip that stands for the whole file.
 - **Icons in the Markdown preview.** The preview shows each note as a small
   icon: an inline note in the text, a block note in the left margin. On hover
   or keyboard focus, the icon shows the rendered callout with all answers. A
@@ -165,6 +167,7 @@ describes every feature.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.collapseInEditor` | `true` | Collapses the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. |
+| `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnels from the threads to them in the side view "Notes". |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor. The value `false` shows only the mark at each note. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The eye in the title of the preview changes it. |
 

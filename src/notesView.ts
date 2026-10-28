@@ -21,14 +21,25 @@
  * check and write a text in the same way. The script of the view is
  * [media/notesView.js](../media/notesView.js); it gets the state of the view
  * from this module and sends the actions of the user back.
+ *
+ * Each thread shows the badge with the number and the color of its note, and
+ * a click on a thread selects its note in the text editor
+ * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The left edge of the
+ * view, next to the text editor, has a strip that stands for the whole file,
+ * with a mark for each note, or for the lines of its selection, and the part
+ * of the file that the text editor shows. A funnel leads from each thread to
+ * the mark of its note. The setting `showFunnels` and the buttons "Show
+ * Funnels" and "Hide Funnels" in the title of the view show and hide them.
  */
 
 import * as vscode from 'vscode';
 import { githubProvider } from './github';
 import { openLink } from './links';
+import { colorOf } from './notes/colors';
 import type { Note, Position } from './notes/notes';
 import { displayDate } from './notes/syntax';
 import { isNoteDocument, type NoteEntry, type NoteThreads, problemMessage } from './noteThreads';
+import type { Settings } from './settings';
 
 /** notesViewId is the identifier of the side view, which the manifest contributes. */
 export const notesViewId = 'nimblescape.markdownNotes.notes';
@@ -40,13 +51,15 @@ export const notesViewId = 'nimblescape.markdownNotes.notes';
 export const viewCommands = {
   hide: 'nimblescape.markdownNotes.hideNotes',
   toggle: 'nimblescape.markdownNotes.toggleNotes',
+  showFunnels: 'nimblescape.markdownNotes.showFunnels',
+  hideFunnels: 'nimblescape.markdownNotes.hideFunnels',
 };
 
 /** Message is a message of the script of the view. */
 export type Message =
   | { type: 'ready' }
   | { type: 'signIn' }
-  | { type: 'reveal'; id: string }
+  | { type: 'reveal'; id: string; focus?: boolean }
   | { type: 'save'; request: number; id: string; index: number; text: string }
   | { type: 'answer'; request: number; id: string; text: string }
   | { type: 'add'; request: number; text: string }
@@ -67,9 +80,21 @@ interface AnswerState {
 interface ThreadState {
   id: string;
   line: number;
+  /** number is the number of the note in the file, from 1, and color its color ([R-TEXT-006](../docs/requirements.md#r-text-006)). */
+  number: number;
+  color: string;
+  /** mark is the first and the last line of the mark of the note in the strip: its selection, or the note itself. */
+  mark: [number, number];
   kind: Note['kind'];
   nested: boolean;
   answers: AnswerState[];
+}
+
+/** Visible is the part of the file that the text editor shows: its first and its last line, and the number of lines. */
+interface Visible {
+  /** lines are the first and the last visible line, or undefined while no text editor shows the file. */
+  lines: [number, number] | undefined;
+  lineCount: number;
 }
 
 /** State is the content of the view, which the script shows. */
@@ -83,6 +108,9 @@ export interface State {
   account: string | undefined;
   selected: string | undefined;
   threads: ThreadState[];
+  /** funnels tells whether the view shows the strip and the funnels. */
+  funnels: boolean;
+  visible: Visible;
 }
 
 /** cacheSize is the number of rendered texts that the view keeps. */
@@ -116,16 +144,23 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param threads - The threads of the notes, whose operations the view uses.
    * @param login - Returns the GitHub login of the user; with signIn true after asking for a sign-in.
    * @param render - Renders a Markdown text as the Markdown preview does.
+   * @param settingsOf - Returns the settings of a document.
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly threads: NoteThreads,
     private readonly login: (signIn: boolean) => Promise<string | undefined>,
     private readonly render: (text: string) => Promise<string>,
+    private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
   ) {
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
       vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor)),
+      vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
+        if (event.textEditor.document.uri.toString() === this.document?.toString()) {
+          void this.view?.webview.postMessage({ type: 'visible', visible: this.visible() });
+        }
+      }),
       threads.onDidChange((document) => {
         if (document.toString() === this.document?.toString()) {
           void this.refresh();
@@ -264,14 +299,34 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     return html;
   }
 
+  /**
+   * visible returns the part of the document of the view that its text editor shows, the first visible text editor of
+   * the document.
+   */
+  private visible(): Visible {
+    const uri = this.document?.toString();
+    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
+    const document = editor?.document ?? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri);
+    const ranges = editor?.visibleRanges ?? [];
+    return { lines: ranges.length > 0 ? [ranges[0].start.line, ranges[ranges.length - 1].end.line] : undefined, lineCount: document?.lineCount ?? 1 };
+  }
+
+  /** settingsChanged shows the view again after a change of the settings, for the setting showFunnels. */
+  settingsChanged(): void {
+    void this.refresh();
+  }
+
   /** state returns the content of the view. */
   async state(): Promise<State> {
     const document = this.document;
     const entries = document ? this.threads.entriesOf(document) : [];
     const threads = await Promise.all(
-      entries.map(async ({ id, note }) => ({
+      entries.map(async ({ id, note }, index) => ({
         id,
         line: note.start.line,
+        number: index + 1,
+        color: colorOf(index + 1),
+        mark: (note.selection ? [note.selection.start.line, note.selection.end.line] : [note.start.line, note.end.line]) as [number, number],
         kind: note.kind,
         nested: note.nested,
         answers: await Promise.all(
@@ -292,6 +347,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       account: await this.login(false),
       selected: entries.some((entry) => entry.id === this.selected) ? this.selected : undefined,
       threads,
+      funnels: this.settingsOf(document).showFunnels,
+      visible: this.visible(),
     };
   }
 
@@ -317,20 +374,23 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * reveal shows a note in the text editor of its document and opens its box.
+   * reveal shows a note in the text editor of its document, with the cursor at the start of its selection or of the
+   * note, and opens its box.
    * @param id - The identifier of the thread of the note.
+   * @param focus - Whether the text editor gets the focus; a click on a thread leaves the focus in the view.
    */
-  private async reveal(id: string): Promise<void> {
+  private async reveal(id: string, focus: boolean): Promise<void> {
     const uri = this.document;
     const entry = uri ? this.threads.entriesOf(uri).find((candidate) => candidate.id === id) : undefined;
     if (!uri || !entry) {
       return;
     }
     this.selected = id;
-    const start = new vscode.Position(entry.note.start.line, entry.note.start.character);
+    const place = entry.note.selection?.start ?? entry.note.start;
+    const start = new vscode.Position(place.line, place.character);
     const column = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString())?.viewColumn;
     const document = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(document, { viewColumn: column, selection: new vscode.Range(start, start) });
+    await vscode.window.showTextDocument(document, { viewColumn: column, selection: new vscode.Range(start, start), preserveFocus: !focus });
     this.threads.expand(uri, id);
   }
 
@@ -352,7 +412,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.view?.webview.postMessage({ type: 'rendered', request: message.request, html: await this.renderHtml(message.text) });
         return;
       case 'reveal':
-        await this.reveal(message.id);
+        await this.reveal(message.id, message.focus ?? true);
         return;
       case 'openLink':
         await openLink(message.href, document, this.render);

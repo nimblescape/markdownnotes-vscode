@@ -171,9 +171,8 @@ test('the title of the Markdown preview has the button that shows or hides its n
 
 test('the title of the side view has the button "Hide Notes" where VS Code shows none, and the Markdown editors the button "Show or Hide Notes" (R-SIDE-006)', () => {
   const [container] = manifest.contributes.viewsContainers.secondarySidebar;
-  const [item] = manifest.contributes.menus['view/title'];
-  expect(manifest.contributes.menus['view/title']).toHaveLength(1);
-  expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation' });
+  const item = manifest.contributes.menus['view/title'].find((candidate: { command: string }) => candidate.command === viewCommands.hide);
+  expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation@9' });
   // VS Code shows its own button "Hide Secondary Side Bar" in the title of the secondary side bar while the activity bar
   // has its default place, so the button of the view shows only for another place, and only while the view is there.
   expect(item.when).toBe(`view == ${notesViewId} && activeAuxiliary == 'workbench.view.extension.${container.id}' && config.workbench.activityBar.location != 'default'`);
@@ -182,6 +181,20 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
   // The button in the title of the text editor and of the preview of a Markdown file shows a codicon.
   expect(manifest.contributes.menus['editor/title']).toEqual(expect.arrayContaining([expect.objectContaining({ command: viewCommands.toggle })]));
   expect(manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.toggle).icon).toBe('$(comment-discussion)');
+});
+
+test('the title of the side view has the button "Show Funnels" or "Hide Funnels" after the setting showFunnels (R-SIDE-007)', () => {
+  const buttons = manifest.contributes.menus['view/title'].filter((item: { command: string }) => item.command !== viewCommands.hide);
+  expect(buttons).toEqual([
+    { command: viewCommands.showFunnels, group: 'navigation@1', when: `view == ${notesViewId} && !config.${settingsSection}.showFunnels` },
+    { command: viewCommands.hideFunnels, group: 'navigation@1', when: `view == ${notesViewId} && config.${settingsSection}.showFunnels` },
+  ]);
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: viewCommands.showFunnels, when: `!config.${settingsSection}.showFunnels` },
+      { command: viewCommands.hideFunnels, when: `config.${settingsSection}.showFunnels` },
+    ]),
+  );
 });
 
 test('the extension uses no proposed API, and the API of the oldest VS Code version that it supports (R-GEN-002)', () => {

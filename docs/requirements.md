@@ -33,7 +33,7 @@ the extension and in the Markdown preview.
 | 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
 | 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview, inline notes without breaks | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-NOTE-005](#r-note-005), [R-PREV-004](#r-prev-004), [R-PREV-005](#r-prev-005) | done |
 | 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered front matter | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | in progress: dimming, collapsed notes, markers and rendered front matter done |
-| 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | planned |
+| 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
 | 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
 | 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | planned |
 | 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done; the command that converts inline notes waits for the decision on the storage form (footnotes are under study) |
@@ -458,8 +458,9 @@ user sees which callout of the view belongs to which note of the text
   note ([R-TEXT-006](#r-text-006)).
 - **Common selection:** the selected thread of the view and its note in the
   text editor are highlighted together. A click on a thread selects its note
-  and scrolls the text editor to it; a move of the cursor into a note selects
-  its thread.
+  and scrolls the text editor to it, with the cursor at the start of its
+  selection, and the focus stays in the view; a move of the cursor into a
+  note or into its selection selects its thread.
 - **Funnel:** the left edge of the view, next to the text editor, has a
   narrow strip that stands for the whole file, with a mark for each note and
   the part of the file that the text editor shows. A funnel leads from each
@@ -467,7 +468,9 @@ user sees which callout of the view belongs to which note of the text
   ([R-NOTE-006](#r-note-006)), the mark and the funnel span the lines of the
   selection (Hannes, 2026-10-28).
 - **Option:** the title of the view has a button that shows or hides the
-  funnels (Hannes, 2026-10-28).
+  funnels (Hannes, 2026-10-28). The buttons "Show Funnels" and "Hide
+  Funnels" change the setting `nimblescape.markdownNotes.showFunnels`, which
+  is on by default.
 
 VS Code lets no view draw into the text editor and tells no extension where a
 line of the text is on the screen, so the funnel ends at the edge of the

@@ -32,6 +32,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Dimmed source](#dimmed-source) | text editor | available | [R-TEXT-003](requirements.md#r-text-003) |
 | [List of the notes](#comments-view) | Comments view | available | [R-VIEW-001](requirements.md#r-view-001) |
 | [Side view "Notes"](#side-view-notes) | secondary side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-003](requirements.md#r-side-003), [R-SIDE-005](requirements.md#r-side-005), [R-SIDE-006](requirements.md#r-side-006) |
+| [Badges and funnels](#funnels) | side view | available | [R-SIDE-007](requirements.md#r-side-007) |
 | [Edit and save an answer](#edit-an-answer) | text editor, side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-EDIT-003](requirements.md#r-edit-003) |
 | [Answer a note](#answer-a-note) | text editor, side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
@@ -360,8 +361,13 @@ notes:
   its answers rendered as Markdown with author and date.
 - The view selects the thread at the cursor of the text editor, and the
   thread whose icon you clicked in the preview, and scrolls to it.
+- Each thread shows a badge with the number of its note, in the color of the
+  note, the same as the marker in the left margin of the text editor; the
+  left side of the thread has this color too.
 - A click on "Line N" of a thread shows the note in the text editor and
-  opens its box.
+  opens its box. A click elsewhere on the thread does the same and keeps the
+  focus in the view. For a note on a selection, the cursor goes to the start
+  of the selection.
 - Each answer has "Edit" and "Delete", each thread "Answer" and "Delete
   Thread", and the view "Add Note".
 - A click on a link of a rendered text opens it, as in the Markdown preview:
@@ -378,6 +384,27 @@ notes:
   the bottom, or hide it, VS Code shows no such button; the view then has its
   own button "Hide Notes" (×). The command "Markdown Notes: Show or Hide
   Notes" of the Command Palette shows or hides the view.
+
+### Funnels
+
+The left edge of the side view, next to the text editor, has a narrow strip
+that stands for the whole file, from its first line at the top to its last
+line at the bottom:
+
+- a mark in the color of each note, at the lines of its selection, or at the
+  lines of the note when it has no selection;
+- a frame around the part of the file that the text editor shows.
+
+A funnel in the color of the note leads from each thread to its mark, so you
+see which thread belongs to which place of the file. The funnel of the
+selected thread is stronger. The buttons "Hide Funnels" and "Show Funnels"
+(the eye) in the title of the view hide and show the strip and the funnels.
+They change the setting `nimblescape.markdownNotes.showFunnels`: in the
+settings of the workspace when they hold a value, else in your user
+settings. VS Code does not let a view draw into the text editor, so the
+funnels end at the edge of the view.
+
+### Editors of the side view
 
 The editor of a text in the side view has the tabs "Write" (the Markdown
 text) and "Preview" (the text rendered as the Markdown preview renders it).
@@ -512,6 +539,7 @@ preview for the notes.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.collapseInEditor` | `true` | Collapses the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnels from the threads to them in the side view "Notes". The buttons "Show Funnels" and "Hide Funnels" in the title of the view change it. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The buttons of the preview change it. A folder of a workspace can have its own value. |
 

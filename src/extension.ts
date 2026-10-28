@@ -25,7 +25,7 @@ import { githubLogin } from './github';
 import { extendMarkdownIt, type PreviewSettings } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
 import { isNoteDocument, NoteThreads } from './noteThreads';
-import { notesViewId, NotesView } from './notesView';
+import { notesViewId, NotesView, viewCommands } from './notesView';
 import { checkedSettings, type Settings, settingsSection } from './settings';
 
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
@@ -131,15 +131,16 @@ async function renderMarkdown(text: string): Promise<string> {
 }
 
 /**
- * setShowInPreview turns the notes of the Markdown preview on or off, in the settings that decide the value for the
- * window: the settings of the workspace when they hold a value, else the settings of the user. The change of the
- * setting renders the previews again.
- * @param show - Whether the preview shows the notes.
+ * setSetting turns a setting of the extension on or off, in the settings that decide the value for the window: the
+ * settings of the workspace when they hold a value, else the settings of the user. The change of the setting
+ * showInPreview renders the previews again, and the change of showFunnels shows the side view again.
+ * @param key - The setting: showInPreview or showFunnels.
+ * @param value - The new value.
  */
-async function setShowInPreview(show: boolean): Promise<void> {
+async function setSetting(key: 'showInPreview' | 'showFunnels', value: boolean): Promise<void> {
   const configuration = vscode.workspace.getConfiguration(settingsSection);
-  const inWorkspace = configuration.inspect('showInPreview')?.workspaceValue !== undefined;
-  await configuration.update('showInPreview', show, inWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
+  const inWorkspace = configuration.inspect(key)?.workspaceValue !== undefined;
+  await configuration.update(key, value, inWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
 }
 
 /** markdownExtension is the identifier of the Markdown extension of VS Code, which owns the Markdown preview. */
@@ -166,18 +167,21 @@ export function activate(context: vscode.ExtensionContext): Api {
   context.subscriptions.push(threads, ...threads.register());
   const editor = new NoteEditor(threads, readSettings);
   context.subscriptions.push(editor, ...editor.register());
-  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown);
+  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings);
   context.subscriptions.push(
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
-    vscode.commands.registerCommand(previewCommands.show, () => setShowInPreview(true)),
-    vscode.commands.registerCommand(previewCommands.hide, () => setShowInPreview(false)),
+    vscode.commands.registerCommand(previewCommands.show, () => setSetting('showInPreview', true)),
+    vscode.commands.registerCommand(previewCommands.hide, () => setSetting('showInPreview', false)),
+    vscode.commands.registerCommand(viewCommands.showFunnels, () => setSetting('showFunnels', true)),
+    vscode.commands.registerCommand(viewCommands.hideFunnels, () => setSetting('showFunnels', false)),
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
         refreshMarkdownPreviews();
         threads.syncAll();
+        view.settingsChanged();
       }
     }),
   );

@@ -14,8 +14,8 @@
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
-import { notesViewId } from './notesView';
-import { Fake, FakeEditor, FakePosition, type FakeView, settle } from './testing/fakeVscode';
+import { notesViewId, viewCommands } from './notesView';
+import { Fake, FakeEditor, FakePosition, FakeRange, type FakeView, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -100,6 +100,9 @@ test('the view shows the threads of the active Markdown file with the rendered a
       {
         id: '1',
         line: 2,
+        number: 1,
+        color: '#1a7fe0',
+        mark: [2, 12],
         kind: 'block',
         nested: false,
         answers: [
@@ -108,8 +111,19 @@ test('the view shows the threads of the active Markdown file with the rendered a
         ],
       },
       // A note that holds the start of another comment shows its text as it is.
-      { id: '2', line: 16, kind: 'block', nested: true, answers: [{ author: '', date: '', body: 'A <!-- b', html: '<pre>A &#60;!-- b</pre>' }] },
+      {
+        id: '2',
+        line: 16,
+        number: 2,
+        color: '#2e8b3e',
+        mark: [16, 18],
+        kind: 'block',
+        nested: true,
+        answers: [{ author: '', date: '', body: 'A <!-- b', html: '<pre>A &#60;!-- b</pre>' }],
+      },
     ],
+    funnels: true,
+    visible: { lines: [0, 19], lineCount: 20 },
   });
   expect(fake.sessions.map((session) => session.options)).toContainEqual({ silent: true });
   expect(fake.sessions.map((session) => session.options)).not.toContainEqual({ createIfNone: true });
@@ -205,13 +219,37 @@ test('Sign in asks VS Code for a GitHub session, and a change of the sessions sh
   expect(view.state().account).toBe('other');
 });
 
-test('a click on the line of a thread shows its note in the text editor and opens its box', async () => {
+test('a click on the line of a thread shows its note in the text editor and opens its box, and a click on the thread keeps the focus in the view (R-SIDE-007)', async () => {
   const { document, editor, view } = await start();
   await send(view, { type: 'reveal', id: '1' });
-  expect(fake.shown).toEqual([{ document, options: { viewColumn: editor.viewColumn, selection: expect.objectContaining({ start: new FakePosition(2, 0) }) } }]);
+  expect(fake.shown).toEqual([{ document, options: { viewColumn: editor.viewColumn, selection: expect.objectContaining({ start: new FakePosition(2, 0) }), preserveFocus: false } }]);
   expect(fake.live()[0].collapsibleState).toBe(1);
   await send(view, { type: 'reveal', id: '9' });
   expect(fake.shown).toHaveLength(1);
+  await send(view, { type: 'reveal', id: '1', focus: false });
+  expect(fake.shown[1].options).toMatchObject({ preserveFocus: true });
+});
+
+test('a note with a selection has the lines of its selection as its mark, and the cursor goes to the start of the selection (R-SIDE-007)', async () => {
+  const { view } = await start('The agents <!--[a1-->change\nthe work<!--a1]--> of teams.\n<!-- note\n---\nselection: a1\n---\nWhich?\n-->\n');
+  expect(view.state().threads).toEqual([expect.objectContaining({ number: 1, mark: [0, 1], line: 2 })]);
+  await send(view, { type: 'reveal', id: '1' });
+  expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 21) }) });
+});
+
+test('the view sends the visible lines of the text editor, and the setting showFunnels (R-SIDE-007)', async () => {
+  const { editor, view } = await start();
+  editor.visibleRanges = [new FakeRange(3, 0, 8, 0)];
+  fake.fire('visibleRanges', { textEditor: editor });
+  expect(view.messages.at(-1)).toEqual({ type: 'visible', visible: { lines: [3, 8], lineCount: 16 } });
+  // The button "Hide Funnels" writes the setting in the user settings, and the view shows the new state.
+  await fake.run(viewCommands.hideFunnels);
+  await settle();
+  expect(fake.updates).toEqual([{ key: 'showFunnels', value: false, target: 1 }]);
+  expect(view.state()).toMatchObject({ funnels: false });
+  await fake.run(viewCommands.showFunnels);
+  await settle();
+  expect(view.state()).toMatchObject({ funnels: true });
 });
 
 test('without an active Markdown file the view shows no threads, and an action returns that no note is there', async () => {

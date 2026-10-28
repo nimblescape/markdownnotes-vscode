@@ -173,6 +173,18 @@
         "icon": "$(comment-discussion)"
       },
       {
+        "command": "nimblescape.markdownNotes.showFunnels",
+        "title": "Show Funnels",
+        "category": "Markdown Notes",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideFunnels",
+        "title": "Hide Funnels",
+        "category": "Markdown Notes",
+        "icon": "$(eye-closed)"
+      },
+      {
         "command": "nimblescape.markdownNotes.collapseNote",
         "title": "Collapse Note",
         "category": "Markdown Notes",
@@ -262,8 +274,18 @@
       ],
       "view/title": [
         {
+          "command": "nimblescape.markdownNotes.showFunnels",
+          "group": "navigation@1",
+          "when": "view == nimblescape.markdownNotes.notes && !config.nimblescape.markdownNotes.showFunnels"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFunnels",
+          "group": "navigation@1",
+          "when": "view == nimblescape.markdownNotes.notes && config.nimblescape.markdownNotes.showFunnels"
+        },
+        {
           "command": "nimblescape.markdownNotes.hideNotes",
-          "group": "navigation",
+          "group": "navigation@9",
           "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdown-notes' && config.workbench.activityBar.location != 'default'"
         }
       ],
@@ -313,6 +335,14 @@
           "when": "false"
         },
         {
+          "command": "nimblescape.markdownNotes.showFunnels",
+          "when": "!config.nimblescape.markdownNotes.showFunnels"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFunnels",
+          "when": "config.nimblescape.markdownNotes.showFunnels"
+        },
+        {
           "command": "nimblescape.markdownNotes.collapseNote",
           "when": "editorLangId == markdown"
         },
@@ -346,6 +376,12 @@
           "default": true,
           "scope": "resource",
           "markdownDescription": "Collapse the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open."
+        },
+        "nimblescape.markdownNotes.showFunnels": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show the funnels in the side view Notes: the strip at its left edge with a mark for each note of the file, and a funnel from each thread to the mark of its note. The buttons \"Show Funnels\" and \"Hide Funnels\" in the title of the view change this setting."
         }
       }
     }

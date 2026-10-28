@@ -19,10 +19,12 @@ export interface Settings {
   showInPreview: boolean;
   /** collapseInEditor collapses the notes of a file in the text editor ([R-TEXT-005](../docs/requirements.md#r-text-005)). */
   collapseInEditor: boolean;
+  /** showFunnels shows the funnels from the threads of the side view to their notes ([R-SIDE-007](../docs/requirements.md#r-side-007)). */
+  showFunnels: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
-export const defaultSettings: Readonly<Settings> = { expandInEditor: false, showInPreview: true, collapseInEditor: true };
+export const defaultSettings: Readonly<Settings> = { expandInEditor: false, showInPreview: true, collapseInEditor: true, showFunnels: true };
 
 /**
  * checkedSettings returns the settings with the default of each value that has another type than the setting takes.
@@ -33,5 +35,10 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     const raw = read(key);
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
-  return { expandInEditor: value('expandInEditor'), showInPreview: value('showInPreview'), collapseInEditor: value('collapseInEditor') };
+  return {
+    expandInEditor: value('expandInEditor'),
+    showInPreview: value('showInPreview'),
+    collapseInEditor: value('collapseInEditor'),
+    showFunnels: value('showFunnels'),
+  };
 }

@@ -30,6 +30,10 @@ The first version.
   mail links with the system, files in VS Code at a line or a heading. The
   view is in the secondary side bar, and the button "Show or Hide Notes" in
   the title of the Markdown editors opens and closes it, also in Zen Mode.
+- The side view shows a badge with the number and the color of each note,
+  and funnels from each thread to the mark of its note in a strip that
+  stands for the whole file; "Show Funnels" and "Hide Funnels" in its title
+  turn them on and off. A click on a thread selects its note.
 - The text editor shows the front matter of each answer as one rendered line
   with the author and the date, for example "hannes · 2026-10-28 10:15".
 - Notes on a selection: a note can belong to an exact passage of the text,
