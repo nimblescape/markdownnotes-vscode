@@ -16,7 +16,7 @@ import * as vscode from 'vscode';
 import type { Api } from '../../src/extension';
 
 /** extensionId is the identifier of the extension. */
-const extensionId = 'nimblescape.nimblescape-markdown-note';
+const extensionId = 'nimblescape.nimblescape-markdown-notes';
 
 /** api returns the export of the active extension. */
 async function api(): Promise<Api> {
@@ -68,7 +68,7 @@ const note = [
   '',
 ].join('\n');
 
-describe('nimblescape Markdown Note', () => {
+describe('nimblescape Markdown Notes', () => {
   let folder: string;
   let count = 0;
 
@@ -122,11 +122,11 @@ describe('nimblescape Markdown Note', () => {
   it('writes the text of the editor of a box into the comment of the note (R-EDIT-002)', async () => {
     const { document, threads } = await open(note, 2);
     const comment = threads[0].comments[0];
-    await vscode.commands.executeCommand('nimblescape.markdownNote.editNote', comment);
+    await vscode.commands.executeCommand('nimblescape.markdownNotes.editNote', comment);
     assert.equal(comment.mode, vscode.CommentMode.Editing);
     // VS Code sets the body to the text of the editor before the button runs.
     comment.body = new vscode.MarkdownString('A new *text*.\n\nA second paragraph.');
-    await vscode.commands.executeCommand('nimblescape.markdownNote.saveNote', comment);
+    await vscode.commands.executeCommand('nimblescape.markdownNotes.saveNote', comment);
     assert.equal(
       document.getText(),
       note.replace('The **text** of the note.', 'A new *text*.\n\nA second paragraph.'),
@@ -141,13 +141,13 @@ describe('nimblescape Markdown Note', () => {
     const { document, threads } = await open(note, 2);
     const comment = threads[0].comments[0];
     comment.body = new vscode.MarkdownString('A <!-- comment --> in the note');
-    await vscode.commands.executeCommand('nimblescape.markdownNote.saveNote', comment);
+    await vscode.commands.executeCommand('nimblescape.markdownNotes.saveNote', comment);
     assert.equal(document.getText(), note);
   });
 
   it('deletes a note from the file (R-EDIT-004)', async () => {
     const { document, threads } = await open(note, 2);
-    await vscode.commands.executeCommand('nimblescape.markdownNote.deleteNote', threads[1].comments[0]);
+    await vscode.commands.executeCommand('nimblescape.markdownNotes.deleteNote', threads[1].comments[0]);
     assert.equal(document.getText(), note.replace(' <!-- note\nInline\n-->', ''));
     const extension = await api();
     await waitFor(() => (extension.threadsOf(document.uri).length === 1 ? true : undefined), 'one thread');

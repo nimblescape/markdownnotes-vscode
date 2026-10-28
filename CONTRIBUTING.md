@@ -66,9 +66,9 @@ runtime of VS Code 1.125 and later (`engines.vscode`) for the extension.
 | `npm test` | Runs the unit tests with vitest. The tests touch no installed editor. |
 | `npm run test:vscode` | Builds the bundle and the tests in VS Code, downloads VS Code to `.vscode-test/` and runs the tests in it. On Linux without a display, run it as `xvfb-run -a npm run test:vscode`. `VSCODE_TEST_VERSION=insiders` or a version such as `1.125.0` selects another VS Code. |
 | `npm run build` | Bundles `dist/extension.js` with a source map. |
-| `npm run package` | Builds `nimblescape-markdown-note-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
+| `npm run package` | Builds `nimblescape-markdown-notes-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
 | `npm run install-local` | Builds the package and installs it into every profile of the VS Code of this computer; `-- --profile <name>` installs into one profile. Reload the window after an update of an active extension. |
-| `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdown-note` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
+| `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdown-notes` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
 
 The launch configuration "Run the extension" builds the bundle and starts a
 second VS Code window that loads the extension from this folder, so that a
@@ -88,7 +88,7 @@ the same file.
 
 `package.json` is the extension manifest. It has these parts:
 
-- The name and the publisher define the extension ID `nimblescape.nimblescape-markdown-note`; the section [Naming](#naming) explains the name.
+- The name and the publisher define the extension ID `nimblescape.nimblescape-markdown-notes`; the section [Naming](#naming) explains the name.
 - The description, the keywords, the categories, the banner (`galleryBanner`), `preview` and `qna` make the page of the Marketplace. vsce turns some words of the description into search tags; a test checks that the description adds no tag. `preview` shows the label "Preview" on the page, and `qna` sends the questions of the page to the GitHub issues.
 - The version is the only source of the package version, and the tag of a release names it.
 - The engine range defines the compatible VS Code versions. `@types/vscode` stays at the lowest version of that range, so that the code compiles only with the API of that version. The manifest enables no proposed API (`enabledApiProposals`), because the Marketplace does not accept an extension that uses one. A test checks both.
@@ -98,8 +98,8 @@ the same file.
 - `extensionKind` selects the workspace host, where the documents are.
 - The activation event `onLanguage:markdown` starts the extension when a Markdown file opens.
 - The contributions `markdown.markdownItPlugins` and `markdown.previewStyles` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
-- The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of a new note), `comments/comment/title` (the buttons in the title of a note) and `comments/comment/context` (the buttons below the editor of a box) show them, each only for the comment controller `nimblescape.markdownNote`. The first button of each menu is the primary button, which Ctrl+Enter runs: "Add Note" and "Save". The Command Palette shows none of the commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts`.
-- The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNote`; `expandInEditor` and `showInPreview` have the scope `resource`, so that a folder of a workspace can have its own value. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
+- The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of a new note), `comments/comment/title` (the buttons in the title of a note) and `comments/comment/context` (the buttons below the editor of a box) show them, each only for the comment controller `nimblescape.markdownNotes`. The first button of each menu is the primary button, which Ctrl+Enter runs: "Add Note" and "Save". The Command Palette shows none of the commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts`.
+- The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `expandInEditor` and `showInPreview` have the scope `resource`, so that a folder of a workspace can have its own value. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
 - The package has no runtime dependency: the bundle contains markdown-it. The development dependencies are the build, test and packaging tools. `allowScripts` lists the install scripts of dependencies that npm 11.19 and later may run: those of esbuild and `@vscode/vsce-sign` in every version, because the build and the packaging (`npm run package`) run the code of both packages anyway and Dependabot updates them, and not the one of fsevents, an optional package for macOS that already contains its built binary.
 
@@ -151,13 +151,13 @@ block, HTML block, table, rule or front matter) that holds the line of the
 
 `src/noteThreads.ts` uses the comments API of VS Code, which has the boxes in
 the text editor and the Comments view. One comment controller
-(`nimblescape.markdownNote`) has a commenting range of every line of a
+(`nimblescape.markdownNotes`) has a commenting range of every line of a
 Markdown document of a writable file system, and one comment thread for each
 note, with one comment. The comment has the body of the note as a
 `MarkdownString`, the author and the date of the front matter (`timestamp`,
 or `label` for a date of another form), and a context value, which the menus
-read: `nimblescape.markdownNote.note` for a note, and
-`nimblescape.markdownNote.draft` for a new note that was not written yet.
+read: `nimblescape.markdownNotes.note` for a note, and
+`nimblescape.markdownNotes.draft` for a new note that was not written yet.
 
 The comments API works with these rules of VS Code (checked in VS Code 1.143):
 
@@ -244,14 +244,14 @@ Every extension of the publisher `nimblescape` uses one name,
 
 | What | Form | This extension |
 | --- | --- | --- |
-| Repository | `nimblescape/nimblescape-<name>` | `nimblescape/nimblescape-markdown-note` |
-| `name` in `package.json` | `nimblescape-<name>` | `nimblescape-markdown-note` |
-| Extension ID | `nimblescape.nimblescape-<name>` | `nimblescape.nimblescape-markdown-note` |
-| Package file | `nimblescape-<name>-<version>.vsix` | `nimblescape-markdown-note-<version>.vsix` |
-| Display name | `nimblescape <Title>` | `nimblescape Markdown Note` |
+| Repository | `nimblescape/nimblescape-<name>` | `nimblescape/nimblescape-markdown-notes` |
+| `name` in `package.json` | `nimblescape-<name>` | `nimblescape-markdown-notes` |
+| Extension ID | `nimblescape.nimblescape-<name>` | `nimblescape.nimblescape-markdown-notes` |
+| Package file | `nimblescape-<name>-<version>.vsix` | `nimblescape-markdown-notes-<version>.vsix` |
+| Display name | `nimblescape <Title>` | `nimblescape Markdown Notes` |
 
 The repository was created as `nimblescape/nimblescape-markdown`. Rename it
-to `nimblescape/nimblescape-markdown-note` (Settings > General > Repository
+to `nimblescape/nimblescape-markdown-notes` (Settings > General > Repository
 name) before the [Marketplace setup](#setup-of-a-repository), because
 `scripts/marketplace-setup.sh` requires that the name of the repository equals
 the `name` of `package.json`, and the links of the documents already use the
@@ -379,7 +379,7 @@ The script gives the credential these values. For this repository:
 | Field of the federated credential | Value |
 | --- | --- |
 | Issuer | `https://token.actions.githubusercontent.com` |
-| Subject | `repo:nimblescape@156021698/nimblescape-markdown-note@1436834257:environment:marketplace` |
+| Subject | `repo:nimblescape@156021698/nimblescape-markdown-notes@1436834257:environment:marketplace` |
 | Audience | `api://AzureADTokenExchange` |
 
 GitHub puts the owner ID and the repository ID into the subject of every

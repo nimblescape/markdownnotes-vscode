@@ -581,7 +581,7 @@ test('after a change of a document and a pause, the threads follow their notes',
 test('a note that holds the start of another comment gets a warning (R-NOTE-003)', async () => {
   const document = open('<!-- note\nA <!-- b\n-->\n');
   await activate();
-  expect(diagnostics.get(document.uri.toString())).toMatchObject([{ range: new FakeRange(0, 0, 2, 3), severity: 1, source: 'Markdown Note' }]);
+  expect(diagnostics.get(document.uri.toString())).toMatchObject([{ range: new FakeRange(0, 0, 2, 3), severity: 1, source: 'Markdown Notes' }]);
 });
 
 test('the editor folds each note of several lines on lines of its own', async () => {

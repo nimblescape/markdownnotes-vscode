@@ -6,7 +6,7 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 
 # Security model
 
-This document describes what nimblescape Markdown Note does on your
+This document describes what nimblescape Markdown Notes does on your
 computer, what it protects, how, and where its protection ends. The user
 guide is [guide.md](guide.md); how the parts work together is in
 [CONTRIBUTING.md](../CONTRIBUTING.md). Report a security problem by e-mail,
@@ -32,7 +32,7 @@ links to its details.
   (`markdown.markdownItPlugins`, `markdown.previewStyles`). The plugin changes
   only the comments that are notes. See [Rendering](#rendering).
 - **Author of a new note.** For a new note, the extension reads the setting
-  `nimblescape.markdownNote.author`, or else `user.name` of the Git
+  `nimblescape.markdownNotes.author`, or else `user.name` of the Git
   configuration of the file through the Git extension of VS Code. See
   [Author of a new note](#author-of-a-new-note).
 - **Network.** The extension connects to no address, runs no program and
@@ -107,7 +107,7 @@ as the text of an open file does.
 
 ## Author of a new note
 
-When the setting `nimblescape.markdownNote.author` is empty, the extension
+When the setting `nimblescape.markdownNotes.author` is empty, the extension
 asks the Git extension of VS Code (`vscode.git`, API version 1) for the
 repository of the file and reads `user.name` of its configuration, or else of
 the global configuration. When the Git extension is not active, the extension
@@ -152,4 +152,4 @@ address.
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).

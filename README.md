@@ -1,4 +1,4 @@
-# nimblescape Markdown Note
+# nimblescape Markdown Notes
 
 Adds notes to Markdown files in VS Code. A note is an HTML comment that
 starts with `<!-- note`, so the file stays plain Markdown. The text editor
@@ -7,7 +7,7 @@ Markdown; the Comments view lists the notes; and the Markdown preview shows
 them as callouts. Every change of a note goes back into its comment in the
 file.
 
-![VS Code with the extension: on the left, a Markdown file with a note, whose box below the note shows the editor of the note with Markdown highlighting and the buttons Cancel and Save; on the right, the Markdown preview with the note as a callout with its author and date, and a note inside a paragraph as the number 1 with its callout below the paragraph; at the bottom, the Comments view with both notes](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-note/main/docs/images/notes.png)
+![VS Code with the extension: on the left, a Markdown file with a note, whose box below the note shows the editor of the note with Markdown highlighting and the buttons Cancel and Save; on the right, the Markdown preview with the note as a callout with its author and date, and a note inside a paragraph as the number 1 with its callout below the paragraph; at the bottom, the Comments view with both notes](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
 
 ## What the extension does on your computer
 
@@ -22,7 +22,7 @@ file.
   sheet to the built-in Markdown preview of VS Code. The plugin changes only
   the comments that are notes.
 - **Author of a new note.** A new note names the author of the setting
-  `nimblescape.markdownNote.author`, or else `user.name` of the Git
+  `nimblescape.markdownNotes.author`, or else `user.name` of the Git
   configuration of the file, which the extension reads through the Git
   extension of VS Code.
 - **Network.** The extension connects to no address, runs no program and
@@ -32,7 +32,7 @@ file.
   Markdown files. In Restricted Mode, VS Code turns the Git extension off, so
   a new note names only the author of the setting.
 
-[Security](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/docs/security.md#what-the-extension-does-on-your-computer)
+[Security](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/security.md#what-the-extension-does-on-your-computer)
 describes each step and where its protection ends.
 
 ## Features
@@ -89,16 +89,16 @@ In the text editor:
 | Show the preview | Markdown: Open Preview to the Side (Ctrl+K V). |
 
 On macOS, use Cmd instead of Ctrl. The
-[user guide](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/docs/guide.md)
+[user guide](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/guide.md)
 describes every feature.
 
 ## Settings
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNote.author` | `""` | The author that a new note names in its front matter. Empty: `user.name` of the Git configuration of the file; without one, a new note names no author. |
-| `nimblescape.markdownNote.expandInEditor` | `false` | Opens the box of each note in the text editor. The value `false` shows only the mark at each note. |
-| `nimblescape.markdownNote.showInPreview` | `true` | Shows the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension. |
+| `nimblescape.markdownNotes.author` | `""` | The author that a new note names in its front matter. Empty: `user.name` of the Git configuration of the file; without one, a new note names no author. |
+| `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor. The value `false` shows only the mark at each note. |
+| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension. |
 
 ## Limits
 
@@ -116,6 +116,6 @@ describes every feature.
 
 ---
 
-[Change log](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/CHANGELOG.md) · [Contributing](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/CONTRIBUTING.md) · [User guide](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/docs/guide.md) · [Support](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/SUPPORT.md) · [Issues](https://github.com/nimblescape/nimblescape-markdown-note/issues) · [Source](https://github.com/nimblescape/nimblescape-markdown-note)
+[Change log](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/CHANGELOG.md) · [Contributing](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/CONTRIBUTING.md) · [User guide](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/guide.md) · [Support](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/SUPPORT.md) · [Issues](https://github.com/nimblescape/nimblescape-markdown-notes/issues) · [Source](https://github.com/nimblescape/nimblescape-markdown-notes)
 
-© 2026 Hannes Stauss (scalarion@nimblescape.com) · [MIT License](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/LICENSE).
+© 2026 Hannes Stauss (scalarion@nimblescape.com) · [MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).

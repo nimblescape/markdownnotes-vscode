@@ -62,8 +62,8 @@ const sourceFiles = (folder: string): string[] =>
 
 test('the manifest follows the naming scheme of the publisher nimblescape', () => {
   expect(manifest.publisher).toBe('nimblescape');
-  expect(manifest.name).toBe('nimblescape-markdown-note');
-  expect(manifest.displayName).toBe('nimblescape Markdown Note');
+  expect(manifest.name).toBe('nimblescape-markdown-notes');
+  expect(manifest.displayName).toBe('nimblescape Markdown Notes');
   expect(manifest.repository.url).toBe(`https://github.com/nimblescape/${manifest.name}.git`);
   expect(manifest.bugs.url).toBe(`https://github.com/nimblescape/${manifest.name}/issues`);
   expect(manifest.qna).toBe(`https://github.com/nimblescape/${manifest.name}/issues`);

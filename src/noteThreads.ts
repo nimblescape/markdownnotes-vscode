@@ -33,22 +33,22 @@ import { formatDate, normalizeBody, parseDate } from './notes/syntax';
 import type { Settings } from './settings';
 
 /** controllerId is the identifier of the comment controller, which the conditions of the menus name. */
-export const controllerId = 'nimblescape.markdownNote';
+export const controllerId = 'nimblescape.markdownNotes';
 
 /** noteContext is the context value of the comment of a note, which the conditions of the menus name. */
-export const noteContext = 'nimblescape.markdownNote.note';
+export const noteContext = 'nimblescape.markdownNotes.note';
 
 /** draftContext is the context value of the comment of a new note that was not written yet. */
-export const draftContext = 'nimblescape.markdownNote.draft';
+export const draftContext = 'nimblescape.markdownNotes.draft';
 
 /** commands are the commands of the buttons of the boxes. */
 export const commands = {
-  addNote: 'nimblescape.markdownNote.addNote',
-  discardNewNote: 'nimblescape.markdownNote.discardNewNote',
-  editNote: 'nimblescape.markdownNote.editNote',
-  deleteNote: 'nimblescape.markdownNote.deleteNote',
-  saveNote: 'nimblescape.markdownNote.saveNote',
-  cancelEdit: 'nimblescape.markdownNote.cancelEdit',
+  addNote: 'nimblescape.markdownNotes.addNote',
+  discardNewNote: 'nimblescape.markdownNotes.discardNewNote',
+  editNote: 'nimblescape.markdownNotes.editNote',
+  deleteNote: 'nimblescape.markdownNotes.deleteNote',
+  saveNote: 'nimblescape.markdownNotes.saveNote',
+  cancelEdit: 'nimblescape.markdownNotes.cancelEdit',
 } as const;
 
 /** changeDelay is the pause, in milliseconds, after the last change of a document before its notes are read again. */
@@ -181,7 +181,7 @@ export class NoteThreads implements vscode.Disposable {
     this.controller.commentingRangeProvider = {
       provideCommentingRanges: (document) => (isNoteDocument(document) ? [new vscode.Range(0, 0, Math.max(document.lineCount - 1, 0), 0)] : []),
     };
-    this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNote');
+    this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNotes');
   }
 
   /** register registers the commands, the listeners and the folding, and reads the notes of the open documents. */
@@ -299,7 +299,7 @@ export class NoteThreads implements vscode.Disposable {
             'A note must not contain another comment: this note holds "<!--". The preview shows its text as it is.',
             vscode.DiagnosticSeverity.Warning,
           );
-          diagnostic.source = 'Markdown Note';
+          diagnostic.source = 'Markdown Notes';
           return diagnostic;
         }),
     );

@@ -9,7 +9,7 @@
  */
 
 /** settingsSection is the section of the settings of the extension. */
-export const settingsSection = 'nimblescape.markdownNote';
+export const settingsSection = 'nimblescape.markdownNotes';
 
 /** Settings are the values of the settings of the extension. */
 export interface Settings {

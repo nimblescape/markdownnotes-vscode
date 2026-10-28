@@ -21,6 +21,6 @@ The first version.
   paragraph.
 - A note must not contain another comment: the extension refuses such a text
   and warns at such a note in the file.
-- The settings `nimblescape.markdownNote.author`,
-  `nimblescape.markdownNote.expandInEditor` and
-  `nimblescape.markdownNote.showInPreview`.
+- The settings `nimblescape.markdownNotes.author`,
+  `nimblescape.markdownNotes.expandInEditor` and
+  `nimblescape.markdownNotes.showInPreview`.

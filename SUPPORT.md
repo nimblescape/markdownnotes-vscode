@@ -3,7 +3,7 @@
 ## Questions and problems
 
 Ask a question or report a problem as an
-[issue on GitHub](https://github.com/nimblescape/nimblescape-markdown-note/issues).
+[issue on GitHub](https://github.com/nimblescape/nimblescape-markdown-notes/issues).
 Search the existing issues first. When an issue describes your problem
 already, add your information to that issue.
 
@@ -18,7 +18,7 @@ A report helps most when it contains:
   the error message.
 
 The
-[user guide](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/docs/guide.md)
+[user guide](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/guide.md)
 describes every feature and its limits.
 
 ## Security problems
@@ -29,4 +29,4 @@ scalarion@nimblescape.com instead.
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).

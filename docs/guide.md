@@ -6,7 +6,7 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 
 # User guide
 
-This guide describes the features of nimblescape Markdown Note and how to use
+This guide describes the features of nimblescape Markdown Notes and how to use
 them. The extension adds notes to Markdown files: HTML comments that start
 with `<!-- note`. VS Code shows them in the text editor, in the Comments view
 and in the Markdown preview.
@@ -137,7 +137,7 @@ of VS Code. A mark in the gutter shows the lines of the note, and a box below
 the note shows its body as Markdown, with the author and the date. The boxes
 are collapsed when a file opens, so that the text stays readable; a click on
 the mark opens a box, and the arrow in the title of the box closes it. The
-setting `nimblescape.markdownNote.expandInEditor` opens all boxes when a file
+setting `nimblescape.markdownNotes.expandInEditor` opens all boxes when a file
 opens.
 
 The editor can fold each note of several lines on lines of its own, with the
@@ -186,7 +186,7 @@ line, for example after the whole paragraph, so that no paragraph splits. In
 a block quote or in a list item, the note stays in it. The new note has a
 front matter with the author and the date:
 
-- The author is the setting `nimblescape.markdownNote.author`. When the setting
+- The author is the setting `nimblescape.markdownNotes.author`. When the setting
   is empty, it is `user.name` of the Git configuration of the repository of
   the file, which the extension reads through the Git extension of VS Code.
   In Restricted Mode, VS Code turns the Git extension off. Without both,
@@ -215,7 +215,7 @@ callout with the same number follows the paragraph. The notes of a file count
 from 1 in the order of the text.
 
 Outside the notes, the preview shows the file as without the extension. The
-setting `nimblescape.markdownNote.showInPreview` turns the callouts off; the
+setting `nimblescape.markdownNotes.showInPreview` turns the callouts off; the
 preview then shows the file without the notes, as GitHub does. A change of the
 setting renders the open previews again.
 
@@ -232,9 +232,9 @@ notes.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNote.author` | `""` | The author that a new note names in its front matter (`author:`). When the value is empty, the extension takes `user.name` of the Git configuration of the file; without one, a new note names no author. A note that exists keeps its author. |
-| `nimblescape.markdownNote.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
-| `nimblescape.markdownNote.showInPreview` | `true` | Shows the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension, without the notes. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.author` | `""` | The author that a new note names in its front matter (`author:`). When the value is empty, the extension takes `user.name` of the Git configuration of the file; without one, a new note names no author. A note that exists keeps its author. |
+| `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension, without the notes. A folder of a workspace can have its own value. |
 
 ## Limits
 
@@ -252,4 +252,4 @@ notes.
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-note/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
