@@ -176,8 +176,10 @@ describe('nimblescape Markdown Notes', () => {
     await settings().update('addFormatComment', true, vscode.ConfigurationTarget.Global);
     try {
       const { document } = await open(note, 2);
-      await waitFor(() => (document.getText() === marked(note) ? true : undefined), 'the comment of the format');
-      assert.ok(document.isDirty);
+      // VS Code can send the changed text of a document to the extension host before its dirty state, in a second
+      // message ($acceptDirtyStateChanged), so the test waits for both.
+      await waitFor(() => (document.getText() === marked(note) && document.isDirty ? true : undefined), 'the comment of the format as an unsaved change');
+      assert.equal(document.getText(), marked(note));
     } finally {
       await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
     }
