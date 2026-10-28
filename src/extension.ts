@@ -13,8 +13,9 @@
  * ([src/noteThreads.ts](noteThreads.ts)) and the side view
  * ([src/notesView.ts](notesView.ts)), with the GitHub login of the user as the
  * author of new notes ([src/github.ts](github.ts)). It handles the links of
- * the icons of the preview, which open a note in the side view, and refreshes
- * the previews and the threads when a setting of the extension changes.
+ * the icons of the preview, which open a note in the side view, and the buttons
+ * of the preview, which show and hide its notes, and refreshes the previews and
+ * the threads when a setting of the extension changes.
  */
 
 import type MarkdownIt from 'markdown-it';
@@ -30,6 +31,15 @@ export const extensionId = 'nimblescape.nimblescape-markdown-notes';
 
 /** openPath is the path of the links that open a note in the side view. */
 export const openPath = '/open';
+
+/**
+ * previewCommands are the commands of the buttons in the title of the Markdown preview, which show and hide its notes
+ * ([R-PREV-005](../docs/requirements.md#r-prev-005)).
+ */
+export const previewCommands = {
+  show: 'nimblescape.markdownNotes.showInPreview',
+  hide: 'nimblescape.markdownNotes.hideInPreview',
+};
 
 /** Api is the export of the extension. */
 export interface Api {
@@ -118,6 +128,18 @@ async function renderMarkdown(text: string): Promise<string> {
   return html;
 }
 
+/**
+ * setShowInPreview turns the notes of the Markdown preview on or off, in the settings that decide the value for the
+ * window: the settings of the workspace when they hold a value, else the settings of the user. The change of the
+ * setting renders the previews again.
+ * @param show - Whether the preview shows the notes.
+ */
+async function setShowInPreview(show: boolean): Promise<void> {
+  const configuration = vscode.workspace.getConfiguration(settingsSection);
+  const inWorkspace = configuration.inspect('showInPreview')?.workspaceValue !== undefined;
+  await configuration.update('showInPreview', show, inWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
+}
+
 /** markdownExtension is the identifier of the Markdown extension of VS Code, which owns the Markdown preview. */
 const markdownExtension = 'vscode.markdown-language-features';
 
@@ -145,6 +167,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
+    vscode.commands.registerCommand(previewCommands.show, () => setShowInPreview(true)),
+    vscode.commands.registerCommand(previewCommands.hide, () => setShowInPreview(false)),
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {

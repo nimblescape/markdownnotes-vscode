@@ -42,7 +42,10 @@ links to its details.
   the workspace, and only shows its notes. See
   [Links to the extension](#links-to-the-extension).
 - **Side view.** The side view "Notes" is a webview with a policy that runs
-  only the script of the extension. See [Side view](#side-view).
+  only the script of the extension. A click on a link of a note opens a web
+  or mail link with the system, a file in VS Code, and a link of another
+  scheme only after you agree; it never runs a command. See
+  [Side view](#side-view) and [Links of the notes](#links-of-the-notes).
 - **Network.** The code of the extension connects to no address, runs no
   program and collects no telemetry. See [Rendering](#rendering).
 - **Restricted Mode and virtual workspaces.** The extension works with all
@@ -119,6 +122,28 @@ connection of VS Code, as the text of an open file does.
 - The script sends the actions of the user to the extension as messages. The
   extension checks and writes each text with the same operations as the boxes
   of the text editor ([Changes of a file](#changes-of-a-file)).
+- A click on a link of a rendered text does not load the address in the page
+  of the view: the script stops the click and sends the address to the
+  extension ([Links of the notes](#links-of-the-notes)).
+
+## Links of the notes
+
+The author of a note decides its links, and the author can be anyone who can
+change the file. So a click on a link in the side view opens:
+
+- a link of the schemes `http:`, `https:` and `mailto:`, and a link of the
+  scheme of VS Code (`vscode:`), with `vscode.env.openExternal`, as the
+  Markdown preview does. VS Code asks before it opens a web address outside
+  the trusted domains;
+- a link to a file in VS Code, with `vscode.open` or the text editor: a
+  relative path from the folder of the Markdown file, and a path that starts
+  with `/` from the folder of the workspace. The extension opens no file that
+  does not exist, and shows a folder in the Explorer;
+- a link of another scheme, for example `zotero:`, with the program of the
+  system only after a question that names the whole link;
+- never a link of the schemes `command:`, `javascript:`, `vbscript:`,
+  `data:`, `blob:`, `vscode-webview:` and `vscode-resource:`: such a link
+  would run a command or code, or hold its own content.
 
 ## Links to the extension
 

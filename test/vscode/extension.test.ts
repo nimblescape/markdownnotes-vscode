@@ -7,7 +7,8 @@
 // Markdown files of a temporary folder, and check the threads of the notes in the text editor with one comment for
 // each answer (R-TEXT-001, R-NOTE-004), the save of an edited answer (R-EDIT-002), the refused text (R-NOTE-003), the
 // delete (R-EDIT-004), the side view (R-SIDE-001), and the icons and callouts of the Markdown preview of VS Code
-// (R-PREV-001 to R-PREV-004) with the markdown-it plugin of the extension. The tests add no note and no answer, because
+// (R-PREV-001 to R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side
+// view in the HTML of the preview (R-SIDE-005). The tests add no note and no answer, because
 // these need a GitHub sign-in (R-GEN-006), which a test cannot give.
 
 import * as assert from 'node:assert/strict';
@@ -16,6 +17,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { Api } from '../../src/extension';
+import { headingLine } from '../../src/links';
 
 /** extensionId is the identifier of the extension. */
 const extensionId = 'nimblescape.nimblescape-markdown-notes';
@@ -182,5 +184,13 @@ describe('nimblescape Markdown Notes', () => {
     assert.match(html, /<strong>text<\/strong> of the note\./);
     assert.match(html, /A sentence<a class="nimblescape-note-icon" aria-label="Note" aria-describedby="nimblescape-note-2" href="[^"]*line=14">.*?<\/a> and more\.<\/p>/);
     assert.doesNotMatch(html, /&lt;!--|<!-- note/);
+  });
+
+  it('finds the heading of a link of a note in the HTML of the Markdown preview of VS Code (R-SIDE-005)', async () => {
+    const html = await vscode.commands.executeCommand<string>('markdown.api.render', '---\ntitle: x\n---\n# Hong et al.\n\nText.\n\n## Abstract\n\n## Abstract\n');
+    assert.equal(headingLine(html, 'hong-et-al'), 3, html);
+    assert.equal(headingLine(html, 'Abstract'), 7, html);
+    assert.equal(headingLine(html, 'abstract-1'), 9, html);
+    assert.equal(headingLine(html, 'missing'), undefined);
   });
 });

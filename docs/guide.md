@@ -89,8 +89,9 @@ There are two kinds of notes:
   ends the paragraph before it, so a block note also ends a paragraph. The
   preview shows its icon in the left margin.
 - An **inline note** `<!-- note inline` belongs to a place in the text of a
-  paragraph. The preview removes it with the blanks before and after it, so
-  that the paragraph stays one paragraph, and shows its icon in the text. See
+  paragraph, and never ends the paragraph. The preview removes it with the
+  blanks and the blank lines before and after it, so that the paragraph stays
+  one paragraph, and shows its icon in the text. See
   [Inline notes](#inline-notes).
 
 ### Where a note can stand
@@ -180,10 +181,16 @@ The beta starts one week before.
 ```
 
 The preview removes the inline note together with the blanks before and
-after it (spaces, tabs and line breaks), so that "Version 2.0 comes out in
-November. The beta starts one week before." stays one paragraph, with one
-space between the two parts. The icon of the note stands after the word
-before the note.
+after it (spaces, tabs, line breaks and blank lines), so that "Version 2.0
+comes out in November. The beta starts one week before." stays one
+paragraph, with one space and no line break between the two parts, also when
+the setting `markdown.preview.breaks` is on. The icon of the note stands
+after the word before the note.
+
+An inline note never ends a paragraph, also when blank lines stand before or
+after it: the text before and after the note is one paragraph in the
+preview. A note between two paragraphs that keeps them apart is a block note
+`<!-- note`.
 
 ### No comment in a note
 
@@ -261,6 +268,19 @@ It is the editor of the notes:
   opens its box.
 - Each answer has "Edit" and "Delete", each thread "Answer" and "Delete
   Thread", and the view "Add Note".
+- A click on a link of a rendered text opens it, as in the Markdown preview:
+  a web link or a mail link with your system, and a link to a file in
+  VS Code. A relative path starts at the folder of the Markdown file, a path
+  with `/` at the folder of the workspace. A fragment `#L12` goes to line 12,
+  and a fragment of a Markdown file to its heading, for example
+  `notes.md#abstract`. A file that is no text, such as a PDF, opens in the
+  editor that VS Code has for it. A link of another scheme, such as
+  `zotero:`, opens with your system after you agree. A link of the schemes
+  `command:`, `data:` or `javascript:` never opens.
+- The button "Hide Notes" (×) in the title of the view closes the side bar
+  with one click. This also works in Zen Mode, which hides the activity bar.
+  The command "Markdown Notes: Show or Hide Notes" of the Command Palette
+  shows or hides the view.
 
 The editor of a text in the side view has the tabs "Write" (the Markdown
 text) and "Preview" (the text rendered as the Markdown preview renders it).
@@ -360,10 +380,14 @@ edit and answer it. The icon is a link of the scheme `vscode://` to the
 extension; VS Code may ask once whether the extension may open it.
 
 Outside the notes, the preview shows the file as without the extension. The
-setting `nimblescape.markdownNotes.showInPreview` turns the icons off; the
-preview then shows the file without the notes, as GitHub does, and the text
-around an inline note stays one paragraph. A change of the setting renders
-the open previews again.
+button "Hide Notes in Preview" (the eye) in the title of the preview hides
+the notes, and the button "Show Notes in Preview" shows them again; the
+Command Palette has the same commands. The preview then shows the file
+without the notes, as GitHub does, and the text around an inline note stays
+one paragraph. The buttons change the setting
+`nimblescape.markdownNotes.showInPreview`: in the settings of the workspace
+when they hold a value, else in your user settings. A change of the setting
+renders the open previews again.
 
 ## Markdown Editor
 
@@ -379,7 +403,7 @@ preview for the notes.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
-| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The buttons of the preview change it. A folder of a workspace can have its own value. |
 
 ## Limits
 
@@ -390,6 +414,10 @@ preview for the notes.
   or in a block of other HTML is no note.
 - The text editor, the Comments view and the side view show the notes of the
   open Markdown files only.
+- The button "Hide Notes" closes the primary side bar. When you move the view
+  to the secondary side bar or to the panel, close it with their own button.
+- The buttons of the preview change the setting of the workspace or of the
+  user, not the value of a folder of the workspace.
 - A file of a read-only file system, for example the older version of a file
   in a Git diff, shows no boxes; the preview shows its icons.
 - The box of a note shows the HTML of its body only as far as the comments of

@@ -31,6 +31,11 @@ the extension and in the Markdown preview.
 | 8 | Preview: icon, callout on hover, click opens the editor, inline notes removed with their blanks | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done |
 | 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | done |
 | 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
+| 11 | Links in the side view, "Hide Notes" for the side view, the button of the preview, inline notes without breaks | [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-NOTE-005](#r-note-005), [R-PREV-004](#r-prev-004), [R-PREV-005](#r-prev-005) | in progress |
+| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker | [R-TEXT-003](#r-text-003) to [R-TEXT-005](#r-text-005) | planned |
+| 13 | Number and color of each note, common selection, funnel strip | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | planned |
+| 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
+| 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | planned |
 
 ## General
 
@@ -91,6 +96,24 @@ signed in; without a sign-in, it writes no new note and no answer. The
 author of a new note or answer is the GitHub login of the signed-in account.
 The user cannot type another author. Reading, editing and deleting need no
 sign-in ([decision 3](#decisions)).
+
+### R-GEN-007
+
+**Only additions.** The extension only adds to the Markdown support of
+VS Code, as an overlay, and replaces no part of it (Hannes, 2026-10-28). The
+text editor, the Markdown preview and the Markdown extensions of other
+publishers work as without it, for example the extensions of Matt Bierner for
+Mermaid diagrams, emoji, footnotes, checkboxes and the GitHub styles of the
+preview. The extension adds:
+
+- decorations, folding ranges and comment threads in the text editor;
+- a grammar that is injected into the Markdown grammar of VS Code and applies
+  only inside the comment of a note ([R-TEXT-004](#r-text-004));
+- a markdown-it plugin that changes only the comments that are notes, and
+  gives every other token to the rules of the preview and of the other
+  plugins;
+- styles and a script of the preview that apply only to its own elements;
+- the side view ([R-SIDE-001](#r-side-001)).
 
 ## Notes
 
@@ -191,12 +214,16 @@ Which day exactly?
 The beta starts one week before.
 ```
 
-In Markdown, a comment that starts a line ends the paragraph before it. The
-rendered view therefore removes the inline note together with the blanks
-before and after it (spaces, tabs and line breaks), so that the text before
-and after the note stays one paragraph, with one space between the two parts
+In Markdown, a comment that starts a line ends the paragraph before it. An
+inline note never ends a paragraph (Hannes, 2026-10-28): the blanks before
+and after it (spaces, tabs, line breaks and blank lines) belong to the note.
+The rendered view therefore removes the inline note together with these
+blanks, so that the text before and after the note is one paragraph, with one
+space and without a line break between the two parts
 ([R-PREV-004](#r-prev-004)). The place of the note shows as an icon
-([R-PREV-001](#r-prev-001)).
+([R-PREV-001](#r-prev-001)). A collapsed inline note vanishes from the text
+editor in the same way ([R-TEXT-005](#r-text-005)). A note between two
+paragraphs that keeps them apart is a block note `<!-- note`.
 
 ## Text editor and Comments view
 
@@ -212,16 +239,62 @@ change of the file, each box moves with its note, and an open box stays open.
 
 ### R-TEXT-002
 
-**Collapsible notes.** Each box can be collapsed and expanded, as a comment
+**Collapsible boxes.** Each box can be collapsed and expanded, as a comment
 of a pull request can. The boxes are collapsed when a file opens; the setting
-`nimblescape.markdownNotes.expandInEditor` opens them all. The editor can also
-fold the lines of each note of several lines.
+`nimblescape.markdownNotes.expandInEditor` opens them all. The lines of the
+note itself collapse as in [R-TEXT-005](#r-text-005).
 
 ### R-TEXT-003
 
-**Dimmed source.** The text editor shows the source of the comment of each
-note dimmed, so that the Markdown of the document outside the notes stands
-out, and the rendered box shows the note.
+**Dimming after the cursor.** The text editor dims the part of the file that
+the user does not work on (Hannes, 2026-10-28): while the cursor is outside
+the notes, it dims the notes, so that the Markdown of the document stands out;
+while the cursor is in a note, it dims everything outside this note, so that
+the note stands out as a Markdown text of its own ([R-TEXT-004](#r-text-004)).
+
+### R-TEXT-004
+
+**Markdown inside a note.** Inside the comment of a note, the text editor
+works as in a Markdown file of its own, "Markdown within Markdown" (Hannes,
+2026-10-28): the text of each answer has the highlighting of Markdown, the
+front matter the highlighting of YAML, and the marks `<!-- note`,
+`<!-- note inline` and `-->` the highlighting of the marks of a comment. The
+editing aids that VS Code turns off inside a comment, for example the closing
+of brackets and quotes, work inside a note as in the rest of the Markdown
+file. The extension adds this with a grammar that is injected into the
+Markdown grammar of VS Code ([R-GEN-007](#r-gen-007)).
+
+### R-TEXT-005
+
+**Collapsed notes.** A note can be collapsed, so that it vanishes from the
+text editor and only a marker shows where it is (Hannes, 2026-10-28). The
+editor folds the lines of the note together with the blank lines before it
+into the last line of text before the note, so that this line stays and the
+note does not. The marker is a note icon in the left margin of this line, in
+the color of the note ([R-TEXT-006](#r-text-006)), at the place where GitHub
+and VS Code show their comment markers. The folding arrow of VS Code next to
+the marker opens the note again, and so does a move of the cursor into it.
+
+- An inline note never ends a paragraph ([R-NOTE-005](#r-note-005)): its
+  folding also takes the blank lines after it, so that the text before and
+  after the note shows without a paragraph break.
+- A block note keeps the blank lines after it.
+- A note in the first line of the file has no line before it; its first line
+  stays with the marker, and the extension hides the text of that line.
+
+Every note is collapsed when a file opens; the setting
+`nimblescape.markdownNotes.collapseInEditor` with the value `false` keeps the
+notes open. The box of a note has the button "Collapse Note", and the
+Command Palette has the commands "Collapse All Notes" and "Expand All Notes".
+A note that the user adds stays open.
+
+### R-TEXT-006
+
+**Number and color of a note.** Each note of a file has a number, its place
+in the file from the top, and a color from a list of colors of the theme. The
+number and the color show in a badge at the note in the text editor, at the
+marker of a collapsed note, as a mark in the overview ruler of the editor, and
+at the thread in the side view ([R-SIDE-007](#r-side-007)).
 
 ### R-VIEW-001
 
@@ -243,8 +316,9 @@ clicked in the preview ([R-PREV-003](#r-prev-003)).
 
 **Note editor.** The side view is the editor of the notes. Each answer has
 the buttons "Edit" and "Delete", and each thread a field "Answer". The editor
-of an answer is a Markdown editor with the tabs "Write" (the Markdown text)
-and "Preview" (the text rendered as the preview renders it). "Save" (or
+of an answer has the tabs "Visual" (the rendered text, which the user edits
+directly, [R-SIDE-004](#r-side-004)), "Markdown" (the Markdown text) and
+"Preview" (the text rendered as the preview renders it). "Save" (or
 Ctrl+Enter) writes the text into the comment of the note
 ([R-EDIT-002](#r-edit-002)); "Cancel" keeps the note as it is.
 
@@ -253,6 +327,63 @@ Ctrl+Enter) writes the text into the comment of the note
 **New note from the side view.** The side view has a button "Add Note" that
 adds a note at the line of the cursor of the text editor
 ([R-EDIT-003](#r-edit-003)).
+
+### R-SIDE-004
+
+**Visual editing.** In the tab "Visual", the user edits the rendered text of
+an answer, as in the Markdown Editor of VS Code (Hannes, 2026-10-28):
+headings, paragraphs, emphasis, links, lists, block quotes and code show as
+rendered text, and the toolbar and the keys of the editor change them. "Save"
+writes the text back as Markdown. The tab writes a changed Markdown text only
+after the user changed something in it. A text with Markdown that the visual
+editor cannot show without a change, for example a table or HTML, opens in
+the tab "Markdown", with a message why.
+
+### R-SIDE-005
+
+**Links in the side view.** A click on a link of a rendered text in the side
+view opens the link, as a click in the Markdown preview does:
+
+- a web link or a mail link with the system, through VS Code;
+- a link to a file in VS Code: a relative path from the folder of the Markdown
+  file, a path that starts with `/` from the folder of the workspace; a
+  fragment `#L12` or `#L12,5` goes to the line, and a fragment of a Markdown
+  file to its heading; a file that is no text, for example a PDF, opens in the
+  editor that VS Code has for it;
+- a link of another scheme, for example `zotero:`, with the system after the
+  user agrees;
+- never a link that runs a command or holds its own content (`command:`,
+  `data:`, `javascript:`).
+
+### R-SIDE-006
+
+**Hide the side view.** The title of the side view has the button "Hide
+Notes", which closes the side bar with one click (Hannes, 2026-10-28). Zen
+Mode hides the activity bar, whose icon would otherwise close the side bar,
+so the button is the way to hide the view there after a click on an icon of
+the preview opened it. The command "Show or Hide Notes" of the Command Palette
+shows or hides the view.
+
+### R-SIDE-007
+
+**Link between a callout and its note.** When the side view is open, the
+user sees which callout of the view belongs to which note of the text
+(Hannes, 2026-10-28):
+
+- **Badge:** each thread shows the badge with the number and the color of its
+  note ([R-TEXT-006](#r-text-006)).
+- **Common selection:** the selected thread of the view and its note in the
+  text editor are highlighted together. A click on a thread selects its note
+  and scrolls the text editor to it; a move of the cursor into a note selects
+  its thread.
+- **Funnel:** the edge of the view next to the text editor has a narrow strip
+  that stands for the whole file, with a mark for each note and the part of
+  the file that the text editor shows. A line leads from each thread to the
+  mark of its note.
+
+VS Code lets no view draw into the text editor and tells no extension where a
+line of the text is on the screen, so the line of the funnel ends at the edge
+of the view.
 
 ## Editing
 
@@ -329,18 +460,24 @@ whether the extension may open it.
 ### R-PREV-004
 
 **Inline notes in the text.** The preview removes each inline note with the
-blanks before and after it, so that the paragraph stays one paragraph with
-one space between the text before and after the note
-([R-NOTE-005](#r-note-005)). The scrolling of the preview still follows the
-lines of the text editor.
+blanks and the blank lines before and after it, so that the paragraph stays
+one paragraph with one space between the text before and after the note, and
+no line break, also when the setting `markdown.preview.breaks` turns line
+breaks into breaks of the line ([R-NOTE-005](#r-note-005)). The scrolling of
+the preview still follows the lines of the text editor.
 
 ### R-PREV-005
 
-**Setting of the preview.** The setting
-`nimblescape.markdownNotes.showInPreview` turns the icons off. The preview
-then shows the file as without the extension, without the notes; inline notes
-are still removed with their blanks, so that the paragraphs stay whole. A
-change of the setting renders the open previews again.
+**Show and hide the notes of the preview.** The title of the Markdown
+preview has a button that shows or hides the notes (Hannes, 2026-10-28):
+"Hide Notes in Preview" while the preview shows them, "Show Notes in Preview"
+while it hides them. The button changes the setting
+`nimblescape.markdownNotes.showInPreview`: in the settings of the workspace
+when they hold a value, else in the settings of the user. Without the notes,
+the preview shows the file as without the extension; inline notes are still
+removed with their blanks, so that the paragraphs stay whole. A change of the
+setting renders the open previews again. By default, the preview shows the
+notes ([decision 5](#decisions)).
 
 ## Decisions
 
@@ -361,6 +498,16 @@ them.
    or an answer needs the sign-in, because only these write an author.
    Editing and deleting an answer keep or remove its front matter. The other
    choice was that editing and deleting need the sign-in too.
+4. **Form of inline notes** ([R-NOTE-005](#r-note-005)): an inline note keeps
+   its lines of their own, and collapses so that it vanishes without a break
+   ([R-TEXT-005](#r-text-005)). The other choice was an inline note on one
+   line inside the line of the text, which adds no line break even when it is
+   open, but holds no headings and no paragraphs; the notes of Hannes hold
+   both.
+5. **What is hidden by default** ([R-PREV-005](#r-prev-005),
+   [R-TEXT-005](#r-text-005)): the text editor collapses the notes by
+   default; the Markdown preview shows them by default and has a button that
+   hides them.
 
 ---
 

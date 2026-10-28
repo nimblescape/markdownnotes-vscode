@@ -22,12 +22,16 @@ The first version.
   a note.
 - The side view "Notes" lists the threads of the active Markdown file, with
   "Edit", "Delete", "Answer", "Delete Thread" and "Add Note", and an editor
-  with the tabs "Write" and "Preview".
+  with the tabs "Write" and "Preview". The links of the notes open: web and
+  mail links with the system, files in VS Code at a line or a heading. The
+  button "Hide Notes" closes the side bar, also in Zen Mode.
 - The built-in Markdown preview shows each note as a small icon: an inline
   note in the text, a block note in the left margin. The icon shows the note
   as a callout on hover and keyboard focus, and opens it in the side view on
-  a click. The preview removes inline notes with their blanks, so that the
-  paragraph stays one paragraph.
+  a click. An inline note never ends a paragraph: the preview removes it with
+  its blanks and blank lines, so that the paragraph stays one paragraph,
+  without a line break. The eye in the title of the preview hides and shows
+  the notes.
 - A note must not contain another comment: the extension refuses such a text
   and warns at such a note in the file.
 - The settings `nimblescape.markdownNotes.expandInEditor` and

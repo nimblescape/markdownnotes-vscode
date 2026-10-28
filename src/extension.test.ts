@@ -20,9 +20,10 @@
 import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider, githubScopes } from './github';
+import { previewCommands } from './extension';
 import { noteClass } from './markdown/markdownIt';
 import { commands as noteCommands, controllerId, draftContext, noteContext } from './noteThreads';
-import { notesViewId } from './notesView';
+import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
 import { bodyOf, Fake, FakeDocument, FakeEditor, FakeFoldingRange, FakeMarkdownString, FakeRange, FakeThread, FakeUri, settle } from './testing/fakeVscode';
 
@@ -63,7 +64,7 @@ const focus = `${notesViewId}.focus`;
 
 test('the activation registers the commands, the side view and the handler of links, and the disposal of the context removes every registration', async () => {
   const { context, extension } = await fake.activate();
-  expect([...fake.commands.keys()].sort()).toEqual(Object.values(noteCommands).sort());
+  expect([...fake.commands.keys()].sort()).toEqual([...Object.values(noteCommands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort());
   expect(fake.controller?.id).toBe(controllerId);
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
@@ -89,6 +90,31 @@ test('the export renders the icons with the setting showInPreview and the link o
   fake.settings.set(hidden.path, { showInPreview: false });
   expect(md.render(note, { currentDocument: hidden })).not.toContain(noteClass);
   expect(md.render(note, { currentDocument: hidden })).toContain('More.');
+});
+
+test('the buttons of the preview show and hide its notes in the settings that decide the value, and render the previews again (R-PREV-005)', async () => {
+  await fake.activate();
+  await fake.run(previewCommands.hide);
+  expect(fake.updates).toEqual([{ key: 'showInPreview', value: false, target: 1 }]);
+  expect(fake.executed).toContain('markdown.preview.refresh');
+  // A value of the workspace decides the value for the window, so the button changes it there.
+  fake.settings.set('workspace', { showInPreview: false });
+  await fake.run(previewCommands.show);
+  expect(fake.updates[1]).toEqual({ key: 'showInPreview', value: true, target: 2 });
+  expect(fake.settings.get('')).toEqual({ showInPreview: false });
+  expect(fake.settings.get('workspace')).toEqual({ showInPreview: true });
+});
+
+test('the button of the side view closes the side bar, and the command of the Command Palette shows or hides the view (R-SIDE-006)', async () => {
+  await fake.activate();
+  const view = fake.resolveView(notesViewId);
+  await fake.run(viewCommands.hide);
+  expect(fake.calls.at(-1)).toEqual({ command: 'workbench.action.closeSidebar', args: [] });
+  await fake.run(viewCommands.toggle);
+  expect(fake.calls.at(-1)).toEqual({ command: 'workbench.action.closeSidebar', args: [] });
+  view.visible = false;
+  await fake.run(viewCommands.toggle);
+  expect(fake.calls.at(-1)).toEqual({ command: `${notesViewId}.focus`, args: [] });
 });
 
 test('a link of an icon opens the side view at its note, for an open Markdown document or one of the workspace only', async () => {

@@ -144,8 +144,7 @@ describe('the plugin', () => {
     const html = icons(preview(true).render('Version 2.0 comes out.\n<!-- note inline\n---\nauthor: hannes\n---\nWhich day?\n-->\nThe beta starts before.\n\nNext.\n'));
     expect(html).toBe(
       [
-        `<p data-line="0" class="code-line" dir="auto">Version 2.0 comes out.<a class="${noteClass}-icon" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a>`,
-        'The beta starts before.</p>',
+        `<p data-line="0" class="code-line" dir="auto">Version 2.0 comes out.<a class="${noteClass}-icon" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a> The beta starts before.</p>`,
         `<div class="${noteClass}" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
         `<div class="${noteClass}-answer">`,
         `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span></div>`,
@@ -160,20 +159,32 @@ describe('the plugin', () => {
     );
   });
 
-  test('joins the paragraph around several inline notes, also in a list item and a block quote', () => {
+  test('joins the paragraph around several inline notes, also in a list item and a block quote, with a space and no line break', () => {
     const notes = '<!-- note inline\nA\n-->\n<!-- note inline\nB\n-->\n';
-    expect(icons(plain(preview(true).render(`One\n${notes}Two\n`)))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a><a [^>]*>\[icon\]<\/a>\nTwo<\/p>\n/);
-    expect(icons(plain(preview(true).render('- One\n  <!-- note inline\n  A\n  -->\n  Two\n')))).toMatch(/^<ul>\n<li>One<a [^>]*>\[icon\]<\/a>\nTwo<div class="nimblescape-note" [^]*<\/div>\n<\/li>\n<\/ul>\n$/);
-    expect(icons(plain(preview(true).render('> One\n> <!-- note inline\n> A\n> -->\n> Two\n')))).toMatch(/^<blockquote>\n<p>One<a [^>]*>\[icon\]<\/a>\nTwo<\/p>\n<div class/);
+    expect(icons(plain(preview(true).render(`One\n${notes}Two\n`)))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a><a [^>]*>\[icon\]<\/a> Two<\/p>\n/);
+    expect(icons(plain(preview(true).render('- One\n  <!-- note inline\n  A\n  -->\n  Two\n')))).toMatch(/^<ul>\n<li>One<a [^>]*>\[icon\]<\/a> Two<div class="nimblescape-note" [^]*<\/div>\n<\/li>\n<\/ul>\n$/);
+    expect(icons(plain(preview(true).render('> One\n> <!-- note inline\n> A\n> -->\n> Two\n')))).toMatch(/^<blockquote>\n<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class/);
+    // The option breaks of markdown-it, which the setting markdown.preview.breaks turns on, adds no line break either.
+    const breaks = extendMarkdownIt(new MarkdownIt({ html: true, breaks: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: () => undefined });
+    expect(icons(breaks.render(`One\n${notes}Two\n`))).not.toContain('<br>');
     // A text after `-->` on the last line of the note follows after a space.
     expect(icons(plain(preview(true).render('One\n<!-- note inline\nA\n-->  and two\n')))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a> and two<\/p>\n/);
   });
 
   test('puts the icon of an inline note at the end of the text before it, at the start of the text after it, or in the margin', () => {
     expect(icons(plain(preview(true).render('# Title\n<!-- note inline\nA\n-->\n')))).toMatch(/^<h1>Title<a [^>]*>\[icon\]<\/a><\/h1>\n<div class/);
-    expect(icons(plain(preview(true).render('One\n<!-- note inline\nA\n-->\n\nTwo\n')))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a><\/p>\n<div class/);
     expect(icons(plain(preview(true).render('<!-- note inline\nA\n-->\nTwo\n')))).toMatch(/^<p><a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class/);
-    expect(icons(plain(preview(true).render('One\n\n<!-- note inline\nA\n-->\n\nTwo\n')))).toMatch(/^<p>One<\/p>\n<div class="nimblescape-note-anchor"><a [^>]*>\[icon\]<\/a><\/div>\n<div class/);
+    expect(icons(plain(preview(true).render('# Title\n\n<!-- note inline\nA\n-->\n\nTwo\n')))).toMatch(/^<h1>Title<a [^>]*>\[icon\]<\/a><\/h1>\n<div class[^]*<p>Two<\/p>\n$/);
+    expect(icons(plain(preview(true).render('- item\n\n<!-- note inline\nA\n-->\n\n| a |\n| - |\n')))).toMatch(/<\/ul>\n<div class="nimblescape-note-anchor"><a [^>]*>\[icon\]<\/a><\/div>\n<div class/);
+  });
+
+  test('an inline note never ends a paragraph: blank lines around it join the paragraphs before and after it (R-PREV-004)', () => {
+    for (const text of ['One\n<!-- note inline\nA\n-->\n\nTwo\n', 'One\n\n<!-- note inline\nA\n-->\nTwo\n', 'One\n\n\n<!-- note inline\n\n---\nauthor: ann\n---\nA\n\n# Text\n-->\n\nTwo\n']) {
+      expect(icons(plain(preview(true).render(text))), text).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class="nimblescape-note" [^]*<\/div>\n$/);
+      expect(preview(true, false).render(text), text).toBe('<p data-line="0" class="code-line" dir="auto">One Two</p>\n');
+    }
+    // A block note between two paragraphs keeps them apart.
+    expect(icons(plain(preview(true).render('One\n\n<!-- note\nA\n-->\n\nTwo\n')))).toMatch(/^<p>One<\/p>\n<div class="nimblescape-note-anchor">[^]*<p>Two<\/p>\n$/);
   });
 
   test('shows a note in the text of a line as an icon after the word before it, and its callout after the paragraph', () => {
@@ -227,7 +238,7 @@ describe('the plugin', () => {
 
   test('with showInPreview off, shows no icon and no callout, and still removes the inline notes with their blanks (R-PREV-005)', () => {
     const text = '<!-- note\nBlock\n-->\n\nOne\n<!-- note inline\nInline\n-->\nTwo <!-- note\nIn a line\n--> three.\n';
-    expect(preview(true, false).render(text)).toBe('<p data-line="4" class="code-line" dir="auto">One\nTwo three.</p>\n');
+    expect(preview(true, false).render(text)).toBe('<p data-line="4" class="code-line" dir="auto">One Two three.</p>\n');
   });
 
   test('reads the setting and the link for the environment of each rendering', () => {

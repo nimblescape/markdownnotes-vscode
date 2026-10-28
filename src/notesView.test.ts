@@ -219,3 +219,66 @@ test('without an active Markdown file the view shows no threads, and an action r
   await send(view, { type: 'add', request: 1, text: 'Note' });
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: 'The change was not saved: the file no longer holds the note.' }]);
 });
+
+test('a click on a link of a rendered text opens it: a web link with the system, a file in VS Code at its heading or line (R-SIDE-005)', async () => {
+  fake.files.set('/folder/sources/hong.md', '# Hong et al.\n\n## Abstract\n\nText.\n');
+  fake.files.set('/folder/data.txt', 'a\nb\nc\n');
+  fake.files.set('/folder/paper.pdf', '%PDF');
+  fake.directories.add('/folder/sources');
+  // The Markdown preview gives each heading the identifier of its text and the index of its line.
+  fake.rendered = (text) =>
+    text.startsWith('# Hong')
+      ? '<h1 id="hong-et-al" data-line="0" class="code-line" dir="auto">Hong et al.</h1>\n<h2 data-line="2" class="code-line" id="abstract">Abstract</h2>\n'
+      : '<h1 id="title" data-line="0">Title</h1>\n';
+  const { document, view } = await start();
+  const shownAt = () => {
+    const { document: shown, options } = fake.shown.at(-1)!;
+    return [shown.uri.path, (options as { selection: { start: FakePosition } }).selection.start];
+  };
+  await send(view, { type: 'openLink', href: 'https://example.com/a?b=1' });
+  await send(view, { type: 'openLink', href: 'mailto:ann@example.com' });
+  expect(fake.external).toEqual(['https://example.com/a?b=1', 'mailto:ann@example.com']);
+  // A relative path starts at the folder of the Markdown file, a path with "/" at the folder of the workspace.
+  await send(view, { type: 'openLink', href: 'sources/hong.md#Abstract' });
+  expect(shownAt()).toEqual(['/folder/sources/hong.md', new FakePosition(2, 0)]);
+  await send(view, { type: 'openLink', href: '/data.txt#L2,3' });
+  expect(shownAt()).toEqual(['/folder/data.txt', new FakePosition(1, 2)]);
+  await send(view, { type: 'openLink', href: '#title' });
+  expect(fake.shown.at(-1)?.document).toBe(document);
+  // A file without a place, a file that is no text and a heading that the file does not hold open as files.
+  await send(view, { type: 'openLink', href: '../folder/paper.pdf' });
+  await send(view, { type: 'openLink', href: 'sources/hong.md#missing' });
+  await send(view, { type: 'openLink', href: 'sources' });
+  expect(fake.calls.map(({ command, args }) => [command, (args[0] as { path: string }).path])).toEqual([
+    ['vscode.open', '/folder/paper.pdf'],
+    ['vscode.open', '/folder/sources/hong.md'],
+    ['revealInExplorer', '/folder/sources'],
+  ]);
+  expect(fake.shown).toHaveLength(3);
+  await send(view, { type: 'openLink', href: 'missing%20file.md' });
+  expect(fake.errors).toEqual(['The link was not opened: the file /folder/missing file.md does not exist.']);
+});
+
+test('a link of another scheme opens only after a question, and a link that runs a command never (R-SIDE-005)', async () => {
+  const { view } = await start();
+  await send(view, { type: 'openLink', href: 'zotero://select/items/ABC' });
+  expect(fake.warnings).toEqual(['Open the link "zotero://select/items/ABC" with the program of your system?']);
+  expect(fake.external).toEqual([]);
+  fake.answer = 'Open';
+  await send(view, { type: 'openLink', href: 'zotero://select/items/ABC' });
+  expect(fake.external).toEqual(['zotero://select/items/ABC']);
+  // A link of VS Code opens without a question, as in the Markdown preview.
+  await send(view, { type: 'openLink', href: 'vscode://file/folder/a.md' });
+  expect(fake.warnings).toHaveLength(2);
+  expect(fake.external).toHaveLength(2);
+  for (const href of ['command:workbench.action.reloadWindow', 'data:text/html,<b>x</b>', 'JavaScript:alert(1)']) {
+    await send(view, { type: 'openLink', href });
+  }
+  expect(fake.errors).toEqual([
+    'The link was not opened: the side view opens no link of the scheme "command:".',
+    'The link was not opened: the side view opens no link of the scheme "data:".',
+    'The link was not opened: the side view opens no link of the scheme "javascript:".',
+  ]);
+  expect(fake.calls).toEqual([]);
+  expect(fake.external).toHaveLength(2);
+});

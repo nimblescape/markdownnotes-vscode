@@ -19,22 +19,37 @@ export class FakeUri {
     readonly path: string,
     readonly query = '',
     readonly authority = '',
+    readonly fragment = '',
   ) {}
 
   static parse(text: string): FakeUri {
-    const match = /^([a-z][\w+.-]*):(?:\/\/([^/?]*))?([^?]*)(?:\?(.*))?$/i.exec(text);
+    const match = /^([a-z][\w+.-]*):(?:\/\/([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?$/i.exec(text);
     if (!match) {
       throw new Error(`no URI: ${text}`);
     }
-    return new FakeUri(match[1], match[3], match[4] ?? '', match[2] ?? '');
+    return new FakeUri(match[1], decodeURIComponent(match[3]), match[4] ?? '', match[2] ?? '', match[5] ?? '');
   }
 
+  /** joinPath joins the path of a URI with parts, and resolves the parts "." and "..", as the posix paths do. */
   static joinPath(base: FakeUri, ...parts: string[]): FakeUri {
-    return new FakeUri(base.scheme, [base.path, ...parts].join('/'));
+    const segments: string[] = [];
+    for (const segment of [base.path, ...parts].join('/').split('/')) {
+      if (segment === '..') {
+        segments.pop();
+      } else if (segment !== '' && segment !== '.') {
+        segments.push(segment);
+      }
+    }
+    return new FakeUri(base.scheme, `/${segments.join('/')}`, '', base.authority);
+  }
+
+  with(change: { path?: string; fragment?: string }): FakeUri {
+    return new FakeUri(this.scheme, change.path ?? this.path, this.query, this.authority, change.fragment ?? this.fragment);
   }
 
   toString(): string {
-    return `${this.scheme}:${this.authority ? `//${this.authority}` : ''}${this.path}${this.query ? `?${this.query}` : ''}`;
+    const authority = this.authority ? `//${this.authority}` : '';
+    return `${this.scheme}:${authority}${this.path}${this.query ? `?${this.query}` : ''}${this.fragment ? `#${this.fragment}` : ''}`;
   }
 }
 
@@ -243,11 +258,22 @@ export class Fake {
   documents: FakeDocument[] = [];
   editors: FakeEditor[] = [];
   activeEditor: FakeEditor | undefined;
-  /** settings holds the values of the settings, by the path of a document; '' is the window. */
+  /** settings holds the values of the settings, by the path of a document; '' is the user, 'workspace' the workspace. */
   settings = new Map<string, Record<string, unknown>>();
   commands = new Map<string, (...args: unknown[]) => unknown>();
   /** executed records the executed commands that the fake does not register. */
   executed: string[] = [];
+  /** calls records the arguments of the executed commands, other than markdown.api.render. */
+  calls: { command: string; args: unknown[] }[] = [];
+  /** external records the URIs that the extension opened with the system. */
+  external: string[] = [];
+  /** warnings records the questions of the extension; the answer is the item that the user picks, or undefined. */
+  warnings: string[] = [];
+  answer: string | undefined;
+  /** updates records the changes of settings: the key, the value and the target. */
+  updates: { key: string; value: unknown; target: number }[] = [];
+  /** directories holds the paths of the folders of the file system. */
+  directories = new Set<string>();
   /** rendered is the result of the command markdown.api.render for a text, or undefined for none. */
   rendered: ((text: string) => string) | undefined = (text) => `<p>${text}</p>\n`;
   errors: string[] = [];
@@ -293,7 +319,15 @@ export class Fake {
       DiagnosticSeverity: { Error: 0, Warning: 1 },
       FoldingRangeKind: { Comment: 1 },
       EndOfLine: { LF: 1, CRLF: 2 },
-      env: { uriScheme: 'vscode' },
+      FileType: { File: 1, Directory: 2 },
+      ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
+      env: {
+        uriScheme: 'vscode',
+        openExternal: async (uri: FakeUri) => {
+          this.external.push(uri.toString());
+          return true;
+        },
+      },
       comments: {
         createCommentController: (id: string) => {
           this.controller = Object.assign(this.registration(), {
@@ -321,12 +355,19 @@ export class Fake {
         },
         executeCommand: async (command: string, ...args: unknown[]) => {
           this.executed.push(command);
+          if (command !== 'markdown.api.render') {
+            this.calls.push({ command, args });
+          }
           return command === 'markdown.api.render' && this.rendered ? this.rendered(args[0] as string) : undefined;
         },
       },
       window: {
         showErrorMessage: async (message: string) => {
           this.errors.push(message);
+        },
+        showWarningMessage: async (message: string) => {
+          this.warnings.push(message);
+          return this.answer;
         },
         createTextEditorDecorationType: (options: unknown) => Object.assign(this.registration(), { options }),
         get visibleTextEditors() {
@@ -351,9 +392,18 @@ export class Fake {
         },
       },
       workspace: {
-        getConfiguration: (_section: string, scope?: FakeUri) => {
-          const values = { ...this.settings.get(''), ...this.settings.get(scope?.path ?? '') };
-          return { get: (key: string) => values[key] };
+        getConfiguration: (section: string, scope?: FakeUri) => {
+          const values = { ...this.settings.get(''), ...this.settings.get('workspace'), ...this.settings.get(scope?.path ?? '') };
+          return {
+            get: (key: string) => values[key],
+            inspect: (key: string) => ({ globalValue: this.settings.get('')?.[key], workspaceValue: this.settings.get('workspace')?.[key] }),
+            update: async (key: string, value: unknown, target: number) => {
+              const scope = target === 2 ? 'workspace' : '';
+              this.settings.set(scope, { ...this.settings.get(scope), [key]: value });
+              this.updates.push({ key, value, target });
+              this.fire('configuration', { affectsConfiguration: (name: string) => name === section || name === `${section}.${key}` });
+            },
+          };
         },
         get textDocuments() {
           return fake.documents;
@@ -371,7 +421,18 @@ export class Fake {
         },
         applyEdit: (edit: FakeWorkspaceEdit) => this.applyEdit(edit),
         getWorkspaceFolder: (uri: FakeUri) => (uri.path.startsWith(this.workspaceFolder) ? { uri: new FakeUri('file', this.workspaceFolder) } : undefined),
-        fs: { isWritableFileSystem: (scheme: string) => (scheme === 'file' ? true : scheme === 'git' ? false : undefined) },
+        fs: {
+          isWritableFileSystem: (scheme: string) => (scheme === 'file' ? true : scheme === 'git' ? false : undefined),
+          stat: async (uri: FakeUri) => {
+            if (this.directories.has(uri.path)) {
+              return { type: 2 };
+            }
+            if (this.files.has(uri.path) || this.documents.some((document) => document.uri.toString() === uri.toString())) {
+              return { type: 1 };
+            }
+            throw new Error(`no file ${uri.toString()}`);
+          },
+        },
         onDidOpenTextDocument: on('open'),
         onDidChangeTextDocument: on('change'),
         onDidCloseTextDocument: on('close'),

@@ -15,8 +15,9 @@
  * note in the side view ([R-PREV-003](../../docs/requirements.md#r-prev-003)).
  *
  * In Markdown, a comment that starts a line ends the paragraph before it. The
- * plugin therefore removes each inline note with the blanks before and after
- * it, and joins the text before and after the note into one paragraph again
+ * plugin therefore removes each inline note with the blanks and the blank lines
+ * before and after it, and joins the text before and after the note into one
+ * paragraph again, with one space and without a line break
  * ([R-PREV-004](../../docs/requirements.md#r-prev-004)). A note in another
  * place, such as a table cell, stays a comment, as in the text editor
  * ([notes.ts](../notes/notes.ts)). Every other token keeps the output of the
@@ -191,10 +192,9 @@ const textBlocks = new Set(['paragraph_open', 'heading_open']);
 
 /**
  * attachLines turns an inline note on lines of its own into an icon in the text of the block before it, or of the
- * block after it, without the blanks around the note. When a paragraph stands before and after the note, the two
- * paragraphs become one again, as they would be without the note: the text after the note follows after a line
- * break, or after a space when it started on the last line of the note. A note without a text block around it shows
- * as a block note.
+ * block after it, without the blanks and the blank lines around the note. When a paragraph stands before and after
+ * the note, the two paragraphs are one, as an inline note never ends a paragraph: the text after the note follows
+ * after one space, without a line break. A note without a text block around it shows as a block note.
  * @param state - The state of the core rule.
  * @param tokens - The tokens of the document.
  * @param index - The index of the token of the note.
@@ -216,7 +216,8 @@ function attachLines(state: StateCore, tokens: readonly Token[], index: number, 
     output.length >= 3 &&
     textBlocks.has(previousOpen.type) &&
     previousOpen.level === token.level &&
-    previousOpen.map?.[1] === map[0] &&
+    previousOpen.map !== null &&
+    previousOpen.map[1] <= map[0] &&
     previousInline.type === 'inline' &&
     previousClose.nesting === -1;
   const [nextOpen, nextInline] = [tokens[index + 1], tokens[index + 2]];
@@ -225,14 +226,12 @@ function attachLines(state: StateCore, tokens: readonly Token[], index: number, 
     textBlocks.has(nextOpen.type) &&
     nextOpen.level === token.level &&
     nextOpen.map !== null &&
-    nextOpen.map[0] <= map[1] &&
     nextInline?.type === 'inline';
   if (before) {
     previousInline.children = [...(previousInline.children ?? []), icon];
     previousOpen.map = [previousOpen.map![0], map[1]];
     if (after && previousOpen.type === 'paragraph_open' && nextOpen.type === 'paragraph_open') {
-      const joint = nextOpen.map![0] < map[1] ? textToken(state, ' ') : new state.Token('softbreak', 'br', 0);
-      previousInline.children.push(joint, ...(nextInline.children ?? []));
+      previousInline.children.push(textToken(state, ' '), ...(nextInline.children ?? []));
       previousInline.content += `\n${nextInline.content}`;
       previousOpen.map = [previousOpen.map[0], nextOpen.map![1]];
       // The paragraph before the note keeps its closing token, and the paragraph after it goes.

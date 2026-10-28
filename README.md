@@ -58,13 +58,17 @@ describes each step and where its protection ends.
 - **Side view "Notes".** The view lists the threads of the active Markdown
   file and selects the thread at the cursor. Each answer has "Edit" and
   "Delete", each thread "Answer" and "Delete Thread". The editor has the tabs
-  "Write" and "Preview". "Add Note" adds a note at the line of the cursor.
+  "Write" and "Preview". "Add Note" adds a note at the line of the cursor. The
+  links of the notes open, and the button "Hide Notes" (×) closes the side
+  bar with one click, also in Zen Mode.
 - **Icons in the Markdown preview.** The preview shows each note as a small
   icon: an inline note in the text, a block note in the left margin. On hover
   or keyboard focus, the icon shows the rendered callout with all answers. A
-  click opens the note in the side view.
-- **Inline notes.** The preview removes an inline note with the blanks before
-  and after it, so that the paragraph stays one paragraph.
+  click opens the note in the side view. The eye in the title of the preview
+  hides and shows the notes.
+- **Inline notes.** An inline note never ends a paragraph: the preview
+  removes it with the blanks and blank lines before and after it, so that
+  the paragraph stays one paragraph, without a line break.
 - **Comments view.** The Comments view lists the notes of the open Markdown
   files; a click goes to the note.
 - **No comment in a note.** A note must not contain another comment. The
@@ -131,7 +135,7 @@ describes every feature.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor. The value `false` shows only the mark at each note. |
-| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. |
+| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The eye in the title of the preview changes it. |
 
 ## Limits
 

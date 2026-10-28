@@ -147,6 +147,29 @@
         "title": "Delete Thread",
         "category": "Markdown Notes",
         "icon": "$(trash)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showInPreview",
+        "title": "Show Notes in Preview",
+        "category": "Markdown Notes",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideInPreview",
+        "title": "Hide Notes in Preview",
+        "category": "Markdown Notes",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideNotes",
+        "title": "Hide Notes",
+        "category": "Markdown Notes",
+        "icon": "$(close)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.toggleNotes",
+        "title": "Show or Hide Notes",
+        "category": "Markdown Notes"
       }
     ],
     "menus": {
@@ -198,6 +221,25 @@
           "when": "commentController == nimblescape.markdownNotes"
         }
       ],
+      "editor/title": [
+        {
+          "command": "nimblescape.markdownNotes.showInPreview",
+          "group": "navigation",
+          "when": "activeWebviewPanelId == 'markdown.preview' && !config.nimblescape.markdownNotes.showInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideInPreview",
+          "group": "navigation",
+          "when": "activeWebviewPanelId == 'markdown.preview' && config.nimblescape.markdownNotes.showInPreview"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "nimblescape.markdownNotes.hideNotes",
+          "group": "navigation",
+          "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary != 'workbench.view.extension.nimblescape-markdown-notes' && activePanel != 'workbench.view.extension.nimblescape-markdown-notes'"
+        }
+      ],
       "commandPalette": [
         {
           "command": "nimblescape.markdownNotes.addNote",
@@ -229,6 +271,18 @@
         },
         {
           "command": "nimblescape.markdownNotes.deleteNote",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showInPreview",
+          "when": "!config.nimblescape.markdownNotes.showInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideInPreview",
+          "when": "config.nimblescape.markdownNotes.showInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideNotes",
           "when": "false"
         }
       ]

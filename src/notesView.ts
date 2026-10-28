@@ -15,7 +15,8 @@
  * "Answer" and "Delete Thread", and the view the button "Add Note", which adds
  * a note at the line of the cursor of the text editor. The editor of a text has
  * the tabs "Write" and "Preview"; the preview renders the text with the
- * Markdown preview of VS Code. The view writes through the operations of the
+ * Markdown preview of VS Code. A click on a link of a rendered text opens the
+ * link ([src/links.ts](links.ts)). The view writes through the operations of the
  * threads of the text editor ([src/noteThreads.ts](noteThreads.ts)), so both
  * check and write a text in the same way. The script of the view is
  * [media/notesView.js](../media/notesView.js); it gets the state of the view
@@ -24,12 +25,22 @@
 
 import * as vscode from 'vscode';
 import { githubProvider } from './github';
+import { openLink } from './links';
 import type { Note } from './notes/notes';
 import { displayDate } from './notes/syntax';
 import { isNoteDocument, type NoteEntry, type NoteThreads, problemMessage } from './noteThreads';
 
 /** notesViewId is the identifier of the side view, which the manifest contributes. */
 export const notesViewId = 'nimblescape.markdownNotes.notes';
+
+/**
+ * viewCommands are the commands of the side view: the button "Hide Notes" in its title, and "Show or Hide Notes" of the
+ * Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
+ */
+export const viewCommands = {
+  hide: 'nimblescape.markdownNotes.hideNotes',
+  toggle: 'nimblescape.markdownNotes.toggleNotes',
+};
 
 /** Message is a message of the script of the view. */
 export type Message =
@@ -41,7 +52,8 @@ export type Message =
   | { type: 'add'; request: number; text: string }
   | { type: 'deleteAnswer'; id: string; index: number }
   | { type: 'deleteNote'; id: string }
-  | { type: 'render'; request: number; text: string };
+  | { type: 'render'; request: number; text: string }
+  | { type: 'openLink'; href: string };
 
 /** AnswerState is an answer as the view shows it. */
 interface AnswerState {
@@ -122,6 +134,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
           void this.refresh();
         }
       }),
+      vscode.commands.registerCommand(viewCommands.hide, () => this.hide()),
+      vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
     ];
     this.follow(vscode.window.activeTextEditor);
   }
@@ -158,6 +172,15 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.selected = this.noteAt(document, line)?.id ?? this.selected;
     await vscode.commands.executeCommand(`${notesViewId}.focus`);
     await this.refresh();
+  }
+
+  /**
+   * hide closes the side bar that holds the view. VS Code has no command that closes one view, and Zen Mode hides the
+   * activity bar, whose icon would close the side bar. The secondary side bar and the panel have a button of their own
+   * that closes them.
+   */
+  private async hide(): Promise<void> {
+    await vscode.commands.executeCommand('workbench.action.closeSidebar');
   }
 
   /**
@@ -325,6 +348,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       case 'reveal':
         await this.reveal(message.id);
+        return;
+      case 'openLink':
+        await openLink(message.href, document, this.render);
         return;
     }
     if (!document) {

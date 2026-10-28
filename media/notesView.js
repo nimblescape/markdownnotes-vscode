@@ -18,7 +18,8 @@
 // The rendered HTML of a text can hold the HTML of the text itself. The
 // policy of the page runs no script of it; the script also removes the
 // elements and attributes that run code or load other pages before it shows
-// the HTML, as the Markdown preview of VS Code does.
+// the HTML, as the Markdown preview of VS Code does. A click on a link of
+// the HTML sends the link to the extension, which opens it (R-SIDE-005).
 
 (() => {
   'use strict';
@@ -331,6 +332,19 @@
   const scrollToSelected = () => {
     root.querySelector('.thread.selected')?.scrollIntoView({ block: 'nearest' });
   };
+
+  // A click on a link of a rendered text opens the link through the extension: the page of the view would resolve a
+  // relative link against its own address, and VS Code opens only some schemes from a webview. The listener runs
+  // before the one of VS Code on the window, and stops the click there.
+  root.addEventListener('click', (event) => {
+    const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+    if (!link || !root.contains(link)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    vscode.postMessage({ type: 'openLink', href: link.getAttribute('href') });
+  });
 
   window.addEventListener('message', (event) => {
     const message = event.data;

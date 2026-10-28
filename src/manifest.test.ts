@@ -16,9 +16,9 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
-import { extensionId, openPath } from './extension';
+import { extensionId, openPath, previewCommands } from './extension';
 import { commands, controllerId, noteContext } from './noteThreads';
-import { notesViewId } from './notesView';
+import { notesViewId, viewCommands } from './notesView';
 import { defaultSettings, settingsSection } from './settings';
 
 // The module of the threads imports the editor API; these tests read only its constants.
@@ -112,9 +112,12 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the buttons of the boxes, for the comment controller of the notes only', () => {
+test('the manifest contributes the commands of the boxes, of the side view and of the preview, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
-  expect([...contributed].sort()).toEqual(Object.values(commands).sort());
+  expect([...contributed].sort()).toEqual([...Object.values(commands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort());
+});
+
+test('the manifest contributes the buttons of the boxes, for the comment controller of the notes only', () => {
   const menus = manifest.contributes.menus;
   const items = ['comments/commentThread/context', 'comments/commentThread/title', 'comments/comment/title', 'comments/comment/context'].flatMap(
     (menu) => menus[menu],
@@ -138,7 +141,36 @@ test('the manifest contributes the commands of the buttons of the boxes, for the
   expect(replies.find((item: { when: string }) => /!commentThreadIsEmpty$/.test(item.when)).command).toBe(commands.answer);
   expect(menus['comments/comment/context'][0].command).toBe(commands.saveAnswer);
   // The buttons need the box of their note, so the Command Palette shows none of the commands.
-  expect(menus.commandPalette).toEqual(Object.values(commands).map((command) => ({ command, when: 'false' })));
+  expect(menus.commandPalette).toEqual(expect.arrayContaining(Object.values(commands).map((command) => ({ command, when: 'false' }))));
+});
+
+test('the title of the Markdown preview has the button that shows or hides its notes, after the setting showInPreview (R-PREV-005)', () => {
+  const setting = `config.${settingsSection}.showInPreview`;
+  const preview = "activeWebviewPanelId == 'markdown.preview'";
+  expect(manifest.contributes.menus['editor/title']).toEqual([
+    { command: previewCommands.show, group: 'navigation', when: `${preview} && !${setting}` },
+    { command: previewCommands.hide, group: 'navigation', when: `${preview} && ${setting}` },
+  ]);
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: previewCommands.show, when: `!${setting}` },
+      { command: previewCommands.hide, when: setting },
+    ]),
+  );
+  for (const command of Object.values(previewCommands)) {
+    expect(manifest.contributes.commands.find((item: { command: string }) => item.command === command).icon, command).toMatch(/^\$\(eye(-closed)?\)$/);
+  }
+});
+
+test('the title of the side view has the button "Hide Notes", which closes the side bar, also in Zen Mode (R-SIDE-006)', () => {
+  const [container] = manifest.contributes.viewsContainers.activitybar;
+  const [item] = manifest.contributes.menus['view/title'];
+  expect(manifest.contributes.menus['view/title']).toHaveLength(1);
+  expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation' });
+  // The secondary side bar and the panel have a button of their own that closes them.
+  expect(item.when).toBe(`view == ${notesViewId} && activeAuxiliary != 'workbench.view.extension.${container.id}' && activePanel != 'workbench.view.extension.${container.id}'`);
+  expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining([{ command: viewCommands.hide, when: 'false' }]));
+  expect(manifest.contributes.menus.commandPalette.some((item: { command: string }) => item.command === viewCommands.toggle)).toBe(false);
 });
 
 test('the extension uses no proposed API, and the API of the oldest VS Code version that it supports (R-GEN-002)', () => {

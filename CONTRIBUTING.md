@@ -11,14 +11,15 @@ describes its security model.
 
 | File | Purpose |
 | --- | --- |
-| `src/extension.ts` | The editor wiring: activation starts the threads of the notes and the side view, returns the markdown-it plugin for the Markdown preview with the settings and the links of the rendered document, handles the links of the icons of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open`), and refreshes the previews and the threads when a setting of the extension changes. |
+| `src/extension.ts` | The editor wiring: activation starts the threads of the notes and the side view, returns the markdown-it plugin for the Markdown preview with the settings and the links of the rendered document, handles the links of the icons of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open`) and the buttons of the preview that show and hide its notes, and refreshes the previews and the threads when a setting of the extension changes. |
 | `src/github.ts` | The GitHub sign-in: the login of the GitHub session of VS Code, the author of new notes and answers. |
 | `src/settings.ts` | The settings of the extension, their defaults, and the check of their values. It uses no API of VS Code. |
 | `src/notes/syntax.ts` | The syntax of one note: which comment is a note and its kind (`note` or `note inline`), its answers with their front matters and bodies, the texts that a note must not contain, the comments of a text as markdown-it 14 finds them, the inline rule and the block rule of markdown-it for the notes, and the dates of a front matter. It uses no API of VS Code, so the extension and the plugin share it. |
 | `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; and the place of a new note. It uses no API of VS Code. |
 | `src/notes/edits.ts` | The edits of the text when an answer is saved, added or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected answers. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the dimmed source, the warning at a nested note, the folding of the notes, and the operations that the side view uses too. |
-| `src/notesView.ts` | The side view "Notes": the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, and the actions of its script. |
+| `src/notesView.ts` | The side view "Notes": the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, the actions of its script, and the commands "Hide Notes" and "Show or Hide Notes". |
+| `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes each note as an icon with a hidden callout, removes the inline notes with their blanks from the paragraphs, and leaves every other token as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code, and the script that shows the callout of an icon on hover and focus. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads, the answers, the editors with the tabs "Write" and "Preview", and the messages to the extension. |
@@ -246,7 +247,8 @@ the preview does, and keeps up to 200 rendered texts.
   before it shows it ([docs/security.md](docs/security.md#side-view)).
 - The script sends the actions of the user as messages: `save`, `answer`,
   `add`, `deleteAnswer`, `deleteNote`, `reveal`, `render` (the tab
-  "Preview"), `signIn` and `ready`. A message of an editor has the number of
+  "Preview"), `openLink` (a click on a link of a rendered text, which
+  `src/links.ts` opens), `signIn` and `ready`. A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
   refused text, or with `rendered`. The script keeps the open editors and the
   focus when a new state arrives.
@@ -256,6 +258,11 @@ the preview does, and keeps up to 200 rendered texts.
   `NotesView.show`, which runs the command `nimblescape.markdownNotes.notes.focus`.
 - `retainContextWhenHidden` keeps the page, and so the open editors, while
   the view is hidden.
+- The button "Hide Notes" in the title of the view (`view/title`) runs
+  `workbench.action.closeSidebar`, because VS Code has no command that closes
+  one view ([R-SIDE-006](docs/requirements.md#r-side-006)). Its `when` clause
+  leaves it out while the container of the view is in the secondary side bar
+  or the panel, which have a button of their own.
 
 ## Markdown preview
 
@@ -275,8 +282,10 @@ core rule `nimblescape_notes` after the rules of markdown-it:
   ([R-PREV-001](docs/requirements.md#r-prev-001)).
 - An inline note on lines of its own becomes an icon at the end of the text
   of the paragraph or heading before it, or at the start of the text after
-  it. A paragraph before and after the note becomes one paragraph again, with
-  a line break or a space between the two texts
+  it, also across blank lines, because an inline note never ends a paragraph.
+  A paragraph before and after the note becomes one paragraph again, with one
+  space and no `softbreak` token between the two texts, so that the option
+  `breaks` of the preview adds no line break
   ([R-PREV-004](docs/requirements.md#r-prev-004)).
 - A note after the text of a line becomes an icon after the word before it,
   without the blanks before the note, and one space after the icon.
@@ -292,6 +301,14 @@ core rule `nimblescape_notes` after the rules of markdown-it:
   `aria-describedby`. Without a document, for example when a text renders without a file, it is
   a `span` that takes the focus.
 - A comment that is no note renders as without the plugin.
+
+The title of the preview has the buttons "Show Notes in Preview" and "Hide
+Notes in Preview" (`editor/title` with `activeWebviewPanelId ==
+'markdown.preview'`); the `when` clause reads the setting with
+`config.nimblescape.markdownNotes.showInPreview`, so the button of the other
+state shows. The commands write the setting in the workspace when it holds a
+value, else in the user settings
+([R-PREV-005](docs/requirements.md#r-prev-005)).
 
 The script `media/markdownPreview.js` shows the callout of an icon while the
 pointer rests on it or it has the focus, and places it below the icon, or
