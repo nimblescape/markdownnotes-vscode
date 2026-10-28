@@ -99,6 +99,11 @@ The first version.
   It keeps code blocks, HTML, a front matter, math, containers and the
   notes, and keeps the text as it was when the preview would show it
   differently.
+- The formatter on the command line for programs and AI agents, with
+  Node.js 20 or later: `npx -y nimblescape-markdown-notes format <file>...`
+  formats the files, `--check` changes nothing and exits with 1 when a file
+  is not formatted, and `-` formats the standard input. The specification of
+  the format of the notes tells AI agents to run it after a change.
 - The extension pack installs "Markdown Footnotes" of Matt Bierner, so that
   the preview shows the other footnotes of a file.
 - The notes work together with the Markdown extensions of other publishers,

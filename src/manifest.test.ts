@@ -82,7 +82,7 @@ test('the identifier of the extension in the links of the preview is the publish
 
 test('the entry point is the bundle that esbuild.mjs writes', () => {
   expect(manifest.main).toBe('./dist/extension.js');
-  expect(read('esbuild.mjs')).toContain(`const outfile = '${manifest.main.slice(2)}';`);
+  expect(read('esbuild.mjs')).toContain(`entryPoints: ['src/extension.ts'], outfile: '${manifest.main.slice(2)}'`);
 });
 
 test('the icon is a PNG of 256 × 256 pixels, because the Marketplace takes no SVG icon', () => {

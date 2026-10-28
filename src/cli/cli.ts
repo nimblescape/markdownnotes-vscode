@@ -1,0 +1,121 @@
+// SPDX-License-Identifier: MIT
+// © 2026 Hannes Stauss (scalarion@nimblescape.com)
+// Licensed under the MIT License. See LICENSE in the repository root for details.
+
+/**
+ * The command line tool of the formatter ([R-FMT-004](../../docs/requirements.md#r-fmt-004)), for programs and AI
+ * agents that change a Markdown file outside VS Code (Hannes, 2026-10-28: "make the formatter accessible for agents").
+ * The command `format` formats each file as the formatter of the extension does on save
+ * ([src/format/format.ts](../format/format.ts)), with the line breaks of the file; `-` formats the standard input to
+ * the standard output. With `--check` it changes no file and lists the files that are not formatted. The exit code is
+ * 0 when all files are formatted, 1 when `--check` found a file to format, and 2 for a wrong command or a file that
+ * cannot be read or written. The module uses no API of VS Code, and main.ts runs it in Node.js.
+ */
+
+import { version } from '../../package.json';
+import { formatMarkdown } from '../format/format';
+import { formatVersion } from '../notes/doctype';
+
+/** command is the name of the tool, as npx and the shell call it. */
+export const command = 'nimblescape-markdown-notes';
+
+/** usage is the help of the tool. */
+export const usage = [
+  `Usage: ${command} format [--check] <file>...`,
+  '',
+  'Formats Markdown files as the extension nimblescape Markdown Notes does on save in VS Code:',
+  'each paragraph on one line, aligned tables, no white space at the end of a line, one blank',
+  'line between blocks. It keeps code blocks, HTML, front matter, math, containers and the notes.',
+  '',
+  'Options:',
+  '  --check    change no file; list the files that are not formatted, and exit with 1',
+  '  -          format the standard input to the standard output',
+  '  --help     show this help',
+  '  --version  show the version of the tool and of the format of the notes',
+].join('\n');
+
+/** Io is what the tool reads and writes: the files, the standard input and output, and its messages. */
+export interface Io {
+  readFile(path: string): string;
+  writeFile(path: string, text: string): void;
+  readStdin(): string;
+  /** writeStdout writes a formatted text to the standard output as it is. */
+  writeStdout(text: string): void;
+  /** out writes a line of a message to the standard output, and err to the standard error. */
+  out(line: string): void;
+  err(line: string): void;
+}
+
+/**
+ * formatText returns a formatted Markdown text, with the line breaks of the text and its byte order mark.
+ * @param text - The text.
+ */
+export function formatText(text: string): string {
+  const bom = text.startsWith('﻿') ? '﻿' : '';
+  const body = text.slice(bom.length);
+  const eol = /\r\n/.test(body) ? '\r\n' : '\n';
+  return bom + formatMarkdown(body.split(/\r\n|\r|\n/)).join(eol);
+}
+
+/**
+ * messageOf returns the message of an error.
+ * @param error - The error.
+ */
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+/**
+ * run runs the tool with the arguments of its command line and returns its exit code.
+ * @param args - The arguments, without the program and the script.
+ * @param io - The files and the streams.
+ */
+export function run(args: readonly string[], io: Io): number {
+  const [name, ...rest] = args;
+  if (name === undefined) {
+    io.err(usage);
+    return 2;
+  }
+  if (name === '--help' || name === '-h' || name === 'help') {
+    io.out(usage);
+    return 0;
+  }
+  if (name === '--version') {
+    io.out(`${command} ${version} (format ${formatVersion})`);
+    return 0;
+  }
+  if (name !== 'format') {
+    io.err(`Unknown command "${name}".\n\n${usage}`);
+    return 2;
+  }
+  const check = rest.includes('--check');
+  const unknown = rest.find((arg) => arg.startsWith('-') && arg !== '-' && arg !== '--check');
+  const files = rest.filter((arg) => arg !== '--check');
+  if (unknown !== undefined || files.length === 0) {
+    io.err(`${unknown === undefined ? 'No file to format.' : `Unknown option "${unknown}".`}\n\n${usage}`);
+    return 2;
+  }
+  let failed = false;
+  let unformatted = false;
+  for (const file of files) {
+    try {
+      const text = file === '-' ? io.readStdin() : io.readFile(file);
+      const formatted = formatText(text);
+      if (file === '-') {
+        unformatted ||= formatted !== text;
+        if (!check) {
+          io.writeStdout(formatted);
+        }
+      } else if (formatted !== text) {
+        unformatted = true;
+        if (check) {
+          io.err(`${file}: not formatted`);
+        } else {
+          io.writeFile(file, formatted);
+        }
+      }
+    } catch (error) {
+      io.err(`${file}: ${messageOf(error)}`);
+      failed = true;
+    }
+  }
+  return failed ? 2 : check && unformatted ? 1 : 0;
+}

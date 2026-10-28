@@ -43,7 +43,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | text editor, side view | available | [R-EDIT-004](requirements.md#r-edit-004) |
 | [Icons and callouts](#icons-and-callouts-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001) to [R-PREV-005](requirements.md#r-prev-005), [R-PREV-007](requirements.md#r-prev-007) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
-| [Formatter](#formatter) | text editor, on save | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-003](requirements.md#r-fmt-003) |
+| [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
 | [Settings](#settings) | VS Code | available | [R-GEN-009](requirements.md#r-gen-009), [R-GEN-010](requirements.md#r-gen-010) |
 
 ## Write a note
@@ -681,6 +681,25 @@ To turn it off, add to your settings (`settings.json`):
 
 Another formatter takes over with `"editor.defaultFormatter"` in the same
 block, for example `"esbenp.prettier-vscode"`.
+
+### Formatter on the command line
+
+Programs and AI agents that change a Markdown file outside VS Code run the
+same formatter on the command line, with Node.js 20 or later:
+
+```sh
+npx -y nimblescape-markdown-notes format paper.md notes/*.md
+npx -y nimblescape-markdown-notes format --check paper.md
+cat paper.md | npx -y nimblescape-markdown-notes format -
+```
+
+The first command formats the files and writes only those that change. With
+`--check` it changes no file, names each file that is not formatted, and
+exits with 1, for example in a check of a pull request. `-` formats the
+standard input to the standard output. The exit code 2 means a wrong command
+or a file that cannot be read or written. The specification of the format
+for AI agents ([docs/format.md](format.md)) tells them to run the command
+after a change of a file with notes.
 
 ## Settings
 
