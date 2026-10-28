@@ -17,7 +17,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
-import { extensionId, highlightCommands, highlightsContext, openPath } from './extension';
+import { deselectPath, extensionId, highlightCommands, highlightsContext, openPath } from './extension';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { defaultSettings, linkTargets, settingsSection } from './settings';
@@ -99,6 +99,20 @@ test('the extension starts with the Markdown files, and adds its plugin, its sty
   expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js']);
   for (const file of ['media/markdownPreview.css', 'media/markdownPreview.js']) {
     expect(fs.existsSync(path.join(repository, file)), file).toBe(true);
+  }
+});
+
+test('the script of the preview arms only the addresses of the extension for a click on a highlight (R-PREV-003)', () => {
+  const script = fs.readFileSync(path.join(repository, 'media/markdownPreview.js'), 'utf8');
+  const source = /const ownLink = \/(.+)\/;/.exec(script)?.[1];
+  expect(source).toBeDefined();
+  const ownLink = new RegExp(source!);
+  for (const scheme of ['vscode', 'vscode-insiders']) {
+    expect(ownLink.test(`${scheme}://${extensionId}${openPath}?document=file%3A%2F%2F%2Fa.md&line=4`)).toBe(true);
+    expect(ownLink.test(`${scheme}://${extensionId}${deselectPath}?document=file%3A%2F%2F%2Fa.md`)).toBe(true);
+  }
+  for (const other of ['https://example.com/', `vscode://other.extension${openPath}?line=1`, `vscode://${extensionId}/install?x=1`, `https://example.com/?${extensionId}${openPath}`]) {
+    expect(ownLink.test(other), other).toBe(false);
   }
 });
 

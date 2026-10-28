@@ -46,6 +46,7 @@ export type Problem =
   | { kind: 'noText' }
   | { kind: 'signIn' }
   | { kind: 'missing' }
+  | { kind: 'changed' }
   | { kind: 'format'; format: number };
 
 /** Result is an edit, or the problem that prevents it. */

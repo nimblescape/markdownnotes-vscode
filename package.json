@@ -77,7 +77,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
-      "description": "The extension reads the notes of open Markdown files and changes a file only when you add, edit, answer or delete a note. It runs no program of the workspace."
+      "description": "The extension reads the notes of open Markdown files and changes only the text of Markdown files: when you add, edit, answer or delete a note, when an editor shows a file with notes without the comment of the format (setting addFormatComment), and when you save a Markdown file (format on save). It runs no program of the workspace."
     },
     "virtualWorkspaces": {
       "supported": true

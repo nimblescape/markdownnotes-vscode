@@ -292,7 +292,11 @@ body.aligned .connection {
   margin-left: auto;
 }
 
+/* A rendered text stays inside its box: contain clips what the text holds, also an element of its HTML with a class
+   of this sheet. */
 .markdown-body {
+  contain: paint;
+  overflow-x: auto;
   overflow-wrap: anywhere;
   line-height: 1.45;
 }

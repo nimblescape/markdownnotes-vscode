@@ -46,7 +46,7 @@ author.
   program and collects no telemetry.
 - **Restricted Mode and virtual workspaces.** The extension works with all
   features in both, because it only reads and changes the text of the open
-  Markdown files.
+  Markdown files, as described above, and runs no program of the workspace.
 
 [Security](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/security.md#what-the-extension-does-on-your-computer)
 describes each step and where its protection ends.

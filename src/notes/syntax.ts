@@ -47,9 +47,6 @@ import type MarkdownIt from 'markdown-it';
 import type { StateBlock, StateInline } from 'markdown-it';
 import { colorNames } from './colors';
 
-/** labelPattern matches the label of a note: `note-` and four small letters or digits, for example `note-7k2q`. */
-export const labelPattern = /^note-[a-z0-9]{4}$/;
-
 /** labelCharacters are the characters of the four random characters of the label of a new note. */
 const labelCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -431,13 +428,6 @@ export function authorDate(value: string): string {
   const zone = match[2] === 'Z' ? 'UTC' : `UTC${match[2].replace('-', '\u2212')}`;
   return `${match[1]} at the author (${zone})`;
 }
-
-/**
- * isoDate returns the date of a header in the form of the attribute `datetime` of HTML, for example
- * `2026-10-28T10:15+01:00`, and every other text as written.
- * @param value - The date as written.
- */
-export const isoDate = (value: string): string => (headerDate.test(value.trim()) ? value.trim().replace(' ', 'T') : value.trim());
 
 /**
  * formatDate writes a point in time as the date of a new answer: the local date and time in minutes with the offset

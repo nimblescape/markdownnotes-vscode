@@ -357,7 +357,7 @@ export class FakeView {
         color: string;
         colorName: string;
         text: string;
-        answers: { author: string; date: string; authorDate: string; body: string; html: string; depth: number; parent: number | undefined }[];
+        answers: { author: string; date: string; authorDate: string; written: string; body: string; html: string; depth: number; parent: number | undefined }[];
       }[];
     };
   }

@@ -235,7 +235,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
         showsChanged();
-        threads.syncAll();
+        threads.markAll();
         view.settingsChanged();
       }
     }),

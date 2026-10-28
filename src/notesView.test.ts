@@ -143,12 +143,13 @@ test('the view shows the threads of the active Markdown file with the rendered a
             author: 'ann',
             date: '2026-10-28 10:15',
             authorDate: '2026-10-28 10:15 at the author (UTC+01:00)',
+            written: '2026-10-28 10:15+01:00',
             body: 'The **text**.',
             html: '<p>The <strong>text</strong>.</p>\n',
             depth: 0,
             parent: undefined,
           },
-          { author: 'bob', date: '2026-10-28 11:00', authorDate: '2026-10-28 11:00 at the author (UTC+01:00)', body: 'An answer.', html: '<p>An answer.</p>\n', depth: 1, parent: 0 },
+          { author: 'bob', date: '2026-10-28 11:00', authorDate: '2026-10-28 11:00 at the author (UTC+01:00)', written: '2026-10-28 11:00+01:00', body: 'An answer.', html: '<p>An answer.</p>\n', depth: 1, parent: 0 },
         ],
       },
       // The date of another zone shows in the local time of the reader, and the time of the author as authorDate.
@@ -159,7 +160,7 @@ test('the view shows the threads of the active Markdown file with the rendered a
         color: '#1a7fe0',
         colorName: 'blue',
         text: '[^note-bbbb]: **bob** · 2026-10-28 09:00-02:00\n\n    Second.',
-        answers: [{ author: 'bob', date: '2026-10-28 12:00', authorDate: '2026-10-28 09:00 at the author (UTC−02:00)', body: 'Second.', html: '<p>Second.</p>\n', depth: 0, parent: undefined }],
+        answers: [{ author: 'bob', date: '2026-10-28 12:00', authorDate: '2026-10-28 09:00 at the author (UTC−02:00)', written: '2026-10-28 09:00-02:00', body: 'Second.', html: '<p>Second.</p>\n', depth: 0, parent: undefined }],
       },
     ],
     colors: [
@@ -223,14 +224,14 @@ test('a click on a thread whose selection starts on the line where the selection
 
 test('Save writes an answer and a refused text returns its message (R-SIDE-003, R-EDIT-002)', async () => {
   const { document, view } = await start();
-  await send(view, { type: 'save', request: 1, id: '1', index: 1, text: 'A **changed** answer.' });
+  await send(view, { type: 'save', request: 1, id: '1', answer: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00' }, text: 'A **changed** answer.' });
   // The changed answer has the date of the save.
   expect(document.text).toContain('    > **bob** · 2026-10-28 10:15+01:00\n    >\n    > A **changed** answer.\n\nMore.');
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
   expect(view.state().threads[0].answers[1].body).toBe('A **changed** answer.');
-  await send(view, { type: 'save', request: 2, id: '1', index: 0, text: '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.' });
+  await send(view, { type: 'save', request: 2, id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' }, text: '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('starts a new answer') });
-  await send(view, { type: 'save', request: 3, id: '9', index: 0, text: 'Text' });
+  await send(view, { type: 'save', request: 3, id: '9', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' }, text: 'Text' });
   expect(results(view)[2]).toEqual({ type: 'result', request: 3, message: 'The change was not saved: the file no longer holds the note.' });
 });
 
@@ -263,7 +264,7 @@ test('Answer, Reply and Add Note need the GitHub sign-in, and write the login an
   expect(results(view)[3]).toEqual({ type: 'result', request: 4, message: undefined });
   expect(document.text).toContain('    > An answer.\n\n    > **carl** · 2026-10-28 10:15+01:00\n    >\n    > A third answer.\n\n<wbr><!--[note-');
   // Reply replies to an answer, in its block quote after its body and its replies.
-  await send(view, { type: 'answer', request: 5, id: '1', text: 'Thanks.', parent: 1 });
+  await send(view, { type: 'answer', request: 5, id: '1', text: 'Thanks.', parent: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00' } });
   expect(results(view)[4]).toEqual({ type: 'result', request: 5, message: undefined });
   expect(document.text).toContain('    > An answer.\n    >\n    > > **carl** · 2026-10-28 10:15+01:00\n    > >\n    > > Thanks.\n\n    > **carl** · ');
   state = view.state();
@@ -277,7 +278,7 @@ test('Answer, Reply and Add Note need the GitHub sign-in, and write the login an
 
 test('Delete and Delete Thread remove an answer and a note, and a missing note shows a message (R-EDIT-004)', async () => {
   const { document, view } = await start();
-  await send(view, { type: 'deleteAnswer', id: '1', index: 0 });
+  await send(view, { type: 'deleteAnswer', id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' } });
   expect(document.text).toBe(marked('# Title\n\nThe text[^note-aaaa] of the page.\n\n[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n\nMore.\n'));
   expect(view.state().threads[0].answers).toHaveLength(1);
   await send(view, { type: 'deleteNote', id: '1' });
@@ -285,6 +286,53 @@ test('Delete and Delete Thread remove an answer and a note, and a missing note s
   expect(view.state().threads).toEqual([]);
   await send(view, { type: 'deleteNote', id: '1' });
   expect(fake.errors).toEqual(['The change was not saved: the file no longer holds the note.']);
+});
+
+/** three is a note of ann with the answers of bob (index 1) and of cid (index 2), from the code review of 2026-10-28. */
+const three = note.replace('    > An answer.\n', '    > Answer of bob.\n\n    > **cid** · 2026-10-28 11:30+01:00\n    >\n    > Answer of cid.\n');
+
+/** bobRef and cidRef name the answers of bob and of cid of three as the side view shows them. */
+const bobRef = { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00' };
+const cidRef = { index: 2, author: 'cid', date: '2026-10-28 11:30+01:00' };
+
+test('a second Delete of an answer from a view that shows an older state keeps the next answer (R-EDIT-004)', async () => {
+  const { document, view } = await start(three);
+  // A double click on "Delete" at the answer of bob sends the message twice, before the view shows the new state.
+  await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
+  await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
+  expect(document.text).not.toContain('Answer of bob.');
+  expect(document.text).toContain('Answer of cid.');
+  expect(fake.errors).toEqual(['The change was not saved: the note changed in the meantime. Look at the note again, and repeat the change if it is still needed.']);
+});
+
+test('Save, Reply and Save of the text view from a view that shows an older state change no other answer (R-EDIT-002, R-EDIT-005)', async () => {
+  const { document, view } = await start(three);
+  const original = view.state().threads[0].text;
+  // The editor of the answer of bob is open; then the answer of bob goes, so that index 1 is the answer of cid.
+  await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
+  const after = document.text;
+  await send(view, { type: 'save', request: 1, id: '1', answer: bobRef, text: 'Edited text of bob' });
+  fake.signIn = 'carl';
+  await send(view, { type: 'answer', request: 2, id: '1', text: 'A reply to bob.', parent: bobRef });
+  await send(view, { type: 'saveText', request: 3, id: '1', original, text: original.replace('The **text**.', 'Changed.') });
+  expect(document.text).toBe(after);
+  expect(results(view).map((result) => result.message)).toEqual([expect.stringMatching(/the note changed in the meantime/), expect.stringMatching(/the note changed in the meantime/), expect.stringMatching(/the note changed in the meantime/)]);
+  // The answer of cid at its new index takes the change.
+  await send(view, { type: 'save', request: 4, id: '1', answer: { ...cidRef, index: 1 }, text: 'Edited text of cid.' });
+  expect(results(view)[3]).toEqual({ type: 'result', request: 4, message: undefined });
+  expect(document.text).toContain('    > **cid** · 2026-10-28 10:15+01:00\n    >\n    > Edited text of cid.\n');
+});
+
+test('a change of a setting keeps the threads, so that the view keeps its selected note and its open editors', async () => {
+  const { view } = await start(three);
+  await send(view, { type: 'reveal', id: '1', focus: false });
+  const before = view.state();
+  await fake.run('nimblescape.markdownNotes.hideHighlights');
+  await settle();
+  const after = view.state();
+  expect(after.threads.map((thread) => thread.id)).toEqual(before.threads.map((thread) => thread.id));
+  // The view sends its whole state again after the change of the setting, still with the selected note.
+  expect(after.selected).toBe('1');
 });
 
 test('the preview of an editor renders the text as the Markdown preview does, and a failed rendering shows the text as it is', async () => {
@@ -582,11 +630,12 @@ test('the palette of a thread colors its note in its start marker, and the text 
   expect(document.text).toBe(marked(text));
   // The text view shows the whole note, and Save writes it as it is, without a new date.
   expect(view.state().threads[0].text).toBe('[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The text.');
-  await send(view, { type: 'saveText', request: 1, id: '1', text: '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The changed text.\n\n    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > Yes.' });
+  const original = view.state().threads[0].text;
+  await send(view, { type: 'saveText', request: 1, id: '1', original, text: '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The changed text.\n\n    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > Yes.' });
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
   expect(document.text).toContain('    The changed text.\n\n    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > Yes.\n');
   expect(view.state().threads[0].answers.map((answer) => answer.author)).toEqual(['ann', 'bob']);
   // A text that is not this one note keeps the file as it is.
-  await send(view, { type: 'saveText', request: 2, id: '1', text: 'No header.' });
+  await send(view, { type: 'saveText', request: 2, id: '1', original: view.state().threads[0].text, text: 'No header.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('the text must stay this one note') });
 });

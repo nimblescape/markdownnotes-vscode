@@ -71,7 +71,7 @@ import { hiddenText } from './format/format';
 import { colorIndexOf, colorNames, colorOf, noteColors } from './notes/colors';
 import { placeFor } from './notes/edits';
 import { authorDate, displayDate } from './notes/syntax';
-import { isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
+import { type AnswerRef, isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
 import type { SelectedNotes } from './selectedNotes';
 import type { Settings } from './settings';
 
@@ -97,22 +97,26 @@ export type Message =
   | { type: 'signIn' }
   | { type: 'reveal'; id: string; focus?: boolean }
   | { type: 'deselect' }
-  | { type: 'save'; request: number; id: string; index: number; text: string }
-  | { type: 'answer'; request: number; id: string; text: string; parent?: number }
+  | { type: 'save'; request: number; id: string; answer: AnswerRef; text: string }
+  | { type: 'answer'; request: number; id: string; text: string; parent?: AnswerRef }
   | { type: 'add'; request: number; text: string; color?: string }
-  | { type: 'deleteAnswer'; id: string; index: number }
+  | { type: 'deleteAnswer'; id: string; answer: AnswerRef }
   | { type: 'deleteNote'; id: string }
   | { type: 'color'; id: string; color: string | undefined }
-  | { type: 'saveText'; request: number; id: string; text: string }
+  | { type: 'saveText'; request: number; id: string; text: string; original: string }
   | { type: 'render'; request: number; text: string }
   | { type: 'openLink'; href: string };
 
 /** AnswerState is an answer as the view shows it. */
 interface AnswerState {
   author: string;
-  /** date is the date in the local time of the reader, and authorDate the date in the local time of the author. */
+  /**
+   * date is the date in the local time of the reader, and authorDate the date in the local time of the author; written
+   * is the date as the file holds it, which names the answer in a message of a change, with its author and its index.
+   */
   date: string;
   authorDate: string;
+  written: string;
   body: string;
   html: string;
   /** depth is 0 for the first answer, 1 for a reply to it, and so on; parent is the index of the answer that it replies to. */
@@ -537,7 +541,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * html returns the page of the view: its styles and its script, with a policy that allows no other script.
+   * html returns the page of the view: its styles and its script, with a policy that allows no other script and no
+   * other style, also no style attribute; the script sets its styles through the CSS object model, which the policy
+   * allows.
    * @param webview - The webview of the view.
    * @param media - The folder of the script and the styles.
    */
@@ -545,7 +551,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const nonce = globalThis.crypto.randomUUID().replace(/-/g, '');
     const script = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.js'));
     const styles = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.css'));
-    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';`;
+    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
     return [
       '<!DOCTYPE html>',
       '<html lang="en">',
@@ -670,6 +676,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
               author: answer.author,
               date: displayDate(answer.date),
               authorDate: authorDate(answer.date),
+              written: answer.date,
               body: answer.body,
               html: await this.renderHtml(answer.body),
               depth: answer.depth,
@@ -819,10 +826,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     }
     switch (message.type) {
       case 'save':
-        await this.reply(message.request, await this.threads.saveAnswer(document, message.id, message.index, message.text));
+        await this.reply(message.request, await this.threads.saveAnswer(document, message.id, message.answer, message.text));
         return;
       case 'answer':
-        await this.reply(message.request, await this.threads.answer(document, message.id, message.text, undefined, message.parent ?? 0));
+        await this.reply(message.request, await this.threads.answer(document, message.id, message.text, undefined, message.parent));
         return;
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;
@@ -836,7 +843,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       }
       case 'saveText':
-        await this.reply(message.request, await this.threads.saveNoteText(document, message.id, message.text));
+        await this.reply(message.request, await this.threads.saveNoteText(document, message.id, message.text, message.original));
         return;
       case 'color':
       case 'deleteAnswer':
@@ -845,7 +852,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
           message.type === 'color'
             ? await this.threads.colorNote(document, message.id, message.color)
             : message.type === 'deleteAnswer'
-              ? await this.threads.deleteAnswer(document, message.id, message.index)
+              ? await this.threads.deleteAnswer(document, message.id, message.answer)
               : await this.threads.deleteNote(document, message.id);
         if (problem) {
           void vscode.window.showErrorMessage(problemMessage(problem));

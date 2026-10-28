@@ -273,7 +273,7 @@ test('a file whose comment of the format names a newer version keeps its notes a
   await fake.activate();
   const view = fake.resolveView(notesViewId);
   await view.send({ type: 'ready' });
-  await view.send({ type: 'save', request: 1, id: '1', index: 0, text: 'A new text.' });
+  await view.send({ type: 'save', request: 1, id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' }, text: 'A new text.' });
   await view.send({ type: 'deleteNote', id: '1' });
   editor.selection = { anchor: new FakePosition(15, 0), active: new FakePosition(15, 4) };
   fake.fire('selection', { textEditor: editor, kind: 2 });

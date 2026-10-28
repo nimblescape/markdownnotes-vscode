@@ -138,16 +138,6 @@ async function positionOf(document: vscode.TextDocument, fragment: string, rende
 }
 
 /**
- * isFileLink tells whether the address of a link names a file: a path, or a URI of the scheme `file`. A web link, a
- * mail link, and a link of only a fragment, which names a place in the document itself, name none.
- * @param href - The address of the link.
- */
-export function isFileLink(href: string): boolean {
-  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(href)?.[1].toLowerCase();
-  return scheme === undefined ? href !== '' && !href.startsWith('#') : scheme === 'file';
-}
-
-/**
  * openFile opens a file in VS Code: in a new window, or in the editor at a position. A file that a tab of VS Code shows
  * already opens in that tab, also in another window.
  * @param uri - The URI of the file.

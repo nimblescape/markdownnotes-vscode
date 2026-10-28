@@ -155,13 +155,6 @@ function endOf(lines: readonly string[], note: Note, onText: boolean): number {
   return isHeading(lines, next) ? Math.max(note.end.line, next - 2) : next - 1;
 }
 
-/**
- * foldOf returns the fold that holds a note.
- * @param folds - The folds of the text.
- * @param note - The note.
- */
-export const foldOf = (folds: readonly Fold[], note: Note): Fold | undefined => folds.find((fold) => fold.notes.includes(note));
-
 /** Header is the header line of one answer, which shows as a rendered line. */
 export interface Header {
   /** line is the index of the line of the header. */

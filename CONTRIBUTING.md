@@ -356,11 +356,19 @@ text without a note without markdown-it and has no blocks for it, so the
 hover and the side view use `textReadingOf` of `NoteThreads`, which reads the
 blocks of such a text once for each version.
 
-The operations `saveAnswer`, `answer` (with the index of the parent of a
-reply), `addNote`, `colorNote`, `saveNoteText`, `deleteAnswer` and `deleteNote`
-of `NoteThreads` write the changes of the side view. Each one reads the notes
-of the document first, so that the edit fits the current text, and returns
-the problem of a refused text, whose message `problemMessage` gives.
+The operations `saveAnswer`, `answer` (with the parent of a reply),
+`addNote`, `colorNote`, `saveNoteText`, `deleteAnswer` and `deleteNote` of
+`NoteThreads` write the changes of the side view. Each one reads the notes of
+the document first, so that the edit fits the current text, and returns the
+problem of a refused text, whose message `problemMessage` gives. The side view
+names an answer with an `AnswerRef`: its index, its author and its date as the
+file holds it. `saveAnswer`, `answer` and `deleteAnswer` write nothing and
+return the problem `changed` when the answer at that index has another author
+or date, for example after a second click on "Delete" before the view showed
+the new state, or after a change of the file by a collaborator; `saveNoteText`
+does the same when the text of the note is not the text that the text view
+started with. A change of a setting calls `markAll` and keeps the threads and
+their IDs, so the open editors and the selection of the side view stay.
 
 ## GitHub sign-in
 
@@ -388,20 +396,28 @@ extension renders the body of each answer with the command
 `markdown.api.render` of the Markdown extension, so the side view renders as
 the preview does, and keeps up to 200 rendered texts.
 
-- The page has a content security policy with `default-src 'none'` and a
-  nonce for its one script, and loads files only from `media/`. The script
-  removes the elements and attributes that run code from the rendered HTML
-  before it shows it ([docs/security.md](docs/security.md#side-view)).
-- The script sends the actions of the user as messages: `save`, `answer`
-  (with the index of the answer that a reply replies to), `add` (with the
-  name of a color), `color`, `saveText` (the text view), `deleteAnswer`,
+- The page has a content security policy with `default-src 'none'`, a
+  nonce for its one script and styles only from its style sheet, without
+  `'unsafe-inline'`, and loads files only from `media/`. The script sets its
+  styles through the CSS object model (`element.style`), which the policy
+  allows, and never writes a `style` attribute. It removes the elements and
+  attributes that run code, and the `style` attributes, from the rendered
+  HTML before it shows it ([docs/security.md](docs/security.md#side-view)).
+- The script sends the actions of the user as messages: `save` (with the
+  `AnswerRef` of the answer), `answer` (with the `AnswerRef` of the answer
+  that a reply replies to), `add` (with the name of a color), `color`,
+  `saveText` (the text view, with the text that it started with),
+  `deleteAnswer` (with the `AnswerRef`),
   `deleteNote`, `reveal`, `render` (the preview of an editor), `openLink` (a
   click on a link of a rendered text, which `src/links.ts` opens),
   `deselect`, `signIn`, `ready`, `size` (the height of the page) and
   `scroll` (the mouse wheel over the view, which scrolls the text editor). A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
   refused text, or with `rendered`. The script keeps the open editors and the
-  focus when a new state arrives.
+  focus when a new state arrives. The key of the editor of an answer holds
+  the author and the date of the answer and how many earlier answers of the
+  thread have both, not its index, so an editor stays at its answer when an
+  earlier answer goes, and closes when its answer goes.
 - A link of the highlight of a note in the preview opens the view at the note: the
   URI handler of `src/extension.ts` checks the link
   ([docs/security.md](docs/security.md#links-to-the-extension)) and calls
@@ -497,7 +513,10 @@ selected or the pointer is on its text. VS Code passes a click in the preview
 to the extension only when the click is on a link, so the script puts the
 content of the page into a link of an open shadow tree of the body, with the
 CSS `display: contents`, and gives it the address of `data-href` or of
-`data-deselect` only for the time of a click
+`data-deselect` only for the time of a click, and only when the address is a
+link to the extension (`ownLink`: the scheme of VS Code, the host
+`nimblescape.nimblescape-markdown-notes` and the path `/open` or `/deselect`),
+because a document can write such an element in raw HTML
 ([docs/security.md](docs/security.md#links-to-the-extension)). The preview
 loads the scripts of the extensions with `async` and adds its content to the
 page with a script of its own when the page is parsed, so the script paints

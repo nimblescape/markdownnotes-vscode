@@ -41,7 +41,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
-| [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004) |
+| [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
@@ -479,6 +479,13 @@ text) and "Preview" (the text rendered as the Markdown preview renders it).
 "Save" (a check mark) or Ctrl+Enter writes the text; "Cancel" (×) or Escape
 keeps the note as it is. When the extension refuses a text, the editor stays
 open and shows why.
+
+A change writes only into the answer or the note that the view showed. When
+the file changed in the meantime, for example when a collaborator changed
+the note or a second click on "Delete" came before the view showed the new
+state, the extension changes nothing and shows a message: look at the note
+again, and repeat the change if it is still needed. A change of a setting,
+for example with "Hide Highlights", keeps the open editors and their texts.
 
 ## Add a note
 

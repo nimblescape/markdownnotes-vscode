@@ -74,6 +74,24 @@ function ownText(raw: string, prefix: string): string {
 }
 
 /**
+ * AnswerRef names an answer of a note as the side view showed it: its index in the tree, and the author and the date
+ * as the file holds them. A write to the answer goes ahead only when the note still has this answer at this index, so
+ * that a side view that shows an older state never changes another answer (for example a second click on "Delete").
+ */
+export interface AnswerRef {
+  index: number;
+  author: string;
+  date: string;
+}
+
+/**
+ * isAnswer tells whether a note has an answer at the index of a reference, with its author and its date.
+ * @param note - The note.
+ * @param answer - The reference of the answer.
+ */
+const isAnswer = (note: Note, answer: AnswerRef): boolean => note.answers[answer.index]?.author === answer.author && note.answers[answer.index]?.date === answer.date;
+
+/**
  * problemMessage returns the message of a refused text.
  * @param problem - The problem.
  */
@@ -93,6 +111,8 @@ export function problemMessage(problem: Problem): string {
       return 'The change was not saved: sign in with GitHub, so that the note names its author. The extension asks for the sign-in when you add a note or an answer.';
     case 'missing':
       return 'The change was not saved: the file no longer holds the note.';
+    case 'changed':
+      return 'The change was not saved: the note changed in the meantime. Look at the note again, and repeat the change if it is still needed.';
     case 'format':
       return `The change was not saved: the file uses version ${problem.format} of the format of the notes, and this version of the extension knows only version ${formatVersion}. Update the extension.`;
   }
@@ -181,8 +201,8 @@ export class NoteThreads implements vscode.Disposable {
     return registrations;
   }
 
-  /** syncAll reads the notes of every open document again and builds every thread anew, for changed settings. */
-  syncAll(): void {
+  /** syncAll reads the notes of every open document again and builds every thread anew. */
+  private syncAll(): void {
     for (const key of [...this.entries.keys()]) {
       this.forget(vscode.Uri.parse(key));
     }
@@ -321,8 +341,12 @@ export class NoteThreads implements vscode.Disposable {
     this.mark(document);
   }
 
-  /** markAll writes the comment of the format into each open document that needs it. */
-  private markAll(): void {
+  /**
+   * markAll writes the comment of the format into each open document that needs it, also after a change of the setting
+   * addFormatComment. A change of a setting keeps the threads, so that the side view keeps its open editors and its
+   * selected note.
+   */
+  markAll(): void {
     for (const document of vscode.workspace.textDocuments) {
       this.mark(document);
     }
@@ -487,13 +511,19 @@ export class NoteThreads implements vscode.Disposable {
    * date of the save when the text changed.
    * @param document - The URI of the document.
    * @param id - The identifier of the thread of the note.
-   * @param index - The index of the answer.
+   * @param answer - The answer, as the side view showed it.
    * @param text - The text of the editor.
    * @param written - Runs after the edit and before the notes are read again.
    */
-  saveAnswer(document: vscode.Uri, id: string, index: number, text: string, written?: () => void): Promise<Problem | undefined> {
+  saveAnswer(document: vscode.Uri, id: string, answer: AnswerRef, text: string, written?: () => void): Promise<Problem | undefined> {
     const date = formatDate(new Date());
-    return this.change(document, id, (lines, note) => (index < note.answers.length ? replaceAnswer(lines, note, index, normalizeBody(text), date) : { problem: { kind: 'missing' } }), () => true, written);
+    return this.change(
+      document,
+      id,
+      (lines, note) => (isAnswer(note, answer) ? replaceAnswer(lines, note, answer.index, normalizeBody(text), date) : { problem: { kind: 'changed' } }),
+      () => true,
+      written,
+    );
   }
 
   /**
@@ -503,14 +533,21 @@ export class NoteThreads implements vscode.Disposable {
    * @param id - The identifier of the thread of the note.
    * @param text - The text of the answer.
    * @param written - Runs after the edit and before the notes are read again.
-   * @param parent - The index of the answer that the reply replies to.
+   * @param parent - The answer that the reply replies to, as the side view showed it, or undefined for a reply to the note.
    */
-  async answer(document: vscode.Uri, id: string, text: string, written?: () => void, parent = 0): Promise<Problem | undefined> {
+  async answer(document: vscode.Uri, id: string, text: string, written?: () => void, parent?: AnswerRef): Promise<Problem | undefined> {
     const author = await this.authorOf();
     if (!author) {
       return { kind: 'signIn' };
     }
-    return this.change(document, id, (lines, note) => appendAnswer(lines, note, normalizeBody(text), { author, date: formatDate(new Date()) }, parent), () => true, written);
+    return this.change(
+      document,
+      id,
+      (lines, note) =>
+        parent && !isAnswer(note, parent) ? { problem: { kind: 'changed' } } : appendAnswer(lines, note, normalizeBody(text), { author, date: formatDate(new Date()) }, parent?.index ?? 0),
+      () => true,
+      written,
+    );
   }
 
   /**
@@ -518,13 +555,13 @@ export class NoteThreads implements vscode.Disposable {
    * ([R-EDIT-004](../docs/requirements.md#r-edit-004)).
    * @param document - The URI of the document.
    * @param id - The identifier of the thread of the note.
-   * @param index - The index of the answer.
+   * @param answer - The answer, as the side view showed it.
    */
-  deleteAnswer(document: vscode.Uri, id: string, index: number): Promise<Problem | undefined> {
+  deleteAnswer(document: vscode.Uri, id: string, answer: AnswerRef): Promise<Problem | undefined> {
     return this.change(
       document,
       id,
-      (lines, note) => (index < note.answers.length ? deleteAnswer(lines, note, index) : { problem: { kind: 'missing' } }),
+      (lines, note) => (isAnswer(note, answer) ? deleteAnswer(lines, note, answer.index) : { problem: { kind: 'changed' } }),
       (note) => note.answers.length > 1,
     );
   }
@@ -549,13 +586,21 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * saveNoteText writes the text of the text view of the side view into a note: the whole text of its definition.
+   * saveNoteText writes the text of the text view of the side view into a note: the whole text of its definition. It
+   * writes only while the note still has the text that the text view started from, so that it never takes back a change
+   * that came in the meantime, such as a new reply.
    * @param document - The URI of the document.
    * @param id - The identifier of the thread of the note.
    * @param text - The text of the text view.
+   * @param original - The text of the note when the text view opened.
    */
-  saveNoteText(document: vscode.Uri, id: string, text: string): Promise<Problem | undefined> {
-    return this.change(document, id, (lines, note) => replaceNoteText(lines, note, text), () => true);
+  saveNoteText(document: vscode.Uri, id: string, text: string, original: string): Promise<Problem | undefined> {
+    return this.change(
+      document,
+      id,
+      (lines, note) => (this.entriesOf(document).find((entry) => entry.id === id)?.text === original ? replaceNoteText(lines, note, text) : { problem: { kind: 'changed' } }),
+      () => true,
+    );
   }
 
   /**

@@ -71,11 +71,11 @@
   const root = document.getElementById('notes');
 
   /**
-   * @typedef {{ author: string, date: string, authorDate: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
+   * @typedef {{ author: string, date: string, authorDate: string, written: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
    * @typedef {{ id: string, line: number, color: string, colorName: string, text: string, answers: AnswerState[] }} ThreadState
    * @typedef {{ editor: [number, number], highlights: Record<string, [number, number]>, cursor: [number, number] | undefined, lineHeight: number }} Placement
    * @typedef {{ file: string | undefined, line: number | undefined, highlight: string | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], colors: { name: string, color: string }[], placement: Placement | undefined }} State
-   * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined }} Editor
+   * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined, original?: string }} Editor
    */
 
   /** @type {State} */
@@ -108,9 +108,11 @@
   let frame;
 
   /**
-   * editors holds the open editors by their keys: `new`, `answer:<thread>:<index>`, `reply:<thread>` for a reply to the
-   * note, `reply:<thread>:<index>` for a reply to an answer, and `text:<thread>` for the changed text of the text view of
-   * a thread. @type {Map<string, Editor>}
+   * editors holds the open editors by their keys: `new`, `answer:<thread>:<answer>`, `reply:<thread>` for a reply to the
+   * note, `reply:<thread>:<answer>` for a reply to an answer, and `text:<thread>` for the changed text of the text view
+   * of a thread, with `original`, the text of the note when the change started. `<answer>` names an answer by its author
+   * and its date (answerKeyOf), so that an open editor stays with its answer when an answer before it goes away.
+   * @type {Map<string, Editor>}
    */
   const editors = new Map();
 
@@ -158,7 +160,8 @@
 
   /**
    * safeHtml returns the content of a rendered text without the elements that run code or load another page, without
-   * the attributes of events, and without addresses of the schemes javascript: and vbscript:.
+   * the attributes of events and of styles, as GitHub shows a note, and without addresses of the schemes javascript:
+   * and vbscript:. The policy of the page allows no style attribute either.
    * @param {string} html
    */
   const safeHtml = (html) => {
@@ -172,7 +175,7 @@
       for (const attribute of [...node.attributes]) {
         const name = attribute.name.toLowerCase();
         const address = attribute.value.replace(/[\s\u0000-\u001f]/g, '').toLowerCase();
-        if (name.startsWith('on') || name === 'srcdoc' || (linkAttributes.has(name) && /(^|,)(javascript|vbscript):/.test(address))) {
+        if (name.startsWith('on') || name === 'srcdoc' || name === 'style' || (linkAttributes.has(name) && /(^|,)(javascript|vbscript):/.test(address))) {
           node.removeAttribute(attribute.name);
         }
       }
@@ -353,7 +356,7 @@
     field.value = editor?.text ?? thread.text;
     field.rows = Math.min(Math.max(field.value.split('\n').length + 1, 4), 30);
     /** @param {number} request @param {string} text */
-    const message = (request, text) => ({ type: 'saveText', request, id: thread.id, text });
+    const message = (request, text) => ({ type: 'saveText', request, id: thread.id, text, original: editors.get(key)?.original ?? thread.text });
     /** cancel drops the change and shows the rendered note again. */
     const cancel = () => {
       texts.delete(thread.id);
@@ -364,7 +367,7 @@
       if (changed) {
         changed.text = field.value;
       } else {
-        editors.set(key, { text: field.value, tab: 'write', preview: undefined, problem: undefined, request: undefined });
+        editors.set(key, { text: field.value, tab: 'write', preview: undefined, problem: undefined, request: undefined, original: thread.text });
       }
     });
     field.addEventListener('keydown', (event) => {
@@ -409,14 +412,34 @@
   };
 
   /**
+   * answerKeyOf returns the name of an answer of a thread in the keys of its editors: its author, its date as the file
+   * holds it, and its number among the earlier answers with both.
+   * @param {ThreadState} thread
+   * @param {number} index
+   */
+  const answerKeyOf = (thread, index) => {
+    const answer = thread.answers[index];
+    const earlier = thread.answers.slice(0, index).filter((other) => other.author === answer.author && other.written === answer.written).length;
+    return encodeURIComponent(`${answer.author} ${answer.written} ${earlier}`);
+  };
+
+  /**
+   * answerRefOf returns the answer of a thread for a message of a change: its index, its author and its date as the
+   * file holds it, so that the extension changes it only while the file still has this answer at this index.
+   * @param {ThreadState} thread
+   * @param {number} index
+   */
+  const answerRefOf = (thread, index) => ({ index, author: thread.answers[index].author, date: thread.answers[index].written });
+
+  /**
    * answerOf creates the elements of an answer of a thread.
    * @param {ThreadState} thread
    * @param {AnswerState} answer
    * @param {number} index
    */
   const answerOf = (thread, answer, index) => {
-    const key = `answer:${thread.id}:${index}`;
-    const replyKey = `reply:${thread.id}:${index}`;
+    const key = `answer:${thread.id}:${answerKeyOf(thread, index)}`;
+    const replyKey = `reply:${thread.id}:${answerKeyOf(thread, index)}`;
     const article = element('article', 'answer');
     // The first answer and the replies to it stand at the left edge, and each further level of replies is indented.
     article.style.setProperty('--depth', String(Math.max(answer.depth - 1, 0)));
@@ -434,13 +457,13 @@
       actions.append(
         iconButton('reply', 'Reply', () => open(replyKey, ''), { 'aria-label': `Reply to the answer of ${author}` }),
         iconButton('edit', 'Edit', () => open(key, answer.body), { 'aria-label': `Edit the answer of ${author}` }),
-        iconButton('trash', 'Delete', () => vscode.postMessage({ type: 'deleteAnswer', id: thread.id, index }), { 'aria-label': `Delete the answer of ${author}` }),
+        iconButton('trash', 'Delete', () => vscode.postMessage({ type: 'deleteAnswer', id: thread.id, answer: answerRefOf(thread, index) }), { 'aria-label': `Delete the answer of ${author}` }),
       );
       header.append(actions);
     }
     article.append(header);
     if (editors.has(key)) {
-      article.append(editorOf(key, 'Text of the answer, in Markdown', 'Save', (request, text) => ({ type: 'save', request, id: thread.id, index, text })));
+      article.append(editorOf(key, 'Text of the answer, in Markdown', 'Save', (request, text) => ({ type: 'save', request, id: thread.id, answer: answerRefOf(thread, index), text })));
     } else {
       const body = element('div', 'answer-body markdown-body');
       body.replaceChildren(safeHtml(answer.html));
@@ -448,7 +471,7 @@
     }
     if (editors.has(replyKey)) {
       article.append(
-        editorOf(replyKey, `Text of the reply to ${answer.author || 'an unknown author'}, in Markdown`, 'Reply', (request, text) => ({ type: 'answer', request, id: thread.id, text, parent: index })),
+        editorOf(replyKey, `Text of the reply to ${answer.author || 'an unknown author'}, in Markdown`, 'Reply', (request, text) => ({ type: 'answer', request, id: thread.id, text, parent: answerRefOf(thread, index) })),
       );
     }
     return article;
@@ -518,7 +541,7 @@
     thread.answers.forEach((answer, index) => section.append(answerOf(thread, answer, index)));
     const key = `reply:${thread.id}`;
     if (editors.has(key)) {
-      section.append(editorOf(key, 'Text of the answer, in Markdown', 'Answer', (request, text) => ({ type: 'answer', request, id: thread.id, text, parent: 0 })));
+      section.append(editorOf(key, 'Text of the answer, in Markdown', 'Answer', (request, text) => ({ type: 'answer', request, id: thread.id, text })));
     }
     return section;
   };
@@ -759,9 +782,10 @@
       state = message;
       // The editors of threads and answers that the file no longer holds close.
       for (const key of [...editors.keys()]) {
-        const [kind, id, index] = key.split(':');
+        const [kind, id, answer] = key.split(':');
         const thread = state.threads.find((candidate) => candidate.id === id);
-        if (((kind === 'answer' || (kind === 'reply' && index !== undefined)) && !thread?.answers[Number(index)]) || ((kind === 'reply' || kind === 'text') && !thread)) {
+        const hasAnswer = thread !== undefined && thread.answers.some((_, index) => answerKeyOf(thread, index) === answer);
+        if (((kind === 'answer' || (kind === 'reply' && answer !== undefined)) && !hasAnswer) || ((kind === 'reply' || kind === 'text') && !thread)) {
           editors.delete(key);
         }
       }

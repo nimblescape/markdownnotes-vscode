@@ -47,6 +47,7 @@ as the highlights of a marker pen on paper.
 | 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
 | 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done |
+| 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
 
 ## General
 
@@ -870,6 +871,20 @@ The hover is a hover of VS Code, which shows only Markdown: each icon is a
 codicon in the color of its note, and a link that runs the command "Add
 Note" with the name of the color.
 
+### R-EDIT-007
+
+**No change from an outdated view.** A change from the side view writes only
+into the answer or the note that the user saw. "Save", "Reply" and "Delete"
+of an answer name the answer by its place in the note, its author and its
+date; "Save" of the text view names the whole text of the note that the view
+showed. When the file holds another answer at that place, or another text,
+for example after a second click on "Delete" before the view showed the new
+state, or after a change of the file by a collaborator, the extension writes
+nothing and shows a message that asks the user to look at the note again.
+An open editor stays at its answer when an earlier answer goes, and closes
+when its own answer goes. A change of a setting keeps the open editors and
+the selected note.
+
 ## Markdown preview
 
 ### R-PREV-001
@@ -911,6 +926,8 @@ passes a click to the extension only when the user clicks a link. The script
 of the preview therefore gives the content of the page, for the time of the
 click, a link of the scheme `vscode://` to the extension, without a change of
 the page; VS Code may ask once whether the extension may open such a link.
+The script gives only a link to the extension itself, also when the HTML of
+the document holds an element with the same classes and another address.
 
 ### R-PREV-004
 

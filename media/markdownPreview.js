@@ -28,7 +28,9 @@
 // only for the time of a click: when the user presses the mouse button on a
 // highlight, also a hidden one, the address of its end (data-href), so that the click
 // selects the note in the side view (R-PREV-003); on the text outside a
-// highlight while a note is selected, the address that deselects the note. A
+// highlight while a note is selected, the address that deselects the note.
+// The script arms only an address of this extension (ownLink), so that HTML of
+// a file with the same attributes opens no other address with a click. A
 // click on a link of the text, the end of a drag that selects text, and a
 // double click, which opens the text editor, open no address of the script.
 // Chromium sends no click when the element of the press leaves the page
@@ -287,14 +289,17 @@
     return pageLink;
   };
 
+  /** ownLink matches the addresses of the extension that the plugin writes: a URI of VS Code for the extension that opens or deselects a note. */
+  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes\/(open|deselect)(\?|$)/;
+
   /**
-   * arm gives the link of the page an address for the time of a click.
+   * arm gives the link of the page an address of the extension for the time of a click.
    * @param {string} href - The address.
    * @param {boolean} deselecting - Whether the address deselects the selected note.
    */
   const arm = (href, deselecting) => {
     const link = linkOfPage();
-    if (link) {
+    if (link && ownLink.test(href)) {
       link.href = href;
       deselects = deselecting;
     }

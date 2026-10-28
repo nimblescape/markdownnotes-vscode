@@ -58,7 +58,8 @@ links to its details.
 - **Network.** The code of the extension connects to no address, runs no
   program and collects no telemetry. See [Rendering](#rendering).
 - **Restricted Mode and virtual workspaces.** The extension works with all
-  features in both. See
+  features in both, because it changes only the text of Markdown files and
+  runs no program of the workspace. See
   [Workspace trust and virtual workspaces](#workspace-trust-and-virtual-workspaces).
 
 ## The trust model
@@ -105,8 +106,11 @@ connection of VS Code, as the text of an open file does.
   on a highlight, it gives the link of the end of the highlight, which the
   plugin wrote, to a link around the content of the page, so that VS Code
   passes the click to the extension
-  ([Links to the extension](#links-to-the-extension)). It reads no text of
-  the page and sends no message.
+  ([Links to the extension](#links-to-the-extension)). It gives only a link
+  to the extension, with the scheme of VS Code, the host
+  `nimblescape.nimblescape-markdown-notes` and the path `/open` or
+  `/deselect`, because a document can write an element with the same classes
+  in raw HTML. It reads no text of the page and sends no message.
 - **The hover over the selected text.** The hover is a Markdown string of the
   extension (`vscode.MarkdownString`) with HTML on (`supportHtml`) and a
   trust that allows only the command "Add Note"
@@ -119,9 +123,12 @@ connection of VS Code, as the text of an open file does.
 
 - The page of the side view has a content security policy:
   `default-src 'none'`, scripts only with a nonce that the extension creates
-  for each page (`script-src 'nonce-…'`), styles of the extension, and images
-  of the extension, of `https:` and of `data:`. So no script of a note runs,
-  also not an event attribute such as `onerror`.
+  for each page (`script-src 'nonce-…'`), styles only from the style sheet
+  of the extension (`style-src` without `'unsafe-inline'`), and images of the
+  extension, of `https:` and of `data:`. So no script of a note runs, also not
+  an event attribute such as `onerror`, and no style element or style
+  attribute of a note applies. The script of the view sets its own styles
+  through the CSS object model, which the policy allows.
 - The webview loads files only from the folder `media` of the extension
   (`localResourceRoots`), and has no command links (`enableCommandUris` is not
   set).
@@ -129,11 +136,17 @@ connection of VS Code, as the text of an open file does.
   VS Code (`markdown.api.render`). Before the script shows the HTML, it
   removes the elements that run code or load another page (for example
   `script`, `iframe`, `object`, `form`, `meta`, `base`), the attributes of
-  events, and the addresses of the schemes `javascript:` and `vbscript:`.
+  events, the attributes `style`, as GitHub does, and the addresses of the
+  schemes `javascript:` and `vbscript:`. So a note cannot place an element
+  over the view, for example a false button. The box of each rendered text
+  also clips what it holds (`contain: paint`).
 - The script sends the actions of the user to the extension as messages. The
   extension checks each text before it writes it
   ([Changes of a file](#changes-of-a-file)), and gives a color to a note
-  only when its name is one of the six colors of the notes.
+  only when its name is one of the six colors of the notes. A message names
+  an answer by its index, its author and its date, and the extension changes
+  nothing when the answer at that index is another one, for example after a
+  second click on "Delete" or after a change of the file by a collaborator.
 - A click on a link of a rendered text does not load the address in the page
   of the view: the script stops the click and sends the address to the
   extension ([Links of the notes](#links-of-the-notes)).
@@ -237,7 +250,10 @@ of VS Code with the scope `read:user`
 The manifest declares `untrustedWorkspaces` and `virtualWorkspaces` as
 supported. In Restricted Mode and in a virtual workspace, the extension
 activates with all features, because it only reads and changes the text of
-the open Markdown documents and runs no program of the workspace. The settings
+the open Markdown documents and runs no program of the workspace. It changes
+the text of a document on an action of a note, when an editor shows a file
+with notes without the comment of the format, and on a save with its
+formatter ([Changes of a file](#changes-of-a-file)). The settings
 of the extension can come from the settings of a workspace
 (`.vscode/settings.json`): `showHighlights` hides the highlights, and
 `openLinksIn` chooses where a link to a file opens; a link of another scheme
