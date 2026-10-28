@@ -9,12 +9,12 @@
  * of the notes with the settings and the link of the document (R-PREV-001,
  * R-PREV-003), that a link of an icon opens the side view, and the threads of
  * the notes in the text editor and the Comments view (R-TEXT-001, R-TEXT-002,
- * R-TEXT-003, R-VIEW-001): their places, their answers, the editor of an
- * answer (R-EDIT-001), the save (R-EDIT-002), the new note and the new answer
- * with the GitHub login and the date (R-EDIT-003, R-EDIT-005, R-GEN-006), the
- * delete (R-EDIT-004), the refused text (R-NOTE-003), the warning at a nested
- * note, the folding, and the reading of the notes after a change of a
- * document or of a setting.
+ * R-TEXT-003, R-VIEW-001): their places at the selections, their answers, the
+ * editor of an answer (R-EDIT-001), the save (R-EDIT-002), the new note, the
+ * reply to the note and the reply to an answer with the GitHub login and the
+ * date (R-EDIT-003, R-EDIT-005, R-NOTE-004, R-GEN-006), the delete
+ * (R-EDIT-004), the refused text, the warnings (R-TEXT-008), the folding, and
+ * the reading of the notes after a change of a document or of a setting.
  */
 
 import MarkdownIt from 'markdown-it';
@@ -56,9 +56,30 @@ const run = async (command: string, ...args: unknown[]): Promise<void> => {
   await vi.advanceTimersByTimeAsync(0);
 };
 
-/** note is a Markdown text with a note of two answers, each with a front matter. */
-const note =
-  '# Title\n\n<!-- note\n---\nauthor: ann\ndate: 2026-10-28T10:15+01:00\n---\nThe **text**.\n---\nauthor: bob\ndate: 2026-10-28T11:00+01:00\n---\nAn answer.\n-->\n\nMore.\n';
+/** note is a Markdown text with a note of two answers: the note of ann on lines 4 to 10 and the reply of bob. */
+const note = [
+  '# Title',
+  '',
+  'The text[^note-aaaa] of the page.',
+  '',
+  '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00',
+  '',
+  '    The **text**.',
+  '',
+  '    > **bob** · 2026-10-28 11:00+01:00',
+  '    >',
+  '    > An answer.',
+  '',
+  'More.',
+  '',
+].join('\n');
+
+/** fakeReply is a text that starts a reply of its own, which the extension refuses in a body. */
+const fakeReply = '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.';
+
+/** structure is the message of a refused text that would change the structure of the note. */
+const structure =
+  'The change was not saved: the text would change the note or the Markdown around it. A block quote whose first line is a header (**login** · date) starts a new answer.';
 
 /** focus is the command that opens the side view. */
 const focus = `${notesViewId}.focus`;
@@ -87,7 +108,7 @@ test('the export renders the icons with the setting showInPreview and the link o
   expect(plain).toContain(`class="${noteClass}-icon ${noteClass}-color-1"`);
   expect(plain).not.toContain('href=');
   const document = new FakeUri('file', '/folder/a.md');
-  const query = new URLSearchParams({ document: document.toString(), line: '2' }).toString();
+  const query = new URLSearchParams({ document: document.toString(), line: '4' }).toString();
   expect(md.render(note, { currentDocument: document })).toContain(`href="vscode://${extension.extensionId}${extension.openPath}?${query.replace(/&/g, '&amp;')}"`);
   const hidden = new FakeUri('file', '/folder/hidden.md');
   fake.settings.set(hidden.path, { showInPreview: false });
@@ -148,7 +169,7 @@ test('a link of an icon opens the side view at its note, for an open Markdown do
   expect(fake.executed.filter((command) => command === focus)).toHaveLength(2);
 });
 
-test('a note of an open Markdown document gets a collapsed thread with one comment for each answer (R-TEXT-001, R-TEXT-002, R-VIEW-001)', async () => {
+test('a note of an open Markdown document gets a collapsed thread at its selection with one comment for each answer (R-TEXT-001, R-TEXT-002, R-VIEW-001)', async () => {
   const document = fake.open(note);
   fake.open(note, '/folder/a.txt', { languageId: 'plaintext' });
   const old = fake.open(note, '/folder/a.md', { scheme: 'git' });
@@ -156,25 +177,47 @@ test('a note of an open Markdown document gets a collapsed thread with one comme
   expect(fake.live()).toHaveLength(1);
   const [thread] = fake.live();
   expect(thread.uri).toBe(document.uri);
-  expect(thread.range).toEqual(new FakeRange(2, 0, 13, 3));
+  // Without a start marker, the selection starts at the start of the paragraph and ends at the reference.
+  expect(thread.range).toEqual(new FakeRange(2, 0, 2, 8));
   expect(thread).toMatchObject({ canReply: true, contextValue: noteContext, collapsibleState: 0, label: 'Markdown note' });
-  expect(thread.comments.map((comment) => [comment.author.name, comment.timestamp?.toISOString(), bodyOf(comment), comment.mode, comment.contextValue])).toEqual([
-    ['ann', '2026-10-28T09:15:00.000Z', 'The **text**.', 1, noteContext],
-    ['bob', '2026-10-28T10:00:00.000Z', 'An answer.', 1, noteContext],
+  expect(thread.comments.map((comment) => [comment.author.name, comment.timestamp?.toISOString(), bodyOf(comment), comment.mode, comment.contextValue, comment.label])).toEqual([
+    ['ann', '2026-10-28T09:15:00.000Z', 'The **text**.', 1, noteContext, undefined],
+    ['bob', '2026-10-28T10:00:00.000Z', 'An answer.', 1, noteContext, undefined],
   ]);
   expect(thread.comments[0].body).toMatchObject({ supportHtml: true, baseUri: document.uri });
   // The `+` of a new note is at every line of a document that can have notes.
-  expect(fake.controller?.commentingRangeProvider?.provideCommentingRanges(document)).toEqual([new FakeRange(0, 0, 16, 0)]);
+  expect(fake.controller?.commentingRangeProvider?.provideCommentingRanges(document)).toEqual([new FakeRange(0, 0, 13, 0)]);
   expect(fake.controller?.commentingRangeProvider?.provideCommentingRanges(old)).toEqual([]);
 });
 
-test('a note without a front matter names no author, and a date of another form shows as written', async () => {
-  fake.open('<!-- note\nText\n-->\n\n<!-- note\n---\ndate: last week\n---\nText\n-->\n');
+test('Reply opens an editor of a reply to an answer, which Save writes into its block quote, and the box labels a reply to a reply (R-NOTE-004, R-EDIT-005)', async () => {
+  vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
+  const document = fake.open(note);
+  fake.login = 'carl';
   await fake.activate();
-  expect(fake.live().map((thread) => [thread.comments[0].author.name, thread.comments[0].timestamp, thread.comments[0].label])).toEqual([
-    ['Note', undefined, undefined],
-    ['Note', undefined, 'last week'],
+  const [thread] = fake.live();
+  await run(noteCommands.replyToAnswer, thread.comments[1]);
+  expect(thread.comments).toHaveLength(3);
+  const draft = thread.comments[2];
+  expect(draft).toMatchObject({ mode: 0, contextValue: draftContext, label: 'Reply to bob' });
+  expect(thread.collapsibleState).toBe(1);
+  draft.body = new FakeMarkdownString('Thanks.\n\nSee you.');
+  await run(noteCommands.saveAnswer, draft);
+  expect(document.text).toBe(
+    note.replace('    > An answer.\n', '    > An answer.\n    >\n    > > **carl** · 2026-10-28 10:15+01:00\n    > >\n    > > Thanks.\n    > >\n    > > See you.\n'),
+  );
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(fake.live()).toEqual([thread]);
+  expect(thread.comments.map((comment) => [comment.author.name, comment.label, bodyOf(comment), comment.contextValue])).toEqual([
+    ['ann', undefined, 'The **text**.', noteContext],
+    ['bob', undefined, 'An answer.', noteContext],
+    ['carl', 'Reply to bob', 'Thanks.\n\nSee you.', noteContext],
   ]);
+  // Cancel removes the editor of a reply.
+  await run(noteCommands.replyToAnswer, thread.comments[0]);
+  expect(thread.comments[3].label).toBe('Reply to ann');
+  await run(noteCommands.cancelEdit, thread.comments[3]);
+  expect(thread.comments).toHaveLength(3);
 });
 
 test('the text editor dims the source of each note (R-TEXT-003)', async () => {
@@ -184,12 +227,13 @@ test('the text editor dims the source of each note (R-TEXT-003)', async () => {
   await fake.activate();
   const [[type, ranges]] = [...editor.decorations];
   expect(type).toMatchObject({ options: { opacity: '0.55' } });
-  expect(ranges).toEqual([new FakeRange(2, 0, 13, 3)]);
-  // An editor that shows later gets the decoration too; a document without notes has none.
-  const other = new FakeEditor(fake.open('Text <!-- note inline\nA\n--> more.\n', '/folder/b.md'));
+  expect(ranges).toEqual([new FakeRange(4, 0, 10, 16)]);
+  // An editor that shows later gets the decoration too; a document of Git has none.
+  const short = 'Text[^note-bbbb].\n\n[^note-bbbb]: **ann** · 2026-10-28 10:15+01:00\n';
+  const other = new FakeEditor(fake.open(short, '/folder/b.md'));
   const old = new FakeEditor(fake.open(note, '/folder/a.md', { scheme: 'git' }));
   fake.fire('visibleEditors', [other, old]);
-  expect(other.decorations.get(type)).toEqual([new FakeRange(0, 5, 2, 3)]);
+  expect(other.decorations.get(type)).toEqual([new FakeRange(2, 0, 2, short.split('\n')[2].length)]);
   expect(old.decorations.get(type)).toEqual([]);
   await run(noteCommands.deleteNote, fake.live()[0]);
   expect(editor.decorations.get(type)).toEqual([]);
@@ -209,7 +253,7 @@ test('the setting expandInEditor opens the boxes, and a change of a setting buil
   expect(fake.executed).toHaveLength(1);
 });
 
-test('Edit opens the editor of an answer, and Save writes the text into the answer in the comment of the note (R-EDIT-001, R-EDIT-002)', async () => {
+test('Edit opens the editor of an answer, and Save writes the text into the answer in the note (R-EDIT-001, R-EDIT-002)', async () => {
   const document = fake.open(note);
   await fake.activate();
   const [thread] = fake.live();
@@ -219,41 +263,40 @@ test('Edit opens the editor of an answer, and Save writes the text into the answ
   // VS Code sets the body to the text of the editor before the button runs.
   comment.body = new FakeMarkdownString('A new *answer*.\n\nWith a second paragraph.\n');
   await run(noteCommands.saveAnswer, comment);
-  expect(document.text).toBe(
-    '# Title\n\n<!-- note\n---\nauthor: ann\ndate: 2026-10-28T10:15+01:00\n---\nThe **text**.\n---\nauthor: bob\ndate: 2026-10-28T11:00+01:00\n---\nA new *answer*.\n\nWith a second paragraph.\n-->\n\nMore.\n',
-  );
+  expect(document.text).toBe(note.replace('    > An answer.\n', '    > A new *answer*.\n    >\n    > With a second paragraph.\n'));
   expect(fake.errors).toEqual([]);
   // The thread stays, with the saved text, in the preview mode.
   await vi.advanceTimersByTimeAsync(1000);
   expect(fake.live()).toEqual([thread]);
-  expect(thread.range).toEqual(new FakeRange(2, 0, 15, 3));
+  expect(thread.range).toEqual(new FakeRange(2, 0, 2, 8));
   expect(thread.comments.map(bodyOf)).toEqual(['The **text**.', 'A new *answer*.\n\nWith a second paragraph.']);
   expect(thread.comments.map((other) => other.mode)).toEqual([1, 1]);
 });
 
 test('Save keeps the line breaks of a document with CRLF', async () => {
-  const document = new FakeDocument(new FakeUri('file', '/folder/crlf.md'), 'Text\r\n\r\n<!-- note\r\nOld\r\n-->\r\n', 'markdown', 2);
+  const header = '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00';
+  const document = new FakeDocument(new FakeUri('file', '/folder/crlf.md'), `Text[^note-aaaa]\r\n\r\n${header}\r\n\r\n    Old\r\n`, 'markdown', 2);
   fake.documents.push(document);
   await fake.activate();
   const comment = fake.live()[0].comments[0];
   comment.body = new FakeMarkdownString('One\n\nTwo');
   await run(noteCommands.saveAnswer, comment);
-  expect(document.text).toBe('Text\r\n\r\n<!-- note\r\nOne\r\n\r\nTwo\r\n-->\r\n');
+  expect(document.text).toBe(`Text[^note-aaaa]\r\n\r\n${header}\r\n\r\n    One\r\n\r\n    Two\r\n`);
 });
 
-test('Save refuses a text with another comment, shows why and opens the editor with the text again (R-NOTE-003)', async () => {
+test('Save refuses a text that would start another answer, shows why and opens the editor with the text again (R-EDIT-002)', async () => {
   const document = fake.open(note);
   await fake.activate();
   const comment = fake.live()[0].comments[0];
   await run(noteCommands.editAnswer, comment);
-  comment.body = new FakeMarkdownString('A <!-- comment --> in the note');
+  comment.body = new FakeMarkdownString(fakeReply);
   await run(noteCommands.saveAnswer, comment);
   expect(document.text).toBe(note);
-  expect(fake.errors).toEqual(['The change was not saved: a note must not contain another comment. Remove "<!--" from its text.']);
+  expect(fake.errors).toEqual([structure]);
   expect(comment.mode).toBe(1);
   await vi.advanceTimersByTimeAsync(300);
   expect(comment.mode).toBe(0);
-  expect(bodyOf(fake.live()[0].comments[0])).toBe('A <!-- comment --> in the note');
+  expect(bodyOf(fake.live()[0].comments[0])).toBe(fakeReply);
 });
 
 test('Cancel closes the editor and shows the answer as the document holds it', async () => {
@@ -277,12 +320,12 @@ test('Add Note signs in with GitHub and writes a new note for the selection with
   await run(noteCommands.addNote, { thread, text: 'A **new** note.' });
   expect(fake.sessions).toEqual([{ provider: githubProvider, scopes: githubScopes, options: { createIfNone: true } }]);
   expect(document.text).toMatch(
-    /^# Title\n\nFirst <!--\[a1-->line<!--a1\]-->\nsecond line\n<!-- note\n---\nauthor: hannes\ndate: 2026-10-28T10:15[+-]\d{2}:\d{2}\nselection: a1\n---\nA \*\*new\*\* note\.\n-->\n\nLast\.\n$/,
+    /^# Title\n\nFirst <!--\[(note-[a-z0-9]{4})-->line\[\^\1\]\nsecond line\n\n\[\^\1\]: \*\*hannes\*\* · 2026-10-28 10:15\+01:00\n\n {4}A \*\*new\*\* note\.\n\nLast\.\n$/,
   );
-  // The thread of the `+` becomes the thread of the note, at its selection.
+  // The thread of the `+` becomes the thread of the note, at its selection after the start marker.
   await vi.advanceTimersByTimeAsync(1000);
   expect(fake.live()).toEqual([thread]);
-  expect(thread).toMatchObject({ canReply: true, contextValue: noteContext, collapsibleState: 1, range: new FakeRange(2, 16, 2, 20) });
+  expect(thread).toMatchObject({ canReply: true, contextValue: noteContext, collapsibleState: 1, range: new FakeRange(2, 23, 2, 27) });
   expect(thread.comments).toHaveLength(1);
   expect(thread.comments[0]).toMatchObject({ author: { name: 'hannes' }, mode: 1, contextValue: noteContext });
   expect(bodyOf(thread.comments[0])).toBe('A **new** note.');
@@ -300,15 +343,16 @@ test('Add Note without a GitHub sign-in or with a refused text keeps the text in
   expect(draft).toMatchObject({ mode: 0, contextValue: draftContext });
   expect(thread).toMatchObject({ canReply: false, contextValue: draftContext });
   fake.signIn = 'hannes';
-  draft.body = new FakeMarkdownString('Bad <!-- text');
+  draft.body = new FakeMarkdownString(fakeReply);
   await run(noteCommands.saveAnswer, draft);
   expect(document.text).toBe('Text\n');
-  expect(fake.errors).toHaveLength(2);
+  expect(fake.errors).toEqual([expect.any(String), structure]);
   await vi.advanceTimersByTimeAsync(300);
   expect(thread.comments).toEqual([draft]);
   draft.body = new FakeMarkdownString('Good text');
   await run(noteCommands.saveAnswer, draft);
-  expect(document.text).toMatch(/^Text<!--\[a1\]-->\n<!-- note\n---\nauthor: hannes\ndate: .*\nselection: a1\n---\nGood text\n-->\n$/);
+  // An empty range in a paragraph is a point at the end of the text of its line.
+  expect(document.text).toMatch(/^Text<!--\[(note-[a-z0-9]{4})-->\[\^\1\]\n\n\[\^\1\]: \*\*hannes\*\* · .*\n\n {4}Good text\n$/);
   await vi.advanceTimersByTimeAsync(1000);
   expect(fake.live()).toEqual([thread]);
   expect(thread.comments.map((comment) => comment.contextValue)).toEqual([noteContext]);
@@ -322,19 +366,20 @@ test('Cancel of a new note removes its box', async () => {
   expect(thread.disposed).toBe(true);
 });
 
-test('Answer adds an answer of the signed-in user at the end of the thread (R-EDIT-005, R-GEN-006)', async () => {
+test('Answer adds a reply of the signed-in user to the note, after the replies to the note (R-EDIT-005, R-GEN-006)', async () => {
+  vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   const document = fake.open(note);
   fake.login = 'carl';
   await fake.activate();
   const [thread] = fake.live();
   await run(noteCommands.answer, { thread, text: 'A third answer.' });
-  expect(document.text).toMatch(/\n---\nAn answer\.\n---\nauthor: carl\ndate: .*\n---\nA third answer\.\n-->\n\nMore\.\n$/);
+  expect(document.text).toBe(note.replace('    > An answer.\n', '    > An answer.\n\n    > **carl** · 2026-10-28 10:15+01:00\n    >\n    > A third answer.\n'));
   await vi.advanceTimersByTimeAsync(1000);
   expect(fake.live()).toEqual([thread]);
-  expect(thread.comments.map((comment) => [comment.author.name, bodyOf(comment)])).toEqual([
-    ['ann', 'The **text**.'],
-    ['bob', 'An answer.'],
-    ['carl', 'A third answer.'],
+  expect(thread.comments.map((comment) => [comment.author.name, comment.label, bodyOf(comment)])).toEqual([
+    ['ann', undefined, 'The **text**.'],
+    ['bob', undefined, 'An answer.'],
+    ['carl', undefined, 'A third answer.'],
   ]);
 });
 
@@ -343,17 +388,18 @@ test('a refused answer stays in an editor at the end of the thread, which Save w
   fake.login = 'carl';
   await fake.activate();
   const [thread] = fake.live();
-  await run(noteCommands.answer, { thread, text: 'Bad <!-- text' });
+  await run(noteCommands.answer, { thread, text: fakeReply });
   expect(document.text).toBe(note);
-  expect(fake.errors).toHaveLength(1);
+  expect(fake.errors).toEqual([structure]);
   await vi.advanceTimersByTimeAsync(300);
   expect(thread.comments).toHaveLength(3);
   const draft = thread.comments[2];
   expect(draft).toMatchObject({ mode: 0, contextValue: draftContext });
-  expect(bodyOf(draft)).toBe('Bad <!-- text');
+  expect(bodyOf(draft)).toBe(fakeReply);
   draft.body = new FakeMarkdownString('Fixed');
   await run(noteCommands.saveAnswer, draft);
-  expect(document.text).toContain('\n---\nFixed\n-->\n');
+  expect(document.text).toContain('    > **carl** · ');
+  expect(document.text).toContain('    > Fixed\n\nMore.\n');
   await vi.advanceTimersByTimeAsync(1000);
   expect(thread.comments.map((comment) => [bodyOf(comment), comment.contextValue])).toEqual([
     ['The **text**.', noteContext],
@@ -361,7 +407,7 @@ test('a refused answer stays in an editor at the end of the thread, which Save w
     ['Fixed', noteContext],
   ]);
   // A refused answer that the user cancels goes away.
-  await run(noteCommands.answer, { thread, text: 'Bad <!-- again' });
+  await run(noteCommands.answer, { thread, text: fakeReply });
   await vi.advanceTimersByTimeAsync(300);
   await run(noteCommands.cancelEdit, thread.comments[3]);
   expect(thread.comments).toHaveLength(3);
@@ -371,17 +417,18 @@ test('Delete removes an answer, the last answer removes the note, and Delete Thr
   const document = fake.open(note);
   await fake.activate();
   const [thread] = fake.live();
+  // The reply of bob becomes the first answer.
   await run(noteCommands.deleteAnswer, thread.comments[0]);
-  expect(document.text).toBe('# Title\n\n<!-- note\n---\nauthor: bob\ndate: 2026-10-28T11:00+01:00\n---\nAn answer.\n-->\n\nMore.\n');
+  expect(document.text).toBe('# Title\n\nThe text[^note-aaaa] of the page.\n\n[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n\nMore.\n');
   expect(fake.live()).toEqual([thread]);
   expect(thread.comments.map((comment) => comment.author.name)).toEqual(['bob']);
   await run(noteCommands.deleteAnswer, thread.comments[0]);
-  expect(document.text).toBe('# Title\n\nMore.\n');
+  expect(document.text).toBe('# Title\n\nThe text of the page.\n\nMore.\n');
   expect(fake.live()).toEqual([]);
   const other = fake.open(note, '/folder/b.md');
   fake.fire('open', other);
   await run(noteCommands.deleteNote, fake.live()[0]);
-  expect(other.text).toBe('# Title\n\nMore.\n');
+  expect(other.text).toBe('# Title\n\nThe text of the page.\n\nMore.\n');
   expect(fake.live()).toEqual([]);
 });
 
@@ -389,7 +436,7 @@ test('after a change of a document and a pause, the threads follow their notes',
   const document = fake.open(note);
   await fake.activate();
   const [thread] = fake.live();
-  document.text = `Intro.\n\n${note}<!-- note\nSecond\n-->\n`;
+  document.text = `Intro.\n\n${note}\nSecond[^note-bbbb].\n\n[^note-bbbb]: **ann** · 2026-10-28 10:15+01:00\n\n    Second\n`;
   document.version++;
   fake.fire('change', { document });
   // The notes are read again only after the pause.
@@ -397,24 +444,25 @@ test('after a change of a document and a pause, the threads follow their notes',
   await vi.advanceTimersByTimeAsync(300);
   expect(fake.live()).toHaveLength(2);
   expect(fake.live()[0]).toBe(thread);
-  expect(thread.range).toEqual(new FakeRange(4, 0, 15, 3));
+  expect(thread.range).toEqual(new FakeRange(4, 0, 4, 8));
   expect(bodyOf(fake.live()[1].comments[0])).toBe('Second');
   // A closed document loses its threads.
   fake.fire('close', document);
   expect(fake.live()).toEqual([]);
 });
 
-test('a note that holds the start of another comment gets a warning (R-NOTE-003)', async () => {
-  const document = fake.open('<!-- note\nA <!-- b\n-->\n');
+test('the warnings of the notes show as diagnostics, warnings and hints (R-TEXT-008)', async () => {
+  const header = '**ann** · 2026-10-28 10:15+01:00';
+  const document = fake.open(`# Plan[^note-bbbb]\n\nText[^note-aaaa] and [^note-zzzz].\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}\n`);
   await fake.activate();
-  expect(fake.diagnostics.get(document.uri.toString())).toMatchObject([{ range: new FakeRange(0, 0, 2, 3), severity: 1, source: 'Markdown Notes' }]);
+  expect(fake.diagnostics.get(document.uri.toString())).toMatchObject([
+    { range: new FakeRange(0, 6, 0, 18), severity: 2, source: 'Markdown Notes', message: expect.stringMatching(/^A reference in a heading/) },
+    { range: new FakeRange(2, 21, 2, 33), severity: 1, source: 'Markdown Notes', message: expect.stringMatching(/^The file has no note note-zzzz/) },
+  ]);
 });
 
-test('the editor folds each note on lines of its own into the line before it, no note in the text of a line, and each front matter (R-TEXT-005, R-TEXT-007)', async () => {
-  const document = fake.open(`${note}\nA sentence <!-- note inline\nInline\n--> end.\n`);
+test('the editor folds each note into the line of text before it (R-TEXT-005)', async () => {
+  const document = fake.open(note);
   await fake.activate();
-  // The heading keeps the fold of the Markdown extension, so the fold of the note starts on the blank line after it,
-  // and takes the blank line after the note, so that one blank line stays between the heading and the text. The front
-  // matter of each answer has a fold of its own inside it.
-  expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(1, 14, 1), new FakeFoldingRange(3, 6), new FakeFoldingRange(8, 11)]);
+  expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(2, 10, 1)]);
 });

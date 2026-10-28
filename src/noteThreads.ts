@@ -9,35 +9,44 @@
  * VS Code: a comment controller with one comment thread for each note of an
  * open Markdown document, and one comment for each answer of the note. The
  * box of a thread shows each answer as Markdown, with the author and the date
- * of its front matter, as the extension GitHub Pull Requests shows the
+ * of its header, as the extension GitHub Pull Requests shows the
  * comments of a pull request; it collapses and expands
  * ([R-TEXT-002](../docs/requirements.md#r-text-002)). The decorations and the
  * folds of the notes are the overlay of [src/noteEditor.ts](noteEditor.ts).
  *
+ * The box shows the answers in the order of the file, each reply after the
+ * answer that it replies to, and a reply to a reply with the label "Reply to"
+ * and the author of that answer, because a box of VS Code has no tree
+ * ([R-NOTE-004](../docs/requirements.md#r-note-004)).
+ *
  * The button "Edit" of an answer turns it into an editor of Markdown, and
- * "Save" writes the text back into the answer in the comment of the note
+ * "Save" writes the text back into the answer in the note
  * ([R-EDIT-001](../docs/requirements.md#r-edit-001) and
  * [R-EDIT-002](../docs/requirements.md#r-edit-002)). The `+` at a line adds a
  * new note ([R-EDIT-003](../docs/requirements.md#r-edit-003)), the reply box
- * adds an answer ([R-EDIT-005](../docs/requirements.md#r-edit-005)), and
- * "Delete" removes an answer or the whole note
+ * adds a reply to the note, the button "Reply" of an answer a reply to that
+ * answer ([R-EDIT-005](../docs/requirements.md#r-edit-005)), and "Delete"
+ * removes an answer or the whole note
  * ([R-EDIT-004](../docs/requirements.md#r-edit-004)). A new note and a new
  * answer name the GitHub login of the user as their author
- * ([R-GEN-006](../docs/requirements.md#r-gen-006)). A text that a note must
- * not hold, for example another comment, is not written: the box shows a
- * message and opens the editor with the text again
- * ([R-NOTE-003](../docs/requirements.md#r-note-003)). The side view
- * ([src/notesView.ts](notesView.ts)) uses the same operations.
+ * ([R-GEN-006](../docs/requirements.md#r-gen-006)). A text that would change
+ * the structure of the note, for example a block quote that starts with a
+ * header, is not written: the box shows a message and opens the editor with
+ * the text again. The side view ([src/notesView.ts](notesView.ts)) uses the
+ * same operations.
  *
  * The threads follow the text: after each change of a document, and a pause
  * of changeDelay, the extension reads the notes again and keeps the thread of
- * each note whose comment kept its text, so that an open box stays open. The
- * extension also warns at a note that holds the start of another comment.
+ * each note whose text stayed the same, so that an open box stays open. The
+ * extension also shows the warnings of the notes
+ * ([src/notes/checks.ts](notes/checks.ts),
+ * [R-TEXT-008](../docs/requirements.md#r-text-008)).
  */
 
 import * as vscode from 'vscode';
 import { appendAnswer, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, type Result } from './notes/edits';
-import { findNotes, type Note, type Position } from './notes/notes';
+import { checksOf } from './notes/checks';
+import { findNotes, type Note, type Position, type Reading, readNotes } from './notes/notes';
 import { type Answer, formatDate, normalizeBody, parseDate } from './notes/syntax';
 import type { Settings } from './settings';
 
@@ -55,6 +64,7 @@ export const commands = {
   addNote: 'nimblescape.markdownNotes.addNote',
   discardNewNote: 'nimblescape.markdownNotes.discardNewNote',
   answer: 'nimblescape.markdownNotes.answer',
+  replyToAnswer: 'nimblescape.markdownNotes.replyToAnswer',
   editAnswer: 'nimblescape.markdownNotes.editAnswer',
   deleteAnswer: 'nimblescape.markdownNotes.deleteAnswer',
   saveAnswer: 'nimblescape.markdownNotes.saveAnswer',
@@ -90,18 +100,21 @@ export class NoteComment implements vscode.Comment {
    *   without a note, or a new answer in the thread of a note.
    * @param document - The document of the note, whose folder is the base of the relative links of the body.
    * @param answer - The answer, or for a text that was not written yet its text and its author.
+   * @param parent - The index of the answer that the answer replies to, and its author for the label of a reply to a
+   *   reply; undefined for the first answer and for a new note.
    */
   constructor(
     readonly thread: vscode.CommentThread,
     public index: number | undefined,
     document: vscode.Uri,
     answer: Answer | { body: string; author: string | undefined; date?: undefined },
+    readonly parent?: { index: number; author: string },
   ) {
     this.body = markdown(answer.body, document);
     this.author = { name: answer.author || 'Note' };
     this.timestamp = answer.date ? parseDate(answer.date) : undefined;
-    // A date of another form shows as written.
-    this.label = answer.date && !this.timestamp ? answer.date : undefined;
+    // A reply to the first answer is a reply to the note, which the box shows without a label.
+    this.label = parent && parent.index > 0 ? `Reply to ${parent.author}` : undefined;
     this.contextValue = index === undefined ? draftContext : noteContext;
   }
 
@@ -150,10 +163,12 @@ export interface NoteEntry {
  */
 export function problemMessage(problem: Problem): string {
   switch (problem.kind) {
-    case 'nested':
-      return `The change was not saved: a note must not contain another comment. Remove "${problem.text}" from its text.`;
+    case 'empty':
+      return 'The change was not saved: an answer needs a text. To remove an answer, use "Delete".';
+    case 'place':
+      return 'The note was not added: a note belongs to the text of a paragraph, a heading, a list item or a table cell. Select a passage there, or put the cursor there.';
     case 'structure':
-      return 'The change was not saved: the text would change the note or the Markdown around it. A blank line ends a note in the text of a line, and a front matter (---, author: …, ---) in a text starts a new answer.';
+      return 'The change was not saved: the text would change the note or the Markdown around it. A block quote whose first line is a header (**login** · date) starts a new answer.';
     case 'signIn':
       return 'The change was not saved: sign in with GitHub, so that the note names its author. The extension asks for the sign-in when you add a note or an answer.';
     case 'missing':
@@ -199,8 +214,8 @@ export class NoteThreads implements vscode.Disposable {
   private readonly entries = new Map<string, Entry[]>();
   /** timers holds the pending reading of each changed document, by its URI. */
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
-  /** notes holds the notes of each document for one version, which the overlay of the text editor shares. */
-  private readonly notes = new WeakMap<vscode.TextDocument, { version: number; notes: Note[] }>();
+  /** readings holds the reading of each document for one version, whose notes the overlay of the text editor shares. */
+  private readonly readings = new WeakMap<vscode.TextDocument, { version: number; reading: Reading }>();
   /** listeners are the listeners of the changes of the notes of a document. */
   private readonly listeners = new Set<(document: vscode.Uri) => void>();
   /** count is the number of threads that the extension created, for their identifiers. */
@@ -228,6 +243,7 @@ export class NoteThreads implements vscode.Disposable {
       vscode.commands.registerCommand(commands.addNote, (reply: vscode.CommentReply) => this.writeNew(reply.thread, reply.text, undefined)),
       vscode.commands.registerCommand(commands.discardNewNote, (reply: vscode.CommentReply) => reply.thread.dispose()),
       vscode.commands.registerCommand(commands.answer, (reply: vscode.CommentReply) => this.answerIn(reply.thread, reply.text, undefined)),
+      vscode.commands.registerCommand(commands.replyToAnswer, (comment: NoteComment) => this.startReply(comment)),
       vscode.commands.registerCommand(commands.editAnswer, (comment: NoteComment) => this.show(comment, vscode.CommentMode.Editing)),
       vscode.commands.registerCommand(commands.cancelEdit, (comment: NoteComment) => this.cancel(comment)),
       vscode.commands.registerCommand(commands.saveAnswer, (comment: NoteComment) => this.save(comment)),
@@ -277,6 +293,14 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
+   * noteOfThread returns the note of a thread, or undefined for a thread without a note.
+   * @param thread - The thread.
+   */
+  noteOfThread(thread: vscode.CommentThread): Note | undefined {
+    return this.entryOfThread(thread)?.note;
+  }
+
+  /**
    * expand opens the box of the thread of a note in the text editor.
    * @param document - The URI of the document.
    * @param id - The identifier of the thread.
@@ -293,12 +317,20 @@ export class NoteThreads implements vscode.Disposable {
    * @param document - The document.
    */
   notesOf(document: vscode.TextDocument): Note[] {
-    let known = this.notes.get(document);
+    return this.readingOf(document).notes;
+  }
+
+  /**
+   * readingOf returns the reading of a document, read once for each version.
+   * @param document - The document.
+   */
+  private readingOf(document: vscode.TextDocument): Reading {
+    let known = this.readings.get(document);
     if (!known || known.version !== document.version) {
-      known = { version: document.version, notes: findNotes(linesOf(document)) };
-      this.notes.set(document, known);
+      known = { version: document.version, reading: readNotes(linesOf(document)) };
+      this.readings.set(document, known);
     }
-    return known.notes;
+    return known.reading;
   }
 
   /**
@@ -353,17 +385,13 @@ export class NoteThreads implements vscode.Disposable {
     this.entries.set(key, entries);
     this.diagnostics.set(
       document.uri,
-      notes
-        .filter((note) => note.nested)
-        .map((note) => {
-          const diagnostic = new vscode.Diagnostic(
-            rangeOf(note),
-            'A note must not contain another comment: this note holds "<!--". The preview shows its text as it is.',
-            vscode.DiagnosticSeverity.Warning,
-          );
-          diagnostic.source = 'Markdown Notes';
-          return diagnostic;
-        }),
+      checksOf(linesOf(document), this.readingOf(document)).map((check) => {
+        const range = new vscode.Range(check.range.start.line, check.range.start.character, check.range.end.line, check.range.end.character);
+        const severity = check.severity === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Information;
+        const diagnostic = new vscode.Diagnostic(range, check.message, severity);
+        diagnostic.source = 'Markdown Notes';
+        return diagnostic;
+      }),
     );
     for (const listener of this.listeners) {
       listener(document.uri);
@@ -399,9 +427,11 @@ export class NoteThreads implements vscode.Disposable {
    * @param document - The URI of the document.
    */
   private fill(entry: Entry, document: vscode.Uri): void {
-    const comments = entry.note.answers.map((answer, index) => {
+    const answers = entry.note.answers;
+    const comments = answers.map((answer, index) => {
       const old = entry.comments[index];
-      return old && old.index !== undefined && old.mode === vscode.CommentMode.Editing ? old : new NoteComment(entry.thread, index, document, answer);
+      const parent = answer.parent === undefined ? undefined : { index: answer.parent, author: answers[answer.parent].author };
+      return old && old.index !== undefined && old.mode === vscode.CommentMode.Editing ? old : new NoteComment(entry.thread, index, document, answer, parent);
     });
     entry.comments = [...comments, ...entry.comments.filter((comment) => comment.index === undefined)];
     entry.thread.comments = entry.comments;
@@ -570,18 +600,20 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * answer adds an answer of the signed-in user to a note ([R-EDIT-005](../docs/requirements.md#r-edit-005)).
+   * answer adds a reply of the signed-in user to an answer of a note, by default to the first answer, which is a reply
+   * to the note ([R-EDIT-005](../docs/requirements.md#r-edit-005)).
    * @param document - The URI of the document.
    * @param id - The identifier of the thread of the note.
    * @param text - The text of the answer.
    * @param written - Runs after the edit and before the notes are read again.
+   * @param parent - The index of the answer that the reply replies to.
    */
-  async answer(document: vscode.Uri, id: string, text: string, written?: () => void): Promise<Problem | undefined> {
+  async answer(document: vscode.Uri, id: string, text: string, written?: () => void, parent = 0): Promise<Problem | undefined> {
     const author = await this.authorOf();
     if (!author) {
       return { kind: 'signIn' };
     }
-    return this.change(document, id, (lines, note) => appendAnswer(lines, note, normalizeBody(text), { author, date: formatDate(new Date()) }), () => true, written);
+    return this.change(document, id, (lines, note) => appendAnswer(lines, note, normalizeBody(text), { author, date: formatDate(new Date()) }, parent), () => true, written);
   }
 
   /**
@@ -698,11 +730,17 @@ export class NoteThreads implements vscode.Disposable {
     if (!entry) {
       return;
     }
-    const problem = await this.answer(thread.uri, entry.id, text, () => {
-      if (draft) {
-        entry.comments = entry.comments.filter((comment) => comment !== draft);
-      }
-    });
+    const problem = await this.answer(
+      thread.uri,
+      entry.id,
+      text,
+      () => {
+        if (draft) {
+          entry.comments = entry.comments.filter((comment) => comment !== draft);
+        }
+      },
+      draft?.parent?.index ?? 0,
+    );
     if (problem) {
       const comment = draft ?? new NoteComment(thread, undefined, thread.uri, { body: text, author: undefined });
       comment.body = markdown(text, thread.uri);
@@ -711,6 +749,24 @@ export class NoteThreads implements vscode.Disposable {
       }
       this.refuse(comment, problem);
     }
+  }
+
+  /**
+   * startReply opens an editor of a new reply to the answer of a comment, after the answers in its box.
+   * @param comment - The comment of the answer.
+   */
+  private startReply(comment: NoteComment): void {
+    const entry = this.entryOfThread(comment.thread);
+    const answer = comment.index === undefined ? undefined : entry?.note.answers[comment.index];
+    if (!entry || !answer || comment.index === undefined) {
+      return;
+    }
+    const reply = new NoteComment(comment.thread, undefined, comment.thread.uri, { body: '', author: undefined }, { index: comment.index, author: answer.author });
+    reply.label = `Reply to ${answer.author}`;
+    reply.mode = vscode.CommentMode.Editing;
+    entry.comments = [...entry.comments, reply];
+    entry.thread.comments = entry.comments;
+    entry.thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
   }
 
   /**

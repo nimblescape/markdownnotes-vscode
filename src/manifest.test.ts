@@ -255,6 +255,11 @@ test('the package needs no dependency at run time, because the bundle holds mark
   expect(manifest.scripts.package).toBe('vsce package --no-dependencies');
 });
 
+test('the extension pack installs the footnotes of the Markdown preview, which the user can disable, and the extension depends on no extension (R-GEN-008)', () => {
+  expect(manifest.extensionPack).toEqual(['bierner.markdown-footnotes']);
+  expect(manifest).not.toHaveProperty('extensionDependencies');
+});
+
 test('the third-party notices name every package that the build bundles, with its version and license (R-GEN-004)', async () => {
   const notices = read('THIRD-PARTY-NOTICES.md');
   const result = await esbuild.build({

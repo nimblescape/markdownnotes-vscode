@@ -11,10 +11,11 @@
  * each one has a fallback for a page without the variables of the theme, such
  * as the HTML that another extension exports from the preview.
  *
- * A note shows as a small icon: an inline note in the text, a block note in
- * the left margin of the page. Its callout is hidden until the script of the
+ * A note shows as a small icon at its reference in the text, and a note
+ * without a reference in the left margin of the page. Its callout is hidden until the script of the
  * preview shows it next to the icon: a box with a colored bar at its left
- * side, and each answer with a header (author, date) and its body.
+ * side, and each answer with a header (author, date) and its body, and the
+ * replies to a reply indented below it.
  *
  * Each note has the color of its number, as its marker in the text editor
  * (src/notes/colors.ts): the class nimblescape-note-color-N sets the variable
@@ -78,7 +79,7 @@
   font-weight: 600;
 }
 
-/* A block note: a line of no height between the blocks, with the icon in the left margin of the page. */
+/* A note without a reference: a line of no height between the blocks, with the icon in the left margin of the page. */
 .nimblescape-note-anchor {
   position: relative;
   height: 0;
@@ -120,6 +121,20 @@
 
 .nimblescape-note-answer + .nimblescape-note-answer {
   border-top: 1px solid var(--vscode-editorHoverWidget-border, #c8c8c8);
+}
+
+/* The replies to a reply (R-NOTE-004): indented, with a line at their left side. */
+.nimblescape-note-replies {
+  margin: 6px 0 0 2px;
+  border-left: 2px solid var(--vscode-editorHoverWidget-border, #c8c8c8);
+}
+
+.nimblescape-note-replies > .nimblescape-note-answer {
+  padding: 4px 0 4px 10px;
+}
+
+.nimblescape-note-replies > .nimblescape-note-answer + .nimblescape-note-answer {
+  border-top: none;
 }
 
 .nimblescape-note-header {

@@ -21,6 +21,11 @@
 // the HTML, as the Markdown preview of VS Code does. A click on a link of
 // the HTML sends the link to the extension, which opens it (R-SIDE-005).
 //
+// The answers of a thread show as a tree: each reply after the answer that it
+// replies to, and the replies to a reply indented below it (R-NOTE-004). The
+// button "Reply" of an answer opens an editor of a reply to it below it, and
+// the button "Answer" of a thread an editor of a reply to the note.
+//
 // Each thread shows the badge with the number and the color of its note, and
 // a click on a thread, outside its buttons and editors, selects its note in
 // the text editor (R-SIDE-007). While the setting showFunnels is on, the left
@@ -37,8 +42,8 @@
   const root = document.getElementById('notes');
 
   /**
-   * @typedef {{ author: string, date: string, body: string, html: string }} AnswerState
-   * @typedef {{ id: string, line: number, number: number, color: string, mark: [number, number], kind: 'block' | 'inline', nested: boolean, answers: AnswerState[] }} ThreadState
+   * @typedef {{ author: string, date: string, authorDate: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
+   * @typedef {{ id: string, line: number, number: number, color: string, mark: [number, number], answers: AnswerState[] }} ThreadState
    * @typedef {{ lines: [number, number] | undefined, lineCount: number }} Visible
    * @typedef {{ file: string | undefined, line: number | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], funnels: boolean, visible: Visible }} State
    * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined }} Editor
@@ -67,7 +72,10 @@
   /** @type {number | undefined} */
   let frame;
 
-  /** editors holds the open editors by their keys: `new`, `answer:<thread>:<index>` and `reply:<thread>`. @type {Map<string, Editor>} */
+  /**
+   * editors holds the open editors by their keys: `new`, `answer:<thread>:<index>`, `reply:<thread>` for a reply to the
+   * note, and `reply:<thread>:<index>` for a reply to an answer. @type {Map<string, Editor>}
+   */
   const editors = new Map();
 
   /** requests holds the keys of the editors whose texts the extension handles, by the number of the request. @type {Map<number, string>} */
@@ -256,15 +264,22 @@
    */
   const answerOf = (thread, answer, index) => {
     const key = `answer:${thread.id}:${index}`;
+    const replyKey = `reply:${thread.id}:${index}`;
     const article = element('article', 'answer');
+    // The first answer and the replies to it stand at the left edge, and each further level of replies is indented.
+    article.style.setProperty('--depth', String(Math.max(answer.depth - 1, 0)));
+    if (answer.depth > 1) {
+      article.classList.add('reply');
+    }
     const header = element('div', 'answer-header');
     header.append(element('span', 'author', answer.author || 'Unknown author'));
     if (answer.date) {
-      header.append(element('span', 'date', answer.date));
+      header.append(element('span', 'date', answer.date, { title: answer.authorDate }));
     }
     if (!editors.has(key)) {
       const actions = element('span', 'actions');
       actions.append(
+        button('Reply', 'link', () => open(replyKey, ''), { 'aria-label': `Reply to the answer of ${answer.author || 'an unknown author'}` }),
         button('Edit', 'link', () => open(key, answer.body), { 'aria-label': `Edit the answer of ${answer.author || 'an unknown author'}` }),
         button('Delete', 'link', () => vscode.postMessage({ type: 'deleteAnswer', id: thread.id, index }), {
           'aria-label': `Delete the answer of ${answer.author || 'an unknown author'}`,
@@ -279,6 +294,11 @@
       const body = element('div', 'answer-body markdown-body');
       body.replaceChildren(safeHtml(answer.html));
       article.append(body);
+    }
+    if (editors.has(replyKey)) {
+      article.append(
+        editorOf(replyKey, `Text of the reply to ${answer.author || 'an unknown author'}, in Markdown`, 'Reply', (request, text) => ({ type: 'answer', request, id: thread.id, text, parent: index })),
+      );
     }
     return article;
   };
@@ -303,17 +323,13 @@
     header.append(
       element('span', 'badge', String(thread.number), { title: `Note ${thread.number}` }),
       button(`Line ${thread.line + 1}`, 'link reveal', () => vscode.postMessage({ type: 'reveal', id: thread.id }), { title: 'Show the note in the text editor' }),
-      element('span', 'kind', thread.kind === 'inline' ? 'inline note' : 'note'),
       button('Delete Thread', 'link delete', () => vscode.postMessage({ type: 'deleteNote', id: thread.id })),
     );
     section.append(header);
-    if (thread.nested) {
-      section.append(element('p', 'problem', 'This note contains the start of another comment, "<!--". Remove it in the text editor.'));
-    }
     thread.answers.forEach((answer, index) => section.append(answerOf(thread, answer, index)));
     const key = `reply:${thread.id}`;
     if (editors.has(key)) {
-      section.append(editorOf(key, 'Text of the answer, in Markdown', 'Answer', (request, text) => ({ type: 'answer', request, id: thread.id, text })));
+      section.append(editorOf(key, 'Text of the answer, in Markdown', 'Answer', (request, text) => ({ type: 'answer', request, id: thread.id, text, parent: 0 })));
     } else {
       section.append(button('Answer', 'secondary answer-button', () => open(key, '')));
     }
@@ -455,7 +471,7 @@
       for (const key of [...editors.keys()]) {
         const [kind, id, index] = key.split(':');
         const thread = state.threads.find((candidate) => candidate.id === id);
-        if ((kind === 'answer' && !thread?.answers[Number(index)]) || (kind === 'reply' && !thread)) {
+        if (((kind === 'answer' || (kind === 'reply' && index !== undefined)) && !thread?.answers[Number(index)]) || (kind === 'reply' && !thread)) {
           editors.delete(key);
         }
       }

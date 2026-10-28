@@ -6,10 +6,12 @@
  * These tests run the side view "Notes" with a fake of the API of VS Code
  * ([src/testing/fakeVscode.ts](testing/fakeVscode.ts)), as its script sends
  * the actions of the user (R-SIDE-001 to R-SIDE-003): the page and its
- * policy, the threads of the active Markdown file with the rendered answers,
- * the thread at the cursor, the save, the answer, the new note, the delete,
- * the preview of a text, the GitHub sign-in (R-GEN-006), and the reveal of a
- * note in the text editor.
+ * policy, the threads of the active Markdown file with the rendered answers
+ * and their tree (R-NOTE-004), the thread at the cursor, the save, the reply
+ * to the note and to an answer, the new note, the delete, the preview of a
+ * text, the GitHub sign-in (R-GEN-006), and the reveal of a note in the text
+ * editor. The tests run in the zone Europe/Vienna (vitest.config.mts), which
+ * is UTC+01:00 on 2026-10-28.
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -37,8 +39,23 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** note is a Markdown text with a note of two answers. */
-const note = '# Title\n\n<!-- note\n---\nauthor: ann\ndate: 2026-10-28T10:15+01:00\n---\nThe **text**.\n---\nauthor: bob\n---\nAn answer.\n-->\n\nMore.\n';
+/** note is a Markdown text with a note of two answers: the note of ann on lines 4 to 10 and the reply of bob. */
+const note = [
+  '# Title',
+  '',
+  'The text[^note-aaaa] of the page.',
+  '',
+  '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00',
+  '',
+  '    The **text**.',
+  '',
+  '    > **bob** · 2026-10-28 11:00+01:00',
+  '    >',
+  '    > An answer.',
+  '',
+  'More.',
+  '',
+].join('\n');
 
 /**
  * start opens a document in the active text editor, activates the extension and shows the side view.
@@ -87,39 +104,43 @@ test('the view is a page whose policy runs only its own script from the folder m
   expect(html.match(/<script/g)).toHaveLength(1);
 });
 
-test('the view shows the threads of the active Markdown file with the rendered answers, and the account without asking for a sign-in', async () => {
+test('the view shows the threads of the active Markdown file with the rendered answers and their tree, and the account without asking for a sign-in', async () => {
   fake.login = 'hannes';
-  const { view } = await start(`${note}\n<!-- note\nA <!-- b\n-->\n`, 15);
+  const { view } = await start(`${note}\nA second[^note-bbbb] note.\n\n[^note-bbbb]: **bob** · 2026-10-28 09:00-02:00\n\n    Second.\n`, 13);
   expect(view.state()).toEqual({
     type: 'state',
     file: 'a.md',
-    line: 15,
+    line: 13,
     account: 'hannes',
     selected: undefined,
     threads: [
       {
         id: '1',
-        line: 2,
+        line: 4,
         number: 1,
         color: '#1a7fe0',
-        mark: [2, 12],
-        kind: 'block',
-        nested: false,
+        mark: [2, 2],
         answers: [
-          { author: 'ann', date: expect.stringContaining('2026'), body: 'The **text**.', html: '<p>The <strong>text</strong>.</p>\n' },
-          { author: 'bob', date: '', body: 'An answer.', html: '<p>An answer.</p>\n' },
+          {
+            author: 'ann',
+            date: '2026-10-28 10:15',
+            authorDate: '2026-10-28 10:15 at the author (UTC+01:00)',
+            body: 'The **text**.',
+            html: '<p>The <strong>text</strong>.</p>\n',
+            depth: 0,
+            parent: undefined,
+          },
+          { author: 'bob', date: '2026-10-28 11:00', authorDate: '2026-10-28 11:00 at the author (UTC+01:00)', body: 'An answer.', html: '<p>An answer.</p>\n', depth: 1, parent: 0 },
         ],
       },
-      // A note that holds the start of another comment shows its text as it is.
+      // The date of another zone shows in the local time of the reader, and the time of the author as authorDate.
       {
         id: '2',
         line: 16,
         number: 2,
         color: '#2e8b3e',
-        mark: [16, 18],
-        kind: 'block',
-        nested: true,
-        answers: [{ author: '', date: '', body: 'A <!-- b', html: '<pre>A &#60;!-- b</pre>' }],
+        mark: [14, 14],
+        answers: [{ author: 'bob', date: '2026-10-28 12:00', authorDate: '2026-10-28 09:00 at the author (UTC−02:00)', body: 'Second.', html: '<p>Second.</p>\n', depth: 0, parent: undefined }],
       },
     ],
     funnels: true,
@@ -136,10 +157,10 @@ test('the view selects the thread at the cursor and follows the active Markdown 
   await settle();
   expect(view.state().selected).toBe('1');
   // A move of the cursor outside the notes keeps the selection and tells the script the line for a new note.
-  editor.selection = { active: new FakePosition(15, 0) };
+  editor.selection = { active: new FakePosition(12, 0) };
   fake.fire('selection', { textEditor: editor });
   await settle();
-  expect(view.messages.at(-1)).toEqual({ type: 'line', line: 15 });
+  expect(view.messages.at(-1)).toEqual({ type: 'line', line: 12 });
   expect(view.state().selected).toBe('1');
   const other = new FakeEditor(fake.open('Other\n', '/folder/b.md'));
   fake.fire('activeEditor', other);
@@ -152,20 +173,20 @@ test('the view selects the thread at the cursor and follows the active Markdown 
   expect(view.state().file).toBe('b.md');
 });
 
-test('Save writes an answer and a refused text returns its message (R-SIDE-003, R-NOTE-003)', async () => {
+test('Save writes an answer and a refused text returns its message (R-SIDE-003, R-EDIT-002)', async () => {
   const { document, view } = await start();
   await send(view, { type: 'save', request: 1, id: '1', index: 1, text: 'A **changed** answer.' });
-  expect(document.text).toContain('---\nauthor: bob\n---\nA **changed** answer.\n-->');
+  expect(document.text).toContain('    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > A **changed** answer.\n\nMore.');
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
   expect(view.state().threads[0].answers[1].body).toBe('A **changed** answer.');
-  await send(view, { type: 'save', request: 2, id: '1', index: 0, text: 'A <!-- b' });
-  expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('must not contain another comment') });
+  await send(view, { type: 'save', request: 2, id: '1', index: 0, text: '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.' });
+  expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('starts a new answer') });
   await send(view, { type: 'save', request: 3, id: '9', index: 0, text: 'Text' });
   expect(results(view)[2]).toEqual({ type: 'result', request: 3, message: 'The change was not saved: the file no longer holds the note.' });
 });
 
-test('Answer and Add Note need the GitHub sign-in, and write the login and the date (R-EDIT-003, R-EDIT-005, R-GEN-006)', async () => {
-  const { document, view } = await start(note, 14);
+test('Answer, Reply and Add Note need the GitHub sign-in, and write the login and the date (R-EDIT-003, R-EDIT-005, R-NOTE-004, R-GEN-006)', async () => {
+  const { document, view } = await start(note, 12);
   await send(view, { type: 'answer', request: 1, id: '1', text: 'A third answer.' });
   expect(results(view)[0]).toEqual({ type: 'result', request: 1, message: expect.stringMatching(/^The change was not saved: sign in with GitHub/) });
   expect(document.text).toBe(note);
@@ -173,25 +194,35 @@ test('Answer and Add Note need the GitHub sign-in, and write the login and the d
   // Add Note adds a note for the line of the cursor, with a point at the end of the line, and selects it (R-NOTE-006).
   await send(view, { type: 'add', request: 2, text: 'A new note.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: undefined });
-  expect(document.text).toMatch(/\n\nMore\.<!--\[a1\]-->\n<!-- note\n---\nauthor: carl\ndate: 2026-10-28T10:15[+-]\d{2}:\d{2}\nselection: a1\n---\nA new note\.\n-->\n$/);
+  expect(document.text).toMatch(/\n\nMore\.<!--\[(note-[a-z0-9]{4})-->\[\^\1\]\n\n\[\^\1\]: \*\*carl\*\* · 2026-10-28 10:15\+01:00\n\n {4}A new note\.\n$/);
   let state = view.state();
   expect(state.threads).toHaveLength(2);
   expect(state.selected).toBe(state.threads[1].id);
   expect(state.threads[1].answers[0]).toMatchObject({ author: 'carl', body: 'A new note.' });
+  // Answer replies to the note, after the replies to the note.
   await send(view, { type: 'answer', request: 3, id: '1', text: 'A third answer.' });
   expect(results(view)[2]).toEqual({ type: 'result', request: 3, message: undefined });
-  expect(document.text).toMatch(/---\nAn answer\.\n---\nauthor: carl\ndate: .*\n---\nA third answer\.\n-->\n/);
+  expect(document.text).toContain('    > An answer.\n\n    > **carl** · 2026-10-28 10:15+01:00\n    >\n    > A third answer.\n\nMore.');
+  // Reply replies to an answer, in its block quote after its body and its replies.
+  await send(view, { type: 'answer', request: 4, id: '1', text: 'Thanks.', parent: 1 });
+  expect(results(view)[3]).toEqual({ type: 'result', request: 4, message: undefined });
+  expect(document.text).toContain('    > An answer.\n    >\n    > > **carl** · 2026-10-28 10:15+01:00\n    > >\n    > > Thanks.\n\n    > **carl** · ');
   state = view.state();
-  expect(state.threads[0].answers.map((answer) => answer.author)).toEqual(['ann', 'bob', 'carl']);
+  expect(state.threads[0].answers.map((answer) => [answer.author, answer.depth, answer.parent, answer.body])).toEqual([
+    ['ann', 0, undefined, 'The **text**.'],
+    ['bob', 1, 0, 'An answer.'],
+    ['carl', 2, 1, 'Thanks.'],
+    ['carl', 1, 0, 'A third answer.'],
+  ]);
 });
 
 test('Delete and Delete Thread remove an answer and a note, and a missing note shows a message (R-EDIT-004)', async () => {
   const { document, view } = await start();
   await send(view, { type: 'deleteAnswer', id: '1', index: 0 });
-  expect(document.text).toBe('# Title\n\n<!-- note\n---\nauthor: bob\n---\nAn answer.\n-->\n\nMore.\n');
+  expect(document.text).toBe('# Title\n\nThe text[^note-aaaa] of the page.\n\n[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n\nMore.\n');
   expect(view.state().threads[0].answers).toHaveLength(1);
   await send(view, { type: 'deleteNote', id: '1' });
-  expect(document.text).toBe('# Title\n\nMore.\n');
+  expect(document.text).toBe('# Title\n\nThe text of the page.\n\nMore.\n');
   expect(view.state().threads).toEqual([]);
   await send(view, { type: 'deleteNote', id: '1' });
   expect(fake.errors).toEqual(['The change was not saved: the file no longer holds the note.']);
@@ -231,17 +262,17 @@ test('a click on the line of a thread shows its note in the text editor and open
 });
 
 test('a note with a selection has the lines of its selection as its mark, and the cursor goes to the start of the selection (R-SIDE-007)', async () => {
-  const { view } = await start('The agents <!--[a1-->change\nthe work<!--a1]--> of teams.\n<!-- note\n---\nselection: a1\n---\nWhich?\n-->\n');
-  expect(view.state().threads).toEqual([expect.objectContaining({ number: 1, mark: [0, 1], line: 2 })]);
+  const { view } = await start('The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n');
+  expect(view.state().threads).toEqual([expect.objectContaining({ number: 1, mark: [0, 1], line: 3 })]);
   await send(view, { type: 'reveal', id: '1' });
-  expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 21) }) });
+  expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 28) }) });
 });
 
 test('the view sends the visible lines of the text editor, and the setting showFunnels (R-SIDE-007)', async () => {
   const { editor, view } = await start();
   editor.visibleRanges = [new FakeRange(3, 0, 8, 0)];
   fake.fire('visibleRanges', { textEditor: editor });
-  expect(view.messages.at(-1)).toEqual({ type: 'visible', visible: { lines: [3, 8], lineCount: 16 } });
+  expect(view.messages.at(-1)).toEqual({ type: 'visible', visible: { lines: [3, 8], lineCount: 14 } });
   // The button "Hide Funnels" writes the setting in the user settings, and the view shows the new state.
   await fake.run(viewCommands.hideFunnels);
   await settle();

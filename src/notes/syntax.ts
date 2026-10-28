@@ -4,474 +4,214 @@
 
 /**
  * The syntax of a note ([R-NOTE-001](../../docs/requirements.md#r-note-001)):
- * an HTML comment of a Markdown text that starts with `<!-- note` (a block
- * note) or `<!-- note inline` (an inline note,
- * [R-NOTE-005](../../docs/requirements.md#r-note-005)) on a line of its own.
- * The text of the note starts on the next line. It is a thread of answers
- * ([R-NOTE-004](../../docs/requirements.md#r-note-004)): each answer starts
- * with a front matter that names its author and its date
- * ([R-NOTE-002](../../docs/requirements.md#r-note-002)), and its body in
- * Markdown follows:
+ * a Markdown footnote whose label is a note label, `note-` and four small
+ * letters or digits, and whose first line is the header of an answer, the
+ * author in bold and the date ([R-NOTE-002](../../docs/requirements.md#r-note-002)).
+ * The note is a thread of answers
+ * ([R-NOTE-004](../../docs/requirements.md#r-note-004)): the body of the first
+ * answer follows the header, indented by four spaces, and each further answer
+ * is a block quote of its own that starts with its own header. The reference
+ * of the note ends the passage of the text that the note belongs to, and a
+ * hidden start marker can start it
+ * ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
  *
  * ```markdown
- * <!-- note
- * ---
- * author: hannes
- * date: 2026-10-28T10:15+01:00
- * ---
- * Check the dates.
- * ---
- * author: anna
- * date: 2026-10-28T11:02+01:00
- * ---
- * Friday works.
- * -->
+ * The agents <!--[note-7k2q-->change the work[^note-7k2q] of teams.
+ *
+ * [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+ *
+ *     Which teams?
+ *
+ *     > **anna** · 2026-10-28 11:02+01:00
+ *     >
+ *     > The teams of the plan.
  * ```
  *
- * Every other comment is no note and stays as it is. The module reads and
- * writes the text of one comment, and finds the comments of a text as
- * markdown-it 14, the parser of the Markdown preview, finds them. The text of
- * a note must not contain another comment
- * ([R-NOTE-003](../../docs/requirements.md#r-note-003)). The module uses no
- * API of VS Code, so that the extension and the markdown-it plugin share it.
+ * Every other footnote is no note and stays as it is, for the footnotes of
+ * the Markdown preview of other extensions. The module reads and writes the
+ * lines of one note, and has the markdown-it rules that find the notes, their
+ * references and their start markers as markdown-it 14, the parser of the
+ * Markdown preview, finds footnotes. The module uses no API of VS Code, so
+ * that the extension and the markdown-it plugin share it.
  */
 
+import type MarkdownIt from 'markdown-it';
 import type { StateBlock, StateInline } from 'markdown-it';
 
-/** commentStart is the text that starts an HTML comment. */
-export const commentStart = '<!--';
+/** labelPattern matches the label of a note: `note-` and four small letters or digits, for example `note-7k2q`. */
+export const labelPattern = /^note-[a-z0-9]{4}$/;
 
-/** commentEnd is the text that ends an HTML comment. */
-export const commentEnd = '-->';
-
-/** Kind tells how a note starts: `block` for `<!-- note`, `inline` for `<!-- note inline`. */
-export type Kind = 'block' | 'inline';
-
-/** keywords are the words after `<!--` on the first line of a note, by its kind. */
-export const keywords: Readonly<Record<Kind, string>> = { block: 'note', inline: 'note inline' };
+/** labelCharacters are the characters of the four random characters of the label of a new note. */
+const labelCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 /**
- * keywordLine matches the first line of the text of a comment that is a note: the word `note`, or the words
- * `note inline`, in small or capital letters, alone on the line of `<!--`. The text of the note starts on the next
- * line.
+ * newLabel returns the label of a new note: `note-` and four random small letters or digits, which no footnote of the
+ * text uses ([R-NOTE-001](../../docs/requirements.md#r-note-001)). Random labels do not clash when two people add notes
+ * to the same file at the same time, for example on two branches.
+ * @param used - The labels of all footnotes of the text.
+ * @param random - Returns a random number from 0 to below 1.
  */
-const keywordLine = /^[ \t]*note(?:[ \t]+(inline))?[ \t]*$/i;
-
-/**
- * forbiddenTexts are the texts that the text of a note must not contain
- * ([R-NOTE-003](../../docs/requirements.md#r-note-003)): the start and the end of a comment, and `--!>`, at which a
- * browser ends a comment too.
- */
-export const forbiddenTexts = [commentStart, commentEnd, '--!>'] as const;
-
-/**
- * commentEndAt returns the offset after the end of the HTML comment that starts at an offset of a text, with the rule
- * of markdown-it 14 for an inline comment: `<!-->` and `<!--->` are empty comments, and every other comment ends at
- * the first `-->`. The result is -1 when no comment starts at the offset or when the comment does not end.
- * @param text - The text.
- * @param start - The offset of the `<` of `<!--`.
- */
-export function commentEndAt(text: string, start: number): number {
-  if (!text.startsWith(commentStart, start)) {
-    return -1;
-  }
-  if (text.startsWith('>', start + 4)) {
-    return start + 5;
-  }
-  if (text.startsWith('->', start + 4)) {
-    return start + 6;
-  }
-  const end = text.indexOf(commentEnd, start + 4);
-  return end < 0 ? -1 : end + commentEnd.length;
-}
-
-/**
- * innerText returns the text of a comment between `<!--` and `-->`. The empty comments `<!-->` and `<!--->` have an
- * empty text.
- * @param comment - The comment, from `<!--` to `-->`.
- */
-export function innerText(comment: string): string {
-  return comment === '<!-->' || comment === '<!--->' ? '' : comment.slice(commentStart.length, -commentEnd.length);
-}
-
-/** Span is a part of a text, by the offset of its first character and the offset after its last character. */
-export interface Span {
-  start: number;
-  end: number;
-}
-
-/**
- * onlyComments returns the comments of the text of an HTML block when the block holds nothing but comments and white
- * space. A block with other HTML, or with a comment that does not end, holds no note, and the result is undefined.
- * markdown-it starts such a block at a line that starts with `<!--` and ends it at the first line with `-->`.
- * @param content - The text of the HTML block.
- */
-export function onlyComments(content: string): Span[] | undefined {
-  const spans: Span[] = [];
-  let position = 0;
-  for (;;) {
-    while (position < content.length && /\s/.test(content[position])) {
-      position++;
-    }
-    if (position >= content.length) {
-      return spans;
-    }
-    const end = commentEndAt(content, position);
-    if (end < 0) {
-      return undefined;
-    }
-    spans.push({ start: position, end });
-    position = end;
-  }
-}
-
-/** noteTokenType is the type of the markdown-it token of an inline comment, which the inline rule writes. */
-export const noteTokenType = 'nimblescape_note';
-
-/** InlineNoteMeta is the meta of a token of an inline comment: its span in the text of the inline token. */
-export type InlineNoteMeta = Span;
-
-/**
- * inlineNoteRule is a markdown-it rule for the inline comments of a Markdown text. It runs before the rule
- * `html_inline` and reads a comment as that rule does, so the editor and the preview find the same comments. Its
- * token keeps the span of the comment in the text of the inline token, by which the extension finds the comment in
- * the Markdown text. The markdown-it plugin turns each token into a note, or back into the token `html_inline` that
- * markdown-it writes without the rule.
- * @param state - The state of the inline parser.
- * @param silent - Whether the rule only tells whether it matches.
- */
-export function inlineNoteRule(state: StateInline, silent: boolean): boolean {
-  const start = state.pos;
-  // The conditions of html_inline: HTML is on, the comment fits into the text, and no earlier comment of the text
-  // stayed open (skipHtmlSpecial, which html_inline sets).
-  const skipped = (state as StateInline & { skipHtmlSpecial?: boolean }).skipHtmlSpecial;
-  if (!state.md.options.html || skipped || start + 2 >= state.posMax || !state.src.startsWith(commentStart, start)) {
-    return false;
-  }
-  const end = commentEndAt(state.src, start);
-  if (end < 0) {
-    // html_inline handles a comment that does not end: it remembers it, and the rest of the text has no comment.
-    return false;
-  }
-  if (!silent) {
-    const token = state.push(noteTokenType, '', 0);
-    token.content = state.src.slice(start, end);
-    token.meta = { start, end } satisfies InlineNoteMeta;
-  }
-  state.pos = end;
-  return true;
-}
-
-/** noteLinesTokenType is the type of the markdown-it token of an inline note on lines of its own, which the block rule writes. */
-export const noteLinesTokenType = 'nimblescape_note_lines';
-
-/** NoteLinesMeta is the meta of a token of an inline note on lines of its own: the span of its comment in the source text. */
-export type NoteLinesMeta = Span;
-
-/** inlineNoteLine matches the first line of an inline note on lines of its own: `<!-- note inline` alone on the line. */
-const inlineNoteLine = /^<!--[ \t]*note[ \t]+inline[ \t]*$/i;
-
-/**
- * noteLinesRule is a markdown-it block rule for an inline note that starts on a line of its own
- * ([R-NOTE-005](../../docs/requirements.md#r-note-005)): a line `<!-- note inline` in a paragraph or between two
- * blocks. Without the rule, the rule `html_block` reads the comment as an HTML block, which ends the paragraph before
- * it. The rule runs before `html_block`, ends a paragraph as `html_block` does, and ends the comment at the first
- * `-->`. Its token keeps the comment without the prefixes of its lines, and the span of the comment in the source
- * text. A text after `-->` on the last line starts the next block, so that the plugin of the preview can join it to
- * the paragraph before the note.
- * @param state - The state of the block parser.
- * @param startLine - The index of the line where the rule starts.
- * @param endLine - The index of the line after the text.
- * @param silent - Whether the rule only tells whether it matches.
- */
-export function noteLinesRule(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
-  // The conditions of html_block: HTML is on, and the line is no line of an indented code block.
-  if (!state.md.options.html || state.sCount[startLine] - state.blkIndent >= 4) {
-    return false;
-  }
-  const start = state.bMarks[startLine] + state.tShift[startLine];
-  if (!inlineNoteLine.test(state.src.slice(start, state.eMarks[startLine]))) {
-    return false;
-  }
-  let line = startLine + 1;
-  let end = -1;
-  for (; line < endLine; line++) {
-    // A line with less indentation ends the block of the comment, as in html_block; an empty line does not.
-    if (state.sCount[line] < state.blkIndent && !state.isEmpty(line)) {
-      return false;
-    }
-    const lineStart = state.bMarks[line] + state.tShift[line];
-    const index = state.src.slice(lineStart, state.eMarks[line]).indexOf(commentEnd);
-    if (index >= 0) {
-      end = lineStart + index + commentEnd.length;
-      break;
+export function newLabel(used: ReadonlySet<string>, random: () => number = Math.random): string {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const characters = Array.from({ length: 4 }, () => labelCharacters[Math.floor(random() * labelCharacters.length) % labelCharacters.length]);
+    const label = `note-${characters.join('')}`;
+    if (!used.has(label)) {
+      return label;
     }
   }
-  if (end < 0) {
-    return false;
+  // A text with very many notes: the first free label.
+  for (let number = 0; ; number++) {
+    const label = `note-${number.toString(36).padStart(4, '0')}`;
+    if (!used.has(label)) {
+      return label;
+    }
   }
-  if (silent) {
-    return true;
-  }
-  const token = state.push(noteLinesTokenType, '', 0);
-  token.block = true;
-  token.map = [startLine, line + 1];
-  const text = state.getLines(startLine, line + 1, state.blkIndent, false);
-  const open = text.indexOf(commentStart);
-  token.content = text.slice(open, text.indexOf(commentEnd, open + commentStart.length) + commentEnd.length);
-  token.meta = { start, end } satisfies NoteLinesMeta;
-  let rest = end;
-  while (rest < state.eMarks[line] && (state.src[rest] === ' ' || state.src[rest] === '\t')) {
-    rest++;
-  }
-  if (rest < state.eMarks[line]) {
-    // The rest of the last line starts the next block.
-    state.bMarks[line] = rest;
-    state.tShift[line] = 0;
-    state.sCount[line] = state.blkIndent;
-    state.bsCount[line] = 0;
-    state.line = line;
-  } else {
-    state.line = line + 1;
-  }
-  return true;
 }
 
-/** FrontMatter is the front matter of an answer: the lines from the opening `---` to the closing `---`, and its fields. */
-export interface FrontMatter {
-  /** lines are the lines of the front matter, with both fences, as the comment holds them. */
-  lines: string[];
-  /** fields are the values of the fields by their names in small letters, for example `author` and `date`. */
-  fields: Record<string, string>;
+/** footnoteLabels matches the labels of the footnote references and definitions of a text, for example `[^1]`. */
+const footnoteLabels = /\[\^([^\]\s]+)\]/g;
+
+/**
+ * usedLabels returns the labels of all footnotes of a text, notes and other footnotes.
+ * @param lines - The lines of the text.
+ */
+export const usedLabels = (lines: readonly string[]): Set<string> => new Set(lines.flatMap((line) => [...line.matchAll(footnoteLabels)].map((match) => match[1])));
+
+/** dateText is the form of the date of a header: the local date and time of the author with the offset of the zone, or `Z` for UTC. */
+const dateText = String.raw`\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})`;
+
+/**
+ * headerPattern matches the header of an answer: the GitHub login of the author in bold, a middle dot, and the date,
+ * for example `**hannes** · 2026-10-28 10:15+01:00`.
+ */
+const headerPattern = new RegExp(String.raw`^\*\*([A-Za-z0-9][A-Za-z0-9_-]{0,38})\*\* · (${dateText})[ \t]*$`);
+
+/** Header is the author and the date of an answer. */
+export interface Header {
+  author: string;
+  /** date is the date as written, for example `2026-10-28 10:15+01:00`. */
+  date: string;
 }
 
 /**
- * Answer is one answer of the thread of a note: its front matter with the author and the date, and its body. The
- * lines are lines of the text of the comment, where the line of `<!-- note` is 0.
+ * readHeader reads the header of an answer, or returns undefined for another text.
+ * @param text - The text of the line, without the prefix of the line.
  */
-export interface Answer {
-  /** frontMatter is the front matter of the answer, or undefined. */
-  frontMatter: FrontMatter | undefined;
-  /** author is the value of the field `author`, or undefined. */
-  author: string | undefined;
-  /** date is the value of the field `date` as written, or undefined. */
-  date: string | undefined;
-  /** body is the Markdown text of the answer, without its front matter and without blank lines around it. */
+export function readHeader(text: string): Header | undefined {
+  const match = headerPattern.exec(text.trim());
+  return match ? { author: match[1], date: match[2] } : undefined;
+}
+
+/**
+ * headerText returns the header of an answer.
+ * @param header - The author and the date.
+ */
+export const headerText = (header: Header): string => `**${header.author}** · ${header.date}`;
+
+/** definitionPattern matches the first line of the definition of a note: the label, a colon and the header. */
+const definitionPattern = /^\[\^(note-[a-z0-9]{4})\]:[ \t]+(.*)$/;
+
+/** Definition is the first line of the definition of a note: its label and the header of its first answer. */
+export interface Definition extends Header {
+  label: string;
+}
+
+/**
+ * readDefinition reads the first line of the definition of a note, or returns undefined for another line.
+ * @param line - The line, without the prefix of its block quotes and list items.
+ */
+export function readDefinition(line: string): Definition | undefined {
+  const match = definitionPattern.exec(line);
+  const header = match ? readHeader(match[2]) : undefined;
+  return match && header ? { label: match[1], ...header } : undefined;
+}
+
+/**
+ * referenceText returns the reference of a note in the text.
+ * @param label - The label of the note.
+ */
+export const referenceText = (label: string): string => `[^${label}]`;
+
+/**
+ * markerText returns the start marker of the selection of a note: a comment, which no Markdown viewer shows.
+ * @param label - The label of the note.
+ */
+export const markerText = (label: string): string => `<!--[${label}-->`;
+
+/** markerPattern matches a start marker of a selection at the start of a text. */
+const markerPattern = /^<!--\[(note-[a-z0-9]{4})-->/;
+
+/**
+ * readMarker reads a comment as the start marker of a selection and returns its label, or undefined for another text.
+ * @param text - The text, which starts with the comment.
+ */
+export const readMarker = (text: string): string | undefined => markerPattern.exec(text)?.[1];
+
+/** indent is the indentation of the further lines of a note. */
+export const indent = '    ';
+
+/**
+ * Answer is one answer of the thread of a note: its header, its body, and its place in the tree of the thread
+ * ([R-NOTE-004](../../docs/requirements.md#r-note-004)). The first answer is the text of the note. A reply stands in
+ * a block quote after the body of the answer that it replies to, so its depth is the number of its quote markers. The
+ * lines are lines of the definition of the note, where its first line is 0.
+ */
+export interface Answer extends Header {
+  /** body is the Markdown text of the answer, without the indentation and the quote markers, without blank lines around it. */
   body: string;
-  /** start is the index of the first line of the answer: the line of its front matter, or of its body. */
+  /** depth is 0 for the first answer, 1 for a reply to it, 2 for a reply to a reply, and so on. */
+  depth: number;
+  /** parent is the index of the answer that the answer replies to, or undefined for the first answer. */
+  parent: number | undefined;
+  /** start is the index of the line of the header. */
   start: number;
-  /** bodyLine is the index of the line where the body starts. */
-  bodyLine: number;
-  /** end is the index of the line after the last line of the body, or of the front matter when the body is empty. */
+  /** end is the index of the line after the last line of the body, or after the header when the body is empty. */
   end: number;
 }
 
-/** NoteText is the content of the text of the comment of a note. */
+/** NoteText is the content of the definition of a note. */
 export interface NoteText {
-  /** kind tells how the note starts. */
-  kind: Kind;
-  /** keyword is the text of the first line after `<!--`, without the spaces around it, for example `note inline`. */
-  keyword: string;
-  /** answers are the answers of the thread, in the order of the text; a note has at least one. */
+  label: string;
+  /** answers are the answers of the thread in the order of the text, each answer before its replies; a note has at least one. */
   answers: Answer[];
-  /** nested tells whether the text holds the start of another comment, which a note must not contain. */
-  nested: boolean;
-}
-
-/** fence is a line of the front matter that opens or closes it. */
-const fence = /^[ \t]*---[ \t]*$/;
-
-/** field is a line of the front matter with a field: a name, a colon and a value. */
-const field = /^[ \t]*([A-Za-z][\w-]*)[ \t]*:(.*)$/;
-
-/**
- * fieldValue returns the value of a field of the front matter: the text after the colon without the spaces around it
- * and without the quotes around it.
- * @param raw - The text after the colon.
- */
-function fieldValue(raw: string): string {
-  const value = raw.trim();
-  const quoted = /^"(.*)"$|^'(.*)'$/.exec(value);
-  return quoted ? (quoted[1] ?? quoted[2]) : value;
 }
 
 /**
- * frontMatterAt returns the front matter that starts at a line, and the index of the line after it. A front matter
- * starts with a line `---`, holds at least one field and otherwise blank lines, and ends with the next line `---`.
- * @param lines - The lines of the text of the comment.
- * @param open - The index of the line.
+ * unindent removes the indentation of a further line of a note: four spaces or a tab. A line with less indentation is a
+ * lazy line of a paragraph and loses its leading white space.
+ * @param line - The line.
  */
-function frontMatterAt(lines: readonly string[], open: number): { frontMatter: FrontMatter; next: number } | undefined {
-  if (open >= lines.length || !fence.test(lines[open])) {
-    return undefined;
+function unindent(line: string): string {
+  if (line.startsWith(indent)) {
+    return line.slice(indent.length);
   }
-  const fields: Record<string, string> = {};
-  let found = false;
-  for (let index = open + 1; index < lines.length; index++) {
-    if (fence.test(lines[index])) {
-      return found ? { frontMatter: { lines: lines.slice(open, index + 1), fields }, next: index + 1 } : undefined;
-    }
-    const match = field.exec(lines[index]);
-    if (match) {
-      fields[match[1].toLowerCase()] ??= fieldValue(match[2]);
-      found = true;
-    } else if (lines[index].trim() !== '') {
-      return undefined;
-    }
+  return line.startsWith('\t') ? line.slice(1) : line.trimStart();
+}
+
+/** quoteMarker matches one quote marker at the start of a line, with the space after it. */
+const quoteMarker = /^ {0,3}>[ \t]?/;
+
+/**
+ * quoteDepth returns the number of the quote markers at the start of a line, and the text after them.
+ * @param line - The line.
+ * @param most - The most quote markers to remove.
+ */
+function quoteDepth(line: string, most = Number.MAX_SAFE_INTEGER): { depth: number; rest: string } {
+  let depth = 0;
+  let rest = line;
+  for (let match = quoteMarker.exec(rest); match && depth < most; match = quoteMarker.exec(rest)) {
+    rest = rest.slice(match[0].length);
+    depth++;
   }
-  return undefined;
+  return { depth, rest };
 }
 
 /**
- * answerOf builds an answer from its lines: the body loses the blank lines before and after it, the spaces before its
- * first line and after its last line.
- * @param lines - The lines of the text of the comment.
- * @param start - The index of the first line of the answer.
- * @param frontMatter - The front matter, or undefined.
- * @param bodyStart - The index of the line after the front matter, or the first line without one.
- * @param bodyEnd - The index of the line where the next answer starts, or the number of lines.
+ * trimmedBody returns the body of lines: without blank lines around it, and without white space before the first line
+ * and after the last line. It also returns the index of the line after the last line of text, or undefined.
+ * @param lines - The lines.
  */
-function answerOf(lines: readonly string[], start: number, frontMatter: FrontMatter | undefined, bodyStart: number, bodyEnd: number): Answer {
-  let first = bodyStart;
-  let last = bodyEnd - 1;
-  while (first <= last && lines[first].trim() === '') {
-    first++;
-  }
-  while (last >= first && lines[last].trim() === '') {
-    last--;
-  }
-  const body = lines.slice(first, last + 1);
-  if (body.length > 0) {
-    body[0] = body[0].trimStart();
-    body[body.length - 1] = body[body.length - 1].trimEnd();
-  }
-  const fields = frontMatter?.fields ?? {};
-  return {
-    frontMatter,
-    author: fields.author || undefined,
-    date: fields.date || undefined,
-    body: body.join('\n'),
-    start,
-    bodyLine: first <= last ? first : bodyStart,
-    end: first <= last ? last + 1 : bodyStart,
-  };
-}
-
-/**
- * readAnswers reads the answers of the text of a note ([R-NOTE-004](../../docs/requirements.md#r-note-004)). Each
- * front matter starts an answer, and the first answer may have none. An empty first answer without a front matter
- * before a front matter is no answer: the text of the note then starts with a blank line.
- * @param lines - The lines of the text of the comment; the first one is the line of `<!-- note`.
- */
-function readAnswers(lines: readonly string[]): Answer[] {
-  const answers: Answer[] = [];
-  let start = 1;
-  let read = frontMatterAt(lines, start);
-  for (;;) {
-    const bodyStart = read?.next ?? start;
-    let next: ReturnType<typeof frontMatterAt>;
-    let line = bodyStart;
-    for (; line < lines.length; line++) {
-      next = frontMatterAt(lines, line);
-      if (next) {
-        break;
-      }
-    }
-    const answer = answerOf(lines, start, read?.frontMatter, bodyStart, line);
-    if (!(answers.length === 0 && next && !answer.frontMatter && answer.body === '')) {
-      answers.push(answer);
-    }
-    if (!next) {
-      return answers;
-    }
-    start = line;
-    read = next;
-  }
-}
-
-/**
- * readNote reads the text of a comment: its kind and the answers of its thread. A comment that does not start with
- * `<!-- note` or `<!-- note inline` on a line of its own is no note, and the result is undefined.
- * @param text - The text of the comment between `<!--` and `-->`.
- */
-export function readNote(text: string): NoteText | undefined {
-  const lines = text.split('\n');
-  const match = lines.length > 1 ? keywordLine.exec(lines[0]) : null;
-  if (!match) {
-    return undefined;
-  }
-  return {
-    kind: match[1] ? 'inline' : 'block',
-    keyword: lines[0].trim(),
-    answers: readAnswers(lines),
-    nested: text.includes(commentStart),
-  };
-}
-
-/** MarkerKind tells what a marker of a selection marks: its start, its end, or a point of the text. */
-export type MarkerKind = 'open' | 'close' | 'point';
-
-/** MarkerText is the content of a marker of a selection: its kind and the ID of the selection. */
-export interface MarkerText {
-  kind: MarkerKind;
-  id: string;
-}
-
-/** selectionField is the field of the front matter of the first answer of a note that names the ID of its selection. */
-export const selectionField = 'selection';
-
-/** selectionId matches the ID of a selection: a letter, then letters and digits, as `a3`. */
-const selectionId = /^[A-Za-z][A-Za-z0-9]{0,31}$/;
-
-/** markerPattern matches a marker of a selection: `<!--[a3-->` opens it, `<!--a3]-->` closes it, `<!--[a3]-->` marks a point. */
-const markerPattern = /^<!--(\[)?([A-Za-z][A-Za-z0-9]{0,31})(\])?-->$/;
-
-/**
- * readMarker reads a comment as a marker of the selection of a note ([R-NOTE-006](../../docs/requirements.md#r-note-006)),
- * or returns undefined for another comment.
- * @param comment - The comment, from `<!--` to `-->`.
- */
-export function readMarker(comment: string): MarkerText | undefined {
-  const match = markerPattern.exec(comment);
-  if (!match || (!match[1] && !match[3])) {
-    return undefined;
-  }
-  return { kind: match[1] && match[3] ? 'point' : match[1] ? 'open' : 'close', id: match[2] };
-}
-
-/**
- * markerText returns the comment of a marker of a selection.
- * @param kind - The kind of the marker.
- * @param id - The ID of the selection.
- */
-export function markerText(kind: MarkerKind, id: string): string {
-  return kind === 'open' ? `${commentStart}[${id}${commentEnd}` : kind === 'close' ? `${commentStart}${id}]${commentEnd}` : `${commentStart}[${id}]${commentEnd}`;
-}
-
-/**
- * selectionOf returns the ID of the selection of a note: the field `selection` of the front matter of its first answer,
- * or undefined for a note without a selection or with an ID of another form.
- * @param note - The content of the comment of the note.
- */
-export function selectionOf(note: NoteText): string | undefined {
-  const id = note.answers[0]?.frontMatter?.fields[selectionField];
-  return id !== undefined && selectionId.test(id) ? id : undefined;
-}
-
-/**
- * bodyProblem returns the first forbidden text that a body holds, or undefined
- * ([R-NOTE-003](../../docs/requirements.md#r-note-003)).
- * @param body - The Markdown text of an answer.
- */
-export const bodyProblem = (body: string): string | undefined => forbiddenTexts.find((text) => body.includes(text));
-
-/**
- * normalizeBody turns the text of the editor of an answer into the body of the answer: line breaks as `\n`, and no
- * blank lines and no white space before and after the text.
- * @param text - The text of the editor.
- */
-export function normalizeBody(text: string): string {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+function trimmedBody(lines: readonly string[]): { body: string; last: number | undefined } {
   let first = 0;
   let last = lines.length - 1;
   while (first <= last && lines[first].trim() === '') {
@@ -485,60 +225,120 @@ export function normalizeBody(text: string): string {
     body[0] = body[0].trimStart();
     body[body.length - 1] = body[body.length - 1].trimEnd();
   }
-  return body.join('\n');
+  return { body: body.join('\n'), last: first <= last ? last : undefined };
 }
 
 /**
- * Fields are the fields of the front matter of a new answer
- * ([R-EDIT-003](../../docs/requirements.md#r-edit-003), [R-EDIT-005](../../docs/requirements.md#r-edit-005)).
+ * readNote reads the definition of a note: its label and the answers of its thread. A line of a block quote whose text
+ * is a header starts a reply: to the answer of the block quote around it, or to the first answer. The lines of its
+ * block quote are the body of the reply, up to the next reply in it. A line with fewer quote markers ends the reply
+ * after a blank line; directly after a line of text, it is a lazy line of the paragraph of the reply, as in Markdown.
+ * A definition that does not start with the label of a note and a header is no note, and the result is undefined.
+ * @param lines - The lines of the definition, without the prefix of its block quotes and list items.
  */
-export interface Fields {
-  author?: string;
-  date?: string;
-  selection?: string;
-}
-
-/**
- * frontMatterLines returns the lines of the front matter of a new answer. A field without a value has no line. The
- * line breaks of a value become spaces, because a field has one line.
- * @param fields - The fields.
- */
-export function frontMatterLines(fields: Fields): string[] | undefined {
-  const entries = Object.entries(fields).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== '');
-  if (entries.length === 0) {
+export function readNote(lines: readonly string[]): NoteText | undefined {
+  const definition = readDefinition(lines[0] ?? '');
+  if (!definition) {
     return undefined;
   }
-  return ['---', ...entries.map(([name, value]) => `${name}: ${value.replace(/\s+/g, ' ').trim()}`), '---'];
+  const content = lines.map((line, index) => (index === 0 ? '' : unindent(line)));
+  /** Reading is an answer while its lines are read: its number of quote markers and its lines with their indices. */
+  type Reading = { header: Header; level: number; depth: number; parent: number | undefined; start: number; lines: { index: number; text: string }[] };
+  const answers: Reading[] = [{ header: definition, level: 0, depth: 0, parent: undefined, start: 0, lines: [] }];
+  /** open are the indices of the answers whose block quotes are open, from the first answer. */
+  const open = [0];
+  let previousText = false;
+  content.forEach((line, index) => {
+    if (index === 0) {
+      return;
+    }
+    const { depth: level, rest } = quoteDepth(line);
+    const header = level > 0 ? readHeader(rest) : undefined;
+    if (header) {
+      while (answers[open.at(-1)!].level >= level) {
+        open.pop();
+      }
+      const parent = open.at(-1)!;
+      answers.push({ header, level, depth: answers[parent].depth + 1, parent, start: index, lines: [] });
+      open.push(answers.length - 1);
+      previousText = false;
+      return;
+    }
+    const blank = rest.trim() === '';
+    // A line with fewer quote markers ends the replies of more, unless it continues the paragraph of the line before.
+    if (!(previousText && !blank)) {
+      while (open.length > 1 && answers[open.at(-1)!].level > level) {
+        open.pop();
+      }
+    }
+    const owner = answers[open.at(-1)!];
+    owner.lines.push({ index, text: quoteDepth(line, owner.level).rest });
+    previousText = !blank;
+  });
+  return {
+    label: definition.label,
+    answers: answers.map(({ header, depth, parent, start, lines: own }): Answer => {
+      const { body, last } = trimmedBody(own.map((line) => line.text));
+      const end = last === undefined ? start + 1 : own.filter((line) => line.text.trim() !== '').at(-1)!.index + 1;
+      return { author: header.author, date: header.date, body, depth, parent, start, end };
+    }),
+  };
 }
 
 /**
- * answerLines returns the lines of an answer: the lines of its front matter, then the lines of its body.
- * @param frontMatter - The lines of the front matter, or undefined.
- * @param body - The body.
+ * AnswerText is the header and the body of an answer that the extension writes, and its depth in the tree of the
+ * thread: 0 for the first answer, and by default 1 for every other one.
  */
-export const answerLines = (frontMatter: readonly string[] | undefined, body: string): string[] => [...(frontMatter ?? []), ...(body === '' ? [] : body.split('\n'))];
+export type AnswerText = Header & { body: string; depth?: number };
 
 /**
- * commentText returns the comment of a new note, from `<!--` to `-->`, with `\n` as line breaks and without the
- * prefixes of the lines: `<!-- note` or `<!-- note inline` on a line of its own, the lines of the front matter, the
- * body, and `-->` on a line of its own.
- * @param kind - The kind of the note.
- * @param frontMatter - The lines of the front matter, or undefined.
- * @param body - The body.
+ * quotePrefix returns the quote markers of the lines of an answer of a depth.
+ * @param depth - The depth.
  */
-export function commentText(kind: Kind, frontMatter: readonly string[] | undefined, body: string): string {
-  return [`${commentStart} ${keywords[kind]}`, ...answerLines(frontMatter, body), commentEnd].join('\n');
+const quotePrefix = (depth: number): string => '> '.repeat(depth);
+
+/**
+ * noteLines returns the lines of the definition of a note, without the prefix of its block quotes and list items
+ * ([R-NOTE-001](../../docs/requirements.md#r-note-001)): the label and the header of the first answer, a blank line
+ * and its body indented by four spaces, and each reply as a block quote after the answer that it replies to, with a
+ * line before it that is blank in the block quote around it, its header, a line `>`, and its body.
+ * @param label - The label of the note.
+ * @param answers - The answers in the order of the text, each answer before its replies; at least one.
+ */
+export function noteLines(label: string, answers: readonly AnswerText[]): string[] {
+  const indented = (line: string): string => (line === '' ? '' : indent + line);
+  return answers.flatMap((answer, index) => {
+    const body = answer.body === '' ? [] : answer.body.split('\n');
+    if (index === 0) {
+      return [`${referenceText(label)}: ${headerText(answer)}`, ...(body.length > 0 ? ['', ...body.map(indented)] : [])];
+    }
+    const depth = Math.max(answer.depth ?? 1, 1);
+    const prefix = quotePrefix(depth);
+    return [
+      indented(quotePrefix(depth - 1).trimEnd()),
+      indented(`${prefix}${headerText(answer)}`),
+      ...(body.length > 0 ? [indented(prefix.trimEnd()), ...body.map((line) => indented(line === '' ? prefix.trimEnd() : `${prefix}${line}`))] : []),
+    ];
+  });
 }
 
 /**
- * Timestamp is a date of a note in the forms of ISO 8601 that a front matter takes: `2026-10-28`, `2026-10-28 10:15`,
- * `2026-10-28T10:15`, with or without seconds, and with or without a zone such as `Z` or `+01:00`.
+ * normalizeBody turns the text of the editor of an answer into the body of the answer: line breaks as `\n`, and no
+ * blank lines and no white space before and after the text.
+ * @param text - The text of the editor.
+ */
+export const normalizeBody = (text: string): string => trimmedBody(text.replace(/\r\n?/g, '\n').split('\n')).body;
+
+/**
+ * Timestamp is a date of a note in the forms of ISO 8601: `2026-10-28`, `2026-10-28 10:15`, `2026-10-28T10:15`, with
+ * or without seconds, and with or without a zone such as `Z` or `+01:00`. A header holds the form
+ * `2026-10-28 10:15+01:00`.
  */
 const timestamp = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:?\d{2})?)?$/;
 
 /**
- * parseDate returns the point in time of a date of a front matter, or undefined for a text of another form or an
- * impossible date. A date or a time without a zone is a local date or time.
+ * parseDate returns the point in time of a date of a note, or undefined for a text of another form or an impossible
+ * date. A date or a time without a zone is a local date or time.
  * @param value - The date as written.
  */
 export function parseDate(value: string): Date | undefined {
@@ -561,9 +361,13 @@ export function parseDate(value: string): Date | undefined {
   return valid && parts[3] < 24 && parts[4] < 60 && parts[5] < 60 && !Number.isNaN(date.getTime()) ? date : undefined;
 }
 
+/** pad writes a number with two digits. */
+const pad = (value: number): string => String(value).padStart(2, '0');
+
 /**
- * displayDate returns a date of a front matter as the preview shows it: a date and time of ISO 8601 as date and time
- * with a space, without seconds and without the zone, and every other text as written.
+ * displayDate returns a date of a note as the extension shows it: a date and time with a zone in the local time of
+ * the reader, as date and time with a space and without seconds, for example `2026-10-28 10:15`; a date and time
+ * without a zone as written without seconds; and every other text as written.
  * @param value - The date as written.
  */
 export function displayDate(value: string): string {
@@ -571,18 +375,270 @@ export function displayDate(value: string): string {
   if (!match || match[4] === undefined) {
     return value.trim();
   }
-  return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
+  const date = match[7] ? parseDate(value) : undefined;
+  if (!date) {
+    return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
+  }
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** headerDate matches the date of a header: the local date and time of the author and the offset of the zone. */
+const headerDate = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2})(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * authorDate returns the date of a header in the local time of its author, with the offset of the zone, for example
+ * `2026-10-28 10:00 at the author (UTC−02:00)`, and every other text as written. The extension shows it next to the
+ * date in the local time of the reader, for example as a tooltip
+ * ([R-NOTE-002](../../docs/requirements.md#r-note-002)).
+ * @param value - The date as written.
+ */
+export function authorDate(value: string): string {
+  const match = headerDate.exec(value.trim());
+  if (!match) {
+    return value.trim();
+  }
+  const zone = match[2] === 'Z' ? 'UTC' : `UTC${match[2].replace('-', '\u2212')}`;
+  return `${match[1]} at the author (${zone})`;
 }
 
 /**
+ * isoDate returns the date of a header in the form of the attribute `datetime` of HTML, for example
+ * `2026-10-28T10:15+01:00`, and every other text as written.
+ * @param value - The date as written.
+ */
+export const isoDate = (value: string): string => (headerDate.test(value.trim()) ? value.trim().replace(' ', 'T') : value.trim());
+
+/**
  * formatDate writes a point in time as the date of a new answer: the local date and time in minutes with the offset
- * of the local zone, for example `2026-10-28T10:15+01:00`.
+ * of the local zone, for example `2026-10-28 10:15+01:00`, or with `Z` in the zone of UTC.
  * @param date - The point in time.
  */
 export function formatDate(date: Date): string {
-  const pad = (value: number): string => String(value).padStart(2, '0');
   const offset = -date.getTimezoneOffset();
   const sign = offset < 0 ? '-' : '+';
-  const zone = `${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}${zone}`;
+  const zone = offset === 0 ? 'Z' : `${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}${zone}`;
+}
+
+/** noteOpenType and noteCloseType are the types of the markdown-it tokens around the definition of a note. */
+export const noteOpenType = 'nimblescape_note_open';
+export const noteCloseType = 'nimblescape_note_close';
+
+/** referenceType is the type of the markdown-it token of the reference of a note. */
+export const referenceType = 'nimblescape_note_reference';
+
+/** markerType is the type of the markdown-it token of the start marker of the selection of a note. */
+export const markerType = 'nimblescape_note_marker';
+
+/** NoteMeta is the meta of the token that opens the definition of a note. */
+export interface NoteMeta extends Definition {
+  /** number is the number of the note in the document, from 1, by the order of the definitions. */
+  number: number;
+  /** duplicate tells whether an earlier note of the document has the same label, which the references name. */
+  duplicate: boolean;
+}
+
+/** InlineMeta is the meta of the token of a reference or a start marker: its label and its span in the text of its inline token. */
+export interface InlineMeta {
+  label: string;
+  start: number;
+  end: number;
+}
+
+/** Registry is what a parsing knows of the notes of its document: the meta of the first note of each label. */
+interface Registry {
+  notes: Map<string, NoteMeta>;
+  count: number;
+  /** depth is the number of definitions of notes that the block parser reads at the moment. */
+  depth: number;
+}
+
+/** registries holds the registry of each parsing, by its environment. */
+const registries = new WeakMap<object, Registry>();
+
+/** noEnvironment stands for the environment of a parsing without one. */
+const noEnvironment = {};
+
+/**
+ * registryOf returns the registry of the environment of a parsing.
+ * @param env - The environment.
+ */
+function registryOf(env: unknown): Registry {
+  const key = typeof env === 'object' && env !== null ? env : noEnvironment;
+  let registry = registries.get(key);
+  if (!registry) {
+    registry = { notes: new Map(), count: 0, depth: 0 };
+    registries.set(key, registry);
+  }
+  return registry;
+}
+
+/**
+ * notesOfParsing returns the meta of the notes that a parsing found so far, by their labels.
+ * @param env - The environment of the parsing.
+ */
+export const notesOfParsing = (env: unknown): ReadonlyMap<string, NoteMeta> => registryOf(env).notes;
+
+/** allReferences is the field of the environment of a parsing that takes every reference of the form of a note, also without a note. */
+export const allReferences = 'nimblescapeAllReferences';
+
+/**
+ * resetRule is the core rule that starts the registry of a parsing anew, because the preview can parse a document
+ * with the same environment more than once.
+ * @param state - The state of the core rule.
+ */
+function resetRule(state: { env: unknown }): void {
+  const registry = registryOf(state.env);
+  registry.notes.clear();
+  registry.count = 0;
+  registry.depth = 0;
+}
+
+/**
+ * noteRule is the markdown-it block rule of the definition of a note. It reads the definition as markdown-it-footnote
+ * reads a footnote: the text after the colon and the lines indented by four spaces are blocks of the note, also a
+ * lazy line of a paragraph. Its tokens stand between a token of the type noteOpenType, whose meta is a NoteMeta and
+ * whose lines are the lines of the definition without the blank lines after it, and a token of the type
+ * noteCloseType. A definition whose label is not the label of a note, or whose first line is no header, stays for the
+ * rule of footnotes.
+ * @param state - The state of the block parser.
+ * @param startLine - The index of the line where the rule starts.
+ * @param endLine - The index of the line after the text.
+ * @param silent - Whether the rule only tells whether it matches.
+ */
+export function noteRule(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
+  const start = state.bMarks[startLine] + state.tShift[startLine];
+  const max = state.eMarks[startLine];
+  if (state.sCount[startLine] - state.blkIndent >= 4 || state.src.charCodeAt(start) !== 0x5b) {
+    return false;
+  }
+  const definition = readDefinition(state.src.slice(start, max));
+  const registry = registryOf(state.env);
+  // A note holds no note: a definition in a note stays for the rule of footnotes.
+  if (!definition || registry.depth > 0) {
+    return false;
+  }
+  if (silent) {
+    return true;
+  }
+  const duplicate = registry.notes.has(definition.label);
+  const meta: NoteMeta = { ...definition, number: ++registry.count, duplicate };
+  if (!duplicate) {
+    registry.notes.set(definition.label, meta);
+  }
+  const open = state.push(noteOpenType, 'div', 1);
+  open.block = true;
+  open.meta = meta;
+  // The text after the colon starts the blocks of the note, as in markdown-it-footnote.
+  let position = start + referenceText(definition.label).length + 1;
+  const afterColon = position;
+  const initial = state.sCount[startLine] + position - start;
+  let offset = initial;
+  while (position < max && (state.src[position] === ' ' || state.src[position] === '\t')) {
+    offset += state.src[position] === '\t' ? 4 - (offset % 4) : 1;
+    position++;
+  }
+  const saved = { bMark: state.bMarks[startLine], tShift: state.tShift[startLine], sCount: state.sCount[startLine], parentType: state.parentType };
+  state.tShift[startLine] = position - afterColon;
+  state.sCount[startLine] = offset - initial;
+  state.bMarks[startLine] = afterColon;
+  state.blkIndent += 4;
+  state.parentType = 'footnote' as typeof state.parentType;
+  if (state.sCount[startLine] < state.blkIndent) {
+    state.sCount[startLine] += state.blkIndent;
+  }
+  registry.depth++;
+  state.md.block.tokenize(state, startLine, endLine);
+  registry.depth--;
+  state.parentType = saved.parentType;
+  state.blkIndent -= 4;
+  state.tShift[startLine] = saved.tShift;
+  state.sCount[startLine] = saved.sCount;
+  state.bMarks[startLine] = saved.bMark;
+  let last = Math.max(state.line, startLine + 1);
+  while (last > startLine + 1 && state.isEmpty(last - 1)) {
+    last--;
+  }
+  open.map = [startLine, last];
+  const close = state.push(noteCloseType, 'div', -1);
+  close.block = true;
+  return true;
+}
+
+/** referencePattern matches the reference of a note at the start of a text. */
+const referencePattern = /^\[\^(note-[a-z0-9]{4})\]/;
+
+/**
+ * referenceRule is the markdown-it inline rule of the reference of a note: `[^note-7k2q]` for a note of the document.
+ * Every other reference stays for the rule of footnotes. Its token keeps the span of the reference in the text of the
+ * inline token.
+ * @param state - The state of the inline parser.
+ * @param silent - Whether the rule only tells whether it matches.
+ */
+export function referenceRule(state: StateInline, silent: boolean): boolean {
+  const start = state.pos;
+  if (state.src.charCodeAt(start) !== 0x5b || state.src.charCodeAt(start + 1) !== 0x5e) {
+    return false;
+  }
+  const match = referencePattern.exec(state.src.slice(start, state.posMax));
+  const env = state.env as Record<string, unknown> | undefined;
+  if (!match || (!notesOfParsing(state.env).has(match[1]) && env?.[allReferences] !== true)) {
+    return false;
+  }
+  if (!silent) {
+    const token = state.push(referenceType, '', 0);
+    token.meta = { label: match[1], start, end: start + match[0].length } satisfies InlineMeta;
+  }
+  state.pos = start + match[0].length;
+  return true;
+}
+
+/**
+ * markerRule is the markdown-it inline rule of the start marker of a selection, `<!--[note-7k2q-->`. It runs before the
+ * rule `html_inline` and takes only a start marker, with the conditions of that rule: HTML is on, and no comment of the
+ * text before stayed open. Its token keeps the span of the marker in the text of the inline token.
+ * @param state - The state of the inline parser.
+ * @param silent - Whether the rule only tells whether it matches.
+ */
+export function markerRule(state: StateInline, silent: boolean): boolean {
+  const start = state.pos;
+  const skipped = (state as StateInline & { skipHtmlSpecial?: boolean }).skipHtmlSpecial;
+  if (!state.md.options.html || skipped || state.src.charCodeAt(start) !== 0x3c) {
+    return false;
+  }
+  const label = readMarker(state.src.slice(start, state.posMax));
+  if (!label) {
+    return false;
+  }
+  const end = start + markerText(label).length;
+  if (!silent) {
+    const token = state.push(markerType, '', 0);
+    token.content = state.src.slice(start, end);
+    token.meta = { label, start, end } satisfies InlineMeta;
+  }
+  state.pos = end;
+  return true;
+}
+
+/**
+ * ruleNames returns the names of the rules of a ruler.
+ * @param ruler - The ruler.
+ */
+const ruleNames = (ruler: unknown): string[] => ((ruler as { __rules__: { name: string }[] }).__rules__ ?? []).map((rule) => rule.name);
+
+/**
+ * addNoteRules adds the rules of the notes to a markdown-it instance. They run before the rules of footnotes of
+ * markdown-it-footnote, the plugin of the extension "Markdown Footnotes", when the instance has them, and else before
+ * the rules of link references and links, so that the rules of footnotes never see a note, also when that plugin
+ * comes after this one: it adds its rules directly before or after these rules
+ * ([R-GEN-007](../../docs/requirements.md#r-gen-007)).
+ * @param md - The markdown-it instance.
+ */
+export function addNoteRules(md: MarkdownIt): void {
+  md.core.ruler.after('normalize', 'nimblescape_notes_reset', resetRule);
+  const block = ruleNames(md.block.ruler).includes('footnote_def') ? 'footnote_def' : 'reference';
+  md.block.ruler.before(block, 'nimblescape_note', noteRule, { alt: ['paragraph', 'reference'] });
+  const inline = ruleNames(md.inline.ruler).includes('footnote_ref') ? 'footnote_ref' : 'link';
+  md.inline.ruler.before(inline, 'nimblescape_note_reference', referenceRule);
+  md.inline.ruler.before('html_inline', 'nimblescape_note_marker', markerRule);
 }

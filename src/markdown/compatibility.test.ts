@@ -11,7 +11,8 @@
  * `highlight` that "Markdown Preview Mermaid Support" sets for the fences of
  * Mermaid, and the frame that "Markdown Preview Github Styling" puts around the
  * page. The Markdown preview applies the plugins of the extensions in the order
- * in which the extensions start, so each test runs both orders.
+ * in which the extensions start, so each test runs both orders. A note is a
+ * footnote of the text, so markdown-it-footnote must never show it.
  */
 
 import MarkdownIt from 'markdown-it';
@@ -67,11 +68,11 @@ const orders = [
   ['before the others', () => others(notes(new MarkdownIt({ html: true })))],
 ] as const;
 
-/** document is a text with the syntax of every other plugin and comments that are no notes. */
+/** document is a text with the syntax of every other plugin, comments and footnotes that are no notes. */
 const document = [
   '# Plan :rocket:',
   '',
-  'The agents change the work of teams[^1]. <!-- a comment -->',
+  'The agents change the work of teams[^1] and more[^note-cccc]. <!-- a comment -->',
   '',
   '- [ ] task one',
   '- [x] task two',
@@ -82,26 +83,29 @@ const document = [
   '',
   '[^1]: The footnote.',
   '',
+  '[^note-cccc]: Not a header, so a footnote.',
+  '',
 ].join('\n');
 
-/** note is a note with a selection whose body uses every other plugin. A note must not hold `-->`, so the diagram uses `==>`. */
+/** note is a note with a selection whose body uses every other plugin, also an arrow `-->` of Mermaid. */
 const note = [
-  'The agents <!--[a1-->change :tada: the work<!--a1]--> of teams[^1].',
-  '<!-- note',
-  '---',
-  'author: hannes',
-  'selection: a1',
-  '---',
-  'Which :smile: teams?',
+  'The agents <!--[note-7k2q-->change :tada: the work[^note-7k2q] of teams[^1].',
   '',
-  '```mermaid',
-  'graph TD; A ==> B;',
-  '```',
+  '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
   '',
-  '- [x] done',
-  '-->',
+  '    Which :smile: teams[^2]?',
+  '',
+  '    ```mermaid',
+  '    graph TD; A --> B;',
+  '    ```',
+  '',
+  '    > **anna** · 2026-10-28 11:02+01:00',
+  '    >',
+  '    > - [x] done',
   '',
   '[^1]: The footnote.',
+  '',
+  '[^2]: The footnote of the note.',
   '',
 ].join('\n');
 
@@ -118,42 +122,16 @@ describe.each(orders)('with the plugin of the extension %s', (_name, create) => 
     expect(html).toMatch(
       new RegExp(`^${frameStart}<p>The agents <span class="${noteClass}-edge"[^>]*></span>change 🎉 the work<span class="${noteClass}-edge"[^>]*></span><a class="${noteClass}-icon [^]*</a> of teams<sup class="footnote-ref"><a href="#fn1" id="fnref1">\\[1\\]</a></sup>\\.</p>\n`),
     );
-    expect(html).toContain('<p>Which 😄 teams?</p>\n<pre class="mermaid">graph TD; A ==&gt; B;\n</pre>\n');
+    expect(html).toContain('<p>Which 😄 teams<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>?</p>\n<pre class="mermaid">graph TD; A --&gt; B;\n</pre>\n');
     expect(html).toContain('<li class="task-list-item"><input class="task-list-item-checkbox" checked="" disabled="" type="checkbox"> done</li>');
-    // The list of the footnotes of the document stands once, at its end, and not in the callout.
-    expect(html.match(/<section class="footnotes">/g)).toHaveLength(1);
-    expect(html).toMatch(/<\/div>\n<hr class="footnotes-sep">\n<section class="footnotes">[^]*The footnote\.[^]*<\/section>\n<\/div><\/div>$/);
   });
 
-  test('each answer of a note has its own footnotes, with IDs of their own, and no reference to the footnotes of the document', () => {
-    const html = create().render(
-      [
-        'Text[^1].',
-        '',
-        '<!-- note',
-        'See[^1] and[^own].',
-        '',
-        '[^own]: The own footnote.',
-        '---',
-        'author: ada',
-        '---',
-        'And[^own].',
-        '',
-        '[^own]: The footnote of the answer.',
-        '-->',
-        '',
-        '[^1]: The footnote.',
-        '',
-      ].join('\n'),
-    );
-    const callout = html.slice(html.indexOf(`<div class="${noteClass} `), html.lastIndexOf('<hr class="footnotes-sep">'));
-    const [first, second] = callout.split(`<div class="${noteClass}-answer">`).slice(1);
-    expect(first).toContain('See[^1] and<sup class="footnote-ref"><a href="#fn-nimblescape-note-1-1-1" id="fnref-nimblescape-note-1-1-1">[1]</a></sup>.');
-    expect(first).toContain('<li id="fn-nimblescape-note-1-1-1" class="footnote-item"><p>The own footnote.');
-    expect(first.match(/<li /g)).toHaveLength(1);
-    expect(second).toContain('And<sup class="footnote-ref"><a href="#fn-nimblescape-note-1-2-1" id="fnref-nimblescape-note-1-2-1">[1]</a></sup>.');
-    expect(second).toContain('<li id="fn-nimblescape-note-1-2-1" class="footnote-item"><p>The footnote of the answer.');
-    expect(second.match(/<li /g)).toHaveLength(1);
-    expect(html.match(/ id="fn1"/g)).toHaveLength(1);
+  test('a note never shows as a footnote, and a footnote in a note is a footnote of the page', () => {
+    const html = create().render(note);
+    // The list of the footnotes stands once, at the end of the page, with the footnotes of the text and of the note.
+    expect(html.match(/<section class="footnotes">/g)).toHaveLength(1);
+    expect(html).toMatch(/<\/div>\n<hr class="footnotes-sep">\n<section class="footnotes">[^]*The footnote\.[^]*The footnote of the note\.[^]*<\/section>\n<\/div><\/div>$/);
+    expect(html.match(/<li id="fn\d+" class="footnote-item">/g)).toHaveLength(2);
+    expect(html).not.toContain('note-7k2q');
   });
 });

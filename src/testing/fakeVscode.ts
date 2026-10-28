@@ -249,7 +249,7 @@ export class FakeView {
       line: number | undefined;
       account: string | undefined;
       selected: string | undefined;
-      threads: { id: string; line: number; kind: string; nested: boolean; answers: { author: string; date: string; body: string; html: string }[] }[];
+      threads: { id: string; line: number; answers: { author: string; date: string; authorDate: string; body: string; html: string; depth: number; parent: number | undefined }[] }[];
     };
   }
 }
@@ -347,7 +347,7 @@ export class Fake {
       ThemeColor: FakeThemeColor,
       CommentMode: { Editing: 0, Preview: 1 },
       CommentThreadCollapsibleState: { Collapsed: 0, Expanded: 1 },
-      DiagnosticSeverity: { Error: 0, Warning: 1 },
+      DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2 },
       FoldingRangeKind: { Comment: 1 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },

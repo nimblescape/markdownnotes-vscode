@@ -5,12 +5,10 @@
 /**
  * The folds of the collapsed notes in the text editor
  * ([R-TEXT-005](../../docs/requirements.md#r-text-005)). A collapsed note
- * vanishes: the editor folds its lines, and the blank lines before it, into
- * the last line of text before the note, so that this line stays and the note
- * does not. An inline note never ends a paragraph
- * ([R-NOTE-005](../../docs/requirements.md#r-note-005)), so its fold also takes
- * the blank lines after it when a line of text follows them. Notes with only
- * blank lines between them share one fold.
+ * vanishes: the editor folds the lines of its definition, and the blank lines
+ * before it, into the last line of text before the note, so that this line
+ * stays and the note does not. Notes with only blank lines between them share
+ * one fold.
  *
  * A fold that starts on a blank line, or on the first line of the note, also
  * takes the blank lines after the note, so that one blank line stays where
@@ -23,13 +21,13 @@
  * note, or on the first line of the note itself. The module uses no API of
  * VS Code.
  *
- * The front matter of each answer has a fold of its own inside the fold of
- * the note: while it is collapsed, the editor shows its first line as one
- * rendered line with the author and the date (Hannes, 2026-10-28).
+ * The header of each answer shows as one rendered line with the author and
+ * the date in the local time of the reader
+ * ([R-TEXT-007](../../docs/requirements.md#r-text-007)).
  */
 
 import type { Note } from './notes';
-import { type Answer, displayDate } from './syntax';
+import { displayDate } from './syntax';
 
 /** Fold is the lines that one or more collapsed notes fold into the first of them. */
 export interface Fold {
@@ -51,15 +49,13 @@ const isBlank = (line: string): boolean => line.trim() === '';
 
 /**
  * isText tells whether a line is a line of the text of a paragraph, on which no fold of the Markdown extension starts:
- * no heading, list item, block quote, fence, table row, thematic break, setext underline, HTML or end of a comment.
+ * no heading, list item, block quote, fence, table row, thematic break, setext underline, HTML or line of a note.
  * @param line - The line.
  */
-export const isText = (line: string): boolean =>
-  !isBlank(line) && !/^\s*(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|`{3}|~{3}|<|\||([-*_=]\s*){3,}$)/.test(line) && !line.trimEnd().endsWith('-->');
+export const isText = (line: string): boolean => !isBlank(line) && !/^\s*(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|`{3}|~{3}|<|\||\[\^|([-*_=]\s*){3,}$)/.test(line);
 
 /**
- * foldsOf returns the folds of the notes on lines of their own of a text. A note in the text of a line has no fold,
- * because the fold would hide the text of its lines.
+ * foldsOf returns the folds of the notes of a text.
  * @param lines - The lines of the text.
  * @param notes - The notes of the text, in the order of the text.
  */
@@ -67,10 +63,6 @@ export function foldsOf(lines: readonly string[], notes: readonly Note[]): Fold[
   const folds: Fold[] = [];
   let previous: Note | undefined;
   for (const note of notes) {
-    if (note.place !== 'block') {
-      previous = undefined;
-      continue;
-    }
     const last = folds.at(-1);
     let line = note.start.line - 1;
     while (line >= 0 && isBlank(lines[line])) {
@@ -92,19 +84,13 @@ export function foldsOf(lines: readonly string[], notes: readonly Note[]): Fold[
 
 /**
  * endOf returns the last line of the fold of a note: the line of its end, or the last blank line after it when a line
- * follows the blank lines and the fold would otherwise leave a blank line too many. That is the case for an inline note
- * before a line of text, and for each note whose fold starts on a blank line or on the note itself, because the line of
- * the start then already stands for the blank lines. When a text follows `-->` on its line, the fold ends before that
- * line.
+ * follows the blank lines and the fold starts on a blank line or on the note itself, because the line of the start
+ * then already stands for the blank lines.
  * @param lines - The lines of the text.
  * @param note - The note.
  * @param onText - Whether the fold starts on a line of text.
  */
 function endOf(lines: readonly string[], note: Note, onText: boolean): number {
-  if (!isBlank(lines[note.end.line].slice(note.end.character))) {
-    // A text after `-->` stays visible.
-    return note.end.line - 1;
-  }
   let next = note.end.line + 1;
   while (next < lines.length && isBlank(lines[next])) {
     next++;
@@ -112,7 +98,7 @@ function endOf(lines: readonly string[], note: Note, onText: boolean): number {
   if (next === lines.length) {
     return note.end.line;
   }
-  return (note.kind === 'inline' && isText(lines[next])) || !onText ? next - 1 : note.end.line;
+  return onText ? note.end.line : next - 1;
 }
 
 /**
@@ -122,44 +108,40 @@ function endOf(lines: readonly string[], note: Note, onText: boolean): number {
  */
 export const foldOf = (folds: readonly Fold[], note: Note): Fold | undefined => folds.find((fold) => fold.notes.includes(note));
 
-/** Header is the front matter of one answer, which folds into its first line, the rendered header of the answer. */
+/** Header is the header line of one answer, which shows as a rendered line. */
 export interface Header {
-  /** start is the index of the line of the opening `---`. */
+  /** line is the index of the line of the header. */
+  line: number;
+  /** start is the column of the first character of the header: the `[` of the definition, or the text after the `>` of an answer. */
   start: number;
-  /** end is the index of the line of the closing `---`. */
+  /** end is the column after the last character of the header. */
   end: number;
-  /** text is the rendered header: the author and the date of the answer. */
+  /** text is the rendered header: the author and the date in the local time of the reader. */
   text: string;
-  /** key tells the header apart from the other headers of the text, also after lines before it changed. */
-  key: string;
+  /** date is the date as written, in the local time of the author. */
+  date: string;
 }
 
 /**
- * headerText returns the rendered header of an answer: its author and its date, for example `hannes · 2026-10-28 10:15`.
- * @param answer - The answer.
+ * headerText returns the rendered header of an answer: its author and its date in the local time of the reader, for
+ * example `hannes · 2026-10-28 10:15`.
+ * @param answer - The author and the date of the answer.
  */
-export const headerText = (answer: Answer): string => [answer.author, answer.date && displayDate(answer.date)].filter(Boolean).join(' · ') || 'Note';
+export const headerText = (answer: { author: string; date: string }): string => `${answer.author} · ${displayDate(answer.date)}`;
 
 /**
- * headersOf returns the front matters of the answers of the notes of a text. A note that holds another comment has
- * none, because its answers are uncertain.
+ * headersOf returns the header lines of the answers of the notes of a text.
+ * @param lines - The lines of the text.
  * @param notes - The notes of the text, in the order of the text.
  */
-export function headersOf(notes: readonly Note[]): Header[] {
-  const seen = new Map<string, number>();
+export function headersOf(lines: readonly string[], notes: readonly Note[]): Header[] {
   return notes.flatMap((note) =>
-    note.nested
-      ? []
-      : note.answers.flatMap((answer) => {
-          const lines = answer.frontMatter?.lines;
-          if (!lines || lines.length < 2) {
-            return [];
-          }
-          const content = lines.join('\n');
-          const count = (seen.get(content) ?? 0) + 1;
-          seen.set(content, count);
-          const start = note.start.line + answer.start;
-          return [{ start, end: start + lines.length - 1, text: headerText(answer), key: `${content}#${count}` }];
-        }),
+    note.answers.map((answer) => {
+      const line = note.start.line + answer.start;
+      const text = lines[line] ?? '';
+      const quote = /^[ \t>]*?>[ \t]?/.exec(text.slice(note.start.character));
+      const start = answer.start === 0 || !quote ? note.start.character : note.start.character + quote[0].length;
+      return { line, start, end: text.trimEnd().length, text: headerText(answer), date: answer.date };
+    }),
   );
 }

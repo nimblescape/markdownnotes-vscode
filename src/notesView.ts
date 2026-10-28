@@ -11,9 +11,15 @@
  * thread at the cursor of the text editor, or the thread whose icon the user
  * clicked in the preview ([R-PREV-003](../docs/requirements.md#r-prev-003)).
  *
- * Each answer has the buttons "Edit" and "Delete", each thread the buttons
- * "Answer" and "Delete Thread", and the view the button "Add Note", which adds
- * a note at the line of the cursor of the text editor. The editor of a text has
+ * The view shows the answers of a thread as a tree: each reply after the
+ * answer that it replies to, and the replies to a reply indented below it
+ * ([R-NOTE-004](../docs/requirements.md#r-note-004)). The date of an answer
+ * shows in the local time of the reader, with the local time of the author as
+ * its tooltip ([R-NOTE-002](../docs/requirements.md#r-note-002)). Each answer
+ * has the buttons "Reply", "Edit" and "Delete", each thread the buttons
+ * "Answer", a reply to the note, and "Delete Thread", and the view the button
+ * "Add Note", which adds a note at the selection or the line of the cursor of
+ * the text editor. The editor of a text has
  * the tabs "Write" and "Preview"; the preview renders the text with the
  * Markdown preview of VS Code. A click on a link of a rendered text opens the
  * link ([src/links.ts](links.ts)). The view writes through the operations of the
@@ -36,8 +42,8 @@ import * as vscode from 'vscode';
 import { githubProvider } from './github';
 import { openLink } from './links';
 import { colorOf } from './notes/colors';
-import type { Note, Position } from './notes/notes';
-import { displayDate } from './notes/syntax';
+import type { Position } from './notes/notes';
+import { authorDate, displayDate } from './notes/syntax';
 import { isNoteDocument, type NoteEntry, type NoteThreads, problemMessage } from './noteThreads';
 import type { Settings } from './settings';
 
@@ -61,7 +67,7 @@ export type Message =
   | { type: 'signIn' }
   | { type: 'reveal'; id: string; focus?: boolean }
   | { type: 'save'; request: number; id: string; index: number; text: string }
-  | { type: 'answer'; request: number; id: string; text: string }
+  | { type: 'answer'; request: number; id: string; text: string; parent?: number }
   | { type: 'add'; request: number; text: string }
   | { type: 'deleteAnswer'; id: string; index: number }
   | { type: 'deleteNote'; id: string }
@@ -71,9 +77,14 @@ export type Message =
 /** AnswerState is an answer as the view shows it. */
 interface AnswerState {
   author: string;
+  /** date is the date in the local time of the reader, and authorDate the date in the local time of the author. */
   date: string;
+  authorDate: string;
   body: string;
   html: string;
+  /** depth is 0 for the first answer, 1 for a reply to it, and so on; parent is the index of the answer that it replies to. */
+  depth: number;
+  parent: number | undefined;
 }
 
 /** ThreadState is a thread as the view shows it. */
@@ -85,8 +96,6 @@ interface ThreadState {
   color: string;
   /** mark is the first and the last line of the mark of the note in the strip: its selection, or the note itself. */
   mark: [number, number];
-  kind: Note['kind'];
-  nested: boolean;
   answers: AnswerState[];
 }
 
@@ -327,16 +336,18 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         number: index + 1,
         color: colorOf(index + 1),
         mark: (note.selection ? [note.selection.start.line, note.selection.end.line] : [note.start.line, note.end.line]) as [number, number],
-        kind: note.kind,
-        nested: note.nested,
         answers: await Promise.all(
-          note.answers.map(async (answer) => ({
-            author: answer.author ?? '',
-            date: answer.date ? displayDate(answer.date) : '',
-            body: answer.body,
-            // A note that holds the start of another comment shows its text as it is.
-            html: note.nested ? `<pre>${escapeHtml(answer.body)}</pre>` : await this.renderHtml(answer.body),
-          })),
+          note.answers.map(
+            async (answer): Promise<AnswerState> => ({
+              author: answer.author,
+              date: displayDate(answer.date),
+              authorDate: authorDate(answer.date),
+              body: answer.body,
+              html: await this.renderHtml(answer.body),
+              depth: answer.depth,
+              parent: answer.parent,
+            }),
+          ),
         ),
       })),
     );
@@ -429,7 +440,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.reply(message.request, await this.threads.saveAnswer(document, message.id, message.index, message.text));
         return;
       case 'answer':
-        await this.reply(message.request, await this.threads.answer(document, message.id, message.text));
+        await this.reply(message.request, await this.threads.answer(document, message.id, message.text, undefined, message.parent ?? 0));
         return;
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;

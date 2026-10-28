@@ -10,33 +10,35 @@ This document lists what nimblescape Markdown Notes must do. Each requirement
 has an ID as its heading, so that code, tests and pull requests can link to
 it, for example `[R-NOTE-001](docs/requirements.md#r-note-001)`.
 
-The extension adds notes to Markdown files. A note is an HTML comment in the
-Markdown text, so the file stays plain Markdown: every Markdown tool that
-hides HTML comments, for example GitHub, shows the file without the notes.
-Several authors can answer a note, so a note is a thread of answers. VS Code
-shows the notes in the text editor, in the Comments view, in a side view of
-the extension and in the Markdown preview.
+The extension adds notes to Markdown files. A note is a footnote of the
+Markdown text ([decision 8](#decisions)), so the file stays plain Markdown:
+GitHub, the main target, and other Markdown tools show each note as a
+footnote at the end of the page. Several authors can answer a note and each
+other, so a note is a tree of answers. VS Code shows the notes in the text
+editor, in the Comments view, in a side view of the extension and in the
+Markdown preview.
 
 ## Plan
 
 | Step | Content | Requirements | State |
 | --- | --- | --- | --- |
 | 1 | Setup: manifest, build, CI, release workflows, license notices, the same structure as the other nimblescape extensions | [R-GEN-001](#r-gen-001) to [R-GEN-005](#r-gen-005) | done |
-| 2 | The note `<!-- note`, its front matter, no comment in a note | [R-NOTE-001](#r-note-001) to [R-NOTE-003](#r-note-003) | done |
+| 2 | The note, its header, its label | [R-NOTE-001](#r-note-001) to [R-NOTE-003](#r-note-003) | done; as a footnote since step 17 |
 | 3 | The text editor and the Comments view: show, edit, save, add and delete notes | [R-TEXT-001](#r-text-001), [R-VIEW-001](#r-view-001), [R-EDIT-001](#r-edit-001) to [R-EDIT-004](#r-edit-004) | done, changes in step 7 |
 | 4 | The Markdown preview: callouts | [R-PREV-001](#r-prev-001) | done, changes in step 8 |
 | 5 | Name `nimblescape-markdown-notes`, GitHub sign-in for the author | [R-GEN-005](#r-gen-005), [R-GEN-006](#r-gen-006), [R-NOTE-002](#r-note-002) | done |
-| 6 | Inline notes `<!-- note inline`, threads of answers | [R-NOTE-004](#r-note-004), [R-NOTE-005](#r-note-005), [R-EDIT-005](#r-edit-005) | done |
+| 6 | Notes in the text, threads of answers | [R-NOTE-004](#r-note-004), [R-NOTE-005](#r-note-005), [R-EDIT-005](#r-edit-005) | done; as footnotes and a tree of answers since step 17 |
 | 7 | Text editor: dimmed comment source, collapsible notes as in GitHub pull requests | [R-TEXT-001](#r-text-001) to [R-TEXT-003](#r-text-003) | done |
-| 8 | Preview: icon, callout on hover, click opens the editor, inline notes removed with their blanks | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done |
+| 8 | Preview: icon, callout on hover, click opens the editor, the text without the notes | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done |
 | 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | done |
 | 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
-| 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview, inline notes without breaks | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-NOTE-005](#r-note-005), [R-PREV-004](#r-prev-004), [R-PREV-005](#r-prev-005) | done |
-| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered front matter | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | in progress: dimming, collapsed notes, markers and rendered front matter done |
+| 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-PREV-005](#r-prev-005) | done |
+| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered header lines | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | in progress: dimming, collapsed notes, markers and rendered header lines done; the highlighting of Markdown inside the notes is planned |
 | 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
 | 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
 | 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | done |
-| 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done; the command that converts inline notes waits for the decision on the storage form (footnotes are under study) |
+| 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done |
+| 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
 
 ## General
 
@@ -45,7 +47,8 @@ the extension and in the Markdown preview.
 **Built-in editors.** The extension extends the editors that VS Code has for
 Markdown files: the text editor, the Comments view and the Markdown preview.
 It adds one view of its own, the side view of [R-SIDE-001](#r-side-001). It
-changes no other part of a Markdown file than the comment of a note.
+changes no other part of a Markdown file than the parts of a note: its
+definition, its reference and its start marker.
 
 The Markdown Editor of VS Code (the visual editor `vscode.markdown.editor`)
 offers extensions no stable API to show or edit content there: its comments
@@ -109,10 +112,10 @@ preview. The extension adds:
 
 - decorations, folding ranges and comment threads in the text editor;
 - a grammar that is injected into the Markdown grammar of VS Code and applies
-  only inside the comment of a note ([R-TEXT-004](#r-text-004));
-- a markdown-it plugin that changes only the comments that are notes, and
-  gives every other token to the rules of the preview and of the other
-  plugins;
+  only inside a note ([R-TEXT-004](#r-text-004));
+- a markdown-it plugin that changes only the footnotes that are notes, with
+  their references and start markers, and gives every other token to the
+  rules of the preview and of the other plugins;
 - styles and a script of the preview that apply only to its own elements;
 - the side view ([R-SIDE-001](#r-side-001)).
 
@@ -120,172 +123,164 @@ The tests render the notes together with the markdown-it plugins of these
 extensions, in both orders of the plugins: markdown-it-footnote,
 markdown-it-emoji and markdown-it-task-lists in the major versions of the
 extensions, the fences of Mermaid, and the frame of the GitHub styles around
-the page. The body of a note is a Markdown text of its own: it has its own
-footnotes, with IDs of their own, and gets no frame of the page. A check in
-VS Code 1.143 with the five extensions of Matt Bierner showed the emoji, the
-footnotes, the checkboxes, a Mermaid diagram and the GitHub styles in the
-text and in the callouts.
+the page. The rules of the notes run before the rules of markdown-it-footnote,
+so that plugin never shows a note as a footnote, and the plugin of the
+extension never renders the other footnotes itself: two footnote plugins
+would write the list of the footnotes twice. A footnote in the text of a note
+is a footnote of the page. The callout of a note gets no frame of the page. A
+check in VS Code 1.143 with the five extensions of Matt Bierner showed the
+emoji, the footnotes, the checkboxes, a Mermaid diagram and the GitHub styles
+in the text and in the callouts.
+
+### R-GEN-008
+
+**Footnotes in the preview.** The Markdown preview of VS Code shows no
+footnotes without an extension. The extension therefore names the extension
+"Markdown Footnotes" of Matt Bierner (`bierner.markdown-footnotes`) in its
+`extensionPack`: VS Code installs it together with the extension, and the
+user can disable or uninstall it on its own. The extension works without it;
+the preview then shows the other footnotes of a file as text. A repository of
+documents can recommend the extension to everyone who opens it, in its file
+`.vscode/extensions.json` ([user guide](guide.md#recommend-the-extension-in-a-repository)).
 
 ## Notes
 
 ### R-NOTE-001
 
-**Syntax.** A note is an HTML comment of a Markdown file that starts with
-`<!-- note` or `<!-- note inline` on a line of its own. The text of the note
-starts on the next line: a front matter ([R-NOTE-002](#r-note-002)), which is
-optional in a note that a person writes by hand, then the body in normal
-Markdown syntax. The comment ends with `-->`, on a line of its own when the
-extension writes it.
+**Syntax.** A note is a footnote of a Markdown file
+([decision 8](#decisions)): a reference in the text, and a definition after
+the block of the reference, whose first line is the header of the note
+([R-NOTE-002](#r-note-002)). The body of the note follows in normal Markdown
+syntax, with each line indented by four spaces:
 
 ```markdown
-<!-- note
----
-author: hannes
-date: 2026-10-28T10:15+01:00
----
-The body of the note, in **Markdown**.
--->
+The agents <!--[note-7k2q-->change the work of teams[^note-7k2q] in three ways.
+
+[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+    Which three ways?
 ```
 
-The words `note` and `inline` may be in small or capital letters. Every
-other comment is no note: the extension shows it nowhere and never changes
-it.
-
-- `<!-- note` is a **block note**. It stands between the blocks of the file,
-  also in a block quote or in a list item.
-- `<!-- note inline` is an **inline note** ([R-NOTE-005](#r-note-005)). It
-  belongs to the text of a paragraph.
+A footnote is a note only when its label has the form of the label of a note
+([R-NOTE-003](#r-note-003)) and its first line is a header. Every other
+footnote is no note: the extension shows it nowhere and never changes it.
 
 The extension finds the notes as the Markdown preview does, with markdown-it
-and the options of the preview. So a comment in a code block, in a code span,
-in the front matter of the document and in a block of other HTML is no note.
+and the options of the preview. So a footnote or a reference in a code block,
+in a code span, in the front matter of the document and in a block of HTML is
+no note. A note holds no note: a reference in the text of a note names no
+note.
 
 ### R-NOTE-002
 
-**Front matter.** Each answer of a note starts with a front matter: a line
-`---`, lines of the form `name: value`, and a line `---`. The field `author`
-holds the GitHub login of the author ([R-GEN-006](#r-gen-006)), and the field
-`date` the date and time of the answer in a form of ISO 8601, for example
-`2026-10-28T10:15+01:00`. A date without a zone is local time. A date of
-another form shows as written. The extension keeps the other fields and the
-whole front matter as they are when it saves an answer.
+**Header.** Each answer of a note starts with a header line: the GitHub login
+of the author in bold ([R-GEN-006](#r-gen-006)), a middle dot, and the date
+and time of the answer in minutes, in the local time of the author with the
+offset of the zone, or `Z` for UTC (Hannes, 2026-10-28):
+
+```markdown
+**hannes** · 2026-10-28 10:15+01:00
+```
+
+The extension shows the date in the local time of the reader, for example
+`2026-10-28 09:15` for a reader in UTC, and the local time of the author as
+the tooltip of the date, for example "2026-10-28 10:15 at the author
+(UTC+01:00)". GitHub shows the header line as it is. The extension writes the
+header itself and keeps it as it is when it saves an answer.
 
 ### R-NOTE-003
 
-**No comment in a note.** The text of a note must not contain another
-comment: not the start of a comment `<!--`, not its end `-->`, and not
-`--!>`, at which a browser ends a comment too. The extension refuses to write
-such a text: it shows why and keeps the text in the editor. A note in a file
-that already contains `<!--` gets a warning in the text editor and the
-Problems view, and the preview shows its text as it is, so that the rest of
-the page stays visible.
+**Label.** The label of a note is `note-` and four random small letters or
+digits, for example `note-7k2q` (Hannes, 2026-10-28). The extension draws the
+label of a new note anew until no footnote of the file uses it, so that two
+notes of different branches of a repository hardly ever get the same label.
+A label never changes. It is not the number of the note
+([R-TEXT-006](#r-text-006)), which changes when a note is added before it.
 
 ### R-NOTE-004
 
-**Threads.** Different authors can answer a note. A note is therefore a
-thread: its first answer and the answers after it, in the order of the file.
-Each answer has its own front matter with its author and date, and its own
-body. One comment holds the whole thread:
+**Threads.** Different authors can answer a note and each other, as in a
+discussion on Reddit (Hannes, 2026-10-28). A note is therefore a thread: its
+first answer, the text of the note, and a tree of replies
+([decision 9](#decisions)). Each reply is a block quote with its own header
+and body, after the answer that it replies to. A reply to a reply stands in
+the block quote of that answer, so its depth is the number of its quote
+markers:
 
 ```markdown
-<!-- note
----
-author: hannes
-date: 2026-10-28T10:15+01:00
----
-Check the dates.
----
-author: anna
-date: 2026-10-28T11:02+01:00
----
-Friday works.
--->
+[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+    Which teams?
+
+    > **anna** · 2026-10-28 11:02+01:00
+    >
+    > The teams of the plan.
+    >
+    > > **hannes** · 2026-10-28 11:30+01:00
+    > >
+    > > Thanks, then I change the text.
+
+    > **bob** · 2026-10-28 12:00+01:00
+    >
+    > Another answer to the note.
 ```
 
-A line `---` that is followed by field lines and a closing `---` starts the
-next answer. The text editor, the side view and the preview show the answers
-of a thread one below the other, each with its author and date. One comment
-per thread is [decision 1](#decisions).
+A block quote whose first line is a header starts a reply; every other block
+quote belongs to the body of its answer. The replies to an answer stand in
+the order of the file, after the body of the answer. The side view and the
+preview show the tree: the replies to a reply indented below it. The boxes of
+the text editor show the answers in the order of the file, each reply to a
+reply with the label "Reply to" and the author of that answer, because a box
+of VS Code has no tree. GitHub shows the tree as nested block quotes.
 
 ### R-NOTE-005
 
-**Inline notes.** An inline note `<!-- note inline` belongs to a place in the
-text of a paragraph. It can stand on lines of its own between two lines of
-the paragraph, or start after the text of a line:
+**Place of a note.** The definition of a note stands after the outermost
+block that holds its reference: after the whole list, the whole table or the
+whole block quote, at the start of the line, with a blank line before and
+after it. The notes of one block stand in the order of their references. The
+lines of a note after its header are indented by four spaces, also the blank
+lines of a block quote of a reply. In this form, GitHub and the other
+Markdown viewers read the note as a footnote, and the text after it stays
+outside the note.
 
-```markdown
-Version 2.0 comes out in November.
-<!-- note inline
----
-author: hannes
-date: 2026-10-28T10:15+01:00
----
-Which day exactly?
--->
-The beta starts one week before.
-```
-
-In Markdown, a comment that starts a line ends the paragraph before it. An
-inline note never ends a paragraph (Hannes, 2026-10-28): the blanks before
-and after it (spaces, tabs, line breaks and blank lines) belong to the note.
-The rendered view therefore removes the inline note together with these
-blanks, so that the text before and after the note is one paragraph, with one
-space and without a line break between the two parts
-([R-PREV-004](#r-prev-004)). The place of the note shows as an icon
-([R-PREV-001](#r-prev-001)). A collapsed inline note vanishes from the text
-editor in the same way ([R-TEXT-005](#r-text-005)). A note between two
-paragraphs that keeps them apart is a block note `<!-- note`.
+The reference never stands in the text of a link, where it breaks the link on
+GitHub, nor in a code span: the extension writes it after the link or the code
+span. A reference in a heading changes the anchor of the heading on GitHub,
+so the extension warns at it ([R-TEXT-008](#r-text-008)).
 
 ### R-NOTE-006
 
-**Selection of a note.** A note can belong to an exact passage of the text,
-its selection, as a note in the PDF preview of Apple does (Hannes,
-2026-10-28). The user selects the passage in the text editor and adds the
-note; the extension writes two hidden markers around the passage and the ID
-of the selection into the front matter of the note, which stands after the
-paragraph of the passage:
+**Selection of a note.** A note belongs to an exact passage of the text, its
+selection, as a note in the PDF preview of Apple does (Hannes, 2026-10-28):
+from its start marker `<!--[note-7k2q-->` to its reference `[^note-7k2q]`.
+The user selects the passage in the text editor and adds the note
+([R-EDIT-003](#r-edit-003)).
 
-```markdown
-The agents <!--[a3-->change the work of teams<!--a3]--> in three ways.
-
-<!-- note
----
-author: hannes
-date: 2026-10-28T11:45+01:00
-selection: a3
----
-Which three ways?
--->
-```
-
-- The markers are comments inside the line, so they end no paragraph, and
-  GitHub and other renderers show the text without them.
-- The ID is short and unique in the file, and it never changes. It is not the
-  number of the note ([R-TEXT-006](#r-text-006)), which changes when a note is
-  added before it.
-- Selections can overlap, and a note without `selection` stays as it is.
-- A marker never starts a line. GitHub (cmark-gfm) reads a comment at the
-  start of a line as an HTML block, which ends the paragraph and shows the
+- The start marker is a comment inside the line, so it ends no paragraph, and
+  GitHub and other renderers show the text without it.
+- Without a start marker, the selection starts at the start of the text of
+  the block of the reference: its paragraph, its heading or its table cell.
+- A start marker directly before the reference makes a point, a note at a
+  place of the text without a passage.
+- A start marker never starts a line. GitHub (cmark-gfm) reads a comment at
+  the start of a line as an HTML block, which ends the paragraph and shows the
   rest of the line without Markdown. When a selection starts at the start of
-  a line, the opening marker goes to the end of the line before it; at the
-  start of a paragraph the extension leaves it out, and the selection starts
-  at the start of the paragraph.
-- A note at a place in the text, without a passage, has one point marker
-  `<!--[a4]-->`, a selection without text. New notes in the text use this form
-  in place of an inline note `<!-- note inline` ([R-NOTE-005](#r-note-005)),
-  which the extension still reads.
+  a line, the start marker goes to the end of the line before it; at the
+  start of the block the extension leaves it out.
+- Selections can overlap.
 - The text editor and the preview highlight the selection in the color of its
   note, and the funnel of the side view leads from the thread to its
   selection ([R-SIDE-007](#r-side-007)). The preview shows the icon of the
-  note at the end of the selection, or at the point, and the highlight is
-  stronger while the callout of the note shows.
-- In the text editor the markers vanish: a thin bar in the color of the note
-  stands at the start and at the end of the selection, and a dot at a point.
-  On the line of the cursor the markers show as they are, dimmed, so that the
-  cursor never moves through hidden text (Hannes, 2026-10-28).
-- The box of the comments API of a note with a selection belongs to the
-  selection, as the comment of a pull request belongs to its lines
-  ([R-TEXT-001](#r-text-001)).
+  note at its reference, and the highlight is stronger while the callout of
+  the note shows.
+- In the text editor the start marker and the reference vanish: a thin bar in
+  the color of the note stands at the start and at the end of the selection,
+  and a dot at a point. On the line of the cursor they show as they are,
+  dimmed, so that the cursor never moves through hidden text (Hannes,
+  2026-10-28).
+- The box of the comments API of a note belongs to its selection, as the
+  comment of a pull request belongs to its lines ([R-TEXT-001](#r-text-001)).
 
 This is [decision 6](#decisions).
 
@@ -318,32 +313,28 @@ the note stands out as a Markdown text of its own ([R-TEXT-004](#r-text-004)).
 
 ### R-TEXT-004
 
-**Markdown inside a note.** Inside the comment of a note, the text editor
-works as in a Markdown file of its own, "Markdown within Markdown" (Hannes,
-2026-10-28): the text of each answer has the highlighting of Markdown, the
-front matter the highlighting of YAML, and the marks `<!-- note`,
-`<!-- note inline` and `-->` the highlighting of the marks of a comment. The
-editing aids that VS Code turns off inside a comment, for example the closing
-of brackets and quotes, work inside a note as in the rest of the Markdown
-file. The extension adds this with a grammar that is injected into the
-Markdown grammar of VS Code ([R-GEN-007](#r-gen-007)).
+**Markdown inside a note.** Inside a note, the text editor works as in a
+Markdown file of its own, "Markdown within Markdown" (Hannes, 2026-10-28):
+the body of each answer has the highlighting of Markdown, also on the lines
+that are indented by four spaces, which the Markdown grammar of VS Code shows
+as a code block otherwise. The extension adds this with a grammar that is
+injected into the Markdown grammar of VS Code ([R-GEN-007](#r-gen-007)).
 
 ### R-TEXT-005
 
 **Collapsed notes.** A note can be collapsed, so that it vanishes from the
 text editor and only a marker shows where it is (Hannes, 2026-10-28). The
-editor folds the lines of the note together with the blank lines before it
-into the last line of text before the note, so that this line stays and the
-note does not. VS Code shows the end of this line with "⋯" and, after the
+editor folds the lines of the definition of the note together with the blank
+lines before it into the last line of text before the note, so that this line
+stays and the note does not. VS Code shows the end of this line with "⋯" and, after the
 setting `editor.foldingHighlight`, with the background of a folded line. The marker is a note icon in the left margin of this line, in
 the color of the note ([R-TEXT-006](#r-text-006)), at the place where GitHub
 and VS Code show their comment markers. The folding arrow of VS Code next to
 the marker opens the note again, and so does a move of the cursor into it.
 
-- An inline note never ends a paragraph ([R-NOTE-005](#r-note-005)): its
-  folding also takes the blank lines after it, so that the text before and
-  after the note shows without a paragraph break.
-- A block note keeps the blank lines after it.
+- The fold keeps the blank lines after the note, so that the paragraph break
+  after the block of the note stays.
+- Notes with only blank lines between them share one fold.
 - After a heading, a list, a block quote, a code block or HTML, the fold of
   the Markdown extension of VS Code starts on that line, so the fold of the
   note starts on the first blank line before the note and also takes the
@@ -371,15 +362,32 @@ selection, and while the note is open also at the first line of the note.
 
 ### R-TEXT-007
 
-**Rendered front matter.** The extension writes the front matter of each
-answer itself, and the user does not edit it (Hannes, 2026-10-28). The text
-editor therefore shows each front matter as one rendered line with the author
-and the date, for example "hannes · 2026-10-28 10:15", never as its raw lines:
-the front matter has a fold of its own inside the fold of the note, which the
-extension collapses the first time it sees it in the active editor, also when
-the setting `collapseInEditor` is off. On the line of the cursor, the first
-line of the front matter shows as it is, and the arrow of the fold opens the
-front matter for a correction by hand.
+**Rendered header lines.** The extension writes the header of each answer
+itself, and the user does not edit it (Hannes, 2026-10-28). The text editor
+therefore shows each header line rendered, with the author and the date in
+the local time of the reader, for example "hannes · 2026-10-28 10:15", and
+the local time of the author as its hover ([R-NOTE-002](#r-note-002)). The
+label of the first answer and the markup of the header vanish with it; the
+quote markers of a reply stay. On the line of the cursor, the header line
+shows as it is, for a correction by hand.
+
+### R-TEXT-008
+
+**Warnings.** The text editor and the Problems view warn at each form of a
+note that GitHub or another Markdown viewer shows differently from the
+extension ([R-NOTE-005](#r-note-005)):
+
+- a definition without a blank line before or after it;
+- a line of a note without the indentation of four spaces (a hint);
+- a second definition of a label;
+- a reference without a note, and a note without a reference, which GitHub
+  does not show;
+- a note in a block quote, which GitHub does not show;
+- a reference in the text of a link, which breaks the link on GitHub;
+- a reference in the text of a note, which names no note;
+- a reference in a heading, which changes the anchor of the heading on GitHub
+  (a hint);
+- a start marker at the start of a line, which ends the paragraph.
 
 ### R-VIEW-001
 
@@ -404,18 +412,22 @@ clicked in the preview ([R-PREV-003](#r-prev-003)).
 ### R-SIDE-002
 
 **Note editor.** The side view is the editor of the notes. Each answer has
-the buttons "Edit" and "Delete", and each thread a field "Answer". The editor
+the buttons "Reply", "Edit" and "Delete", and each thread the button
+"Answer", a reply to the note ([R-EDIT-005](#r-edit-005)). The view shows the
+answers as a tree, with the date of each answer in the local time of the
+reader and the local time of the author as its tooltip
+([R-NOTE-002](#r-note-002), [R-NOTE-004](#r-note-004)). The editor
 of an answer has the tabs "Visual" (the rendered text, which the user edits
 directly, [R-SIDE-004](#r-side-004)), "Markdown" (the Markdown text) and
 "Preview" (the text rendered as the preview renders it). "Save" (or
-Ctrl+Enter) writes the text into the comment of the note
+Ctrl+Enter) writes the text into the note
 ([R-EDIT-002](#r-edit-002)); "Cancel" keeps the note as it is.
 
 ### R-SIDE-003
 
 **New note from the side view.** The side view has a button "Add Note" that
-adds a note at the line of the cursor of the text editor
-([R-EDIT-003](#r-edit-003)).
+adds a note for the selection of the text editor, or at the line of its
+cursor ([R-EDIT-003](#r-edit-003)).
 
 ### R-SIDE-004
 
@@ -498,12 +510,15 @@ answers of other authors ([decision 2](#decisions)).
 ### R-EDIT-002
 
 **Save.** "Save" writes the text of the editor back into the answer in the
-comment of the note, with the line breaks of the file. The front matter of
-the answer stays as it is. A note in a block quote or in a list item keeps the
-markers of its lines. The extension writes the text only when the Markdown
-preview reads the changed text as the same note with the same answers; a
-text that would change the Markdown around the note is refused as in
-[R-NOTE-003](#r-note-003). The editor of the file can undo the change.
+note, with the line breaks of the file and the indentation and the quote
+markers of the answer ([R-NOTE-005](#r-note-005)). The header of the answer
+stays as it is. A note in a block quote or in a list item keeps the markers of
+its lines. The extension writes the text only when the Markdown preview reads
+the changed text as the same note with the same answers: a text that would
+change the note, for example a block quote whose first line is a header,
+which would start a reply, is refused, and so is an empty text. The extension
+then shows why and keeps the text in the editor. The editor of the file can
+undo the change.
 
 ### R-EDIT-003
 
@@ -511,48 +526,60 @@ text that would change the Markdown around the note is refused as in
 the `+` of the text editor, as for the comment of a pull request (Hannes,
 2026-10-28), or with "Add Note" of the side view. With selected text, the
 note belongs to exactly this selection ([R-NOTE-006](#r-note-006)): the
-extension writes the two markers around it and the note after its paragraph.
-Without selected text, on a line of a paragraph or a heading, the extension
-writes a point marker at the end of the text of the line, so that the note
-keeps its exact place in the text. On another line, it writes a block note
-after the block of the line, in the block quote or the list item of the
-block. The new note has a front matter with the GitHub login of the author
-([R-GEN-006](#r-gen-006)), the local date and time in minutes with the offset
-of the zone, and the ID of its selection.
+extension writes the start marker before it, the reference after it, and the
+definition after the outermost block of the selection
+([R-NOTE-005](#r-note-005)). A selection that spans several blocks belongs to
+the block of its end. Without selected text, on a line of a paragraph, a
+heading, a list item or a table cell, the extension writes a point at the end
+of the text of the line. On another line, for example in a code block or on a
+blank line, the extension adds no note and says why. The new note has a new
+label ([R-NOTE-003](#r-note-003)) and a header with the GitHub login of the
+author ([R-GEN-006](#r-gen-006)) and the local date and time with the offset
+of the zone ([R-NOTE-002](#r-note-002)). An empty text adds no note, and
+"Cancel" in a new box leaves the file as it is.
 
 ### R-EDIT-004
 
 **Delete.** The user deletes an answer with "Delete", also an answer of
 another author ([decision 2](#decisions)). The extension removes the answer
-from the comment. Deleting the only answer, or the whole thread
-with "Delete Thread", removes the comment of the note; a note on lines of its
-own loses its lines. The editor of the file can undo the change.
+from the note. Its replies stay: they move up one level and reply to the
+answer that the removed answer replied to. After the first answer, its first
+reply becomes the first answer. Deleting the only answer, or the whole thread
+with "Delete Thread", removes the note: its definition with one blank line,
+its reference and its start marker. The editor of the file can undo the
+change.
 
 ### R-EDIT-005
 
 **Answer.** The user answers a thread: in the reply field of the box in the
-text editor, or in the field "Answer" of the side view. The extension adds the
-answer at the end of the comment, with its own front matter: the GitHub login
-of the author and the date and time ([R-NOTE-004](#r-note-004)).
+text editor, or with "Answer" of the side view, which adds a reply to the
+note. The button "Reply" of an answer, in the box and in the side view, adds
+a reply to this answer. The extension writes the reply after the replies to
+the same answer, one level deeper ([R-NOTE-004](#r-note-004)), with its own
+header: the GitHub login of the author and the date and time
+([R-NOTE-002](#r-note-002)).
 
 ## Markdown preview
 
 ### R-PREV-001
 
 **Icon.** The built-in Markdown preview shows each note as a small,
-unobtrusive icon at its place: an inline note in the text, where the note
-stood; a block note in the left margin of the preview, at the height of its
-place. The icon shows the number of answers of a thread with more than one
-answer. Outside the notes, the preview shows the file as without the
-extension.
+unobtrusive icon at its reference in the text, at the end of its selection. A
+note without a reference shows its icon in the left margin of the preview, at
+the height of its definition. The icon shows the number of answers of a
+thread with more than one answer. Outside the notes, the preview shows the
+file as without the extension.
 
 ### R-PREV-002
 
 **Callout on hover.** When the pointer rests on the icon, or the icon has the
 keyboard focus, the preview shows the note as a rendered callout next to the
 icon: a box with a colored bar at its left side, and each answer with its
-author, its date and its body rendered as Markdown with the plugins of the
-preview. The callout uses the colors of the theme of VS Code.
+author, its date in the local time of the reader with the local time of the
+author as the tooltip ([R-NOTE-002](#r-note-002)), and its body rendered as
+Markdown with the plugins of the preview. The replies to a reply show
+indented below it ([R-NOTE-004](#r-note-004)). The callout uses the colors of
+the theme of VS Code.
 
 ### R-PREV-003
 
@@ -564,12 +591,13 @@ whether the extension may open it.
 
 ### R-PREV-004
 
-**Inline notes in the text.** The preview removes each inline note with the
-blanks and the blank lines before and after it, so that the paragraph stays
-one paragraph with one space between the text before and after the note, and
-no line break, also when the setting `markdown.preview.breaks` turns line
-breaks into breaks of the line ([R-NOTE-005](#r-note-005)). The scrolling of
-the preview still follows the lines of the text editor.
+**The text without the notes.** The preview shows the text without the
+notes: the definition of a note leaves the page, and its reference and its
+start marker leave the text, where the icon stands
+([R-PREV-001](#r-prev-001)). A note never shows as a footnote, also with the
+extension Markdown Footnotes ([R-GEN-008](#r-gen-008)), and every other
+footnote shows as that extension shows it. The scrolling of the preview still
+follows the lines of the text editor, and never uses a callout.
 
 ### R-PREV-005
 
@@ -579,9 +607,9 @@ preview has a button that shows or hides the notes (Hannes, 2026-10-28):
 while it hides them. The button changes the setting
 `nimblescape.markdownNotes.showInPreview`: in the settings of the workspace
 when they hold a value, else in the settings of the user. Without the notes,
-the preview shows the file as without the extension; inline notes are still
-removed with their blanks, so that the paragraphs stay whole. A change of the
-setting renders the open previews again. By default, the preview shows the
+the preview shows the text without the notes ([R-PREV-004](#r-prev-004)), and
+without icons and callouts. A change of the setting renders the open previews
+again. By default, the preview shows the
 notes ([decision 5](#decisions)).
 
 ## Decisions
@@ -589,9 +617,9 @@ notes ([decision 5](#decisions)).
 Hannes decided these questions on 2026-10-28. The requirements above follow
 them.
 
-1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one comment holds the
-   whole thread. The other choice was one comment `<!-- note reply` for each
-   answer, directly after the note.
+1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
+   whole thread. The other choice was one note for each answer, directly
+   after the note.
 2. **Rights** ([R-EDIT-001](#r-edit-001), [R-EDIT-004](#r-edit-004)): every
    user who can change the file can edit and delete every answer, also the
    answers of other authors, as in the file itself. The other choice was
@@ -601,31 +629,40 @@ them.
    side view and the preview show the notes also without a GitHub sign-in,
    and the user can edit and delete answers without it. Only adding a note
    or an answer needs the sign-in, because only these write an author.
-   Editing and deleting an answer keep or remove its front matter. The other
+   Editing and deleting an answer keep or remove its header. The other
    choice was that editing and deleting need the sign-in too.
-4. **Form of inline notes** ([R-NOTE-005](#r-note-005)): an inline note keeps
-   its lines of their own, and collapses so that it vanishes without a break
-   ([R-TEXT-005](#r-text-005)). The other choice was an inline note on one
-   line inside the line of the text, which adds no line break even when it is
-   open, but holds no headings and no paragraphs; the notes of Hannes hold
-   both.
+4. **Markdown in the notes** ([R-NOTE-001](#r-note-001)): a note holds
+   headings, paragraphs, lists, code blocks and every other Markdown, so it
+   stands on lines of its own, and collapses so that it vanishes
+   ([R-TEXT-005](#r-text-005)). The other choice was a note on one line inside
+   the line of the text, which holds no headings and no paragraphs; the notes
+   of Hannes hold both.
 5. **What is hidden by default** ([R-PREV-005](#r-prev-005),
    [R-TEXT-005](#r-text-005)): the text editor collapses the notes by
    default; the Markdown preview shows them by default and has a button that
    hides them.
-6. **Form of a selection** ([R-NOTE-006](#r-note-006)): two hidden markers
-   with an ID around the passage, `<!--[a3-->` and `<!--a3]-->`, and the key
-   `selection` with the ID in the front matter of the note. The other choices
-   were a quote of the passage in the front matter, which no longer finds the
-   passage after a change of it or when the passage occurs twice, and one
-   marker at the start of the passage with the inline note directly after the
-   passage as its end, which allows no front matter and no answers.
+6. **Form of a selection** ([R-NOTE-006](#r-note-006)): a hidden start marker
+   with the label of the note before the passage, and the reference of the
+   note as its end. The other choices were a quote of the passage in the
+   note, which no longer finds the passage after a change of it or when the
+   passage occurs twice, and a second hidden marker at the end.
 7. **Where the text of a note shows** ([R-TEXT-001](#r-text-001),
    [R-SIDE-001](#r-side-001)): for now both, the boxes of the comments API
    in the text editor and the side view (Hannes, 12:00). The other choices
    were the side view alone, with a setting for the boxes that is off by
    default, and the boxes with the Comments panel of VS Code without the
    side view.
+8. **Notes as footnotes** ([R-NOTE-001](#r-note-001), Hannes, 12:47): a note
+   is a Markdown footnote with a header, not an HTML comment, because GitHub
+   is the main target and shows a footnote, while it hides a comment. The
+   notes of the older form `<!-- note` are not converted. The other choices
+   were the HTML comments, which only the extension shows, and links to a
+   separate file of notes.
+9. **Tree of answers** ([R-NOTE-004](#r-note-004), Hannes, 13:27): a reply
+   to an answer stands in the block quote of that answer, so that GitHub shows
+   the tree too. The other choices were a flat list of answers, each reply
+   with a line that names the answer that it replies to, and a flat list
+   first with the tree later.
 
 ---
 

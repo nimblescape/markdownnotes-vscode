@@ -5,13 +5,14 @@
 /**
  * These tests render Markdown with markdown-it, the renderer of the built-in
  * Markdown preview, with and without the plugin. They check the icon of a
- * block note and of an inline note with its link (R-PREV-001, R-PREV-003),
- * the hidden callout with the answers of a thread (R-PREV-002, R-NOTE-004),
- * the paragraph that stays whole around an inline note (R-PREV-004), the lines
- * for the scrolling of the preview, the escaping of the author and the date,
- * the note that holds another comment (R-NOTE-003), the setting
- * showInPreview (R-PREV-005), and that the plugin changes nothing outside the
- * notes.
+ * note at its reference and in the margin with its link (R-PREV-001,
+ * R-PREV-003), the hidden callout with the answers of a thread and the dates
+ * in the local time of the reader and of the author (R-PREV-002, R-NOTE-002,
+ * R-NOTE-004), the selections (R-NOTE-006), the text without the notes
+ * (R-PREV-004), the lines for the scrolling of the preview, the escaping of
+ * the link, the setting showInPreview (R-PREV-005), and that the plugin
+ * changes nothing outside the notes. The tests run in the zone Europe/Vienna
+ * (vitest.config.mts), which is UTC+01:00 on 2026-10-28.
  */
 
 import MarkdownIt from 'markdown-it';
@@ -65,212 +66,230 @@ const glyph = /<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><pa
  */
 const icons = (html: string): string => html.replace(new RegExp(glyph.source, 'g'), '[icon]');
 
-/** document is a Markdown text with every kind of block and comments that are no notes. */
+/** document is a Markdown text with every kind of block, comments, and footnotes that are no notes. */
 const document = [
   '# Title',
   '',
-  'A paragraph with `<!-- note` in code and a [link](https://example.com). <!-- a comment -->',
+  'A paragraph with `[^note-aaaa]` in code and a [link](https://example.com). <!-- a comment -->',
   '',
   '<!-- a comment of its own -->',
   '',
   '```js',
-  '<!-- note',
-  'code',
-  '-->',
+  '[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00',
   '```',
   '',
-  '- item',
+  '- item[^note-bbbb]',
   '',
   '> quote',
   '',
   '| a | b |',
   '| - | - |',
-  '| <!-- note --> | c |',
+  '| c | d |',
   '',
   '<div>html</div>',
   '',
+  '[^note-cccc]: Not a header.',
+  '',
 ].join('\n');
+
+/** header is the header of a first answer. */
+const header = '**hannes** · 2026-10-28 10:15+01:00';
+
+/**
+ * iconOf returns the HTML of the icon of a note.
+ * @param number - The number of the note.
+ * @param line - The line of the definition, for the link.
+ * @param label - The label of the icon.
+ */
+const iconOf = (number: number, line: number, label = 'Note by hannes'): string =>
+  `<a class="${noteClass}-icon ${noteClass}-color-${number}" aria-label="${label}" aria-describedby="${noteClass}-${number}" href="vscode://a.b/open?line=${line}">[icon]</a>`;
+
+/**
+ * edgeOf returns the HTML of the start or the end of the selection of a note.
+ * @param number - The number of the note.
+ * @param edge - The start or the end.
+ */
+const edgeOf = (number: number, edge: 'start' | 'end'): string => `<span class="${noteClass}-edge" data-selection="${noteClass}-${number}" data-edge="${edge}" data-color="${number}"></span>`;
+
+/** dateOf is the HTML of the date of the header. */
+const dateOf = `<time class="${noteClass}-date" datetime="2026-10-28T10:15+01:00" title="2026-10-28 10:15 at the author (UTC+01:00)">2026-10-28 10:15</time>`;
 
 describe('the plugin', () => {
   test('changes nothing in a text without notes', () => {
     expect(preview(true).render(document)).toBe(preview(false).render(document));
   });
 
-  test('shows a block note as an icon in the margin with a hidden callout (R-PREV-001, R-PREV-002, R-PREV-003)', () => {
-    const html = preview(true).render('# T\n\n<!-- note\n---\nauthor: hannes\ndate: 2026-10-28T10:15+01:00\n---\nThe **text**.\n\n- one\n-->\n\nPara.\n');
+  test('shows a note as an icon at its reference with a hidden callout after the block (R-PREV-001, R-PREV-002, R-PREV-003)', () => {
+    const html = preview(true).render(`# T\n\nThe text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    The **text**.\n\n    - one\n\nPara.\n`);
     expect(icons(html)).toBe(
       [
         '<h1 data-line="0" class="code-line" dir="auto">T</h1>',
-        `<div class="${noteClass}-anchor"><a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=2">[icon]</a></div>`,
+        `<p data-line="2" class="code-line" dir="auto">The text${edgeOf(1, 'end')}${iconOf(1, 4)}.</p>`,
         `<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
         `<div class="${noteClass}-answer">`,
-        `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span><time class="${noteClass}-date" datetime="2026-10-28T10:15+01:00">2026-10-28 10:15</time></div>`,
+        `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span>${dateOf}</div>`,
         `<div class="${noteClass}-body">`,
         // The elements of the callout have no lines, so the scrolling of the preview does not use them.
-        '<p dir="auto">The <strong>text</strong>.</p>',
-        '<ul dir="auto">',
-        '<li dir="auto">one</li>',
+        '<p>The <strong>text</strong>.</p>',
+        '<ul>',
+        '<li>one</li>',
         '</ul>',
         '</div>',
         '</div>',
         '</div>',
-        '<p data-line="12" class="code-line" dir="auto">Para.</p>',
+        '<p data-line="10" class="code-line" dir="auto">Para.</p>',
         '',
       ].join('\n'),
     );
   });
 
-  test('shows each answer of a thread in the callout, and the number of answers at the icon (R-NOTE-004)', () => {
-    const html = plain(preview(true).render('<!-- note\n---\nauthor: hannes\n---\nCheck the dates.\n---\nauthor: anna\ndate: 2026-10-28\n---\nFriday works.\n-->\n'));
-    expect(html).toContain(`aria-label="Note by hannes, 2 answers" aria-describedby="${noteClass}-1"`);
-    expect(html).toContain(`<span class="${noteClass}-count">2</span></a>`);
+  test('shows each answer of a thread in the callout with the date in the local time of the reader, and the number of answers at the icon (R-NOTE-004)', () => {
+    const text = [
+      'Text[^note-aaaa].',
+      '',
+      `[^note-aaaa]: ${header}`,
+      '',
+      '    Check the dates.',
+      '',
+      '    > **anna** · 2026-10-28 03:02-05:00',
+      '    >',
+      '    > Friday works.',
+      '    >',
+      '    > > A quote in the answer.',
+      '',
+      '    > **eve** · 2026-10-28 11:00Z',
+    ].join('\n');
+    const html = plain(preview(true).render(text));
+    expect(html).toContain(`aria-label="Note by hannes, 3 answers" aria-describedby="${noteClass}-1"`);
+    expect(html).toContain(`<span class="${noteClass}-count">3</span></a>`);
     expect(html).toContain(
       [
-        `<div class="${noteClass}-answer">`,
-        `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span></div>`,
         `<div class="${noteClass}-body">`,
-        '<p dir="auto">Check the dates.</p>',
+        '<p>Check the dates.</p>',
         '</div>',
         '</div>',
         `<div class="${noteClass}-answer">`,
-        `<div class="${noteClass}-header"><span class="${noteClass}-author">anna</span><time class="${noteClass}-date" datetime="2026-10-28">2026-10-28</time></div>`,
+        `<div class="${noteClass}-header"><span class="${noteClass}-author">anna</span><time class="${noteClass}-date" datetime="2026-10-28T03:02-05:00" title="2026-10-28 03:02 at the author (UTC−05:00)">2026-10-28 09:02</time></div>`,
         `<div class="${noteClass}-body">`,
-        '<p dir="auto">Friday works.</p>',
+        '<p>Friday works.</p>',
+        '<blockquote>',
+        '<p>A quote in the answer.</p>',
+        '</blockquote>',
+        '</div>',
+        '</div>',
+        `<div class="${noteClass}-answer">`,
+        `<div class="${noteClass}-header"><span class="${noteClass}-author">eve</span><time class="${noteClass}-date" datetime="2026-10-28T11:00Z" title="2026-10-28 11:00 at the author (UTC)">2026-10-28 12:00</time></div>`,
+        `<div class="${noteClass}-body">`,
+        '</div>',
       ].join('\n'),
     );
   });
 
-  test('removes an inline note between two lines of a paragraph with its blanks, and keeps one paragraph (R-PREV-004)', () => {
-    const html = icons(preview(true).render('Version 2.0 comes out.\n<!-- note inline\n---\nauthor: hannes\n---\nWhich day?\n-->\nThe beta starts before.\n\nNext.\n'));
-    expect(html).toBe(
+  test('shows the replies to a reply indented below it, as a tree (R-NOTE-004)', () => {
+    const text = [
+      'Text[^note-aaaa].',
+      '',
+      `[^note-aaaa]: ${header}`,
+      '',
+      '    Which teams?',
+      '',
+      '    > **anna** · 2026-10-28 11:02+01:00',
+      '    >',
+      '    > The teams.',
+      '    >',
+      '    > > **hannes** · 2026-10-28 11:30+01:00',
+      '    > >',
+      '    > > Thanks.',
+      '',
+      '    > **bob** · 2026-10-28 12:00+01:00',
+    ].join('\n');
+    const html = plain(preview(true).render(text)).replace(/<time [^>]*>[^<]*<\/time>/g, '');
+    const answer = (author: string, body: string) => [`<div class="${noteClass}-answer">`, `<div class="${noteClass}-header"><span class="${noteClass}-author">${author}</span></div>`, `<div class="${noteClass}-body">`, ...body.split('|'), '</div>'];
+    expect(html).toContain(
       [
-        `<p data-line="0" class="code-line" dir="auto">Version 2.0 comes out.<a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a> The beta starts before.</p>`,
-        `<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
-        `<div class="${noteClass}-answer">`,
-        `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span></div>`,
-        `<div class="${noteClass}-body">`,
-        '<p dir="auto">Which day?</p>',
+        ...answer('hannes', '<p>Which teams?</p>'),
+        '</div>',
+        ...answer('anna', '<p>The teams.</p>'),
+        `<div class="${noteClass}-replies">`,
+        ...answer('hannes', '<p>Thanks.</p>'),
         '</div>',
         '</div>',
         '</div>',
-        '<p data-line="9" class="code-line" dir="auto">Next.</p>',
-        '',
-      ].join('\n'),
+        ...answer('bob', ''),
+        '</div>',
+        '</div>',
+      ].filter((line) => line !== '').join('\n'),
     );
   });
 
-  test('joins the paragraph around several inline notes, also in a list item and a block quote, with a space and no line break', () => {
-    const notes = '<!-- note inline\nA\n-->\n<!-- note inline\nB\n-->\n';
-    expect(icons(plain(preview(true).render(`One\n${notes}Two\n`)))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a><a [^>]*>\[icon\]<\/a> Two<\/p>\n/);
-    expect(icons(plain(preview(true).render('- One\n  <!-- note inline\n  A\n  -->\n  Two\n')))).toMatch(/^<ul>\n<li>One<a [^>]*>\[icon\]<\/a> Two<div class="nimblescape-note nimblescape-note-color-1" [^]*<\/div>\n<\/li>\n<\/ul>\n$/);
-    expect(icons(plain(preview(true).render('> One\n> <!-- note inline\n> A\n> -->\n> Two\n')))).toMatch(/^<blockquote>\n<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class/);
-    // The option breaks of markdown-it, which the setting markdown.preview.breaks turns on, adds no line break either.
-    const breaks = extendMarkdownIt(new MarkdownIt({ html: true, breaks: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: () => undefined });
-    expect(icons(breaks.render(`One\n${notes}Two\n`))).not.toContain('<br>');
-    // A text after `-->` on the last line of the note follows after a space.
-    expect(icons(plain(preview(true).render('One\n<!-- note inline\nA\n-->  and two\n')))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a> and two<\/p>\n/);
+  test('shows the selection of a note from its start marker or from the start of the block to its reference, and a point by its icon only (R-NOTE-006)', () => {
+    const text = [
+      'The agents <!--[note-aaaa-->change the work[^note-aaaa] of teams.',
+      '',
+      `[^note-aaaa]: ${header}`,
+      '',
+      'Change[^note-bbbb] the work.<!--[note-cccc-->[^note-cccc]',
+      '',
+      `[^note-bbbb]: ${header}`,
+      '',
+      `[^note-cccc]: ${header}`,
+    ].join('\n');
+    const html = icons(plain(preview(true).render(text)));
+    expect(html).toContain(`<p>The agents ${edgeOf(1, 'start')}change the work${edgeOf(1, 'end')}${iconOf(1, 2)} of teams.</p>`);
+    expect(html).toContain(`<p>Change${edgeOf(2, 'end')}${iconOf(2, 6)} the work.${iconOf(3, 8)}</p>`);
   });
 
-  test('puts the icon of an inline note at the end of the text before it, at the start of the text after it, or in the margin', () => {
-    expect(icons(plain(preview(true).render('# Title\n<!-- note inline\nA\n-->\n')))).toMatch(/^<h1>Title<a [^>]*>\[icon\]<\/a><\/h1>\n<div class/);
-    expect(icons(plain(preview(true).render('<!-- note inline\nA\n-->\nTwo\n')))).toMatch(/^<p><a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class/);
-    expect(icons(plain(preview(true).render('# Title\n\n<!-- note inline\nA\n-->\n\nTwo\n')))).toMatch(/^<h1>Title<a [^>]*>\[icon\]<\/a><\/h1>\n<div class[^]*<p>Two<\/p>\n$/);
-    expect(icons(plain(preview(true).render('- item\n\n<!-- note inline\nA\n-->\n\n| a |\n| - |\n')))).toMatch(/<\/ul>\n<div class="nimblescape-note-anchor"><a [^>]*>\[icon\]<\/a><\/div>\n<div class/);
+  test('shows a reference in a heading, in a list item and in a table cell, and puts the callout after the whole block', () => {
+    const text = ['# Plan[^note-aaaa]', '', '- One[^note-bbbb]', '- Two', '', '| A | B |', '| - | - |', '| one | two[^note-cccc] |', '', ...['aaaa', 'bbbb', 'cccc'].flatMap((label) => [`[^note-${label}]: ${header}`, ''])].join('\n');
+    const html = icons(plain(preview(true).render(text)));
+    expect(html).toMatch(/^<h1>Plan<span [^>]*><\/span><a [^>]*>\[icon\]<\/a><\/h1>\n<ul>\n<li>One<span [^>]*><\/span><a [^>]*>\[icon\]<\/a><\/li>\n<li>Two<\/li>\n<\/ul>\n<table>/);
+    expect(html).toContain(`<td>two${edgeOf(3, 'end')}${iconOf(3, 13)}</td>`);
+    expect(html).toMatch(/<\/table>\n<div class="nimblescape-note nimblescape-note-color-1"[^]*<div class="nimblescape-note nimblescape-note-color-3"[^]*<\/div>\n$/);
   });
 
-  test('an inline note never ends a paragraph: blank lines around it join the paragraphs before and after it (R-PREV-004)', () => {
-    for (const text of ['One\n<!-- note inline\nA\n-->\n\nTwo\n', 'One\n\n<!-- note inline\nA\n-->\nTwo\n', 'One\n\n\n<!-- note inline\n\n---\nauthor: ann\n---\nA\n\n# Text\n-->\n\nTwo\n']) {
-      expect(icons(plain(preview(true).render(text))), text).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class="nimblescape-note nimblescape-note-color-1" [^]*<\/div>\n$/);
-      expect(preview(true, false).render(text), text).toBe('<p data-line="0" class="code-line" dir="auto">One Two</p>\n');
-    }
-    // A block note between two paragraphs keeps them apart.
-    expect(icons(plain(preview(true).render('One\n\n<!-- note\nA\n-->\n\nTwo\n')))).toMatch(/^<p>One<\/p>\n<div class="nimblescape-note-anchor">[^]*<p>Two<\/p>\n$/);
+  test('shows a note without a reference, and a second definition of a label, by an icon in the margin', () => {
+    const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n[^note-aaaa]: ${header}\n\n    Again.\n\n> [^note-bbbb]: ${header}\n`;
+    const html = icons(plain(preview(true).render(text)));
+    expect(html).toContain(`<p>Text${edgeOf(1, 'end')}${iconOf(1, 2)}.</p>`);
+    expect(html).toContain(`<div class="${noteClass}-anchor">${iconOf(2, 4)}</div>`);
+    expect(html).toMatch(new RegExp(`<blockquote>\n<div class="${noteClass}-anchor"><a [^>]*>\\[icon\\]</a></div>\n<div class="${noteClass} ${noteClass}-color-3"[^]*</blockquote>\n$`));
   });
 
-  test('shows a note in the text of a line as an icon after the word before it, and its callout after the paragraph', () => {
-    const html = icons(plain(preview(true).render('A sentence <!-- note\nFirst\n-->   and <!-- note\nSecond\n--> end.\n\nNext.\n')));
-    expect(html).toMatch(
-      new RegExp(
-        `^<p>A sentence<a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note" aria-describedby="${noteClass}-1" href="vscode://a\\.b/open\\?line=0">\\[icon\\]</a> and<a [^>]*href="vscode://a\\.b/open\\?line=2">\\[icon\\]</a> end\\.</p>\n<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1"[^]*<p dir="auto">First</p>[^]*<div class="${noteClass} ${noteClass}-color-2" id="${noteClass}-2"[^]*<p dir="auto">Second</p>[^]*</div>\n<p>Next\\.</p>\n$`,
-      ),
-    );
+  test('a definition directly after a paragraph ends the paragraph, and a paragraph after it without a blank line belongs to the note', () => {
+    const html = icons(plain(preview(true).render(`Text[^note-aaaa].\n[^note-aaaa]: ${header}\n    Body.\nLazy line.\n\nNext.\n`)));
+    expect(html).toMatch(/^<p>Text<span [^>]*><\/span><a [^>]*>\[icon\]<\/a>\.<\/p>\n<div class="nimblescape-note [^]*<p>Body.\nLazy line.<\/p>\n<\/div>\n<\/div>\n<\/div>\n<p>Next.<\/p>\n$/);
   });
 
-  test('shows a note in a block quote in the block quote', () => {
-    const html = plain(preview(true).render('> <!-- note\n> In a quote\n> -->\n'));
-    expect(html).toMatch(new RegExp(`^<blockquote>\n<div class="${noteClass}-anchor">[^]*<p dir="auto">In a quote</p>\n</div>\n</div>\n</div>\n</blockquote>\n$`));
+  test('shows a reference in a note, in code and to no note as written, and every start marker without its note shows nothing', () => {
+    const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    See[^note-aaaa].\n\n\`[^note-aaaa]\` and [^note-zzzz] and <!--[note-yyyy-->.\n`;
+    const html = icons(plain(preview(true).render(text)));
+    expect(html).toContain('<p>See[^note-aaaa].</p>');
+    expect(html).toContain('<p><code>[^note-aaaa]</code> and [^note-zzzz] and .</p>');
   });
 
-  test('escapes the author and the date, and removes the marks of the rendered diff from them', () => {
-    const html = preview(true).render('<!-- note\n---\nauthor: <b>A</b><span data-diff-start="1"></span>\ndate: "soon & later"\n---\nText\n-->\n');
-    expect(html).toContain(`<span class="${noteClass}-author">&lt;b&gt;A&lt;/b&gt;</span>`);
-    expect(html).toContain('aria-label="Note by &lt;b&gt;A&lt;/b&gt;"');
-    expect(html).toContain(`<time class="${noteClass}-date" datetime="soon &amp; later">soon &amp; later</time>`);
+  test('shows a block of HTML of a note that opens a comment and does not close it as text, so that the page after the callout stays', () => {
+    const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    <!-- closed --> <b>bold</b>\n\n    <!-- open\n    more\n\nAfter.\n`;
+    const html = plain(preview(true).render(text));
+    expect(html).toContain('<p>&lt;!-- open<br>\nmore</p>\n');
+    expect(html).toContain('<!-- closed --> <b>bold</b>');
+    expect(html).toMatch(/<\/div>\n<p>After\.<\/p>\n$/);
   });
 
   test('escapes the link, and shows an icon without a link that takes the focus when the rendering has no document', () => {
     const md = extendMarkdownIt(new MarkdownIt({ html: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: (env) => (env as { link?: string }).link });
-    expect(md.render('<!-- note\nText\n-->\n', { link: 'vscode://a.b/open?x="1"&y=2' })).toContain('href="vscode://a.b/open?x=&quot;1&quot;&amp;y=2"');
-    expect(md.render('<!-- note\nText\n-->\n', {})).toContain(`<span class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note" aria-describedby="${noteClass}-1" role="img" tabindex="0">`);
-  });
-
-  test('shows the text of a note that holds another comment as it is, so that the page stays visible (R-NOTE-003)', () => {
-    const html = preview(true).render('<!-- note\nBad <!-- inner <b>\n-->\n\nAfter.\n');
-    expect(html).toContain(`<p class="${noteClass}-problem">`);
-    expect(html).toContain(`<pre class="${noteClass}-text">Bad &lt;!-- inner &lt;b&gt;</pre>`);
-    expect(html).toContain('<p data-line="4" class="code-line" dir="auto">After.</p>');
-  });
-
-  test('shows an empty note as a callout with a header only', () => {
-    expect(preview(true).render('<!-- note\n-->\n')).toContain(`<div class="${noteClass}-body">\n</div>`);
+    const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n`;
+    expect(md.render(text, { link: 'vscode://a.b/open?x="1"&y=2' })).toContain('href="vscode://a.b/open?x=&quot;1&quot;&amp;y=2"');
+    expect(md.render(text, {})).toContain(`<span class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" role="img" tabindex="0">`);
   });
 
   test('gives each callout of a page its own ID', () => {
-    const html = preview(true).render('<!-- note\nA\n-->\n\nB <!-- note\nC\n-->\n');
+    const html = preview(true).render(`A[^note-aaaa] B[^note-bbbb]\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}\n`);
     expect([...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1])).toEqual([`${noteClass}-1`, `${noteClass}-2`]);
   });
 
-  test('keeps the comments that are no notes, and the notes in code and table cells, as without the plugin', () => {
-    for (const text of ['<!-- plain -->\n\nText <!-- other --> x\n', '| a |\n| - |\n| x <!-- note --> |\n', '`<!-- note\nx\n-->`\n']) {
-      expect(preview(true).render(text), text).toBe(preview(false).render(text));
-    }
-  });
-
-  test('with showInPreview off, shows no icon and no callout, and still removes the inline notes with their blanks (R-PREV-005)', () => {
-    const text = '<!-- note\nBlock\n-->\n\nOne\n<!-- note inline\nInline\n-->\nTwo <!-- note\nIn a line\n--> three.\n';
-    expect(preview(true, false).render(text)).toBe('<p data-line="4" class="code-line" dir="auto">One Two three.</p>\n');
-  });
-
-  test('shows a note with a selection by its icon at the end of the selection, with the two edges of the selection (R-NOTE-006)', () => {
-    const note = (id: string) => `<!-- note\n---\nauthor: hannes\nselection: ${id}\n---\nWhich?\n-->\n`;
-    const html = icons(preview(true).render(`The agents <!--[a1-->change the work<!--a1]--> of teams.\n${note('a1')}\nNext.\n`));
-    expect(html).toBe(
-      [
-        '<p data-line="0" class="code-line" dir="auto">The agents ' +
-          `<span class="${noteClass}-edge" data-selection="a1" data-edge="start" data-color="1"></span>change the work` +
-          `<span class="${noteClass}-edge" data-selection="a1" data-edge="end" data-color="1"></span>` +
-          `<a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a> of teams.</p>`,
-        // The note after the paragraph has no icon of its own in the margin, only its callout.
-        `<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
-        `<div class="${noteClass}-answer">`,
-        `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span></div>`,
-        `<div class="${noteClass}-body">`,
-        '<p dir="auto">Which?</p>',
-        '</div>',
-        '</div>',
-        '</div>',
-        '<p data-line="9" class="code-line" dir="auto">Next.</p>',
-        '',
-      ].join('\n'),
-    );
-    // Without an opening marker the selection starts at the start of its paragraph, and a point shows the icon only.
-    expect(icons(plain(preview(true).render(`The agents change<!--a1]--> the work.\n\n${note('a1')}`)))).toMatch(
-      /^<p>The agents change<span class="nimblescape-note-edge" data-selection="a1" data-edge="end" data-color="1"><\/span><a [^>]*>\[icon\]<\/a> the work\.<\/p>\n<div class/,
-    );
-    expect(icons(plain(preview(true).render(`One <!--[a2]-->two.\n${note('a2')}`)))).toMatch(/^<p>One <a [^>]*>\[icon\]<\/a>two\.<\/p>\n<div class/);
-    // Markers without a note stay comments, and with showInPreview off the markers vanish with the notes.
-    expect(preview(true).render('One <!--[a1-->two<!--a1]-->.\n')).toBe(preview(false).render('One <!--[a1-->two<!--a1]-->.\n'));
-    expect(preview(true, false).render(`The agents <!--[a1-->change the work<!--a1]--> of teams.\n${note('a1')}`)).toBe('<p data-line="0" class="code-line" dir="auto">The agents change the work of teams.</p>\n');
+  test('with showInPreview off, shows no icon, no selection and no callout (R-PREV-005)', () => {
+    const text = `One <!--[note-aaaa-->two[^note-aaaa] three.\n\n[^note-aaaa]: ${header}\n\n    Body.\n\n> **anna** · 2026-10-28 11:02+01:00\n\nNext.\n`;
+    expect(plain(preview(true, false).render(text))).toBe('<p>One two three.</p>\n<blockquote>\n<p><strong>anna</strong> · 2026-10-28 11:02+01:00</p>\n</blockquote>\n<p>Next.</p>\n');
   });
 
   test('reads the setting and the link for the environment of each rendering', () => {
@@ -282,7 +301,7 @@ describe('the plugin', () => {
       },
       linkOf: () => undefined,
     });
-    const tokens = md.parse('<!-- note\nText\n-->\n', {});
+    const tokens = md.parse(`Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n`, {});
     expect(md.renderer.render(tokens, md.options, { show: false })).not.toContain(noteClass);
     expect(md.renderer.render(tokens, md.options, { show: true })).toContain(noteClass);
     expect(environments).toContainEqual({ show: false });

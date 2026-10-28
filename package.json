@@ -1,7 +1,7 @@
 {
   "name": "nimblescape-markdown-notes",
   "displayName": "nimblescape Markdown Notes",
-  "description": "Notes in Markdown files, written as HTML comments: threads of answers with their authors and dates. The text editor shows each note in a box that edits it as Markdown, the Markdown preview shows an icon with a callout, and a side view edits and answers the notes. Every change goes back into the comment in the file.",
+  "description": "Notes in Markdown files, written as footnotes that GitHub shows: threads of replies with their authors and dates. The text editor shows each note in a box that edits it as Markdown, the Markdown preview shows an icon with a callout, and a side view edits and answers the notes. Every change goes back into the footnote in the file.",
   "publisher": "nimblescape",
   "author": {
     "name": "nimblescape e.U.",
@@ -18,6 +18,7 @@
     "markdown",
     "notes",
     "comments",
+    "footnotes",
     "callout",
     "review"
   ],
@@ -81,6 +82,9 @@
       "supported": true
     }
   },
+  "extensionPack": [
+    "bierner.markdown-footnotes"
+  ],
   "contributes": {
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
@@ -122,6 +126,12 @@
         "command": "nimblescape.markdownNotes.answer",
         "title": "Answer",
         "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.replyToAnswer",
+        "title": "Reply",
+        "category": "Markdown Notes",
+        "icon": "$(reply)"
       },
       {
         "command": "nimblescape.markdownNotes.editAnswer",
@@ -236,6 +246,11 @@
       ],
       "comments/comment/title": [
         {
+          "command": "nimblescape.markdownNotes.replyToAnswer",
+          "group": "inline@0",
+          "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
+        },
+        {
           "command": "nimblescape.markdownNotes.editAnswer",
           "group": "inline@1",
           "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
@@ -306,6 +321,10 @@
           "when": "false"
         },
         {
+          "command": "nimblescape.markdownNotes.replyToAnswer",
+          "when": "false"
+        },
+        {
           "command": "nimblescape.markdownNotes.editAnswer",
           "when": "false"
         },
@@ -372,7 +391,7 @@
           "type": "boolean",
           "default": true,
           "scope": "resource",
-          "markdownDescription": "Show the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes; the text around an inline note stays one paragraph."
+          "markdownDescription": "Show the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes, icons and callouts."
         },
         "nimblescape.markdownNotes.collapseInEditor": {
           "type": "boolean",

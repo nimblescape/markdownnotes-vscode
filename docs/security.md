@@ -24,8 +24,8 @@ links to its details.
   run in VS Code for the Web. See [Trust boundaries](#trust-boundaries).
 - **Markdown files.** The extension reads the text of the open Markdown
   files to find their notes. It changes the text of a file only when you
-  save, add, answer or delete a note, and only the comment of that note; the
-  file then has unsaved changes, which you save as usual. See
+  save, add, answer or delete a note, and only the footnote of that note, its
+  reference and its start marker; the file then has unsaved changes, which you save as usual. See
   [Changes of a file](#changes-of-a-file).
 - **GitHub sign-in.** New notes and answers need a GitHub session of VS Code
   with the scope `read:user`. The extension reads only the name of the
@@ -34,8 +34,12 @@ links to its details.
 - **Markdown preview.** The extension adds a markdown-it plugin, a style
   sheet and a script to the built-in Markdown preview of VS Code
   (`markdown.markdownItPlugins`, `markdown.previewStyles`,
-  `markdown.previewScripts`). The plugin changes only the comments that are
+  `markdown.previewScripts`). The plugin changes only the footnotes that are
   notes. See [Rendering](#rendering).
+- **Extension pack.** VS Code installs the extension "Markdown Footnotes" of
+  Matt Bierner (`bierner.markdown-footnotes`) together with this extension
+  (`extensionPack`). It is an extension of its own, with its own markdown-it
+  plugin for the preview; you can disable or uninstall it.
 - **Links of the preview.** The icon of a note is a link
   `vscode://nimblescape.nimblescape-markdown-notes/open?document=…&line=…`.
   The extension opens only a Markdown file that is open or that belongs to
@@ -65,8 +69,8 @@ A note from a stranger can still:
 - show what Markdown can show, for example a link or an image, also an image
   from the internet (see [Known limits](#known-limits));
 - name any author and any date. The extension writes the GitHub login of the
-  signed-in user into each new note and answer, but the front matter stays
-  text that anyone who can change the file can write; it proves nobody's
+  signed-in user into each new note and answer, but the header stays text
+  that anyone who can change the file can write; it proves nobody's
   identity.
 
 ## Trust boundaries
@@ -95,9 +99,10 @@ connection of VS Code, as the text of an open file does.
   the body of each answer with the same markdown-it instance as the rest of
   the document, so the body gets the same options, plugins and security
   policy of the preview as the rest of the file. The extension writes the
-  author, the date and the labels as escaped text. A note that contains
-  `<!--` shows its text as escaped text, because as Markdown it would open an
-  HTML comment that hides the rest of the page. The extension does not change
+  author, the date and the labels as escaped text. A block of HTML of a note
+  that opens a comment and does not close it shows as escaped text, because
+  the callout stands in the page before the blocks after the note, and the
+  open comment would hide the rest of the page. The extension does not change
   the security setting of the Markdown preview.
 - **The script of the preview.** `media/markdownPreview.js` only shows and
   hides the callouts that the plugin wrote into the page, and places them
@@ -167,12 +172,11 @@ web page, so the extension:
   Undo in the text editor takes the edit back. The extension saves no file:
   the document has unsaved changes, unless you use the automatic save of
   VS Code.
-- Before it writes a text, the extension checks it: the text must not contain
-  `<!--`, `-->` or `--!>`, and the changed document must hold the same note at
-  the same place, with the same answers, front matters and bodies, when the
-  parser of the Markdown preview reads it (`src/notes/edits.ts`). So a saved
-  note never ends early, never opens another comment and never changes the
-  Markdown around it.
+- Before it writes a text, the extension checks it: the changed document
+  must hold the same note at the same place, with the same answers, headers,
+  bodies and depths in the tree of answers, when the parser of the Markdown
+  preview reads it (`src/notes/edits.ts`). So a saved note never ends early,
+  never starts another answer and never changes the Markdown around it.
 - The extension shows boxes, and so writes, only for Markdown documents of a
   writable file system and for new documents that were not saved yet
   (`untitled`). A version of a file in Git and a Markdown cell of a notebook
@@ -223,7 +227,7 @@ address.
   that the body of a note names, also from an `https:` address of the
   internet, as the Markdown preview does for the rest of the file. VS Code
   then loads the image from that address.
-- The front matter of a note proves nobody's identity: anyone who can change
+- The header of an answer proves nobody's identity: anyone who can change
   the file can write any author and any date.
 - A note that a text from outside VS Code changes, for example a `git pull`,
   shows its new text after VS Code reloads the document.

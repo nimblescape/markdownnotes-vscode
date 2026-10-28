@@ -14,28 +14,29 @@ describes its security model.
 | `src/extension.ts` | The editor wiring: activation starts the threads of the notes and the side view, returns the markdown-it plugin for the Markdown preview with the settings and the links of the rendered document, handles the links of the icons of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open`) and the buttons of the preview that show and hide its notes, and refreshes the previews and the threads when a setting of the extension changes. |
 | `src/github.ts` | The GitHub sign-in: the login of the GitHub session of VS Code, the author of new notes and answers. |
 | `src/settings.ts` | The settings of the extension, their defaults, and the check of their values. It uses no API of VS Code. |
-| `src/notes/syntax.ts` | The syntax of one note: which comment is a note and its kind (`note` or `note inline`), the markers of a selection (`<!--[a1-->`, `<!--a1]-->`, `<!--[a1]-->`) and the key `selection`, its answers with their front matters and bodies, the texts that a note must not contain, the comments of a text as markdown-it 14 finds them, the inline rule and the block rule of markdown-it for the notes, and the dates of a front matter. It uses no API of VS Code, so the extension and the plugin share it. |
-| `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; the markers of the selections and the selection of each note; and the place of a new note and of the markers of its selection. It uses no API of VS Code. |
+| `src/notes/syntax.ts` | The syntax of one note: the label `note-` and four random small letters or digits, the header line of an answer (`**login** · date`), the start marker `<!--[note-7k2q-->` and the reference `[^note-7k2q]`, the tree of answers with their depths and parents, the lines of a note for a list of answers, the dates of a header in the local time of the reader and of the author, and the rules of markdown-it 14 for the definitions, the references and the start markers of the notes. It uses no API of VS Code, so the extension and the plugin share it. |
+| `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; their references, start markers and selections; the blocks of text with the lines of their outermost blocks; and the references and markers that the warnings need. It uses no API of VS Code. |
 | `src/notes/colors.ts` | The color of each number of a note, which the text editor, the preview and the side view share. It uses no API of VS Code. |
-| `src/notes/edits.ts` | The edits of the text when an answer is saved, added or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected answers. It uses no API of VS Code. |
-| `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the warning at a nested note, and the operations that the side view uses too. |
-| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", the numbered markers in the left margin and the overview ruler, the highlight and the hidden markers of the selections, and the rendered front matters. |
-| `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes without a paragraph break. It uses no API of VS Code. |
+| `src/notes/edits.ts` | The edits of the text when an answer is saved, added as a reply or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected tree of answers, and the place of the start marker, the reference and the definition of a new note. It uses no API of VS Code. |
+| `src/notes/checks.ts` | The warnings at the notes of a text: each form of a note that GitHub or another Markdown viewer shows differently from the extension. It uses no API of VS Code. |
+| `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the warnings of the notes as diagnostics, and the operations that the side view uses too. |
+| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", the numbered markers in the left margin and the overview ruler, the highlight and the hidden start markers and references of the selections, and the rendered header lines. |
+| `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, their numbers, colors and marks, the visible lines of the text editor, the actions of its script, and the commands "Hide Notes", "Show or Hide Notes", "Show Funnels" and "Hide Funnels". |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
-| `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes each note as an icon with a hidden callout, removes the inline notes with their blanks from the paragraphs, and leaves every other token as it is. |
+| `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes the reference of each note as an icon with a hidden callout, the start marker as the start of its selection, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code and of the notes, and the script that shows the callout of an icon on hover and focus and highlights the selections. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their badges, the answers, the editors with the tabs "Write" and "Preview", the strip and the funnels, and the messages to the extension. |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
-| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes and the edits, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
+| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
 | `test/vscode/` | The tests in a real VS Code: the threads of the notes with their answers, the save, the refused text, the delete, the side view, and the icons and callouts of the Markdown preview of VS Code (`markdown.api.render`). |
 | `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
 | `out/`, `.vscode-test/` | The bundled tests in VS Code (`scripts/build-vscode-tests.mjs`) and the VS Code that `@vscode/test-cli` downloads for them, kept out of Git. |
 | `docs/guide.md` | The user guide: every feature, how to use it, and its state. |
 | `docs/requirements.md` | The requirements, each with an ID as its heading, and the plan of the steps. |
 | `docs/security.md` | The security model: what the extension does on your computer, what it protects, and where its protection ends. The section "What the extension does on your computer" at the top of the README lists the same behaviors in short. |
-| `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb, with the side view "Notes", the text editor with the dimmed source of a note and its open box with two answers, and the Markdown preview with the callout of an icon on hover. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
+| `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with a note and its open box with a tree of three answers, the Markdown preview with the callout of an icon on hover, and the side view "Notes" in the secondary side bar. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
 | `THIRD-PARTY-NOTICES.md` | The packages that the bundle contains, their licenses and the places of their source code. |
 | `SUPPORT.md` | Where to ask questions and report problems, and what a report contains. |
 | `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for Node.js. The editor API stays outside the bundle. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
@@ -101,6 +102,7 @@ the same file.
 - The version is the only source of the package version, and the tag of a release names it.
 - The engine range defines the compatible VS Code versions. `@types/vscode` stays at the lowest version of that range, so that the code compiles only with the API of that version. The manifest enables no proposed API (`enabledApiProposals`), because the Marketplace does not accept an extension that uses one. A test checks both.
 - `main` selects the bundle `dist/extension.js`. A test checks it.
+- `extensionPack` installs the extension "Markdown Footnotes" (`bierner.markdown-footnotes`) together with this extension, so that the preview shows the other footnotes of a file ([R-GEN-008](docs/requirements.md#r-gen-008)). It is a pack and no dependency (`extensionDependencies`): the user can disable or uninstall it, and the notes keep working. The plugin of this extension never renders other footnotes itself, because two plugins of footnotes would give two lists of footnotes. A test checks the pack.
 - `.vscodeignore` lists the files of the package, not a `files` field: it ignores everything and keeps the bundle, the styles and the scripts of the preview and of the side view, the icons and the documents. A test checks the list.
 - `icon` is `resources/icon.png`, a PNG, because the Marketplace takes no SVG icon. `resources/icon.svg` is its source; after a change of the source, render it again as a PNG of 256 × 256 pixels with a transparent background, for example with a screenshot of the SVG in Chromium. A test checks the size.
 - `extensionKind` selects the workspace host, where the documents are.
@@ -108,7 +110,7 @@ the same file.
 - The contributions `markdown.markdownItPlugins`, `markdown.previewStyles` and `markdown.previewScripts` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
 - `viewsContainers.secondarySidebar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`, in the secondary side bar only, so that the primary side bar stays free for the Explorer ([R-SIDE-001](docs/requirements.md#r-side-001)). VS Code 1.125, the oldest supported version, already knows this place. The section [Side view](#side-view) explains it.
 - The commands "Collapse Note", "Collapse All Notes" and "Expand All Notes" fold the notes (`src/noteEditor.ts`); "Collapse Note" is also a button in the title of a box (`comments/commentThread/title`). The command "Show or Hide Notes" is a button in the title of the text editor and of the preview of a Markdown file (`editor/title`).
-- The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of the reply box: "Add Note" and "Cancel" in a new thread, "Answer" in the thread of a note), `comments/commentThread/title` ("Delete Thread"), `comments/comment/title` ("Edit" and "Delete" of an answer) and `comments/comment/context` (the buttons below the editor of an answer) show them, each only for the comment controller `nimblescape.markdownNotes`. The first button of a reply box or an editor is its primary button, which Ctrl+Enter runs: "Add Note", "Answer" and "Save". The Command Palette shows none of these commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts` and `src/noteEditor.ts`.
+- The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of the reply box: "Add Note" and "Cancel" in a new thread, "Answer" in the thread of a note), `comments/commentThread/title` ("Delete Thread"), `comments/comment/title` ("Reply", "Edit" and "Delete" of an answer) and `comments/comment/context` (the buttons below the editor of an answer) show them, each only for the comment controller `nimblescape.markdownNotes`. The first button of a reply box or an editor is its primary button, which Ctrl+Enter runs: "Add Note", "Answer" and "Save". "Reply" opens a new comment in the editing mode below the answer, whose "Save" writes the reply. The Command Palette shows none of these commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts` and `src/noteEditor.ts`.
 - The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `collapseInEditor`, `expandInEditor` and `showInPreview` have the scope `resource`, so that a folder of a workspace can have its own value. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
 - The package has no runtime dependency: the bundle contains markdown-it. The development dependencies are the build, test and packaging tools. `allowScripts` lists the install scripts of dependencies that npm 11.19 and later may run: those of esbuild and `@vscode/vsce-sign` in every version, because the build and the packaging (`npm run package`) run the code of both packages anyway and Dependabot updates them, and not the one of fsevents, an optional package for macOS that already contains its built binary.
@@ -123,72 +125,95 @@ test checks that the package script keeps the checks of vsce.
 ## Notes
 
 `src/notes/` reads and writes the notes, without the API of VS Code. A note
-is a comment whose text starts with the word `note` or the words
-`note inline` alone on the line of `<!--`
-([R-NOTE-001](docs/requirements.md#r-note-001)). The text of the comment is a
-thread of answers, each with its own front matter
-([R-NOTE-004](docs/requirements.md#r-note-004)): a line `---` that field lines
-and a closing `---` follow starts the next answer. The extension and the
-plugin find the comments with markdown-it, the parser of the preview, with
-its options (`html: true`) and with two rules of the extension
-(`addNoteRules`). So the text editor and the preview always agree on the
-notes:
+is a Markdown footnote whose label is `note-` and four small letters or
+digits, and whose first line is the header of an answer, the GitHub login in
+bold and the date: `[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00`
+([R-NOTE-001](docs/requirements.md#r-note-001),
+[R-NOTE-002](docs/requirements.md#r-note-002)). Every other footnote is no
+note, and the extension never changes it. The extension and the plugin find
+the notes with markdown-it, the parser of the preview, with its options
+(`html: true`) and with the rules of the extension (`addNoteRules`). So the
+text editor and the preview always agree on the notes:
 
-- The block rule `nimblescape_note_lines` runs before `html_block` and reads
-  an inline note `<!-- note inline` on lines of its own, also between two
-  lines of a paragraph ([R-NOTE-005](docs/requirements.md#r-note-005)). It
-  ends the paragraph before it as `html_block` does, and ends the comment at
-  the first `-->`; a text after `-->` on the last line starts the next block.
-  The plugin of the preview joins the paragraphs before and after the note
-  again.
-- An HTML block that holds only comments and white space holds block notes on
-  lines of their own. markdown-it starts such a block at a line that starts
-  with `<!--` and ends it at the first line with `-->`.
-- The inline rule `nimblescape_note` runs before `html_inline` and reads a
-  comment as that rule does. A note of this rule in a paragraph or a heading
-  starts after the text of a line. A comment in a table cell is no note,
-  because the text of a cell has one line.
+- The block rule `nimblescape_note` reads the definition of a note as
+  markdown-it-footnote reads a footnote: the lines indented by four spaces,
+  and a lazy line of a paragraph, are blocks of the note. It runs before the
+  rule `footnote_def` of markdown-it-footnote when the instance has it, and
+  else before the rule `reference`, so that the rules of footnotes never see
+  a note, in both orders of the plugins. Its tokens stand between the tokens
+  `nimblescape_note_open` and `nimblescape_note_close`. A definition inside a
+  note is no note, so a note holds no note.
+- The inline rule `nimblescape_note_reference` runs before `footnote_ref`, or
+  before `link`, and takes a reference `[^note-7k2q]` of a note of the
+  document; a reference before its definition works, because markdown-it
+  parses the blocks of the whole document before the text of the blocks. The
+  reader of the extension takes every reference of the form of a note, also
+  without a note, for the warnings (`nimblescapeAllReferences`).
+- The inline rule `nimblescape_note_marker` runs before `html_inline` and
+  takes a start marker `<!--[note-7k2q-->` in the text of a block.
+- A core rule after `normalize` starts the registry of the notes of a parsing
+  anew, because the preview can parse a document with the same environment
+  more than once.
 - `src/notes/notes.ts` adds the rule for the front matter of a document that
-  the Markdown preview of VS Code has, so a comment in it is no note.
+  the Markdown preview of VS Code has, so a footnote in it is no note.
 
-markdown-it keeps the line of each block, not the column of a comment, and
+**Threads** ([R-NOTE-004](docs/requirements.md#r-note-004)). `readNote` in
+`src/notes/syntax.ts` reads the answers of a note as a tree. The body of the
+first answer follows its header. Each further answer is a block quote whose
+first line is a header; the number of its quote markers `>` is its depth,
+and the answer before it with a lower depth is its parent. A line belongs to
+the last answer whose depth is not greater than the number of its quote
+markers, except a lazy line, which continues the paragraph before it.
+`noteLines` writes the lines of a note for a list of answers in this order,
+with a blank line at the level of the parent before each reply.
+
+markdown-it keeps the line of each block, not the column of a reference, and
 the text of a block in a block quote or a list item loses the prefix of each
-line. The module therefore finds each line of the text of a block at the end
-of its line of the document, and from it the column of the comment. A note
-also keeps the prefix of its further lines (the markers `>` and the
-indentation of list items), which an edit puts before each line it writes.
+line. `read` in `src/notes/notes.ts` therefore finds each line of the text of
+a block at the end of its line of the document, and from it the column of a
+reference or a start marker. A note also keeps the prefix of its lines (the
+markers `>` and the indentation of list items), which an edit puts before
+each line it writes.
 
-`src/notes/edits.ts` returns one edit for the save, the addition or the
-deletion of an answer, and for the addition or the deletion of a note. It
-writes a text only when the changed document holds the same note at the same
-place, of the same kind, with the expected answers, front matters and bodies,
-when `findNotes` reads it again
-([R-EDIT-002](docs/requirements.md#r-edit-002)). This one check refuses a text
-that would end the comment early, open another comment
-([R-NOTE-003](docs/requirements.md#r-note-003)), start another answer, or
-change the Markdown around the note. A new note on a line of a paragraph is
-an inline note after that line; on another line, it is a block note after the
-leaf block (heading, code block, HTML block, table, rule or front matter) that
-holds the line, or after the leaf block before it
-([R-EDIT-003](docs/requirements.md#r-edit-003)). A new answer goes at the end
-of the comment ([R-EDIT-005](docs/requirements.md#r-edit-005)), and deleting
-the only answer deletes the note ([R-EDIT-004](docs/requirements.md#r-edit-004)).
+`src/notes/edits.ts` returns one edit for the save, the reply or the deletion
+of an answer, and for the addition or the deletion of a note. It writes a
+text only when the changed document holds the same note at the same place
+with the expected answers, headers, bodies and depths, when `findNotes`
+reads it again ([R-EDIT-002](docs/requirements.md#r-edit-002)). This one
+check refuses a text that would start another answer, end the note early or
+change the Markdown around the note. A reply goes after the replies to the
+same answer, one level deeper ([R-EDIT-005](docs/requirements.md#r-edit-005)).
+Deleting an answer moves its replies up one level, and deleting the only
+answer deletes the note ([R-EDIT-004](docs/requirements.md#r-edit-004)).
 
-**Selections** ([R-NOTE-006](docs/requirements.md#r-note-006)). `read` in
-`src/notes/notes.ts` also reads the markers of the selections, from the
-inline comments of every block and from the comments of HTML blocks, and
-gives each note with the key `selection` in its first front matter the
-selection with this ID: from the end of the opening marker, or from the start
-of the block of the closing marker without one, to the start of the closing
-marker; a point is an empty selection at its marker. `selectionPlaceFor`
-gives the places of the markers of a new note for a range of the editor and
-never puts a marker at the start of a line, because cmark-gfm, the renderer
-of GitHub, reads a comment there as an HTML block and ends the paragraph.
-`insertNote` writes the markers and the note in one edit, and `deleteNote`
-removes the markers with the note; deleting the first answer moves the key
-`selection` to the next answer. The storage of the notes and the markers
-stays in `src/notes/`, so that another form of storage changes only this
-folder.
+**Place of a new note** ([R-NOTE-005](docs/requirements.md#r-note-005),
+[R-EDIT-003](docs/requirements.md#r-edit-003)). `placeFor` takes a range of
+the editor in a paragraph, a heading, a list item or a table cell. The
+reference goes at the end of the range, but never into the text of a link or
+into a code span: then it goes after them. The definition goes after the
+outermost block of the reference, such as the whole list or the whole block
+quote, at the start of the line, after the notes of the references before it,
+with a blank line before and after it. `newLabel` draws a label that no
+footnote of the file uses.
+
+**Selections** ([R-NOTE-006](docs/requirements.md#r-note-006)). The
+selection of a note goes from the end of its start marker to the start of its
+reference; without a start marker, from the start of the text of its block.
+A start marker directly before the reference is a point. `insertNote` never
+puts a start marker at the start of a line, because cmark-gfm, the renderer
+of GitHub, reads a comment there as an HTML block and ends the paragraph:
+then the marker goes to the end of the line before, and at the start of a
+block it is left out. `deleteNote` removes the start marker and the
+reference with the definition. The storage of the notes stays in
+`src/notes/`, so that another form of storage changes only this folder.
+
+**Warnings** ([R-TEXT-008](docs/requirements.md#r-text-008)). `checksOf` in
+`src/notes/checks.ts` gives the warnings of the notes of a text from the
+reading of `read`: no blank line before or after a note, a line of a note
+without the indentation of four spaces, a second note of a label, a
+reference without a note or a note without a reference, a note in a block
+quote, a reference in the text of a link, in a heading or in a note, and a
+start marker at the start of a line.
 
 ## Text editor
 
@@ -198,8 +223,9 @@ the text editor and the Comments view. One comment controller
 Markdown document of a writable file system, and one comment thread for each
 note, with one comment for each answer
 ([R-TEXT-001](docs/requirements.md#r-text-001)). A comment has the body of
-its answer as a `MarkdownString`, the author and the date of its front matter
-(`timestamp`, or `label` for a date of another form), and a context value,
+its answer as a `MarkdownString`, the author and the date of its header
+(`timestamp`), the label "Reply to" and the author of the parent at a reply to
+a reply, and a context value,
 which the menus read: `nimblescape.markdownNotes.note` for a written answer,
 and `nimblescape.markdownNotes.draft` for a new note or a new answer that was
 not written yet. The thread of a note has the context value
@@ -225,7 +251,7 @@ After each change of a document, and a pause of 300 ms, the extension reads
 the notes again. A thread keeps its note when the note is at the position
 where the extension just wrote it, or when the comment has the same text as
 before; so an open box stays open while the user types elsewhere. The
-extension also gives a warning (a diagnostic) at a note that contains `<!--`.
+extension also gives the warnings of `checksOf` as diagnostics.
 
 `src/noteEditor.ts` adds the overlay of the notes to the text editor, with
 decorations and folding ranges only, so that the editor and the other
@@ -257,7 +283,7 @@ extensions of Markdown stay as they are
   open also at its first line.
 - **Selections** ([R-NOTE-006](docs/requirements.md#r-note-006)): one
   decoration type for each color highlights the selections, with a mark in
-  the overview ruler. The markers get the decoration type with
+  the overview ruler. The start markers and the references get the decoration type with
   `textDecoration: 'none; display: none;'`, which hides their text, and one
   decoration type draws a thin bar or a dot in the color of the note with a
   `before` attachment of each range (`renderOptions`) at the place of the
@@ -266,16 +292,16 @@ extensions of Markdown stay as they are
   selection has the selection as its range; VS Code gives the `+` on
   selected text the exact characters of the selection.
 - **Headers** ([R-TEXT-007](docs/requirements.md#r-text-007)): `headersOf` in
-  `src/notes/folds.ts` gives a fold for the front matter of each answer, which
-  the folding range provider returns without a kind, inside the fold of the
-  note. `foldNewHeaders` collapses each front matter that the extension has
-  not seen in the active editor before, by a key of its text, except the one
-  with the cursor; so a front matter that the user opened stays open. A
-  collapsed front matter gets the hidden decoration on its `---` and a
-  `before` attachment with the author and the date.
+  `src/notes/folds.ts` gives the place of the header line of each answer:
+  from the label `[^note-7k2q]:` of the first answer, or from the text after
+  the quote markers of a reply, to the end of the line. Except on the line of
+  the cursor, the header gets the hidden decoration and a `before` attachment
+  with the author and the date in the local time of the reader, and the date
+  in the local time of the author as its `hoverMessage`.
 
-The operations `saveAnswer`, `answer`, `addNote`, `deleteAnswer` and
-`deleteNote` of `NoteThreads` write the changes for the boxes and for the side
+The operations `saveAnswer`, `answer` (with the index of the parent of a
+reply), `addNote`, `deleteAnswer` and `deleteNote` of `NoteThreads` write the
+changes for the boxes and for the side
 view, so both check and write a text in the same way. Each one reads the notes
 of the document first, so that the edit fits the current text, and returns
 the problem of a refused text, whose message `problemMessage` gives.
@@ -308,8 +334,8 @@ the preview does, and keeps up to 200 rendered texts.
   nonce for its one script, and loads files only from `media/`. The script
   removes the elements and attributes that run code from the rendered HTML
   before it shows it ([docs/security.md](docs/security.md#side-view)).
-- The script sends the actions of the user as messages: `save`, `answer`,
-  `add`, `deleteAnswer`, `deleteNote`, `reveal`, `render` (the tab
+- The script sends the actions of the user as messages: `save`, `answer`
+  (with the index of the answer that a reply replies to), `add`, `deleteAnswer`, `deleteNote`, `reveal`, `render` (the tab
   "Preview"), `openLink` (a click on a link of a rendered text, which
   `src/links.ts` opens), `signIn` and `ready`. A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
@@ -354,39 +380,41 @@ preview does. Dependabot offers no major versions of them
 (`.github/dependabot.yml`); move to a new major version only when VS Code does.
 
 The plugin `src/markdown/markdownIt.ts` adds the rules of the notes and the
-core rule `nimblescape_notes` after the rules of markdown-it:
+core rule `nimblescape_notes` after the rules of markdown-it and of the other
+plugins, so that their core rules, such as emoji and task lists, change the
+bodies of the notes too:
 
-- An HTML block of block notes becomes one block token for each note: the
-  icon in a `div` of the class `nimblescape-note-anchor`, which the styles put
-  into the left margin, and the hidden callout
-  ([R-PREV-001](docs/requirements.md#r-prev-001)).
-- An inline note on lines of its own becomes an icon at the end of the text
-  of the paragraph or heading before it, or at the start of the text after
-  it, also across blank lines, because an inline note never ends a paragraph.
-  A paragraph before and after the note becomes one paragraph again, with one
-  space and no `softbreak` token between the two texts, so that the option
-  `breaks` of the preview adds no line break
+- The core rule takes the tokens of each note out of the tokens of the
+  document into the meta of its token `nimblescape_note_open`: one list of
+  tokens for the body of each answer, without its header line, and for a
+  reply without its block quote. It removes the token
+  `nimblescape_note_close`. The open token renders the hidden callout at the
+  place of the definition, and for a note without a reference also its icon
+  in a `div` of the class `nimblescape-note-anchor`, which the styles put into
+  the left margin ([R-PREV-001](docs/requirements.md#r-prev-001)).
+- The first reference of a note becomes the end of its selection, an empty
+  `span.nimblescape-note-edge`, and its icon; its start marker becomes the
+  start of the selection. A later reference of the note becomes an icon only.
+  A reference in a note shows as written, and a start marker that is no
+  start of a selection shows nothing. The notes never show as footnotes
   ([R-PREV-004](docs/requirements.md#r-prev-004)).
-- A note after the text of a line becomes an icon after the word before it,
-  without the blanks before the note, and one space after the icon.
-- The callout of an icon in a text follows the closing token of its block. A
-  callout is a `div` with the class `nimblescape-note`, `role="note"`, the
+- A callout is a `div` with the class `nimblescape-note`, `role="note"`, the
   attribute `hidden`, and one part for each answer with the author, the date
-  and the body, which the plugin parses with the same markdown-it instance
-  as the document, so that the plugins of the preview apply to it. The
-  environment of a body is a copy of the environment of the document without
-  `footnotes`, so that markdown-it-footnote gives each body its own footnotes;
-  the render rules give each body the `docId` `<ID of the note>-<number of the
-  answer>`, the prefix of the IDs of its footnotes. A body renders with the
-  method `render` of the class of the renderer, because a plugin can wrap the
-  method of the renderer to frame the page, as the GitHub styles of Matt
-  Bierner do.
+  in a `time` element and the body. The first answer comes first, then the
+  replies to it; the replies to a reply stand in a `div` of the class
+  `nimblescape-note-replies` in the part of the reply
+  ([R-NOTE-004](docs/requirements.md#r-note-004)). The `title` of the date is
+  the date in the local time of the author.
+- A body renders with the same environment as the document, so that a
+  footnote in a note is a footnote of the page, and with the method `render`
+  of the class of the renderer, because a plugin can wrap the method of the
+  renderer to frame the page, as the GitHub styles of Matt Bierner do.
 - The icon is a link `vscode://nimblescape.nimblescape-markdown-notes/open`
   with the document and the line of the note
   ([R-PREV-003](docs/requirements.md#r-prev-003)), and names its callout with
   `aria-describedby`. Without a document, for example when a text renders without a file, it is
   a `span` that takes the focus.
-- A comment that is no note renders as without the plugin.
+- Every other footnote renders as without the plugin.
 
 The title of the preview has the buttons "Show Notes in Preview" and "Hide
 Notes in Preview" (`editor/title` with `activeWebviewPanelId ==
@@ -424,8 +452,8 @@ packages, which have none.
 The preview gives every token with lines the attribute `data-line` and the
 class `code-line` after the plugins of the extensions, for the scrolling with
 the editor. A callout is hidden or floats above the page, so the plugin
-removes the lines of the tokens of its bodies; the scrolling uses only the
-elements of the document. The rendered diff of VS Code inserts empty elements
+takes the tokens of its bodies out of the tokens of the document and removes
+their lines; the scrolling uses only the elements of the document. The rendered diff of VS Code inserts empty elements
 `<span data-diff-start="N"></span>` and `<span data-diff-end="N"></span>` into
 the Markdown text; the plugin removes them from the author and the date.
 

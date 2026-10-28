@@ -3,34 +3,41 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The markdown-it plugin of the built-in Markdown preview. It shows each note
- * as a small icon at its place ([R-PREV-001](../../docs/requirements.md#r-prev-001)):
- * an inline note in the text, and a block note in the left margin between the
- * blocks. Each icon has a hidden callout, which the script of the preview
+ * The markdown-it plugin of the built-in Markdown preview. A note is a
+ * footnote of the Markdown text ([R-NOTE-001](../../docs/requirements.md#r-note-001)).
+ * The preview shows it as a small icon at its reference in the text
+ * ([R-PREV-001](../../docs/requirements.md#r-prev-001)), and a note without a
+ * reference in the left margin at the place of its definition. Each icon has
+ * a hidden callout, which the script of the preview
  * ([media/markdownPreview.js](../../media/markdownPreview.js)) shows while the
  * pointer rests on the icon or the icon has the focus
  * ([R-PREV-002](../../docs/requirements.md#r-prev-002)): each answer of the
  * thread with its author, its date and its body rendered as Markdown, with the
  * plugins of the preview. The icon is a link to the extension, which opens the
  * note in the side view ([R-PREV-003](../../docs/requirements.md#r-prev-003)).
+ * The start marker and the reference of a note become the start and the end
+ * of its selection, which the script highlights
+ * ([R-NOTE-006](../../docs/requirements.md#r-note-006)).
  *
- * In Markdown, a comment that starts a line ends the paragraph before it. The
- * plugin therefore removes each inline note with the blanks and the blank lines
- * before and after it, and joins the text before and after the note into one
- * paragraph again, with one space and without a line break
- * ([R-PREV-004](../../docs/requirements.md#r-prev-004)). A note in another
- * place, such as a table cell, stays a comment, as in the text editor
- * ([notes.ts](../notes/notes.ts)). Every other token keeps the output of the
- * preview, and a comment that is no note stays an HTML comment, which the
- * preview does not show.
+ * The plugin adds the rules of the notes ([syntax.ts](../notes/syntax.ts)),
+ * which take the notes before the rules of footnotes of other plugins, and a
+ * core rule after the rules of markdown-it and of the other plugins. The
+ * block rule of the notes leaves the body of each note in the tokens of the
+ * document, so that the core rules of other plugins, such as emoji and task
+ * lists, also change the bodies ([R-GEN-007](../../docs/requirements.md#r-gen-007)).
+ * The core rule then takes the tokens of each note out of the tokens of the
+ * document into the token that opens the note: the body of each answer,
+ * without its header line, and for a further answer without its block quote.
+ * So the scrolling of the preview never uses the callout, which is hidden or
+ * floats above the page. The core rule turns each reference into an icon and
+ * each start marker into the start of a selection. The notes never show as
+ * footnotes, and every other footnote keeps the output of its plugin
+ * ([R-PREV-004](../../docs/requirements.md#r-prev-004)).
  *
- * The plugin adds the rules of the notes ([syntax.ts](../notes/syntax.ts)) and
- * a core rule after the rules of markdown-it, which turns the notes into
- * tokens of icons and callouts. It parses the body of each answer with the
- * same markdown-it instance. The preview parses a document once for each
- * version and renders it again for each change of a setting, without the
- * document in the environment of the parsing. So the core rule does the same
- * for every document, and the render rules read the setting `showInPreview`
+ * The preview parses a document once for each version and renders it again for
+ * each change of a setting, without the document in the environment of the
+ * parsing. So the core rule does the same for every document, and the render
+ * rules read the setting `showInPreview`
  * ([R-PREV-005](../../docs/requirements.md#r-prev-005)) and the link of the
  * document from the environment of the rendering.
  */
@@ -38,34 +45,34 @@
 import type MarkdownIt from 'markdown-it';
 import type { Options, Renderer, StateCore, Token } from 'markdown-it';
 import { colorIndexOf } from '../notes/colors';
-import { addNoteRules, inlineParents } from '../notes/notes';
+import { textParents } from '../notes/notes';
 import {
+  addNoteRules,
+  authorDate,
   displayDate,
-  innerText,
-  type InlineNoteMeta,
-  noteLinesTokenType,
-  noteTokenType,
-  type NoteText,
-  onlyComments,
-  readMarker,
-  readNote,
-  selectionOf,
+  type Header,
+  type InlineMeta,
+  isoDate,
+  markerType,
+  noteCloseType,
+  type NoteMeta,
+  noteOpenType,
+  readHeader,
+  referenceText,
+  referenceType,
 } from '../notes/syntax';
 
 /** noteClass is the class of the element of a callout, and the start of the classes of its parts. */
 export const noteClass = 'nimblescape-note';
 
-/** iconTokenType is the type of the inline token of the icon of a note in a text. */
+/** iconTokenType is the type of the inline token of the icon of a note at its reference. */
 const iconTokenType = 'nimblescape_note_icon';
 
-/** calloutTokenType is the type of the block token of the hidden callout of a note in a text, after its block. */
-const calloutTokenType = 'nimblescape_note_callout';
-
-/** blockTokenType is the type of the block token of a note between blocks: its icon in the margin and its callout. */
-const blockTokenType = 'nimblescape_note_block';
-
-/** edgeTokenType is the type of the inline token of the start or the end of a selection: an empty element. */
+/** edgeTokenType is the type of the inline token of the start of a selection: an empty element. */
 const edgeTokenType = 'nimblescape_note_edge';
+
+/** openCommentType is the type of a block of HTML of a note that opens a comment and does not close it, which shows as text. */
+const openCommentType = 'nimblescape_note_open_comment';
 
 /** PreviewSettings are the settings of the extension that change the preview. */
 export interface PreviewSettings {
@@ -89,26 +96,26 @@ export interface PreviewOptions {
   linkOf(env: unknown, line: number): string | undefined;
 }
 
-/** NoteMeta is the meta of the tokens of the icon and the callout of a note. */
-interface NoteMeta {
-  /** note is the content of the comment. */
-  note: NoteText;
-  /** number is the number of the note in the document, from 1, which gives its color. */
-  number: number;
-  /** id is the ID of the element of the callout, which the icon names. */
+/** PreviewNote is the meta of the token that opens a note, after the core rule, and of the tokens of its icons. */
+interface PreviewNote extends NoteMeta {
+  /** id is the ID of the element of the callout, which the icons name, and of the selection. */
   id: string;
-  /** line is the index of the first line of the note in the document. */
+  /** line is the index of the first line of the definition in the document. */
   line: number;
+  /** answers are the headers of the answers of the thread, each with the index of the answer that it replies to. */
+  answers: (Header & { parent: number | undefined })[];
   /** bodies are the tokens of the body of each answer. */
   bodies: Token[][];
+  /** referenced tells whether the text holds a reference of the note, where its icon shows. */
+  referenced: boolean;
 }
 
-/**
- * diffMarker matches an empty element that the rendered diff of VS Code inserts into the Markdown text at the start
- * or at the end of a changed part of a line (extensions/markdown-language-features/src/preview/documentRenderer.ts).
- * In the body it marks the change; in the author and the date it would show as text.
- */
-const diffMarker = /<span data-diff-(?:start|end)="\d+"><\/span>/g;
+/** IconMeta is the meta of the token of an icon at a reference. */
+interface IconMeta {
+  note: PreviewNote;
+  /** ends tells whether the icon ends the selection of the note, which then starts at a start marker or at the start of the block. */
+  ends: boolean;
+}
 
 /** glyph is the image of the icon: a speech bubble in the color of the text. */
 const glyph =
@@ -121,8 +128,8 @@ const counts = new WeakMap<object, number>();
 const noEnvironment = {};
 
 /**
- * nextId returns a new ID of a callout of a parsing. The IDs count for each environment of a parsing, and a body holds
- * no note, so each ID is unique in the page.
+ * nextId returns a new ID of a callout of a parsing. The IDs count for each environment of a parsing, so each ID is
+ * unique in the page.
  * @param env - The environment of the parsing.
  */
 function nextId(env: unknown): string {
@@ -133,17 +140,14 @@ function nextId(env: unknown): string {
 }
 
 /**
- * hideLines removes the lines of the tokens of a body: the attribute `data-line` and the class `code-line`, which the
- * preview adds for the scrolling with the editor. A callout is hidden or floats above the page, so the scrolling must
- * not use its elements.
- * @param tokens - The tokens of a body.
+ * hideLines removes the lines of a token of a callout: its map, the attribute `data-line` and the class `code-line`,
+ * which the preview adds for the scrolling with the editor. A callout is hidden or floats above the page, so the
+ * scrolling must not use its elements.
+ * @param token - The token.
  */
-function hideLines(tokens: readonly Token[]): void {
-  for (const token of tokens) {
-    token.map = null;
-    if (!token.attrs) {
-      continue;
-    }
+function hideLines(token: Token): void {
+  token.map = null;
+  if (token.attrs) {
     token.attrs = token.attrs
       .filter(([name]) => name !== 'data-line')
       .map(([name, value]): [string, string] => [name, name === 'class' ? value.split(' ').filter((part) => part !== 'code-line').join(' ') : value])
@@ -152,343 +156,175 @@ function hideLines(tokens: readonly Token[]): void {
 }
 
 /**
- * noteMeta builds the meta of a note: its ID, its line and the tokens of the body of each answer.
- * @param state - The state of the core rule.
- * @param note - The content of the comment.
- * @param line - The index of the first line of the note in the document.
- * @param number - The number of the note, from 1.
+ * removeHeaderLine removes the header line at the start of a paragraph: the whole paragraph when the header is its only
+ * line, else the first line of its text.
+ * @param tokens - The tokens of the note.
+ * @param index - The index of the token that opens the paragraph.
  */
-function noteMeta(state: StateCore, note: NoteText, line: number, number: number): NoteMeta {
-  // Each body is a Markdown text of its own (R-TEXT-004). It has the environment of the document, for example the
-  // document of the preview, except the footnotes of markdown-it-footnote (the plugin of the extension Markdown
-  // Footnotes): with them, the last core rule of that plugin would add the list of the footnotes of the document, or
-  // of an answer before, to the body. So each body has only its own footnotes (R-GEN-007).
-  // A note that holds the start of another comment shows its text as it is: as Markdown, that start would open an
-  // HTML comment in the page and hide the rest of the page.
-  const bodies = note.answers.map((answer) => {
-    if (note.nested || answer.body === '') {
-      return [];
+function removeHeaderLine(tokens: Token[], index: number): void {
+  const inline = tokens[index + 1];
+  const lineBreak = inline.content.indexOf('\n');
+  if (lineBreak < 0) {
+    tokens.splice(index, 3);
+    return;
+  }
+  inline.content = inline.content.slice(lineBreak + 1);
+  const children = inline.children ?? [];
+  const end = children.findIndex((child) => child.type === 'softbreak' || child.type === 'hardbreak');
+  inline.children = children.slice(end + 1);
+}
+
+/**
+ * headerAt returns the header at the start of the paragraph that a token opens, or undefined.
+ * @param tokens - The tokens.
+ * @param index - The index of the token.
+ */
+function headerAt(tokens: readonly Token[], index: number): Header | undefined {
+  const [open, inline] = [tokens[index], tokens[index + 1]];
+  return open?.type === 'paragraph_open' && inline?.type === 'inline' ? readHeader(inline.content.split('\n')[0]) : undefined;
+}
+
+/**
+ * opensComment tells whether a text of HTML opens a comment that it does not close. Such a comment in a callout would
+ * hide the rest of the page, because the callout stands in the page before the blocks after the note.
+ * @param html - The text of HTML.
+ */
+function opensComment(html: string): boolean {
+  let position = 0;
+  for (;;) {
+    const start = html.indexOf('<!--', position);
+    if (start < 0) {
+      return false;
     }
-    const tokens = state.md.parse(answer.body, { ...(state.env as object), footnotes: undefined });
-    hideLines(tokens);
-    return tokens;
-  });
-  return { note, number, id: nextId(state.env), line, bodies };
-}
-
-/** EdgeMeta is the meta of the token of the start or the end of a selection. */
-interface EdgeMeta {
-  /** id is the ID of the selection. */
-  id: string;
-  edge: 'start' | 'end';
-  /** number is the number of the note of the selection. */
-  number: number;
-}
-
-/** Selected is a note with a selection, by the ID of the selection. */
-interface Selected {
-  note: NoteText;
-  /** token is the token of the note, and offset its offset in the text of the token. */
-  token: Token;
-  offset: number;
-  /** line is the index of the first line of the note in the document. */
-  line: number;
-  number: number;
-}
-
-/**
- * Numbers are the numbers of the notes of a document, in the order of the document as the text editor counts them,
- * and the notes with a selection whose closing marker or point is in a text, where their icons go.
- */
-class Numbers {
-  /** numbers holds the number of each note by its token and its offset in the text of the token. */
-  private readonly numbers = new Map<Token, Map<number, number>>();
-  /** selected holds the notes with a selection by the ID of the selection. */
-  readonly selected = new Map<string, Selected>();
-  /** attached holds the IDs of the selections whose closing marker or point is in the text of a block. */
-  readonly attached = new Set<string>();
-
-  /**
-   * @param tokens - The tokens of the document, before the core rule changes them.
-   */
-  constructor(tokens: readonly Token[]) {
-    let count = 0;
-    const add = (token: Token, offset: number, note: NoteText, line: number): void => {
-      count++;
-      const known = this.numbers.get(token) ?? new Map<number, number>();
-      known.set(offset, count);
-      this.numbers.set(token, known);
-      const id = selectionOf(note);
-      if (id !== undefined && !this.selected.has(id)) {
-        this.selected.set(id, { note, token, offset, line, number: count });
-      }
-    };
-    tokens.forEach((token, index) => {
-      if (token.type === noteLinesTokenType && token.map) {
-        const note = readNote(innerText(token.content));
-        if (note) {
-          add(token, 0, note, token.map[0]);
-        }
-      } else if (token.type === 'html_block' && token.map) {
-        for (const span of onlyComments(token.content) ?? []) {
-          const note = readNote(innerText(token.content.slice(span.start, span.end)));
-          if (note) {
-            add(token, span.start, note, token.map[0] + lineOf(token.content, span.start));
-          }
-        }
-      } else if (token.type === 'inline' && token.map) {
-        for (const child of token.children ?? []) {
-          if (child.type !== noteTokenType) {
-            continue;
-          }
-          const marker = readMarker(child.content);
-          if (marker && marker.kind !== 'open') {
-            this.attached.add(marker.id);
-          }
-          const note = inlineParents.has(tokens[index - 1]?.type) ? readNote(innerText(child.content)) : undefined;
-          if (note) {
-            add(child, 0, note, token.map[0] + lineOf(token.content, (child.meta as InlineNoteMeta).start));
-          }
-        }
-      }
-    });
-  }
-
-  /**
-   * of returns the number of a note.
-   * @param token - The token of the note: its HTML block, its inline note on lines of its own, or its comment in a text.
-   * @param offset - The offset of the note in the text of an HTML block, else 0.
-   */
-  of(token: Token, offset = 0): number {
-    return this.numbers.get(token)?.get(offset) ?? 0;
-  }
-
-  /**
-   * shownAtMarker tells whether a note shows at the closing marker or the point of its selection instead of its place.
-   * @param token - The token of the note.
-   * @param offset - The offset of the note in the text of an HTML block, else 0.
-   * @param note - The note.
-   */
-  shownAtMarker(token: Token, offset: number, note: NoteText): boolean {
-    const id = selectionOf(note);
-    const selected = id === undefined ? undefined : this.selected.get(id);
-    return id !== undefined && this.attached.has(id) && selected?.token === token && selected.offset === offset;
-  }
-}
-
-/**
- * newToken builds a token with a meta.
- * @param state - The state of the core rule.
- * @param type - The type of the token.
- * @param meta - The meta.
- * @param level - The nesting level.
- */
-function newToken(state: StateCore, type: string, meta: NoteMeta | undefined, level: number): Token {
-  const token = new state.Token(type, '', 0);
-  token.meta = meta;
-  token.level = level;
-  token.block = type !== iconTokenType;
-  return token;
-}
-
-/**
- * textToken builds an inline token of a text.
- * @param state - The state of the core rule.
- * @param content - The text.
- */
-function textToken(state: StateCore, content: string): Token {
-  const token = new state.Token('text', '', 0);
-  token.content = content;
-  return token;
-}
-
-/**
- * lineOf returns the index of the line of an offset of a text.
- * @param text - The text.
- * @param offset - The offset.
- */
-const lineOf = (text: string, offset: number): number => text.slice(0, offset).split('\n').length - 1;
-
-/** textBlocks are the opening tokens of the blocks whose text holds the icon of an inline note on lines of its own. */
-const textBlocks = new Set(['paragraph_open', 'heading_open']);
-
-/**
- * attachLines turns an inline note on lines of its own into an icon in the text of the block before it, or of the
- * block after it, without the blanks and the blank lines around the note. When a paragraph stands before and after
- * the note, the two paragraphs are one, as an inline note never ends a paragraph: the text after the note follows
- * after one space, without a line break. A note without a text block around it shows as a block note.
- * @param state - The state of the core rule.
- * @param tokens - The tokens of the document.
- * @param index - The index of the token of the note.
- * @param output - The tokens that the core rule wrote so far.
- * @param numbers - The numbers of the notes.
- * @returns The index of the last token that the note took.
- */
-function attachLines(state: StateCore, tokens: readonly Token[], index: number, output: Token[], numbers: Numbers): number {
-  const token = tokens[index];
-  const map = token.map!;
-  const note = readNote(innerText(token.content));
-  if (!note) {
-    token.type = 'html_block';
-    output.push(token);
-    return index;
-  }
-  const icon = newToken(state, iconTokenType, noteMeta(state, note, map[0], numbers.of(token)), 0);
-  const [previousOpen, previousInline, previousClose] = output.slice(-3);
-  const before =
-    output.length >= 3 &&
-    textBlocks.has(previousOpen.type) &&
-    previousOpen.level === token.level &&
-    previousOpen.map !== null &&
-    previousOpen.map[1] <= map[0] &&
-    previousInline.type === 'inline' &&
-    previousClose.nesting === -1;
-  const [nextOpen, nextInline] = [tokens[index + 1], tokens[index + 2]];
-  const after =
-    nextOpen !== undefined &&
-    textBlocks.has(nextOpen.type) &&
-    nextOpen.level === token.level &&
-    nextOpen.map !== null &&
-    nextInline?.type === 'inline';
-  if (before) {
-    previousInline.children = [...(previousInline.children ?? []), icon];
-    previousOpen.map = [previousOpen.map![0], map[1]];
-    if (after && previousOpen.type === 'paragraph_open' && nextOpen.type === 'paragraph_open') {
-      previousInline.children.push(textToken(state, ' '), ...(nextInline.children ?? []));
-      previousInline.content += `\n${nextInline.content}`;
-      previousOpen.map = [previousOpen.map[0], nextOpen.map![1]];
-      // The paragraph before the note keeps its closing token, and the paragraph after it goes.
-      return index + 3;
+    // `<!-->` and `<!--->` are comments too, so the end can start in the opening.
+    const end = html.indexOf('-->', start + 2);
+    if (end < 0) {
+      return true;
     }
-    return index;
+    position = end + 3;
   }
-  if (after) {
-    nextInline.children = [icon, textToken(state, ' '), ...(nextInline.children ?? [])];
-    nextOpen.map = [map[0], nextOpen.map![1]];
-    return index;
-  }
-  icon.type = blockTokenType;
-  icon.block = true;
-  icon.level = token.level;
-  output.push(icon);
-  return index;
 }
 
 /**
- * iconsInText turns the notes and the markers of selections in a text into icons and the edges of selections. A note
- * in the text of a paragraph or a heading shows as an icon without the blanks before it: the icon follows the word
- * before the note, and one space the icon. A marker of a selection keeps the text around it: an opening marker becomes
- * the start of the selection, a closing marker its end and the icon of its note, and a point the icon of its note
- * ([R-NOTE-006](../../docs/requirements.md#r-note-006)). Every other comment of the text stays a comment.
- * @param state - The state of the core rule.
- * @param token - The inline token.
- * @param inBlock - Whether the inline token is the text of a paragraph or a heading.
- * @param numbers - The numbers of the notes.
+ * bodiesOf returns the tokens of the body of each answer of a note: of the first answer without its header line, and of
+ * each reply without its block quote and its header line. A block quote that starts with a header is a reply to the
+ * answer whose blocks hold it ([R-NOTE-004](../../docs/requirements.md#r-note-004)). The headers of the answers and
+ * their places in the tree go to the note.
+ * @param tokens - The tokens between the token that opens the note and the token that closes it.
+ * @param note - The note.
+ * @param level - The level of the blocks of the note.
  */
-function iconsInText(state: StateCore, token: Token, inBlock: boolean, numbers: Numbers): void {
-  const children = token.children ?? [];
-  const result: Token[] = [];
+function bodiesOf(tokens: Token[], note: PreviewNote, level: number): Token[][] {
+  note.answers = [{ author: note.author, date: note.date, parent: undefined }];
+  if (headerAt(tokens, 0)) {
+    removeHeaderLine(tokens, 0);
+  }
+  const bodies: Token[][] = [[]];
+  /** open are the answers whose blocks the tokens are in, with the level of their blocks, from the first answer. */
+  const open = [{ index: 0, level }];
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index];
+    hideLines(token);
+    const current = open.at(-1)!;
+    if (open.length > 1 && token.type === 'blockquote_close' && token.level === current.level - 1) {
+      open.pop();
+      continue;
+    }
+    const header = token.type === 'blockquote_open' && token.level === current.level ? headerAt(tokens, index + 1) : undefined;
+    if (header) {
+      note.answers.push({ ...header, parent: current.index });
+      bodies.push([]);
+      removeHeaderLine(tokens, index + 1);
+      open.push({ index: note.answers.length - 1, level: token.level + 1 });
+      continue;
+    }
+    if (token.type === 'html_block' && opensComment(token.content)) {
+      token.type = openCommentType;
+    }
+    bodies[current.index].push(token);
+  }
+  return bodies;
+}
+
+/**
+ * iconsInText turns the references of notes in the text of a block into icons, and their start markers into the
+ * starts of their selections. The first reference of a note ends its selection: from its start marker, or from the
+ * start of the block without one. A start marker directly before the reference makes a point, without a selection.
+ * Each further reference of a note shows its icon too, and every other start marker shows nothing.
+ * @param inline - The inline token of the block.
+ * @param notes - The notes of the document, by their labels.
+ */
+function iconsInText(inline: Token, notes: ReadonlyMap<string, PreviewNote>): void {
+  const children = inline.children ?? [];
+  const starts = new Set<Token>();
   children.forEach((child, index) => {
-    if (child.type !== noteTokenType) {
-      result.push(child);
-      return;
-    }
-    const marker = readMarker(child.content);
-    const selected = marker && numbers.selected.get(marker.id);
-    if (marker && selected) {
-      const edge = (kind: EdgeMeta['edge']): Token => {
-        const edgeToken = new state.Token(edgeTokenType, '', 0);
-        edgeToken.meta = { id: marker.id, edge: kind, number: selected.number } satisfies EdgeMeta;
-        return edgeToken;
-      };
-      if (marker.kind === 'open') {
-        result.push(edge('start'));
-        return;
-      }
-      const icon = newToken(state, iconTokenType, noteMeta(state, selected.note, selected.line, selected.number), 0);
-      result.push(...(marker.kind === 'close' ? [edge('end')] : []), icon);
-      return;
-    }
-    const note = inBlock && !marker ? readNote(innerText(child.content)) : undefined;
+    const meta = child.meta as InlineMeta;
+    const note = child.type === referenceType ? notes.get(meta.label) : undefined;
     if (!note) {
-      child.type = 'html_inline';
-      result.push(child);
       return;
     }
-    const { start } = child.meta as InlineNoteMeta;
+    const first = !note.referenced;
+    note.referenced = true;
+    const marker = first ? children.slice(0, index).find((candidate) => candidate.type === markerType && (candidate.meta as InlineMeta).label === meta.label) : undefined;
+    const point = marker !== undefined && (marker.meta as InlineMeta).end === meta.start;
+    if (marker && !point) {
+      starts.add(marker);
+      marker.type = edgeTokenType;
+      marker.meta = note;
+    }
     child.type = iconTokenType;
-    child.meta = noteMeta(state, note, token.map![0] + lineOf(token.content, start), numbers.of(child));
-    child.content = '';
-    const previous = result.at(-1);
-    if (previous?.type === 'text') {
-      previous.content = previous.content.replace(/[ \t]+$/, '');
-    }
-    const next = children[index + 1];
-    if (next?.type === 'text') {
-      next.content = next.content.replace(/^[ \t]+/, ' ');
-    }
-    result.push(child);
+    child.meta = { note, ends: first && !point } satisfies IconMeta;
   });
-  token.children = result;
+  // The start markers of no selection show nothing.
+  inline.children = children.filter((child) => child.type !== markerType || starts.has(child));
 }
 
 /**
- * transform is the core rule of the plugin: it turns the notes of a document into icons and callouts.
+ * transform is the core rule of the plugin: it turns the notes of a document into callouts, and their references and
+ * start markers into icons and selections.
  * @param state - The state of the core rule.
  */
 function transform(state: StateCore): void {
-  const tokens = state.tokens;
-  const numbers = new Numbers(tokens);
+  const notes = new Map<string, PreviewNote>();
   const output: Token[] = [];
+  const tokens = state.tokens;
   for (let index = 0; index < tokens.length; index++) {
     const token = tokens[index];
-    if (token.type === noteLinesTokenType && token.map) {
-      index = attachLines(state, tokens, index, output, numbers);
+    if (token.type !== noteOpenType) {
+      output.push(token);
       continue;
     }
-    if (token.type === 'html_block' && token.map) {
-      // The comments of the block that are no notes show nothing, with or without the block. A note with a selection
-      // shows at the marker of its selection.
-      const notes = (onlyComments(token.content) ?? []).flatMap((span) => {
-        const note = readNote(innerText(token.content.slice(span.start, span.end)));
-        return note ? [{ note, span, line: token.map![0] + lineOf(token.content, span.start) }] : [];
-      });
-      if (notes.length > 0) {
-        output.push(
-          ...notes
-            .filter(({ note, span }) => !numbers.shownAtMarker(token, span.start, note))
-            .map(({ note, span, line }) => newToken(state, blockTokenType, noteMeta(state, note, line, numbers.of(token, span.start)), token.level)),
-        );
-        continue;
-      }
+    let close = index + 1;
+    while (close < tokens.length && !(tokens[close].type === noteCloseType && tokens[close].level === token.level)) {
+      close++;
     }
+    const meta = token.meta as NoteMeta;
+    const note: PreviewNote = { ...meta, id: nextId(state.env), line: token.map?.[0] ?? 0, answers: [], bodies: [], referenced: false };
+    if (!meta.duplicate) {
+      notes.set(meta.label, note);
+    }
+    // The tokens of the note leave the tokens of the document, so that the lines of the preview never reach them.
+    note.bodies = bodiesOf(tokens.slice(index + 1, close), note, token.level + 1);
+    token.meta = note;
+    hideLines(token);
     output.push(token);
+    index = close;
   }
-  // The callouts of the icons in a text follow the closing token of the paragraph or the heading.
-  const result: Token[] = [];
-  let pending: Token[] = [];
   output.forEach((token, index) => {
-    result.push(token);
-    if (token.type === 'inline' && token.map) {
-      iconsInText(state, token, inlineParents.has(output[index - 1]?.type), numbers);
-      const icons = (token.children ?? []).filter((child) => child.type === iconTokenType);
-      pending = icons.map((icon) => newToken(state, calloutTokenType, icon.meta as NoteMeta, output[index + 1]?.level ?? token.level));
-    } else if (token.nesting === -1 && pending.length > 0) {
-      result.push(...pending);
-      pending = [];
+    if (token.type === 'inline' && textParents.has(output[index - 1]?.type)) {
+      iconsInText(token, notes);
     }
   });
-  state.tokens = result;
+  state.tokens = output;
 }
 
 /**
  * labelOf returns the label of a note: its first author and the number of its answers.
- * @param meta - The meta of the note.
+ * @param note - The note.
  */
-function labelOf(meta: NoteMeta): string {
-  const author = meta.note.answers[0].author?.replace(diffMarker, '');
-  const count = meta.note.answers.length;
-  return `Note${author ? ` by ${author}` : ''}${count > 1 ? `, ${count} answers` : ''}`;
+function labelOf(note: PreviewNote): string {
+  const count = note.answers.length;
+  return `Note by ${note.author}${count > 1 ? `, ${count} answers` : ''}`;
 }
 
 /**
@@ -502,39 +338,55 @@ const colorClassOf = (number: number): string => `${noteClass}-color-${colorInde
  * iconHtml returns the HTML of the icon of a note: a link that opens the note in the side view, or without a link an
  * element that takes the focus, which shows the callout too.
  * @param md - The markdown-it instance.
- * @param meta - The meta of the note.
+ * @param note - The note.
  * @param link - The link, or undefined.
  */
-function iconHtml(md: MarkdownIt, meta: NoteMeta, link: string | undefined): string {
-  const count = meta.note.answers.length > 1 ? `<span class="${noteClass}-count">${meta.note.answers.length}</span>` : '';
-  const attributes = `class="${noteClass}-icon ${colorClassOf(meta.number)}" aria-label="${md.utils.escapeHtml(labelOf(meta))}" aria-describedby="${meta.id}"`;
+function iconHtml(md: MarkdownIt, note: PreviewNote, link: string | undefined): string {
+  const count = note.answers.length > 1 ? `<span class="${noteClass}-count">${note.answers.length}</span>` : '';
+  const attributes = `class="${noteClass}-icon ${colorClassOf(note.number)}" aria-label="${md.utils.escapeHtml(labelOf(note))}" aria-describedby="${note.id}"`;
   return link === undefined
     ? `<span ${attributes} role="img" tabindex="0">${glyph}${count}</span>`
     : `<a ${attributes} href="${md.utils.escapeHtml(link)}">${glyph}${count}</a>`;
 }
 
 /**
- * calloutHtml returns the HTML of the hidden callout of a note: each answer with its header and its body.
- * @param md - The markdown-it instance.
- * @param meta - The meta of the note.
- * @param render - Renders the tokens of the body of the answer with the index.
+ * edgeHtml returns the HTML of the start or the end of the selection of a note.
+ * @param note - The note.
+ * @param edge - The start or the end.
  */
-function calloutHtml(md: MarkdownIt, meta: NoteMeta, render: (tokens: Token[], index: number) => string): string {
+const edgeHtml = (note: PreviewNote, edge: 'start' | 'end'): string =>
+  `<span class="${noteClass}-edge" data-selection="${note.id}" data-edge="${edge}" data-color="${colorIndexOf(note.number) + 1}"></span>`;
+
+/**
+ * headerHtml returns the HTML of the header of an answer: the author and the date in the local time of the reader,
+ * with the date in the local time of the author as the tooltip ([R-NOTE-002](../../docs/requirements.md#r-note-002)).
+ * @param md - The markdown-it instance.
+ * @param header - The header of the answer.
+ */
+function headerHtml(md: MarkdownIt, header: Header): string {
   const escape = md.utils.escapeHtml;
-  const problem = meta.note.nested
-    ? `<p class="${noteClass}-problem">This note contains the start of another comment, <code>&lt;!--</code>, and shows its text as it is.</p>\n`
-    : '';
-  const answers = meta.note.answers.map((answer, index) => {
-    const author = answer.author?.replace(diffMarker, '');
-    const date = answer.date?.replace(diffMarker, '');
-    const header = [
-      `<span class="${noteClass}-author">${escape(author || 'Note')}</span>`,
-      date ? `<time class="${noteClass}-date" datetime="${escape(date)}">${escape(displayDate(date))}</time>` : '',
-    ].join('');
-    const body = meta.note.nested ? `<pre class="${noteClass}-text">${escape(answer.body)}</pre>\n` : render(meta.bodies[index], index);
-    return `<div class="${noteClass}-answer">\n<div class="${noteClass}-header">${header}</div>\n<div class="${noteClass}-body">\n${body}</div>\n</div>\n`;
-  });
-  return `<div class="${noteClass} ${colorClassOf(meta.number)}" id="${meta.id}" role="note" aria-label="${escape(labelOf(meta))}" hidden>\n${problem}${answers.join('')}</div>\n`;
+  const date = `<time class="${noteClass}-date" datetime="${escape(isoDate(header.date))}" title="${escape(authorDate(header.date))}">${escape(displayDate(header.date))}</time>`;
+  return `<div class="${noteClass}-header"><span class="${noteClass}-author">${escape(header.author)}</span>${date}</div>`;
+}
+
+/**
+ * calloutHtml returns the HTML of the hidden callout of a note: each answer with its header and its body, and the
+ * replies to each answer after it ([R-NOTE-004](../../docs/requirements.md#r-note-004)). The replies to the first
+ * answer follow it, and the replies to a reply stand in a part of the reply of their own, which shows indented.
+ * @param md - The markdown-it instance.
+ * @param note - The note.
+ * @param render - Renders the tokens of the body of an answer.
+ */
+function calloutHtml(md: MarkdownIt, note: PreviewNote, render: (tokens: Token[]) => string): string {
+  const repliesTo = (parent: number): number[] => note.answers.flatMap((answer, index) => (answer.parent === parent ? [index] : []));
+  const answerHtml = (index: number, nested: boolean): string => {
+    const replies = nested ? repliesTo(index).map((reply) => answerHtml(reply, true)) : [];
+    const part = replies.length > 0 ? `<div class="${noteClass}-replies">\n${replies.join('')}</div>\n` : '';
+    return `<div class="${noteClass}-answer">\n${headerHtml(md, note.answers[index])}\n<div class="${noteClass}-body">\n${render(note.bodies[index] ?? [])}</div>\n${part}</div>\n`;
+  };
+  const answers = [answerHtml(0, false), ...repliesTo(0).map((reply) => answerHtml(reply, true))];
+  const attributes = `class="${noteClass} ${colorClassOf(note.number)}" id="${note.id}" role="note" aria-label="${md.utils.escapeHtml(labelOf(note))}"`;
+  return `<div ${attributes} hidden>\n${answers.join('')}</div>\n`;
 }
 
 /**
@@ -542,19 +394,14 @@ function calloutHtml(md: MarkdownIt, meta: NoteMeta, render: (tokens: Token[], i
  *
  * It calls the method `render` of the class of the renderer, not the method of the renderer itself: a plugin can wrap
  * the method of the renderer to frame the whole page, as the extension "Markdown Preview Github Styling" does, and a
- * body is no page. The footnotes of the body get the ID of the note and the number of the answer as the prefix of
- * their IDs (`docId` of markdown-it-footnote), so that they differ from the footnotes of the document, of the other
- * notes and of the other answers.
+ * body is no page. The body has the environment of the page, so that its footnotes are the footnotes of the page.
  * @param renderer - The renderer of the page.
  * @param tokens - The tokens of the body.
  * @param options - The options of the renderer.
  * @param env - The environment of the page.
- * @param meta - The meta of the note.
- * @param answer - The index of the answer.
  */
-function renderBody(renderer: Renderer, tokens: Token[], options: Options, env: unknown, meta: NoteMeta, answer: number): string {
-  const render = (Object.getPrototypeOf(renderer) as Renderer).render;
-  return render.call(renderer, tokens, options, { ...(env as object), docId: `${meta.id}-${answer + 1}` });
+function renderBody(renderer: Renderer, tokens: Token[], options: Options, env: unknown): string {
+  return (Object.getPrototypeOf(renderer) as Renderer).render.call(renderer, tokens, options, env);
 }
 
 /**
@@ -567,28 +414,23 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
   addNoteRules(md);
   md.core.ruler.push('nimblescape_notes', transform);
   const shows = (env: unknown): boolean => options.settingsOf(env).showInPreview;
-  // A comment that the core rule did not reach renders as markdown-it renders an inline comment: as it is.
-  md.renderer.rules[noteTokenType] = (tokens, index) => tokens[index].content;
-  md.renderer.rules[noteLinesTokenType] = (tokens, index) => `${tokens[index].content}\n`;
-  md.renderer.rules[iconTokenType] = (tokens, index, _options, env) => {
-    const meta = tokens[index].meta as NoteMeta;
-    return shows(env) ? iconHtml(md, meta, options.linkOf(env, meta.line)) : '';
-  };
-  md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => {
-    const meta = tokens[index].meta as EdgeMeta;
-    return shows(env) ? `<span class="${noteClass}-edge" data-selection="${meta.id}" data-edge="${meta.edge}" data-color="${colorIndexOf(meta.number) + 1}"></span>` : '';
-  };
-  md.renderer.rules[calloutTokenType] = (tokens, index, rendererOptions, env, self) => {
-    const meta = tokens[index].meta as NoteMeta;
-    return shows(env) ? calloutHtml(md, meta, (body, answer) => renderBody(self, body, rendererOptions, env, meta, answer)) : '';
-  };
-  md.renderer.rules[blockTokenType] = (tokens, index, rendererOptions, env, self) => {
-    const meta = tokens[index].meta as NoteMeta;
+  md.renderer.rules[noteOpenType] = (tokens, index, rendererOptions, env, self) => {
+    const note = tokens[index].meta as PreviewNote;
     if (!shows(env)) {
       return '';
     }
-    const callout = calloutHtml(md, meta, (body, answer) => renderBody(self, body, rendererOptions, env, meta, answer));
-    return `<div class="${noteClass}-anchor">${iconHtml(md, meta, options.linkOf(env, meta.line))}</div>\n${callout}`;
+    // A note without a reference shows its icon in the margin.
+    const anchor = note.referenced ? '' : `<div class="${noteClass}-anchor">${iconHtml(md, note, options.linkOf(env, note.line))}</div>\n`;
+    return `${anchor}${calloutHtml(md, note, (body) => renderBody(self, body, rendererOptions, env))}`;
   };
+  md.renderer.rules[iconTokenType] = (tokens, index, _options, env) => {
+    const { note, ends } = tokens[index].meta as IconMeta;
+    return shows(env) ? `${ends ? edgeHtml(note, 'end') : ''}${iconHtml(md, note, options.linkOf(env, note.line))}` : '';
+  };
+  md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => (shows(env) ? edgeHtml(tokens[index].meta as PreviewNote, 'start') : '');
+  // A reference that the core rule did not reach, such as one in a note, shows as written, and a start marker nothing.
+  md.renderer.rules[referenceType] = (tokens, index) => md.utils.escapeHtml(referenceText((tokens[index].meta as InlineMeta).label));
+  md.renderer.rules[markerType] = () => '';
+  md.renderer.rules[openCommentType] = (tokens, index) => `<p>${md.utils.escapeHtml(tokens[index].content.trimEnd()).replace(/\n/g, '<br>\n')}</p>\n`;
   return md;
 }

@@ -4,14 +4,17 @@
 
 /**
  * These tests check the changes of the Markdown text when an answer is saved
- * (R-EDIT-002), when a note is added (R-EDIT-003), when an answer or a note is
- * deleted (R-EDIT-004), when an answer is added (R-EDIT-005), and that a text
- * that a note must not hold never reaches the file (R-NOTE-003).
+ * (R-EDIT-002), when a note is added (R-EDIT-003) with its start marker, its
+ * reference and its definition after the block (R-NOTE-006), when an answer
+ * or a note is deleted (R-EDIT-004), and when an answer or a reply to an
+ * answer is added (R-EDIT-005, R-NOTE-004).
+ * A text that markdown-it would not read back as the same note never reaches
+ * the file.
  */
 
 import { describe, expect, test } from 'vitest';
-import { appendAnswer, applyEdit, deleteAnswer, deleteNote, insertNote, replaceAnswer, type Result, withPrefix } from './edits';
-import { findNotes } from './notes';
+import { appendAnswer, applyEdit, deleteAnswer, deleteNote, type Edit, insertNote, replaceAnswer, type Result } from './edits';
+import { findNotes, type Position } from './notes';
 
 /**
  * lines returns the lines of a text.
@@ -24,263 +27,215 @@ const lines = (text: string): string[] => text.split('\n');
  * @param text - The lines of the text.
  * @param result - The result.
  */
-const after = (text: string[], result: Result): string | object => ('edit' in result ? applyEdit(text, result.edit).join('\n') : result.problem);
+const after = (text: string[], result: Result | Edit): string | object =>
+  'problem' in result ? result.problem : applyEdit(text, 'edit' in result ? result.edit : result).join('\n');
 
-/**
- * only returns the one note of a text.
- * @param text - The lines of the text.
- */
-const only = (text: string[]) => {
-  const notes = findNotes(text);
-  expect(notes).toHaveLength(1);
-  return notes[0];
+/** fields are the author and the date of a new answer. */
+const fields = { author: 'hannes', date: '2026-10-28 10:15+01:00' };
+
+/** random returns the random numbers that give the label `note-7k2q`. */
+const random = (): (() => number) => {
+  const values = [33, 10, 28, 16].map((index) => (index + 0.5) / 36);
+  let index = 0;
+  return () => values[index++ % values.length];
 };
 
-/** thread is a Markdown text with a note of two answers. */
-const thread = lines('Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nFirst.\n\n---\nauthor: B\n---\nSecond.\n-->\n\nMore.\n');
-
-test('withPrefix puts the prefix before each further line, without trailing spaces on an empty line', () => {
-  expect(withPrefix('<!-- note\nA\n\nB\n-->', '> ')).toBe('<!-- note\n> A\n>\n> B\n> -->');
-});
-
-test('applyEdit replaces the text between two positions', () => {
-  expect(applyEdit(['abc', 'def'], { start: { line: 0, character: 1 }, end: { line: 1, character: 2 }, text: 'X\nY' })).toEqual(['aX', 'Yf']);
-});
-
-describe('replaceAnswer', () => {
-  test('writes the new body and keeps the front matter with its author and date', () => {
-    const text = lines('Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nOld text.\n-->\n\nMore.\n');
-    expect(after(text, replaceAnswer(text, only(text), 0, 'New **text**.\n\nSecond paragraph.'))).toBe(
-      'Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nNew **text**.\n\nSecond paragraph.\n-->\n\nMore.\n',
-    );
-  });
-
-  test('changes the lines of one answer of a thread, and keeps the lines of the others', () => {
-    expect(after(thread, replaceAnswer(thread, only(thread), 0, 'One'))).toBe(
-      'Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nOne\n\n---\nauthor: B\n---\nSecond.\n-->\n\nMore.\n',
-    );
-    expect(after(thread, replaceAnswer(thread, only(thread), 1, 'Two\nlines'))).toBe(
-      'Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nFirst.\n\n---\nauthor: B\n---\nTwo\nlines\n-->\n\nMore.\n',
-    );
-  });
-
-  test('keeps a note in a block quote and in a list item in its container', () => {
-    const quote = lines('> <!-- note\n> Old\n> -->\n');
-    expect(after(quote, replaceAnswer(quote, only(quote), 0, 'One\n\nTwo'))).toBe('> <!-- note\n> One\n>\n> Two\n> -->\n');
-    const item = lines('- Item\n\n  <!-- note\n  Old\n  -->\n');
-    expect(after(item, replaceAnswer(item, only(item), 0, 'New'))).toBe('- Item\n\n  <!-- note\n  New\n  -->\n');
-  });
-
-  test('writes a note in a paragraph and an inline note in their places', () => {
-    const text = lines('A sentence <!-- note\nOld\n--> and more.\n');
-    expect(after(text, replaceAnswer(text, only(text), 0, 'New text'))).toBe('A sentence <!-- note\nNew text\n--> and more.\n');
-    const inline = lines('One\n<!-- note inline\n---\nauthor: A\n---\nOld\n-->\nTwo\n');
-    expect(after(inline, replaceAnswer(inline, only(inline), 0, 'New\n\nwith a blank line'))).toBe('One\n<!-- note inline\n---\nauthor: A\n---\nNew\n\nwith a blank line\n-->\nTwo\n');
-  });
-
-  test('puts `-->` on a line of its own when the body ended on its line', () => {
-    const text = lines('<!-- note\nOld -->\n');
-    expect(after(text, replaceAnswer(text, only(text), 0, 'New'))).toBe('<!-- note\nNew\n-->\n');
-  });
-
-  test('refuses a text with another comment, or with the end of a comment (R-NOTE-003)', () => {
-    const text = lines('<!-- note\nOld\n-->\n');
-    expect(replaceAnswer(text, only(text), 0, 'A <!-- comment -->')).toEqual({ problem: { kind: 'nested', text: '<!--' } });
-    expect(replaceAnswer(text, only(text), 0, 'An end --> here')).toEqual({ problem: { kind: 'nested', text: '-->' } });
-    expect(replaceAnswer(text, only(text), 0, 'An end --!> here')).toEqual({ problem: { kind: 'nested', text: '--!>' } });
-  });
-
-  test('refuses a text that would change the Markdown around a note in a paragraph, or start another answer', () => {
-    const text = lines('A sentence <!-- note\nOld\n--> and more.\n');
-    expect(replaceAnswer(text, only(text), 0, 'One\n\nTwo')).toEqual({ problem: { kind: 'structure' } });
-    expect(replaceAnswer(thread, only(thread), 0, 'One\n---\nauthor: C\n---\nTwo')).toEqual({ problem: { kind: 'structure' } });
-  });
-});
-
-describe('appendAnswer', () => {
-  test('adds an answer with its front matter at the end of the thread (R-EDIT-005)', () => {
-    expect(after(thread, appendAnswer(thread, only(thread), 'Third.', { author: 'C', date: '2026-10-29T08:00+01:00' }))).toBe(
-      'Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nFirst.\n\n---\nauthor: B\n---\nSecond.\n---\nauthor: C\ndate: 2026-10-29T08:00+01:00\n---\nThird.\n-->\n\nMore.\n',
-    );
-    const changed = lines(after(thread, appendAnswer(thread, only(thread), 'Third.', { author: 'C' })) as string);
-    expect(only(changed).answers.map((answer) => [answer.author, answer.body])).toEqual([
-      ['A', 'First.'],
-      ['B', 'Second.'],
-      ['C', 'Third.'],
-    ]);
-  });
-
-  test('adds an answer to an inline note in a block quote, and after a body that ends on the line of `-->`', () => {
-    const quote = lines('> One\n> <!-- note inline\n> First\n> -->\n> Two\n');
-    expect(after(quote, appendAnswer(quote, only(quote), 'Second', { author: 'B' }))).toBe('> One\n> <!-- note inline\n> First\n> ---\n> author: B\n> ---\n> Second\n> -->\n> Two\n');
-    const end = lines('<!-- note\nFirst -->\n');
-    expect(after(end, appendAnswer(end, only(end), 'Second', { author: 'B' }))).toBe('<!-- note\nFirst\n---\nauthor: B\n---\nSecond\n-->\n');
-  });
-
-  test('refuses a text with another comment, and an answer that a note in the text of a line cannot hold', () => {
-    expect(appendAnswer(thread, only(thread), 'A <!-- b', { author: 'C' })).toEqual({ problem: { kind: 'nested', text: '<!--' } });
-    // A front matter in a paragraph turns its first line into a heading.
-    const text = lines('A sentence <!-- note\nOld\n--> and more.\n');
-    expect(appendAnswer(text, only(text), 'New', { author: 'C' })).toEqual({ problem: { kind: 'structure' } });
-  });
-});
-
-describe('deleteAnswer', () => {
-  test('removes one answer of a thread, and keeps the others (R-EDIT-004)', () => {
-    expect(after(thread, deleteAnswer(thread, only(thread), 0))).toBe('Text\n\n<!-- note\n---\nauthor: B\n---\nSecond.\n-->\n\nMore.\n');
-    expect(after(thread, deleteAnswer(thread, only(thread), 1))).toBe('Text\n\n<!-- note\n---\nauthor: A\ndate: 2026-10-28\n---\nFirst.\n\n-->\n\nMore.\n');
-  });
-
-  test('removes the whole note with its only answer', () => {
-    const text = lines('Text\n\n<!-- note\nA\n-->\n\nMore.\n');
-    expect(after(text, deleteAnswer(text, only(text), 0))).toBe('Text\n\nMore.\n');
-  });
-});
-
 /**
- * at returns an empty range at a position.
- * @param line - The index of the line.
- * @param character - The index of the character.
- */
-const at = (line: number, character = 0) => ({ start: { line, character }, end: { line, character } });
-
-/**
- * span returns a range of a text.
- * @param startLine - The index of the line of the start.
- * @param startCharacter - The index of the character of the start.
- * @param endLine - The index of the line of the end.
- * @param endCharacter - The index of the character after the end.
- */
-const span = (startLine: number, startCharacter: number, endLine: number, endCharacter: number) => ({
-  start: { line: startLine, character: startCharacter },
-  end: { line: endLine, character: endCharacter },
-});
-
-/**
- * selected returns the text of the selection of the one note of a text, without the markers in it.
+ * add adds a note with the body `Which teams?` for a range of a text and returns the text after the change.
  * @param text - The text.
+ * @param start - The start of the range.
+ * @param end - The end of the range, else the start.
  */
-function selected(text: string): string | undefined {
-  const all = lines(text);
-  const selection = findNotes(all)[0]?.selection;
-  if (!selection) {
-    return undefined;
-  }
-  const { start, end } = selection;
-  const part = start.line === end.line ? all[start.line].slice(start.character, end.character) : [all[start.line].slice(start.character), ...all.slice(start.line + 1, end.line), all[end.line].slice(0, end.character)].join('\n');
-  return part.replace(/<!--\[?a\d+\]?-->/g, '');
-}
+const add = (text: string, start: Position, end: Position = start): string | object => {
+  const source = lines(text);
+  return after(source, insertNote(source, { start, end }, 'Which teams?', fields, random()));
+};
+
+/** definition is the definition of the new note of add. */
+const definition = '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which teams?';
 
 describe('insertNote', () => {
-  test('marks a point at the end of a line of a paragraph and adds the note after the paragraph, with the fields as front matter (R-NOTE-006)', () => {
-    const text = lines('# Title\n\nFirst line\nsecond line\n\nLast.\n');
-    const result = insertNote(text, at(2), 'A **note**.', { author: 'A', date: '2026-10-28T10:15+01:00' });
-    expect(result).toMatchObject({ start: { line: 4, character: 0 } });
-    expect(after(text, result)).toBe(
-      '# Title\n\nFirst line<!--[a1]-->\nsecond line\n<!-- note\n---\nauthor: A\ndate: 2026-10-28T10:15+01:00\nselection: a1\n---\nA **note**.\n-->\n\nLast.\n',
+  test('a selection gets a start marker and a reference, and the note goes after the paragraph', () => {
+    const text = 'The agents change the work\nof teams.\n\nNext.\n';
+    expect(add(text, { line: 0, character: 11 }, { line: 0, character: 26 })).toBe(
+      `The agents <!--[note-7k2q-->change the work[^note-7k2q]\nof teams.\n\n${definition}\n\nNext.\n`,
     );
-    const changed = lines(after(text, result) as string);
-    expect(findNotes(changed)).toMatchObject([
-      { kind: 'block', start: { line: 4, character: 0 }, answers: [{ author: 'A', body: 'A **note**.' }], selection: { id: 'a1', start: { line: 2, character: 10 }, end: { line: 2, character: 10 } } },
-    ]);
   });
 
-  test('marks an exact selection in a line with an opening and a closing marker (R-NOTE-006)', () => {
-    const text = lines('The agents change the work of teams in three ways.\n\nNext.\n');
-    const result = after(text, insertNote(text, span(0, 11, 0, 35), 'Which?', { author: 'A' }));
-    expect(result).toBe('The agents <!--[a1-->change the work of teams<!--a1]--> in three ways.\n<!-- note\n---\nauthor: A\nselection: a1\n---\nWhich?\n-->\n\nNext.\n');
-    expect(selected(result as string)).toBe('change the work of teams');
+  test('an empty range gets a point at the end of the text of its line', () => {
+    expect(add('The agents change the work.\n', { line: 0, character: 4 })).toBe(`The agents change the work.<!--[note-7k2q-->[^note-7k2q]\n\n${definition}\n`);
   });
 
-  test('never writes a marker at the start of a line, so that no viewer ends the paragraph there (R-NOTE-006)', () => {
-    // At the start of a paragraph, the selection has no opening marker and starts at the start of its block.
-    const first = lines('The agents change the work.\n');
-    const atStart = after(first, insertNote(first, span(0, 0, 0, 10), 'Who?', {})) as string;
-    expect(atStart.split('\n')[0]).toBe('The agents<!--a1]--> change the work.');
-    expect(selected(atStart)).toBe('The agents');
-    // At the start of a later line, the opening marker goes to the end of the line before.
-    const two = lines('One line\ntwo line\n');
-    const later = after(two, insertNote(two, span(1, 0, 1, 3), 'Note', {})) as string;
-    expect(later.split('\n').slice(0, 2)).toEqual(['One line<!--[a1-->', 'two<!--a1]--> line']);
-    expect(selected(later)).toBe('\ntwo');
-    // A selection of whole lines ends at the end of its last line.
-    const whole = lines('One\nTwo\n\nNext\n');
-    expect((after(whole, insertNote(whole, span(0, 0, 1, 0), 'Note', {})) as string).split('\n')[0]).toBe('One<!--a1]-->');
+  test('a selection from the start of the paragraph has no start marker, and at the start of a later line the marker goes to the end of the line before', () => {
+    const text = 'The agents\nchange the work.';
+    expect(add(text, { line: 0, character: 0 }, { line: 1, character: 6 })).toBe(`The agents\nchange[^note-7k2q] the work.\n\n${definition}`);
+    expect(add(text, { line: 1, character: 0 }, { line: 1, character: 6 })).toBe(`The agents<!--[note-7k2q-->\nchange[^note-7k2q] the work.\n\n${definition}`);
   });
 
-  test('takes the next free ID, and marks a selection over two paragraphs with the note after the second one', () => {
-    const text = lines('First <!--[a1]--> paragraph.\n<!-- note\n---\nselection: a1\n---\nOld\n-->\n\nSecond paragraph.\n');
-    const result = after(text, insertNote(text, span(0, 0, 8, 6), 'New', {})) as string;
-    expect(result).toContain('Second<!--a2]--> paragraph.\n<!-- note\n---\nselection: a2\n---\nNew\n-->');
+  test('a selection of whole lines ends at the end of the last selected line', () => {
+    expect(add('One.\nTwo.\nThree.', { line: 0, character: 0 }, { line: 2, character: 0 })).toBe(`One.\nTwo.[^note-7k2q]\nThree.\n\n${definition}`);
   });
 
-  test('adds a block note after another block, and a note without a front matter when no field has a value', () => {
-    const text = lines('```\ncode\n```\n');
-    expect(after(text, insertNote(text, at(1), 'Note', { author: undefined, date: '' }))).toBe('```\ncode\n```\n<!-- note\nNote\n-->\n');
+  test('the reference never stands in a link or a code span', () => {
+    expect(add('See [the plan](plan.md) now.', { line: 0, character: 4 }, { line: 0, character: 10 })).toBe(
+      `See <!--[note-7k2q-->[the plan](plan.md)[^note-7k2q] now.\n\n${definition}`,
+    );
+    expect(add('Run `npm test` now.', { line: 0, character: 6 }, { line: 0, character: 9 })).toBe(`Run <!--[note-7k2q-->\`npm test\`[^note-7k2q] now.\n\n${definition}`);
   });
 
-  test('adds a note in a block quote and in a list item with the prefix of the block', () => {
-    const quote = lines('> Quote\n');
-    expect(after(quote, insertNote(quote, at(0), 'One\n\nTwo', {}))).toBe('> Quote<!--[a1]-->\n> <!-- note\n> ---\n> selection: a1\n> ---\n> One\n>\n> Two\n> -->\n');
-    const item = lines('- Item\n  more\n');
-    const result = insertNote(item, at(1), 'Note', {});
-    expect(result).toMatchObject({ start: { line: 2, character: 2 } });
-    expect(after(item, result)).toBe('- Item\n  more<!--[a1]-->\n  <!-- note\n  ---\n  selection: a1\n  ---\n  Note\n  -->\n');
+  test('a note in a list or a block quote goes after the whole list or quote, at the start of the line', () => {
+    expect(add('- One\n- Two\n\nNext.', { line: 0, character: 2 }, { line: 0, character: 5 })).toBe(`- One[^note-7k2q]\n- Two\n\n${definition}\n\nNext.`);
+    expect(add('> Quoted\n> text.\n\nNext.', { line: 0, character: 2 }, { line: 1, character: 6 })).toBe(
+      `> Quoted\n> text[^note-7k2q].\n\n${definition}\n\nNext.`,
+    );
+    expect(add('> Quoted\n> text.\nLazy.', { line: 1, character: 2 }, { line: 1, character: 6 })).toBe(
+      `> Quoted<!--[note-7k2q-->\n> text[^note-7k2q].\nLazy.\n\n${definition}`,
+    );
   });
 
-  test('adds a note after the last line of a text without a line break at its end', () => {
-    const text = lines('Text');
-    const result = insertNote(text, at(0), 'Note', {});
-    expect(result).toMatchObject({ start: { line: 1, character: 0 } });
-    expect(after(text, result)).toBe('Text<!--[a1]-->\n<!-- note\n---\nselection: a1\n---\nNote\n-->');
+  test('a note in a table goes after the table, and a selection from the start of a cell has no start marker', () => {
+    expect(add('| A | B |\n| - | - |\n| one | two |', { line: 2, character: 9 }, { line: 2, character: 11 })).toBe(
+      `| A | B |\n| - | - |\n| one | t<!--[note-7k2q-->wo[^note-7k2q] |\n\n${definition}`,
+    );
+    expect(add('| A | B |\n| - | - |\n| one | two |', { line: 2, character: 8 }, { line: 2, character: 11 })).toBe(
+      `| A | B |\n| - | - |\n| one | two[^note-7k2q] |\n\n${definition}`,
+    );
   });
 
-  test('refuses a text with another comment (R-NOTE-003)', () => {
-    expect(insertNote(lines('Text\n'), at(0), 'A <!-- b', {})).toEqual({ problem: { kind: 'nested', text: '<!--' } });
+  test('the notes of one block stand in the order of their references', () => {
+    const text = 'The agents change the work[^note-aaaa].\n\n[^note-aaaa]: **anna** · 2026-10-28 09:00+01:00\n\nNext.';
+    expect(add(text, { line: 0, character: 4 }, { line: 0, character: 10 })).toBe(
+      `The <!--[note-7k2q-->agents[^note-7k2q] change the work[^note-aaaa].\n\n${definition}\n\n[^note-aaaa]: **anna** · 2026-10-28 09:00+01:00\n\nNext.`,
+    );
+    expect(add(text, { line: 0, character: 39 })).toBe(
+      `The agents change the work[^note-aaaa].<!--[note-7k2q-->[^note-7k2q]\n\n[^note-aaaa]: **anna** · 2026-10-28 09:00+01:00\n\n${definition}\n\nNext.`,
+    );
+  });
+
+  test('a note needs a place in a text and a body', () => {
+    expect(add('```\ncode\n```', { line: 1, character: 0 })).toEqual({ kind: 'place' });
+    expect(add('Text.\n\nMore.', { line: 1, character: 0 })).toEqual({ kind: 'place' });
+    const source = lines('Text.');
+    expect(after(source, insertNote(source, { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, '', fields))).toEqual({ kind: 'empty' });
+  });
+
+  test('the new note gets a label that no footnote of the text uses', () => {
+    const source = lines('Text[^note-7k2q].\n\n[^note-7k2q]: A footnote of that label.');
+    const result = insertNote(source, { start: { line: 0, character: 0 }, end: { line: 0, character: 4 } }, 'Body.', fields, random());
+    expect(result.label).not.toBe('note-7k2q');
+    expect(result.label).toMatch(/^note-[a-z0-9]{4}$/);
   });
 });
 
-describe('selections', () => {
-  test('deleting a note removes the markers of its selection, and deleting its first answer keeps the selection', () => {
-    const text = lines('The agents <!--[a1-->change the work<!--a1]--> of teams.\n<!-- note\n---\nauthor: A\nselection: a1\n---\nOne\n---\nauthor: B\n---\nTwo\n-->\n\nNext.\n');
-    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('The agents change the work of teams.\n\nNext.\n');
-    const kept = after(text, deleteAnswer(text, only(text), 0)) as string;
-    expect(kept).toContain('<!-- note\n---\nauthor: B\nselection: a1\n---\nTwo\n-->');
-    expect(selected(kept)).toBe('change the work');
+/** thread is a text with a note of two answers. */
+const thread = [
+  'The agents <!--[note-7k2q-->change[^note-7k2q] the work.',
+  '',
+  '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+  '',
+  '    Which teams?',
+  '',
+  '    > **anna** · 2026-10-28 11:02+01:00',
+  '    >',
+  '    > The teams of the plan.',
+  '',
+  'Next.',
+].join('\n');
+
+describe('answers', () => {
+  test('replaceAnswer writes a new body and keeps the header', () => {
+    const source = lines(thread);
+    expect(after(source, replaceAnswer(source, findNotes(source)[0], 0, 'Which two teams?\n\n- one'))).toBe(
+      thread.replace('    Which teams?', '    Which two teams?\n\n    - one'),
+    );
+  });
+
+  test('appendAnswer adds a block quote with the header and the body', () => {
+    const source = lines(thread);
+    expect(after(source, appendAnswer(source, findNotes(source)[0], 'Thanks.', { author: 'hannes', date: '2026-10-28 11:30+01:00' }))).toBe(
+      thread.replace('    > The teams of the plan.', '    > The teams of the plan.\n\n    > **hannes** · 2026-10-28 11:30+01:00\n    >\n    > Thanks.'),
+    );
+  });
+
+  test('deleteAnswer removes an answer, and after the first one the next answer becomes the first', () => {
+    const source = lines(thread);
+    const note = findNotes(source)[0];
+    expect(after(source, deleteAnswer(source, note, 1))).toBe(thread.replace('\n\n    > **anna** · 2026-10-28 11:02+01:00\n    >\n    > The teams of the plan.', ''));
+    expect(after(source, deleteAnswer(source, note, 0))).toBe(
+      thread.replace('[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which teams?\n\n    > **anna** · 2026-10-28 11:02+01:00\n    >\n    > The teams', '[^note-7k2q]: **anna** · 2026-10-28 11:02+01:00\n\n    The teams'),
+    );
+  });
+
+  test('appendAnswer adds a reply to an answer after the replies to it, one level deeper', () => {
+    const source = lines(thread);
+    const note = findNotes(source)[0];
+    const reply = appendAnswer(source, note, 'Thanks.', { author: 'hannes', date: '2026-10-28 11:30+01:00' }, 1);
+    expect(after(source, reply)).toBe(
+      thread.replace('    > The teams of the plan.', '    > The teams of the plan.\n    >\n    > > **hannes** · 2026-10-28 11:30+01:00\n    > >\n    > > Thanks.'),
+    );
+    const replied = applyEdit(source, (reply as { edit: Edit }).edit);
+    // A reply to the first answer goes after the whole tree below it.
+    expect(after(replied, appendAnswer(replied, findNotes(replied)[0], 'Later.', { author: 'eve', date: '2026-10-28 12:00+01:00' }, 0))).toBe(
+      `${replied.join('\n').replace('    > > Thanks.', '    > > Thanks.\n\n    > **eve** · 2026-10-28 12:00+01:00\n    >\n    > Later.')}`,
+    );
+    expect(appendAnswer(source, note, 'Text.', fields, 5)).toEqual({ problem: { kind: 'missing' } });
+  });
+
+  test('deleteAnswer keeps the replies of the removed answer one level higher', () => {
+    const text = [
+      'Text[^note-7k2q].',
+      '',
+      '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+      '',
+      '    Which teams?',
+      '',
+      '    > **anna** · 2026-10-28 11:02+01:00',
+      '    >',
+      '    > The teams.',
+      '    >',
+      '    > > **eve** · 2026-10-28 11:40+01:00',
+      '    > >',
+      '    > > Me too.',
+    ].join('\n');
+    const source = lines(text);
+    const note = findNotes(source)[0];
+    expect(after(source, deleteAnswer(source, note, 1))).toBe(
+      ['Text[^note-7k2q].', '', '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00', '', '    Which teams?', '', '    > **eve** · 2026-10-28 11:40+01:00', '    >', '    > Me too.'].join('\n'),
+    );
+    expect(after(source, deleteAnswer(source, note, 0))).toBe(
+      ['Text[^note-7k2q].', '', '[^note-7k2q]: **anna** · 2026-10-28 11:02+01:00', '', '    The teams.', '', '    > **eve** · 2026-10-28 11:40+01:00', '    >', '    > Me too.'].join('\n'),
+    );
+  });
+
+  test('a text that would start another answer is not written, and an empty text neither', () => {
+    const source = lines(thread);
+    const note = findNotes(source)[0];
+    expect(after(source, replaceAnswer(source, note, 0, 'Text.\n\n> **eve** · 2026-10-28 12:00+01:00'))).toEqual({ kind: 'structure' });
+    expect(after(source, appendAnswer(source, note, '', fields))).toEqual({ kind: 'empty' });
+  });
+
+  test('a note in a list item keeps the prefix of its lines', () => {
+    const text = '- Item[^note-7k2q]\n\n  [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n      Text.';
+    const source = lines(text);
+    expect(after(source, replaceAnswer(source, findNotes(source)[0], 0, 'New\n\ntext.'))).toBe(
+      '- Item[^note-7k2q]\n\n  [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n      New\n\n      text.',
+    );
   });
 });
 
 describe('deleteNote', () => {
-  test('removes a note on lines of its own with its lines, and keeps one blank line between the blocks around it', () => {
-    const text = lines('Text\n\n<!-- note\nA\n-->\n\nMore.\n');
-    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('Text\n\nMore.\n');
-    const close = lines('Text\n<!-- note\nA\n-->\n\nMore.\n');
-    expect(applyEdit(close, deleteNote(close, only(close))).join('\n')).toBe('Text\n\nMore.\n');
-    const top = lines('<!-- note\nA\n-->\n\nMore.\n');
-    expect(applyEdit(top, deleteNote(top, only(top))).join('\n')).toBe('More.\n');
+  test('removes the definition with one blank line, the reference and the start marker', () => {
+    const source = lines(thread);
+    expect(after(source, deleteNote(source, findNotes(source)[0]))).toBe('The agents change the work.\n\nNext.');
   });
 
-  test('removes an inline note on lines of its own with its lines, so that the paragraph is whole again', () => {
-    const text = lines('One\n<!-- note inline\nA\n-->\nTwo\n');
-    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('One\nTwo\n');
+  test('removes a note at the end of the text and a point', () => {
+    const source = lines('Text.<!--[note-7k2q-->[^note-7k2q]\n\n[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n    Body.\n');
+    expect(after(source, deleteNote(source, findNotes(source)[0]))).toBe('Text.\n');
   });
 
-  test('removes a note at the end of a text without a line break, with the line break before it', () => {
-    const text = lines('Text\n<!-- note\nA\n-->');
-    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('Text');
-    const alone = lines('<!-- note\nA\n-->');
-    expect(applyEdit(alone, deleteNote(alone, only(alone))).join('\n')).toBe('');
-  });
-
-  test('removes a note in a block quote with its lines', () => {
-    const text = lines('> Quote\n> <!-- note\n> A\n> -->\n');
-    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('> Quote\n');
-  });
-
-  test('removes a note in a paragraph with one space before it', () => {
-    const text = lines('A sentence <!-- note\nA\n--> and more.\n');
-    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('A sentence and more.\n');
-    const end = lines('A sentence <!-- note\nA\n-->\n');
-    expect(applyEdit(end, deleteNote(end, only(end))).join('\n')).toBe('A sentence\n');
+  test('the only answer of a note goes with the note', () => {
+    const source = lines('Text[^note-7k2q].\n\n[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n    Body.');
+    expect(after(source, deleteAnswer(source, findNotes(source)[0], 0))).toBe('Text.');
   });
 });

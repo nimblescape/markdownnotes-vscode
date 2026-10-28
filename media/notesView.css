@@ -8,7 +8,8 @@
  * The styles of the side view "Notes" (R-SIDE-001, R-SIDE-002). The view uses
  * the font, the colors and the buttons of the theme of VS Code. Each thread is
  * a box with the color of its note at its left side and the badge with its
- * number; the selected thread has a frame in this color (R-SIDE-007).
+ * number; the selected thread has a frame in this color (R-SIDE-007). The
+ * replies to a reply are indented below it.
  *
  * With the funnels, the strip at the left edge stands for the whole file: a
  * mark in the color of each note, and a frame for the part of the file that
@@ -35,7 +36,6 @@ body {
 
 .account,
 .hint,
-.kind,
 .date {
   color: var(--vscode-descriptionForeground);
 }
@@ -209,6 +209,17 @@ body.with-funnels .funnels {
 
 .answer + .answer {
   border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.25));
+}
+
+/* A reply to a reply is indented by its level, with a line at its left side (R-NOTE-004). */
+.answer.reply {
+  margin-left: calc(var(--depth, 0) * 12px);
+  padding-left: 8px;
+  border-left: 2px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+}
+
+.answer.reply + .answer {
+  border-top: none;
 }
 
 .answer-header {
