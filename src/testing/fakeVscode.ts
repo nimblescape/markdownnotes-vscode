@@ -4,9 +4,9 @@
 
 /**
  * A fake of the part of the API of VS Code that the extension uses, for the
- * unit tests of the activation, the threads and the side view. A test creates
- * a new fake for each test, gives it to `vi.doMock('vscode', ...)`, and reads
- * what the extension did: the threads, the decorations, the messages, the
+ * unit tests of the activation, the text editor and the side view. A test
+ * creates a new fake for each test, gives it to `vi.doMock('vscode', ...)`, and
+ * reads what the extension did: the decorations, the hovers, the commands, the
  * edits of the documents and the messages to the side view. The fake applies
  * a workspace edit to its documents and fires the change event, as VS Code
  * does.
@@ -61,6 +61,22 @@ export class FakePosition {
     readonly line: number,
     readonly character: number,
   ) {}
+
+  compareTo(other: FakePosition): number {
+    return this.line === other.line ? this.character - other.character : this.line - other.line;
+  }
+
+  isAfter(other: FakePosition): boolean {
+    return this.compareTo(other) > 0;
+  }
+
+  isBefore(other: FakePosition): boolean {
+    return this.compareTo(other) < 0;
+  }
+
+  isEqual(other: FakePosition): boolean {
+    return this.compareTo(other) === 0;
+  }
 }
 
 /** FakeRange stands for a vscode.Range. */
@@ -113,6 +129,14 @@ export class FakeMarkdownString {
   constructor(readonly value: string) {}
 }
 
+/** FakeHover stands for a vscode.Hover. */
+export class FakeHover {
+  constructor(
+    readonly contents: FakeMarkdownString,
+    readonly range?: FakeRange,
+  ) {}
+}
+
 /** FakeWorkspaceEdit stands for a vscode.WorkspaceEdit. */
 export class FakeWorkspaceEdit {
   readonly replacements: { uri: FakeUri; range: FakeRange; text: string }[] = [];
@@ -157,16 +181,6 @@ export class FakeFoldingRange {
 /** FakeThemeColor stands for a vscode.ThemeColor. */
 export class FakeThemeColor {
   constructor(readonly id: string) {}
-}
-
-/** FakeComment is the part of a vscode.Comment that the tests read and that VS Code writes. */
-export interface FakeComment {
-  body: FakeMarkdownString | string;
-  mode: number;
-  author: { name: string };
-  timestamp: Date | undefined;
-  label: string | undefined;
-  contextValue: string;
 }
 
 /** FakeDocument stands for a vscode.TextDocument. */
@@ -336,30 +350,16 @@ export class FakeView {
       line: number | undefined;
       account: string | undefined;
       selected: string | undefined;
-      threads: { id: string; line: number; answers: { author: string; date: string; authorDate: string; body: string; html: string; depth: number; parent: number | undefined }[] }[];
+      highlight: string | undefined;
+      threads: {
+        id: string;
+        line: number;
+        color: string;
+        colorName: string;
+        text: string;
+        answers: { author: string; date: string; authorDate: string; body: string; html: string; depth: number; parent: number | undefined }[];
+      }[];
     };
-  }
-}
-
-/** FakeThread stands for a vscode.CommentThread. */
-export class FakeThread {
-  canReply = true;
-  label: string | undefined;
-  contextValue: string | undefined;
-  collapsibleState = 0;
-  disposed = false;
-
-  constructor(
-    readonly fake: Fake,
-    readonly uri: FakeUri,
-    public range: FakeRange | undefined,
-    public comments: FakeComment[],
-  ) {
-    fake.threads.push(this);
-  }
-
-  dispose(): void {
-    this.disposed = true;
   }
 }
 
@@ -371,7 +371,6 @@ export interface Registration {
 
 /** Fake is the fake API with the records of what the extension did. */
 export class Fake {
-  threads: FakeThread[] = [];
   documents: FakeDocument[] = [];
   editors: FakeEditor[] = [];
   activeEditor: FakeEditor | undefined;
@@ -384,6 +383,8 @@ export class Fake {
   calls: { command: string; args: unknown[] }[] = [];
   /** external records the URIs that the extension opened with the system. */
   external: string[] = [];
+  /** infos records the information messages of the extension. */
+  infos: string[] = [];
   /** warnings records the questions of the extension; the answer is the item that the user picks, or undefined. */
   warnings: string[] = [];
   answer: string | undefined;
@@ -396,10 +397,11 @@ export class Fake {
   errors: string[] = [];
   diagnostics = new Map<string, FakeDiagnostic[]>();
   folding = new Map<string, { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }>();
+  /** hovers holds the providers of the hovers of each language, in the order of their registration. */
+  hovers = new Map<string, { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }[]>();
   /** formatters holds the provider of "Format Document" of each language. */
   formatters = new Map<string, { provideDocumentFormattingEdits(document: FakeDocument): FakeTextEdit[] }>();
   listeners = new Map<string, ((event: unknown) => void)[]>();
-  controller: { id: string; options?: unknown; commentingRangeProvider?: { provideCommentingRanges(document: FakeDocument): FakeRange[] } } | undefined;
   /** login is the GitHub login of the session; undefined means no session, and a sign-in is refused. */
   login: string | undefined;
   /** signIn is the login that a sign-in gives, or undefined when the user cancels it. */
@@ -436,13 +438,12 @@ export class Fake {
       Range: FakeRange,
       Selection: FakeSelection,
       MarkdownString: FakeMarkdownString,
+      Hover: FakeHover,
       WorkspaceEdit: FakeWorkspaceEdit,
       TextEdit: FakeTextEdit,
       Diagnostic: FakeDiagnostic,
       FoldingRange: FakeFoldingRange,
       ThemeColor: FakeThemeColor,
-      CommentMode: { Editing: 0, Preview: 1 },
-      CommentThreadCollapsibleState: { Collapsed: 0, Expanded: 1 },
       DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2 },
       FoldingRangeKind: { Comment: 1 },
       TextEditorRevealType: { InCenterIfOutsideViewport: 2 },
@@ -458,15 +459,6 @@ export class Fake {
           return true;
         },
       },
-      comments: {
-        createCommentController: (id: string) => {
-          this.controller = Object.assign(this.registration(), {
-            id,
-            createCommentThread: (uri: FakeUri, range: FakeRange, comments: FakeComment[]) => new FakeThread(this, uri, range, comments),
-          });
-          return this.controller;
-        },
-      },
       languages: {
         createDiagnosticCollection: () =>
           Object.assign(this.registration(), {
@@ -475,6 +467,10 @@ export class Fake {
           }),
         registerFoldingRangeProvider: (language: string, provider: { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }) => {
           this.folding.set(language, provider);
+          return this.registration();
+        },
+        registerHoverProvider: (language: string, provider: { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }) => {
+          this.hovers.set(language, [...(this.hovers.get(language) ?? []), provider]);
           return this.registration();
         },
         registerDocumentFormattingEditProvider: (selector: { language: string }, provider: { provideDocumentFormattingEdits(document: FakeDocument): FakeTextEdit[] }) => {
@@ -498,6 +494,9 @@ export class Fake {
       window: {
         showErrorMessage: async (message: string) => {
           this.errors.push(message);
+        },
+        showInformationMessage: async (message: string) => {
+          this.infos.push(message);
         },
         showWarningMessage: async (message: string) => {
           this.warnings.push(message);
@@ -539,7 +538,7 @@ export class Fake {
       },
       workspace: {
         getConfiguration: (section: string, scope?: FakeUri) => {
-          const values = { ...this.settings.get(''), ...this.settings.get('workspace'), ...this.settings.get(scope?.path ?? '') };
+          const values = { ...this.settings.get(''), ...this.settings.get('workspace'), ...(scope ? this.settings.get(scope.path) : undefined) };
           return {
             get: (key: string) => values[key],
             inspect: (key: string) => ({ globalValue: this.settings.get('')?.[key], workspaceValue: this.settings.get('workspace')?.[key] }),
@@ -678,9 +677,14 @@ export class Fake {
     return view;
   }
 
-  /** live returns the threads that were not disposed. */
-  live(): FakeThread[] {
-    return this.threads.filter((thread) => !thread.disposed);
+  /**
+   * hover asks the providers of the hovers of a document for a position, as VS Code does when the pointer rests there,
+   * and returns their hovers.
+   * @param document - The document.
+   * @param position - The position of the pointer.
+   */
+  hover(document: FakeDocument, position: FakePosition): FakeHover[] {
+    return (this.hovers.get(document.languageId) ?? []).flatMap((provider) => provider.provideHover(document, position) ?? []);
   }
 
   /**
@@ -701,12 +705,6 @@ export async function settle(): Promise<void> {
     await Promise.resolve();
   }
 }
-
-/**
- * bodyOf returns the text of the body of a comment.
- * @param comment - The comment.
- */
-export const bodyOf = (comment: FakeComment): string => (typeof comment.body === 'string' ? comment.body : comment.body.value);
 
 /**
  * marked returns a text with the comment of the format of the notes at its top, as the extension writes it with a

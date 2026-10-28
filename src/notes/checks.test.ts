@@ -26,12 +26,19 @@ const header = '**hannes** · 2026-10-28 10:15+01:00';
 
 describe('checksOf', () => {
   test('a note in the form that the extension writes has no warning', () => {
-    expect(checks(`The <!--[note-aaaa-->text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    Body.\n\n    > **anna** · 2026-10-28 11:02+01:00\n    >\n    > Answer.\n\nNext.`)).toEqual([]);
+    expect(checks(`<wbr><!--[note-bbbb green-->The[^note-bbbb] <wbr><!--[note-aaaa-->text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    Body.\n\n    > **anna** · 2026-10-28 11:02+01:00\n    >\n    > Answer.\n\n[^note-bbbb]: ${header}\n\n    Body.\n\nNext.`)).toEqual([]);
+  });
+
+  test('warns at a note without a start marker and at a note that highlights no text (Hannes, 2026-10-28: "there should never be a note without a start marker")', () => {
+    expect(checks(`Text[^note-aaaa] and <wbr><!--[note-bbbb-->[^note-bbbb].\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}`)).toEqual([
+      [0, 'warning', 'The note has no start marker'],
+      [0, 'warning', 'The note highlights no text'],
+    ]);
   });
 
   test('warns at a definition without blank lines around it and at lines of a note without four spaces', () => {
     // The line without indentation is a lazy line of the paragraph of the note, and the heading ends the note.
-    expect(checks(`Text[^note-aaaa].\n[^note-aaaa]: ${header}\n    Body.\nlazy line\n# Next`)).toEqual([
+    expect(checks(`<wbr><!--[note-aaaa-->Text[^note-aaaa].\n[^note-aaaa]: ${header}\n    Body.\nlazy line\n# Next`)).toEqual([
       [1, 'warning', 'Put a blank line before the note'],
       [3, 'warning', 'Put a blank line after the note'],
       [3, 'information', 'Indent each line of a note by four spaces'],
@@ -39,7 +46,7 @@ describe('checksOf', () => {
   });
 
   test('warns at a second label, at a note without a reference, at a reference without a note, and at a note in a block quote', () => {
-    expect(checks(`Text[^note-aaaa] and[^note-zzzz].\n\n[^note-aaaa]: ${header}\n\n[^note-aaaa]: ${header}\n\n> [^note-bbbb]: ${header}\n`)).toEqual([
+    expect(checks(`<wbr><!--[note-aaaa-->Text[^note-aaaa] and[^note-zzzz].\n\n[^note-aaaa]: ${header}\n\n[^note-aaaa]: ${header}\n\n> [^note-bbbb]: ${header}\n`)).toEqual([
       [0, 'warning', 'The file has no note note-zzzz'],
       [4, 'warning', 'Another note of the file has the label note-aaaa'],
       [6, 'warning', 'No reference [^note-bbbb] names this note'],
@@ -64,7 +71,9 @@ describe('checksOf', () => {
       `[^note-cccc]: ${header}`,
     ].join('\n');
     expect(checks(text)).toEqual([
+      [0, 'warning', 'The note has no start marker'],
       [0, 'information', 'A reference in a heading changes the anchor of the heading on GitHub'],
+      [2, 'warning', 'The note has no start marker'],
       [2, 'warning', 'A reference in the text of a link breaks the link on GitHub'],
       [4, 'warning', 'A start marker at the start of a line ends the paragraph'],
       [8, 'warning', 'A note holds no note'],

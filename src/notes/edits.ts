@@ -4,7 +4,8 @@
 
 /**
  * The changes of the Markdown text when an answer is saved, added or deleted,
- * and when a note is added or deleted
+ * when a note is added or deleted, when it gets a color, and when the text
+ * view of the side view saves its whole text
  * ([R-EDIT-002](../../docs/requirements.md#r-edit-002) to
  * [R-EDIT-005](../../docs/requirements.md#r-edit-005)). Each function returns
  * one edit of the lines of the text, or the problem that prevents it. The
@@ -16,6 +17,7 @@
  * would start another answer or end the note early never reaches the file.
  */
 
+import { colorNames } from './colors';
 import { doctypeEdit } from './doctype';
 import { before, findNotes, type Note, type Position, type Range, read, type Reading, same, type TextBlock } from './notes';
 import { type AnswerText, type Header, markerText, newLabel, noteLines, referenceText, usedLabels } from './syntax';
@@ -32,13 +34,16 @@ export interface Edit {
  * that markdown-it would not read back as the same note, `place` for a new note outside the text of a paragraph, a
  * heading, a list or a table, `signIn` for a new note or answer without a GitHub sign-in
  * ([R-GEN-006](../../docs/requirements.md#r-gen-006)), `missing` for a note that the document no longer holds, and
- * `format` for a document whose comment of the format names a newer version than the extension knows
- * ([R-NOTE-007](../../docs/requirements.md#r-note-007)).
+ * `noText` for a new note without highlighted text, `format` for a document whose comment of the format names a newer version than the extension knows
+ * ([R-NOTE-007](../../docs/requirements.md#r-note-007)), and `text` for a text of the text view that is not the
+ * definition of the same note.
  */
 export type Problem =
   | { kind: 'empty' }
   | { kind: 'structure' }
+  | { kind: 'text'; label: string }
   | { kind: 'place' }
+  | { kind: 'noText' }
   | { kind: 'signIn' }
   | { kind: 'missing' }
   | { kind: 'format'; format: number };
@@ -289,8 +294,8 @@ function blockAt(blocks: readonly TextBlock[], position: Position): TextBlock | 
 
 /** Place is the place of a new note: its start marker, its reference, and the line before which its definition goes. */
 export interface Place {
-  /** marker is the position of the start marker, or undefined for a selection from the start of the block. */
-  marker: Position | undefined;
+  /** marker is the position of the start marker. */
+  marker: Position;
   /** reference is the position of the reference, the end of the selection. */
   reference: Position;
   /** line is the index of the line before which the definition goes, in the text before the change. */
@@ -319,12 +324,12 @@ function definitionLine(reading: Reading, block: TextBlock, reference: Position)
 
 /**
  * placeFor returns the place of a new note for a range of a Markdown text, when the range is in the text of a
- * paragraph, a heading or a table cell ([R-NOTE-006](../../docs/requirements.md#r-note-006)). The selection belongs
- * to one block, the block of its end; an empty range gets a point at the end of the text of its line. The reference
- * never stands in a code span or a link: it moves after it. A start marker never starts a line, because a comment at
- * the start of a line starts an HTML block, which ends the paragraph in every Markdown viewer: it goes to the end of
- * the text of the line before, and at the start of the text of the block it is left out, so that the selection
- * starts at the start of its block.
+ * paragraph, a heading or a table cell ([R-NOTE-006](../../docs/requirements.md#r-note-006)). The highlight belongs
+ * to one block, the block of its end. A range without text has no place: every new note highlights text (Hannes,
+ * 2026-10-28: "there shall be no way to add a note without highlighting text"). The reference
+ * never stands in a code span or a link: it moves after it. Every note has a start marker (Hannes, 2026-10-28: "there
+ * should never be a note without a start marker"), also at the start of a line: `<wbr>` before its comment keeps the
+ * comment from starting a block of HTML, which would end the paragraph.
  * @param lines - The lines of the Markdown text.
  * @param range - The range, for example the selection of the text editor.
  * @param reading - The reading of the text.
@@ -332,10 +337,8 @@ function definitionLine(reading: Reading, block: TextBlock, reference: Position)
 export function placeFor(lines: readonly string[], range: Range, reading: Reading = read(lines)): Place | undefined {
   const blocks = reading.blocks;
   let { start, end } = range;
-  const point = (block: TextBlock, at: Position): Place => ({ marker: at, reference: at, line: definitionLine(reading, block, at) });
   if (same(start, end)) {
-    const block = blockAt(blocks, start);
-    return block ? point(block, block.ends.get(start.line)!) : undefined;
+    return undefined;
   }
   // A selection of whole lines ends at the start of the next line, which belongs to the line before.
   const endLineBlock = blockAt(blocks, end);
@@ -363,8 +366,9 @@ export function placeFor(lines: readonly string[], range: Range, reading: Readin
       end = { line: end.line, character: span.end };
     }
   }
-  // The selection starts in the block of its end, in the text of its line, and never in a code span.
-  if (blockAt(blocks, start) !== block || before(end, start)) {
+  // The selection starts in the block of its end, in the text of its line, and never in a code span. A selection that
+  // holds no text of its block, such as a line break only, keeps its start and gets no place.
+  if (blockAt(blocks, start) !== block || (before(end, start) && !same(end, start))) {
     start = block.starts.get(block.first)!;
   } else {
     const startLine = block.starts.get(start.line)!;
@@ -381,15 +385,24 @@ export function placeFor(lines: readonly string[], range: Range, reading: Readin
     }
   }
   if (!before(start, end) || same(start, end)) {
-    return point(block, end);
+    return undefined;
   }
-  let marker: Position | undefined = start;
-  if (same(start, block.starts.get(block.first)!)) {
-    marker = undefined;
-  } else if (same(start, block.starts.get(start.line)!)) {
-    marker = block.ends.get(start.line - 1);
-  }
-  return { marker, reference: end, line: definitionLine(reading, block, end) };
+  return { marker: start, reference: end, line: definitionLine(reading, block, end) };
+}
+
+/**
+ * highlightFor returns the place of a new note for a selection that starts and ends in the same block of text, which the
+ * hover of the selection offers ([R-EDIT-003](../../docs/requirements.md#r-edit-003)), or undefined. The highlight of the
+ * note goes from the start marker to the reference of the place. "Add Note" also takes a selection over several blocks,
+ * for the text of the last block.
+ * @param lines - The lines of the Markdown text.
+ * @param range - The selection.
+ * @param reading - The reading of the lines.
+ */
+export function highlightFor(lines: readonly string[], range: Range, reading: Reading = read(lines)): Place | undefined {
+  const place = placeFor(lines, range, reading);
+  const block = place && blockAt(reading.blocks, place.reference);
+  return block && blockAt(reading.blocks, range.start) === block ? place : undefined;
 }
 
 /**
@@ -402,10 +415,14 @@ export function placeFor(lines: readonly string[], range: Range, reading: Readin
  * @param body - The body, as normalizeBody returns it.
  * @param fields - The author and the date.
  * @param random - Returns a random number from 0 to below 1, for the label.
+ * @param color - The name of the color of the note, or undefined for the default color.
  */
-export function insertNote(lines: readonly string[], range: Range, body: string, fields: Fields, random?: () => number): Result & { label?: string; start?: Position } {
+export function insertNote(lines: readonly string[], range: Range, body: string, fields: Fields, random?: () => number, color?: string): Result & { label?: string; start?: Position } {
   if (body === '') {
     return { problem: { kind: 'empty' } };
+  }
+  if (same(range.start, range.end)) {
+    return { problem: { kind: 'noText' } };
   }
   const place = placeFor(lines, range);
   if (!place) {
@@ -415,7 +432,7 @@ export function insertNote(lines: readonly string[], range: Range, body: string,
   const next = [...lines];
   const parts = [
     { position: place.reference, text: referenceText(label) },
-    ...(place.marker ? [{ position: place.marker, text: markerText(label) }] : []),
+    { position: place.marker, text: markerText(label, color) },
   ].sort((a, b) => (before(a.position, b.position) ? (same(a.position, b.position) ? 0 : 1) : -1));
   // The later part goes first, so that the position of the earlier one stays; at the same position the marker goes before the reference.
   for (const { position, text } of parts) {
@@ -454,4 +471,50 @@ export function deleteNote(lines: readonly string[], note: Note): Edit {
     next.splice(at - 1, 1);
   }
   return editBetween(lines, next);
+}
+
+/**
+ * colorNote returns the edit that gives a note a color: the name of the color in its start marker, or no name for the
+ * default color (Hannes, 2026-10-28: "notes can be colored in the notes editor, by default they get all the same
+ * color"). The marker gets `<wbr>` when it has none, and a note without a start marker gets one at the start of its
+ * highlight.
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ * @param color - The name of the color, or undefined for the default color.
+ */
+export function colorNote(lines: readonly string[], note: Note, color: string | undefined): Result {
+  if (!note.selection) {
+    return { problem: { kind: 'missing' } };
+  }
+  const next = [...lines];
+  const { start, end } = note.marker ?? { start: note.selection.start, end: note.selection.start };
+  const line = next[start.line];
+  next[start.line] = line.slice(0, start.character) + markerText(note.label, color) + line.slice(end.character);
+  const written = findNotes(next).find((candidate) => candidate.label === note.label && !candidate.duplicate);
+  const expected = color === colorNames[0] ? undefined : color;
+  return written?.marker && written.color === expected ? { edit: editBetween(lines, next) } : { problem: { kind: 'structure' } };
+}
+
+/**
+ * replaceNoteText returns the edit that gives a note the text of the text view of the side view: the lines of its
+ * definition as the file holds them, without the prefix of its block quotes and list items (Hannes, 2026-10-28: "the
+ * text editor view of the notes toggles the complete note in the side view in a text view"). The text must stay the
+ * definition of the same note: it starts with the label and the header, ends where the note ends, and adds or removes
+ * no other note.
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ * @param text - The text, with `\n` or `\r\n` as line breaks.
+ */
+export function replaceNoteText(lines: readonly string[], note: Note, text: string): Result {
+  const own = text.replace(/\r\n?/g, '\n').replace(/\s+$/, '').split('\n');
+  if (own.join('').trim() === '') {
+    return { problem: { kind: 'empty' } };
+  }
+  const written = withPrefix(own, note.prefix);
+  const next = [...lines.slice(0, note.start.line), lines[note.start.line].slice(0, note.start.character) + written[0], ...written.slice(1), ...lines.slice(note.end.line + 1)];
+  const count = findNotes(lines).length;
+  const notes = findNotes(next);
+  const changed = notes.find((candidate) => candidate.label === note.label && !candidate.duplicate);
+  const fits = changed !== undefined && changed.start.line === note.start.line && changed.end.line === note.start.line + written.length - 1 && notes.length === count;
+  return fits ? { edit: editBetween(lines, next) } : { problem: { kind: 'text', label: note.label } };
 }

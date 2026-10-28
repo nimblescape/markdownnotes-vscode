@@ -86,7 +86,7 @@ describe('the command format', () => {
     ].join('\n');
     const result = formatText(text).split('\n');
     expect(result.slice(0, 2)).toEqual(text.split('\n').slice(0, 2));
-    expect(result[3]).toBe('Some <!--[note-7k2q-->text[^note-7k2q] of a paragraph.');
+    expect(result[3]).toBe('Some <wbr><!--[note-7k2q-->text[^note-7k2q] of a paragraph.');
     expect(result.slice(4)).toEqual(['', '[^note-7k2q]: **hannes** · 2026-10-28 18:03+01:00', '', '    Please check.', '']);
   });
 

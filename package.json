@@ -1,7 +1,7 @@
 {
   "name": "nimblescape-markdown-notes",
   "displayName": "nimblescape Markdown Notes",
-  "description": "Notes in Markdown files, written as footnotes that GitHub shows: threads of replies with their authors and dates. The text editor shows each note in a box that edits it as Markdown, the Markdown preview shows an icon with a callout, and a side view edits and answers the notes. Every change goes back into the footnote in the file.",
+  "description": "Notes in Markdown files, written as footnotes that GitHub shows: threads of replies with their authors and dates. A side view shows each note next to its passage in the text editor, and edits and answers the notes; the text editor and the Markdown preview highlight the passages. Every change goes back into the footnote in the file.",
   "publisher": "nimblescape",
   "author": {
     "name": "nimblescape e.U.",
@@ -114,84 +114,28 @@
         {
           "type": "webview",
           "id": "nimblescape.markdownNotes.notes",
-          "name": "Notes",
-          "when": "config.nimblescape.markdownNotes.showNotesIn != inline"
+          "name": "Notes"
         }
       ]
     },
     "commands": [
       {
-        "command": "nimblescape.markdownNotes.addNote",
+        "command": "nimblescape.markdownNotes.newNote",
         "title": "Add Note",
-        "category": "Markdown Notes"
-      },
-      {
-        "command": "nimblescape.markdownNotes.discardNewNote",
-        "title": "Cancel",
-        "category": "Markdown Notes"
-      },
-      {
-        "command": "nimblescape.markdownNotes.answer",
-        "title": "Answer",
-        "category": "Markdown Notes"
-      },
-      {
-        "command": "nimblescape.markdownNotes.replyToAnswer",
-        "title": "Reply",
         "category": "Markdown Notes",
-        "icon": "$(reply)"
+        "icon": "$(add)"
       },
       {
-        "command": "nimblescape.markdownNotes.editAnswer",
-        "title": "Edit",
-        "category": "Markdown Notes",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.deleteAnswer",
-        "title": "Delete",
-        "category": "Markdown Notes",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.saveAnswer",
-        "title": "Save",
-        "category": "Markdown Notes"
-      },
-      {
-        "command": "nimblescape.markdownNotes.cancelEdit",
-        "title": "Cancel",
-        "category": "Markdown Notes"
-      },
-      {
-        "command": "nimblescape.markdownNotes.deleteNote",
-        "title": "Delete Thread",
-        "category": "Markdown Notes",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.showInPreview",
-        "title": "Show Notes in Preview",
+        "command": "nimblescape.markdownNotes.showHighlights",
+        "title": "Show Highlights",
         "category": "Markdown Notes",
         "icon": "$(eye)"
       },
       {
-        "command": "nimblescape.markdownNotes.hideInPreview",
-        "title": "Hide Notes in Preview",
+        "command": "nimblescape.markdownNotes.hideHighlights",
+        "title": "Hide Highlights",
         "category": "Markdown Notes",
         "icon": "$(eye-closed)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.showIconsInPreview",
-        "title": "Show Note Icons in Preview",
-        "category": "Markdown Notes",
-        "icon": "$(comment-draft)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.hideIconsInPreview",
-        "title": "Hide Note Icons in Preview",
-        "category": "Markdown Notes",
-        "icon": "$(comment)"
       },
       {
         "command": "nimblescape.markdownNotes.hideNotes",
@@ -204,40 +148,6 @@
         "title": "Show or Hide Notes",
         "category": "Markdown Notes",
         "icon": "$(comment-discussion)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.showFunnels",
-        "title": "Show Funnels",
-        "category": "Markdown Notes",
-        "icon": "$(eye)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.hideFunnels",
-        "title": "Hide Funnels",
-        "category": "Markdown Notes",
-        "icon": "$(eye-closed)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.collapseNote",
-        "title": "Hide Note Text",
-        "category": "Markdown Notes",
-        "icon": "$(fold)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.expandNote",
-        "title": "Show Note Text",
-        "category": "Markdown Notes",
-        "icon": "$(unfold)"
-      },
-      {
-        "command": "nimblescape.markdownNotes.collapseAllNotes",
-        "title": "Collapse All Notes",
-        "category": "Markdown Notes"
-      },
-      {
-        "command": "nimblescape.markdownNotes.expandAllNotes",
-        "title": "Expand All Notes",
-        "category": "Markdown Notes"
       },
       {
         "command": "nimblescape.markdownNotes.deleteLeft",
@@ -261,106 +171,28 @@
       }
     ],
     "menus": {
-      "comments/commentThread/context": [
-        {
-          "command": "nimblescape.markdownNotes.addNote",
-          "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes && commentThreadIsEmpty"
-        },
-        {
-          "command": "nimblescape.markdownNotes.answer",
-          "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes && !commentThreadIsEmpty"
-        },
-        {
-          "command": "nimblescape.markdownNotes.discardNewNote",
-          "group": "inline@2",
-          "when": "commentController == nimblescape.markdownNotes && commentThreadIsEmpty"
-        }
-      ],
-      "comments/commentThread/title": [
-        {
-          "command": "nimblescape.markdownNotes.collapseNote",
-          "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note && !config.nimblescape.markdownNotes.keepNotesCollapsed"
-        },
-        {
-          "command": "nimblescape.markdownNotes.expandNote",
-          "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note.folded && !config.nimblescape.markdownNotes.keepNotesCollapsed"
-        },
-        {
-          "command": "nimblescape.markdownNotes.deleteNote",
-          "group": "inline@2",
-          "when": "commentController == nimblescape.markdownNotes && commentThread =~ /^nimblescape\\.markdownNotes\\.note(\\.folded)?$/"
-        }
-      ],
-      "comments/comment/title": [
-        {
-          "command": "nimblescape.markdownNotes.replyToAnswer",
-          "group": "inline@0",
-          "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
-        },
-        {
-          "command": "nimblescape.markdownNotes.editAnswer",
-          "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
-        },
-        {
-          "command": "nimblescape.markdownNotes.deleteAnswer",
-          "group": "inline@2",
-          "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
-        }
-      ],
-      "comments/comment/context": [
-        {
-          "command": "nimblescape.markdownNotes.saveAnswer",
-          "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes"
-        },
-        {
-          "command": "nimblescape.markdownNotes.cancelEdit",
-          "group": "inline@2",
-          "when": "commentController == nimblescape.markdownNotes"
-        }
-      ],
       "editor/title": [
         {
           "command": "nimblescape.markdownNotes.toggleNotes",
           "group": "navigation",
-          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && config.nimblescape.markdownNotes.showNotesIn != inline"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor')"
         },
         {
-          "command": "nimblescape.markdownNotes.showInPreview",
+          "command": "nimblescape.markdownNotes.showHighlights",
           "group": "navigation",
-          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && !config.nimblescape.markdownNotes.showInPreview"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && !nimblescape.markdownNotes.highlightsShown"
         },
         {
-          "command": "nimblescape.markdownNotes.hideInPreview",
+          "command": "nimblescape.markdownNotes.hideHighlights",
           "group": "navigation",
-          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview"
-        },
-        {
-          "command": "nimblescape.markdownNotes.showIconsInPreview",
-          "group": "navigation",
-          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview && !config.nimblescape.markdownNotes.showIconsInPreview"
-        },
-        {
-          "command": "nimblescape.markdownNotes.hideIconsInPreview",
-          "group": "navigation",
-          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview && config.nimblescape.markdownNotes.showIconsInPreview"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && nimblescape.markdownNotes.highlightsShown"
         }
       ],
       "view/title": [
         {
-          "command": "nimblescape.markdownNotes.showFunnels",
+          "command": "nimblescape.markdownNotes.newNote",
           "group": "navigation@1",
-          "when": "view == nimblescape.markdownNotes.notes && !config.nimblescape.markdownNotes.showFunnels"
-        },
-        {
-          "command": "nimblescape.markdownNotes.hideFunnels",
-          "group": "navigation@1",
-          "when": "view == nimblescape.markdownNotes.notes && config.nimblescape.markdownNotes.showFunnels"
+          "when": "view == nimblescape.markdownNotes.notes"
         },
         {
           "command": "nimblescape.markdownNotes.hideNotes",
@@ -370,80 +202,20 @@
       ],
       "commandPalette": [
         {
-          "command": "nimblescape.markdownNotes.addNote",
-          "when": "false"
+          "command": "nimblescape.markdownNotes.newNote",
+          "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
         },
         {
-          "command": "nimblescape.markdownNotes.discardNewNote",
-          "when": "false"
+          "command": "nimblescape.markdownNotes.showHighlights",
+          "when": "!nimblescape.markdownNotes.highlightsShown"
         },
         {
-          "command": "nimblescape.markdownNotes.answer",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.replyToAnswer",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.editAnswer",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.deleteAnswer",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.saveAnswer",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.cancelEdit",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.deleteNote",
-          "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.showInPreview",
-          "when": "!config.nimblescape.markdownNotes.showInPreview"
-        },
-        {
-          "command": "nimblescape.markdownNotes.hideInPreview",
-          "when": "config.nimblescape.markdownNotes.showInPreview"
-        },
-        {
-          "command": "nimblescape.markdownNotes.showIconsInPreview",
-          "when": "config.nimblescape.markdownNotes.showInPreview && !config.nimblescape.markdownNotes.showIconsInPreview"
-        },
-        {
-          "command": "nimblescape.markdownNotes.hideIconsInPreview",
-          "when": "config.nimblescape.markdownNotes.showInPreview && config.nimblescape.markdownNotes.showIconsInPreview"
+          "command": "nimblescape.markdownNotes.hideHighlights",
+          "when": "nimblescape.markdownNotes.highlightsShown"
         },
         {
           "command": "nimblescape.markdownNotes.hideNotes",
           "when": "false"
-        },
-        {
-          "command": "nimblescape.markdownNotes.showFunnels",
-          "when": "!config.nimblescape.markdownNotes.showFunnels"
-        },
-        {
-          "command": "nimblescape.markdownNotes.hideFunnels",
-          "when": "config.nimblescape.markdownNotes.showFunnels"
-        },
-        {
-          "command": "nimblescape.markdownNotes.collapseNote",
-          "when": "editorLangId == markdown && !config.nimblescape.markdownNotes.keepNotesCollapsed"
-        },
-        {
-          "command": "nimblescape.markdownNotes.collapseAllNotes",
-          "when": "editorLangId == markdown"
-        },
-        {
-          "command": "nimblescape.markdownNotes.expandAllNotes",
-          "when": "editorLangId == markdown && !config.nimblescape.markdownNotes.keepNotesCollapsed"
         },
         {
           "command": "nimblescape.markdownNotes.deleteLeft",
@@ -460,6 +232,13 @@
         {
           "command": "nimblescape.markdownNotes.deleteWordRight",
           "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "nimblescape.markdownNotes.newNote",
+          "group": "nimblescape@1",
+          "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
         }
       ]
     },
@@ -490,67 +269,17 @@
     "configuration": {
       "title": "nimblescape Markdown Notes",
       "properties": {
-        "nimblescape.markdownNotes.expandInEditor": {
-          "type": "boolean",
-          "default": false,
-          "scope": "resource",
-          "markdownDescription": "Open the box of each note in the text editor when the file opens. The value `false` shows only a mark at the lines of each note; a click on the mark opens the box."
-        },
-        "nimblescape.markdownNotes.showInPreview": {
+        "nimblescape.markdownNotes.showHighlights": {
           "type": "boolean",
           "default": true,
-          "scope": "resource",
-          "markdownDescription": "Show the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes, icons and callouts."
-        },
-        "nimblescape.markdownNotes.showCalloutOnHover": {
-          "type": "boolean",
-          "default": true,
-          "scope": "resource",
-          "markdownDescription": "Show the callout of a note in the Markdown preview while the pointer rests on its icon. The value `false` shows the callout only while the icon has the keyboard focus. A click on the icon or on the highlighted passage never shows the callout: it selects the note in the side view."
-        },
-        "nimblescape.markdownNotes.showIconsInPreview": {
-          "type": "boolean",
-          "default": true,
-          "scope": "resource",
-          "markdownDescription": "Show the icons of the notes in the Markdown preview. The value `false` hides the icons: the passages of the notes still show with their highlight, and a click on a passage still selects its note in the side view. The buttons \"Hide Note Icons in Preview\" and \"Show Note Icons in Preview\" in the title of the preview change this setting."
-        },
-        "nimblescape.markdownNotes.collapseInEditor": {
-          "type": "boolean",
-          "default": true,
-          "scope": "resource",
-          "markdownDescription": "Collapse the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open."
+          "scope": "window",
+          "markdownDescription": "Show the highlight of each note, the text from its start marker to its reference, in the color of the note in the text editor and in the Markdown preview, while the side view \"Notes\" is open. The value `false` hides the highlights; the highlight of the selected note of the side view still shows, and a hidden highlight shows while the pointer is on its text. The buttons \"Hide Highlights\" and \"Show Highlights\" in the title of the editor change this setting; \"Show Highlights\" also opens the side view."
         },
         "nimblescape.markdownNotes.addFormatComment": {
           "type": "boolean",
           "default": true,
           "scope": "window",
           "markdownDescription": "Add the comment of the format of the notes, their \"DOCTYPE\" with the link to the specification for AI agents, at the top of a file with notes as soon as an editor shows the file. The file then has an unsaved change. When off, the comment comes only with a change of a note that the extension writes."
-        },
-        "nimblescape.markdownNotes.keepNotesCollapsed": {
-          "type": "boolean",
-          "default": false,
-          "scope": "window",
-          "markdownDescription": "Keep the notes collapsed in the text editor: they collapse when a file opens, and nothing expands them, neither a click on a fold arrow nor a command; the buttons \"Hide Note Text\" and \"Show Note Text\" and the command \"Expand All Notes\" do not show. The text of the notes shows in the side view Notes, or in the boxes with `showNotesIn` set to `inline`."
-        },
-        "nimblescape.markdownNotes.showFunnels": {
-          "type": "boolean",
-          "default": true,
-          "scope": "window",
-          "markdownDescription": "Show the funnel in the side view Notes: the strip at its left edge with a mark for each note of the file, and a funnel from the selected thread to the passage of its note, with a band from the passage in the Markdown preview. The buttons \"Show Funnels\" and \"Hide Funnels\" in the title of the view change this setting."
-        },
-        "nimblescape.markdownNotes.showNotesIn": {
-          "type": "string",
-          "enum": [
-            "sideView",
-            "inline"
-          ],
-          "enumDescriptions": [
-            "Show the text of the notes in the side view Notes. The text editor shows no boxes and no `+` for a new note; you add a note in the side view.",
-            "Show the text of the notes in the boxes of the text editor. The side view Notes does not show, and a click on the icon of a note in the Markdown preview opens its box."
-          ],
-          "default": "sideView",
-          "scope": "window",
-          "markdownDescription": "Where VS Code shows the text of the notes: in the side view Notes (`sideView`, the default) or in the boxes of the text editor (`inline`), never in both. The markers in the left margin, the folds and the Markdown preview stay in each case."
         },
         "nimblescape.markdownNotes.openLinksIn": {
           "type": "string",
@@ -566,7 +295,7 @@
           ],
           "default": "newWindow",
           "scope": "resource",
-          "markdownDescription": "Where a link in the text of a note to a file opens, from the Markdown preview, a box or the side view Notes. A link to a web page or an e-mail address opens with the program of your system in each case."
+          "markdownDescription": "Where a link in the text of a note to a file opens from the side view Notes. A link to a web page or an e-mail address opens with the program of your system in each case."
         }
       }
     }

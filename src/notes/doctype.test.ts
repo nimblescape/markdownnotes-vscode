@@ -112,7 +112,7 @@ describe('the edit of the comment', () => {
     }
     const { edits, shift } = withDoctype(lines(text), result.edit);
     const written = after(text, edits);
-    expect(written.startsWith(`${comment}\n\n# Title\n\nThe <!--[`)).toBe(true);
+    expect(written.startsWith(`${comment}\n\n# Title\n\nThe <wbr><!--[`)).toBe(true);
     const start = shift(result.start!);
     expect(findNotes(lines(written)).map((note) => note.start)).toEqual([start]);
     expect(start.line).toBe(result.start!.line + doctypeLines.length + 1);

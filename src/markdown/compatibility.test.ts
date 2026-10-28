@@ -60,7 +60,7 @@ const others = (md: MarkdownIt): MarkdownIt => githubStyles(mermaid(md.use(footn
  * notes adds the plugin of the extension.
  * @param md - The markdown-it instance.
  */
-const notes = (md: MarkdownIt): MarkdownIt => extendMarkdownIt(md, { settingsOf: () => ({ showInPreview: true }), linkOf: () => 'vscode://a.b/open', fileLinkOf: () => undefined });
+const notes = (md: MarkdownIt): MarkdownIt => extendMarkdownIt(md, { settingsOf: () => ({ showHighlights: true }), linkOf: () => 'vscode://a.b/open' });
 
 /** orders are the two orders of the plugins: the plugin of the extension after the others, and before them. */
 const orders = [
@@ -87,9 +87,9 @@ const document = [
   '',
 ].join('\n');
 
-/** note is a note with a selection whose body uses every other plugin, also an arrow `-->` of Mermaid. */
+/** note is a note with a highlight whose body uses every other plugin, also an arrow `-->` of Mermaid. */
 const note = [
-  'The agents <!--[note-7k2q-->change :tada: the work[^note-7k2q] of teams[^1].',
+  'The agents <wbr><!--[note-7k2q-->change :tada: the work[^note-7k2q] of teams[^1].',
   '',
   '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
   '',
@@ -114,25 +114,26 @@ describe.each(orders)('with the plugin of the extension %s', (_name, create) => 
     expect(create().render(document)).toBe(others(new MarkdownIt({ html: true })).render(document));
   });
 
-  test('a note keeps the output of the other plugins in the text and in its callout', () => {
+  test('a note keeps the output of the other plugins in its highlight and in the text, and its body leaves the page', () => {
     const html = create().render(note);
-    // The page has one frame of the styles of GitHub, and the callout none.
     expect(html.startsWith(frameStart) && html.endsWith(frameEnd)).toBe(true);
     expect(html.split(frameStart)).toHaveLength(2);
     expect(html).toMatch(
-      new RegExp(`^${frameStart}<p>The agents <span class="${noteClass}-edge"[^>]*></span>change 🎉 the work<span class="${noteClass}-edge"[^>]*></span><a class="${noteClass}-icon [^]*</a> of teams<sup class="footnote-ref"><a href="#fn1" id="fnref1">\\[1\\]</a></sup>\\.</p>\n`),
+      new RegExp(`^${frameStart}<p>The agents <span class="${noteClass}-edge"[^>]*></span>change 🎉 the work<span class="${noteClass}-edge"[^>]*></span> of teams<sup class="footnote-ref"><a href="#fn1" id="fnref1">\\[1\\]</a></sup>\\.</p>\n<hr class="footnotes-sep">`),
     );
-    expect(html).toContain('<p>Which 😄 teams<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>?</p>\n<pre class="mermaid">graph TD; A --&gt; B;\n</pre>\n');
-    expect(html).toContain('<li class="task-list-item"><input class="task-list-item-checkbox" checked="" disabled="" type="checkbox"> done</li>');
+    // The preview never shows the text of a note (R-PREV-004).
+    expect(html).not.toContain('Which');
+    expect(html).not.toContain('mermaid');
+    expect(html).not.toContain('task-list-item');
   });
 
-  test('a note never shows as a footnote, and a footnote in a note is a footnote of the page', () => {
+  test('a note never shows as a footnote, and a footnote that a note names stays a footnote of the page', () => {
     const html = create().render(note);
     // The list of the footnotes stands once, at the end of the page, with the footnotes of the text and of the note.
     expect(html.match(/<section class="footnotes">/g)).toHaveLength(1);
-    expect(html).toMatch(/<\/div>\n<hr class="footnotes-sep">\n<section class="footnotes">[^]*The footnote\.[^]*The footnote of the note\.[^]*<\/section>\n<\/div><\/div>$/);
+    expect(html).toMatch(/<\/p>\n<hr class="footnotes-sep">\n<section class="footnotes">[^]*The footnote\.[^]*The footnote of the note\.[^]*<\/section>\n<\/div><\/div>$/);
     expect(html.match(/<li id="fn\d+" class="footnote-item">/g)).toHaveLength(2);
-    // The label stands only in the attribute data-note of the icon, for the script of the preview.
+    // The label stands only in the attribute data-note of the end of the highlight, for the script of the preview.
     expect(html.match(/note-7k2q/g)).toHaveLength(1);
     expect(html).toContain(' data-note="note-7k2q"');
   });

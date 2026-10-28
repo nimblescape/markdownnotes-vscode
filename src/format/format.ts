@@ -18,10 +18,15 @@
  *
  * The formatter reads the text with markdown-it, as the Markdown preview and
  * the notes do ([src/notes/notes.ts](../notes/notes.ts)), so it knows each
- * block as the preview knows it. A start marker of a note at the start of a
- * line after the text of a paragraph makes the line a block of HTML on GitHub;
- * the formatter joins such a line to the paragraph, which repairs the
- * passage of the note. At the end it reads the formatted text again and keeps
+ * block as the preview knows it. Every note has a start marker, `<wbr>` and a
+ * comment (Hannes, 2026-10-28: "there should never be a note without a start
+ * marker", "why not always start with <wbr>"): the formatter adds the start
+ * marker of a note without one at the start of the text of the block of its
+ * reference, where its highlight starts, and `<wbr>` to a start marker without
+ * it. A start marker at the start of a line without `<wbr>` makes the line a
+ * block of HTML on GitHub; the formatter joins such a line to the paragraph
+ * directly before it, or else puts `<wbr>` before the marker, which repairs
+ * the highlight of the note. At the end it reads the formatted text again and keeps
  * it only when the preview shows the same blocks with the same text, apart
  * from white space; else it keeps the text as it was. The module uses no API
  * of VS Code.
@@ -29,11 +34,11 @@
 
 import type { Token } from 'markdown-it';
 import { frontMatterEnd } from '../notes/doctype';
-import { parse } from '../notes/notes';
-import { noteCloseType, noteOpenType } from '../notes/syntax';
+import { before, parse, read } from '../notes/notes';
+import { breakText, markerText, noteCloseType, noteOpenType } from '../notes/syntax';
 
-/** hiddenText matches the start markers and the references of the notes, which the text editor hides. */
-export const hiddenText = /<!--\[note-[a-z0-9]{4}-->|\[\^note-[a-z0-9]{4}\]/g;
+/** hiddenText matches the start markers, with `<wbr>` before them, and the references of the notes, which the text editor hides. */
+export const hiddenText = /(?:<wbr>)?<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->|\[\^note-[a-z0-9]{4}\]/g;
 
 /** wideRanges are the ranges of the code points that a text editor shows two columns wide: East Asian wide and full-width characters. */
 const wideRanges: readonly (readonly [number, number])[] = [
@@ -104,7 +109,7 @@ interface Unit {
 }
 
 /** markerLine matches the text of a line that starts with the start marker of a note. */
-const markerLine = /^<!--\[note-[a-z0-9]{4}-->/;
+const markerLine = /^<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->/;
 
 /** keptLine matches the text of a line that the formatter never joins: a block of math or a container. */
 const keptLine = /^(\$\$|:::)/;
@@ -232,9 +237,30 @@ function blocksOf(lines: readonly string[]): Blocks {
 }
 
 /**
+ * addMarkers adds the start marker of each note without one at the start of its highlight, the start of the text of the
+ * block of its reference, and `<wbr>` before each start marker without it.
+ * @param lines - The lines of the text.
+ */
+function addMarkers(lines: readonly string[]): string[] {
+  const result = [...lines];
+  const reading = read(lines);
+  const missing = reading.notes
+    .filter((note) => !note.duplicate && note.reference && !note.marker && note.selection)
+    .map((note) => ({ at: note.selection!.start, text: markerText(note.label) }));
+  const bare = reading.markers.filter((marker) => !lines[marker.start.line].startsWith(breakText, marker.start.character)).map((marker) => ({ at: marker.start, text: breakText }));
+  for (const { at, text } of [...missing, ...bare].sort((a, b) => (before(a.at, b.at) ? 1 : -1))) {
+    const line = result[at.line];
+    result[at.line] = line.slice(0, at.character) + text + line.slice(at.character);
+  }
+  return result;
+}
+
+/**
  * repairMarkers joins each line that starts with the start marker of a note to the paragraph directly before it in the
  * same container, and the paragraph directly after such a line too, so that the marker stands inside the paragraph:
- * a comment at the start of a line is a block of HTML, which ends the paragraph on GitHub.
+ * a comment at the start of a line is a block of HTML, which ends the paragraph on GitHub. A line of a start marker
+ * without a paragraph directly before it gets `<wbr>` before the marker, and so starts a paragraph, after a blank line
+ * when the line before holds text: a line of text directly after a list item or a table would continue it.
  * @param lines - The lines of the text.
  */
 function repairMarkers(lines: readonly string[]): string[] {
@@ -247,11 +273,17 @@ function repairMarkers(lines: readonly string[]): string[] {
       result[target.line] = `${result[target.line].trimEnd()} ${unit.pieces[0].text.trimStart()}`;
       dropped.add(unit.start);
       target = { line: unit.end - 1 > unit.start ? unit.end - 1 : target.line, level: unit.level, end: unit.end, afterMarker: unit.marker };
+    } else if (unit.marker && unit.pieces) {
+      const [piece] = unit.pieces;
+      const text = piece.text.trimStart();
+      const separated = unit.start === 0 || lines[unit.start - 1].trim() === '' ? '' : '\n';
+      result[unit.start] = `${separated}${piece.prefix}${piece.text.slice(0, piece.text.length - text.length)}${breakText}${text}`;
+      target = { line: unit.start, level: unit.level, end: unit.end, afterMarker: true };
     } else {
       target = !unit.marker && unit.pieces ? { line: unit.end - 1, level: unit.level, end: unit.end, afterMarker: false } : undefined;
     }
   }
-  return result.filter((_, line) => !dropped.has(line));
+  return result.filter((_, line) => !dropped.has(line)).flatMap((line) => line.split('\n'));
 }
 
 /**
@@ -489,16 +521,16 @@ const signature = (lines: readonly string[]): string =>
     .join('\n');
 
 /**
- * formatMarkdown returns the formatted lines of a Markdown text: the start markers at the start of a line joined to
- * their paragraphs, each paragraph on one line with its hard line breaks, the tables aligned, no white space at the end
- * of a line, one blank line between blocks and around the ATX headings, and one line break at the end. Code blocks,
- * blocks of HTML, the front matter, blocks of math, containers and notes stay as they are. When the preview would
- * read the formatted text with other blocks or another text, the result is the text with only the joined start
- * markers.
+ * formatMarkdown returns the formatted lines of a Markdown text: a start marker for each note without one, `<wbr>`
+ * before each start marker, the start markers at the start of a line joined to their paragraphs, each paragraph on one line
+ * with its hard line breaks, the tables aligned, no white space at the end of a line, one blank line between blocks
+ * and around the ATX headings, and one line break at the end. Code blocks, blocks of HTML, the front matter, blocks of
+ * math, containers and notes stay as they are. When the preview would read the formatted text with other blocks or
+ * another text, the result is the text with only the repaired start markers.
  * @param lines - The lines of the text.
  */
 export function formatMarkdown(lines: readonly string[]): string[] {
-  const repaired = repairMarkers(lines);
+  const repaired = addMarkers(repairMarkers(lines));
   const formatted = formatLines(repaired);
   return signature(formatted) === signature(repaired) ? formatted : repaired;
 }

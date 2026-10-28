@@ -64,9 +64,9 @@ export interface Marker {
 }
 
 /**
- * NoteSelection is the passage of the text that a note belongs to ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
+ * NoteSelection is the highlight of a note, the text that it belongs to ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
  * from the end of its start marker, or from the start of the text of the block of its reference without one, to the
- * start of its reference. A point is an empty selection.
+ * start of its reference. A point, in an older file, is an empty highlight.
  */
 export interface NoteSelection {
   start: Position;
@@ -85,9 +85,11 @@ export interface Note extends NoteText {
   prefix: string;
   /** reference is the place of the reference of the note in the text, without which the note belongs to no text. */
   reference?: Range;
-  /** marker is the place of the start marker of the selection. */
+  /** marker is the place of the start marker of the highlight, with `<wbr>` before it. */
   marker?: Range;
-  /** selection is the passage of the text that the note belongs to, when the text has its reference. */
+  /** color is the name of the color in the start marker, or undefined for the default color. */
+  color?: string;
+  /** selection is the highlight of the note, when the text has its reference. */
   selection?: NoteSelection;
   /** inHeading tells whether the reference is in a heading, whose anchor on GitHub changes then. */
   inHeading: boolean;
@@ -259,6 +261,8 @@ interface Found extends Range {
   block: number;
   /** blockStart is the position of the first character of the text of the block. */
   blockStart: Position;
+  /** color is the name of the color of a start marker. */
+  color?: string;
   inHeading: boolean;
   inLink: boolean;
 }
@@ -296,7 +300,7 @@ export interface Reading {
 const emptyReading = (): Reading => ({ notes: [], references: [], markers: [], blocks: [], markersInHtml: [], inNotes: [] });
 
 /** markerSearch matches the start markers in a text. */
-const markerSearch = /<!--\[note-[a-z0-9]{4}-->/g;
+const markerSearch = /<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->/g;
 
 /**
  * read returns the notes of a Markdown text, with their places, their contents and their selections, and the
@@ -416,7 +420,7 @@ export function read(lines: readonly string[]): Reading {
           if (start && end) {
             // A reference in the text of a link breaks the link: markdown-it and GitHub take no link with a reference in its text.
             const inLink = /^[^[\]]*\](?:\(|\[)/.test(lines[end.line].slice(end.character));
-            (child.type === referenceType ? references : markers).push({ label: meta.label, start, end, block: index, blockStart, inHeading, inLink });
+            (child.type === referenceType ? references : markers).push({ label: meta.label, start, end, block: index, blockStart, color: meta.color, inHeading, inLink });
           }
         }
       }
@@ -434,6 +438,7 @@ export function read(lines: readonly string[]): Reading {
     const marker = markers.find((candidate) => candidate.label === note.label && candidate.block === reference.block && before(candidate.end, reference.start));
     if (marker) {
       note.marker = { start: marker.start, end: marker.end };
+      note.color = marker.color;
     }
     if (marker && same(marker.end, reference.start)) {
       note.selection = { start: marker.end, end: marker.end, markers: [{ kind: 'point', start: marker.start, end: reference.end }] };

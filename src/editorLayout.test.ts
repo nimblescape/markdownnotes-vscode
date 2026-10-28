@@ -3,13 +3,13 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * These tests check the place of a passage in the text editor, where the funnel of the side view starts (R-SIDE-007,
- * decision 12): the rows of the visible ranges, also between folds and inside a wrapped line, the number of columns
- * that the visible text gives, and the cut to the rows that the editor shows.
+ * These tests check the places of the highlights in the text editor, at which the side view puts their threads
+ * (R-SIDE-007, decision 14): the rows of the visible ranges, also between folds and inside a wrapped line, the number
+ * of columns that the visible text gives, and the rows above and below the visible rows without the hidden lines.
  */
 
 import { describe, expect, test } from 'vitest';
-import { columnsOf, type EditorLayout, fallbackColumns, placeOf, rowStarts, type Span } from './editorLayout';
+import { columnsOf, type EditorLayout, fallbackColumns, placesOf, rowStarts, type Span } from './editorLayout';
 
 /**
  * span returns a span from the line and the character of its start to those of its end.
@@ -39,6 +39,17 @@ const layoutOf = (ranges: Span[], lineCount: number, changes: Partial<EditorLayo
   ...changes,
 });
 
+/**
+ * placeOf returns the place of one highlight, without hidden lines outside the visible ranges.
+ * @param layout - The layout.
+ * @param lineAt - Returns the text of a line.
+ * @param columns - The number of columns of a row.
+ * @param highlight - The highlight.
+ * @param hidden - The hidden lines.
+ */
+const placeOf = (layout: EditorLayout, lineAt: (line: number) => string, columns: number, highlight: Span, hidden: readonly number[] = []) =>
+  placesOf(layout, lineAt, columns, [highlight], (line) => hidden.includes(line))[0];
+
 /** short holds 30 lines of 10 characters. */
 const short = Array.from({ length: 30 }, (_, index) => `line ${String(index).padStart(5, '0')}`);
 const shortAt = (line: number): string => short[line];
@@ -50,19 +61,27 @@ describe('the rows without wrapped lines', () => {
     expect(placeOf(layout, shortAt, Infinity, span(7, 0, 8, 4))).toEqual([50, 90]);
   });
 
-  test('skip the lines of a fold, and place a passage in a fold on the row of the fold', () => {
+  test('skip the lines of a fold, and place a highlight in a fold on the row of the fold', () => {
     const layout = layoutOf([span(0, 0, 2, 10), span(9, 0, 15, 10)], 30);
     // Line 9 is the fourth row: lines 3 to 8 are in the fold of line 2.
     expect(placeOf(layout, shortAt, Infinity, span(9, 0, 9, 4))).toEqual([70, 90]);
     expect(placeOf(layout, shortAt, Infinity, span(5, 0, 5, 4))).toEqual([50, 70]);
   });
 
-  test('cut a passage to the visible rows, and give no place to a passage outside them', () => {
+  test('count the rows above and below the visible rows for a highlight outside them, without the hidden lines', () => {
     const layout = layoutOf([span(5, 0, 14, 10)], 30);
-    expect(placeOf(layout, shortAt, Infinity, span(2, 0, 6, 4))).toEqual([10, 50]);
-    expect(placeOf(layout, shortAt, Infinity, span(13, 0, 20, 4))).toEqual([170, 210]);
-    expect(placeOf(layout, shortAt, Infinity, span(1, 0, 3, 4))).toBeUndefined();
-    expect(placeOf(layout, shortAt, Infinity, span(16, 0, 18, 4))).toBeUndefined();
+    expect(placeOf(layout, shortAt, Infinity, span(2, 0, 6, 4))).toEqual([-50, 50]);
+    expect(placeOf(layout, shortAt, Infinity, span(13, 0, 20, 4))).toEqual([170, 330]);
+    expect(placeOf(layout, shortAt, Infinity, span(1, 0, 3, 4))).toEqual([-70, -10]);
+    expect(placeOf(layout, shortAt, Infinity, span(16, 0, 18, 4))).toEqual([230, 290]);
+    // The lines of collapsed notes take no row.
+    expect(placeOf(layout, shortAt, Infinity, span(18, 0, 18, 4), [16, 17])).toEqual([230, 250]);
+    expect(placeOf(layout, shortAt, Infinity, span(1, 0, 1, 4), [3, 4])).toEqual([-30, -10]);
+  });
+
+  test('give no place without visible ranges, and the row of its place to a point', () => {
+    expect(placeOf(layoutOf([], 30), shortAt, Infinity, span(2, 0, 2, 4))).toBeUndefined();
+    expect(placeOf(layoutOf([span(5, 0, 14, 10)], 30), shortAt, Infinity, span(7, 10, 7, 10))).toEqual([50, 70]);
   });
 });
 
@@ -75,7 +94,7 @@ describe('the rows of wrapped lines', () => {
     // At 100 columns, each long line has three rows: line 2 starts at the fifth row.
     const layout = layoutOf([span(0, 0, 4, 100)], 40, { wrap: 100 });
     expect(placeOf(layout, longAt, 100, span(2, 0, 2, 10))).toEqual([90, 110]);
-    // The passage from character 120 to 230 of line 2 takes its second and third row.
+    // The highlight from character 120 to 230 of line 2 takes its second and third row.
     expect(placeOf(layout, longAt, 100, span(2, 120, 2, 230))).toEqual([110, 150]);
   });
 
@@ -84,7 +103,10 @@ describe('the rows of wrapped lines', () => {
     const layout = layoutOf([span(0, 100, 4, 100)], 40, { wrap: 100 });
     expect(placeOf(layout, longAt, 100, span(0, 150, 0, 160))).toEqual([20, 40]);
     expect(placeOf(layout, longAt, 100, span(2, 0, 2, 10))).toEqual([80, 100]);
-    expect(placeOf(layout, longAt, 100, span(0, 10, 0, 50))).toBeUndefined();
+    // The first row of line 0 is above the visible rows.
+    expect(placeOf(layout, longAt, 100, span(0, 10, 0, 50))).toEqual([0, 20]);
+    // Below the visible rows, line 4 has two more rows, and line 6 starts after the row of line 5.
+    expect(placeOf(layout, longAt, 100, span(6, 0, 6, 10))).toEqual([240, 260]);
   });
 
   test('break a row before a word that no longer fits, inside a word longer than a row, and keep the indentation', () => {

@@ -11,12 +11,16 @@
  * ([R-NOTE-004](../../docs/requirements.md#r-note-004)): the body of the first
  * answer follows the header, indented by four spaces, and each further answer
  * is a block quote of its own that starts with its own header. The reference
- * of the note ends the passage of the text that the note belongs to, and a
- * hidden start marker can start it
- * ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
+ * of the note ends the highlight of the note, the text that the note belongs
+ * to, and its hidden start marker starts it, with the name of the color of the note when
+ * it has one ([R-NOTE-006](../../docs/requirements.md#r-note-006)). Every
+ * note has a start marker (Hannes, 2026-10-28: "there should never be a note
+ * without a start marker"), and `<wbr>` stands before the comment of each
+ * marker, so that it never starts a block of HTML at the start of a line:
  *
  * ```markdown
- * The agents <!--[note-7k2q-->change the work[^note-7k2q] of teams.
+ * The agents <wbr><!--[note-7k2q-->change the work[^note-7k2q] of teams.
+ * <wbr><!--[note-p3x9 green-->Each team[^note-p3x9] has a plan.
  *
  * [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
  *
@@ -25,6 +29,10 @@
  *     > **anna** · 2026-10-28 11:02+01:00
  *     >
  *     > The teams of the plan.
+ *
+ * [^note-p3x9]: **anna** · 2026-10-28 11:05+01:00
+ *
+ *     All teams?
  * ```
  *
  * Every other footnote is no note and stays as it is, for the footnotes of
@@ -37,6 +45,7 @@
 
 import type MarkdownIt from 'markdown-it';
 import type { StateBlock, StateInline } from 'markdown-it';
+import { colorNames } from './colors';
 
 /** labelPattern matches the label of a note: `note-` and four small letters or digits, for example `note-7k2q`. */
 export const labelPattern = /^note-[a-z0-9]{4}$/;
@@ -133,19 +142,41 @@ export function readDefinition(line: string): Definition | undefined {
 export const referenceText = (label: string): string => `[^${label}]`;
 
 /**
- * markerText returns the start marker of the selection of a note: a comment, which no Markdown viewer shows.
- * @param label - The label of the note.
+ * breakText stands before the comment of each start marker: an empty element that no Markdown viewer shows. GitHub
+ * reads a comment at the start of a line as a block of HTML, which ends the paragraph; after `<wbr>`, the comment is
+ * part of the text of the line, wherever the marker stands (Hannes, 2026-10-28: "why not always start with <wbr>").
  */
-export const markerText = (label: string): string => `<!--[${label}-->`;
-
-/** markerPattern matches a start marker of a selection at the start of a text. */
-const markerPattern = /^<!--\[(note-[a-z0-9]{4})-->/;
+export const breakText = '<wbr>';
 
 /**
- * readMarker reads a comment as the start marker of a selection and returns its label, or undefined for another text.
- * @param text - The text, which starts with the comment.
+ * markerText returns the start marker of the selection of a note: `<wbr>` and a comment, which no Markdown viewer
+ * shows, with the name of the color of the note after the label, for example `<wbr><!--[note-7k2q green-->`, and
+ * without it for the default color.
+ * @param label - The label of the note.
+ * @param color - The name of the color, or undefined for the default color.
  */
-export const readMarker = (text: string): string | undefined => markerPattern.exec(text)?.[1];
+export const markerText = (label: string, color?: string): string => `${breakText}<!--[${label}${color && color !== colorNames[0] ? ` ${color}` : ''}-->`;
+
+/** markerPattern matches a start marker of a selection at the start of a text, with `<wbr>` before it or without. */
+const markerPattern = /^(?:<wbr>)?<!--\[(note-[a-z0-9]{4})(?: ([a-z]+))?-->/;
+
+/** MarkerText is a start marker as written: its label, the name of its color, and its length with `<wbr>` before it. */
+export interface MarkerText {
+  label: string;
+  /** color is the name of the color after the label, or undefined. */
+  color: string | undefined;
+  length: number;
+}
+
+/**
+ * readMarker reads a comment, or `<wbr>` and a comment, as the start marker of a selection, or returns undefined for
+ * another text.
+ * @param text - The text, which starts with the marker.
+ */
+export function readMarker(text: string): MarkerText | undefined {
+  const match = markerPattern.exec(text);
+  return match ? { label: match[1], color: match[2], length: match[0].length } : undefined;
+}
 
 /** indent is the indentation of the further lines of a note. */
 export const indent = '    ';
@@ -438,11 +469,15 @@ export interface NoteMeta extends Definition {
   duplicate: boolean;
 }
 
-/** InlineMeta is the meta of the token of a reference or a start marker: its label and its span in the text of its inline token. */
+/**
+ * InlineMeta is the meta of the token of a reference or a start marker: its label and its span in the text of its
+ * inline token, and of a start marker the name of its color.
+ */
 export interface InlineMeta {
   label: string;
   start: number;
   end: number;
+  color?: string;
 }
 
 /** Registry is what a parsing knows of the notes of its document: the meta of the first note of each label. */
@@ -594,9 +629,10 @@ export function referenceRule(state: StateInline, silent: boolean): boolean {
 }
 
 /**
- * markerRule is the markdown-it inline rule of the start marker of a selection, `<!--[note-7k2q-->`. It runs before the
- * rule `html_inline` and takes only a start marker, with the conditions of that rule: HTML is on, and no comment of the
- * text before stayed open. Its token keeps the span of the marker in the text of the inline token.
+ * markerRule is the markdown-it inline rule of the start marker of a selection, `<wbr><!--[note-7k2q-->`, also
+ * without `<wbr>`. It runs before the rule `html_inline` and takes only a start marker, with the conditions of
+ * that rule: HTML is on, and no comment of the text before stayed open. Its token keeps the span of the marker in the
+ * text of the inline token, and the name of its color.
  * @param state - The state of the inline parser.
  * @param silent - Whether the rule only tells whether it matches.
  */
@@ -606,15 +642,15 @@ export function markerRule(state: StateInline, silent: boolean): boolean {
   if (!state.md.options.html || skipped || state.src.charCodeAt(start) !== 0x3c) {
     return false;
   }
-  const label = readMarker(state.src.slice(start, state.posMax));
-  if (!label) {
+  const marker = readMarker(state.src.slice(start, state.posMax));
+  if (!marker) {
     return false;
   }
-  const end = start + markerText(label).length;
+  const end = start + marker.length;
   if (!silent) {
     const token = state.push(markerType, '', 0);
     token.content = state.src.slice(start, end);
-    token.meta = { label, start, end } satisfies InlineMeta;
+    token.meta = { label: marker.label, start, end, color: marker.color } satisfies InlineMeta;
   }
   state.pos = end;
   return true;

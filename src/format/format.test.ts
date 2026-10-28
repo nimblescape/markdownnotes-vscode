@@ -54,14 +54,21 @@ describe('the paragraphs', () => {
     }
   });
 
-  test('join a start marker at the start of a line to the paragraph before it, and the line after it too', () => {
+  test('join a start marker at the start of a line to the paragraph before it, and the line after it too, with <wbr> before it', () => {
     const text = 'The text\n<!--[note-aaaa-->of the note[^note-aaaa]\nand more.\n\n' + note;
     const formatted = format(text);
-    expect(formatted).toBe('The text <!--[note-aaaa-->of the note[^note-aaaa] and more.\n\n' + note);
+    expect(formatted).toBe('The text <wbr><!--[note-aaaa-->of the note[^note-aaaa] and more.\n\n' + note);
     const [found] = findNotes(formatted.split('\n'));
     expect(found.selection && formatted.split('\n')[0].slice(found.selection.start.character, found.selection.end.character)).toBe('of the note');
-    // A marker at the start of a paragraph stays a block of HTML: nothing comes before it.
-    expect(format('<!--[note-aaaa-->Text[^note-aaaa]\n')).toBe('<!--[note-aaaa-->Text[^note-aaaa]\n');
+    // A marker at the start of a paragraph gets <wbr> before it, so that the line is text and no block of HTML.
+    expect(format('<!--[note-aaaa-->Text[^note-aaaa]\n')).toBe('<wbr><!--[note-aaaa-->Text[^note-aaaa]\n');
+  });
+
+  test('give every start marker <wbr> before it, and a note without a start marker one at the start of the text of its block (Hannes, 2026-10-28)', () => {
+    expect(format('The <!--[note-aaaa green-->text[^note-aaaa].\n\n' + note)).toBe('The <wbr><!--[note-aaaa green-->text[^note-aaaa].\n\n' + note);
+    expect(format('- The text[^note-aaaa].\n\n  ' + note.replace(/\n    /g, '\n      '))).toBe('- <wbr><!--[note-aaaa-->The text[^note-aaaa].\n\n  ' + note.replace(/\n    /g, '\n      '));
+    const written = 'The <wbr><!--[note-aaaa-->text[^note-aaaa].\n\n' + note;
+    expect(format(written)).toBe(written);
   });
 });
 
@@ -74,7 +81,7 @@ describe('the tables', () => {
 
   test('measure the width that the text editor shows: without hidden markers and references, wide characters twice', () => {
     expect(format('| a | b |\n|---|---|\n| x<!--[note-aaaa-->y[^note-aaaa] | 日本 |\n| long | z |\n\n' + note)).toBe(
-      ['| a    | b    |', '| ---- | ---- |', '| x<!--[note-aaaa-->y[^note-aaaa]   | 日本 |', '| long | z    |', '', note].join('\n'),
+      ['| a    | b    |', '| ---- | ---- |', '| x<wbr><!--[note-aaaa-->y[^note-aaaa]   | 日本 |', '| long | z    |', '', note].join('\n'),
     );
     expect(visibleWidth('abc')).toBe(3);
     expect(visibleWidth('日本')).toBe(4);
@@ -131,7 +138,7 @@ describe('the formatter', () => {
       '',
       note,
     ].join('\n');
-    expect(format(text)).toBe(text.replace('The text[^note-aaaa]\nof', 'The text[^note-aaaa] of'));
+    expect(format(text)).toBe(text.replace('The text[^note-aaaa]\nof', '<wbr><!--[note-aaaa-->The text[^note-aaaa] of'));
     const toml = '+++\ntitle = "A"\ntext = "B"\n+++\n\nText\nmore\n';
     expect(format(toml)).toBe('+++\ntitle = "A"\ntext = "B"\n+++\n\nText more\n');
   });

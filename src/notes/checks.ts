@@ -10,11 +10,13 @@
  * lines around it, lines of a note without the indentation of four spaces, a
  * second definition of a label, a reference without a note or a note without
  * a reference, a note in a block quote, a reference in the text of a link or
- * of a note, a reference in a heading, and a start marker at the start of a
- * line. The module uses no API of VS Code.
+ * of a note, a reference in a heading, a note without a start marker or
+ * without highlighted text, and a
+ * start marker at the start of a line without `<wbr>` before it. The module
+ * uses no API of VS Code.
  */
 
-import type { Range, Reading } from './notes';
+import { type Range, type Reading, same } from './notes';
 
 /** Check is one finding of the checks: the part of the text, the message, and whether it is a warning or a hint. */
 export interface Check {
@@ -72,6 +74,12 @@ export function checksOf(lines: readonly string[], reading: Reading): Check[] {
         add(lineRange(lines, line), 'Indent each line of a note by four spaces. A line of text without them directly after the note still belongs to the note.', 'information');
       }
     }
+    if (note.selection && same(note.selection.start, note.selection.end)) {
+      add(note.reference!, 'The note highlights no text. Move its start marker to the start of the text that the note is about.');
+    }
+    if (note.reference && !note.marker) {
+      add(note.reference, 'The note has no start marker. "Format Document" adds it at the start of the text of the block, where the highlight of the note starts then.');
+    }
     if (note.reference && note.inLink) {
       add(note.reference, 'A reference in the text of a link breaks the link on GitHub. Move the reference after the link.');
     }
@@ -88,7 +96,7 @@ export function checksOf(lines: readonly string[], reading: Reading): Check[] {
     add(range, 'A note holds no note: this reference in the text of a note names no note. Put the reference in the text of the document.');
   }
   for (const position of reading.markersInHtml) {
-    add(lineRange(lines, position.line, position.character), 'A start marker at the start of a line ends the paragraph. Move it to the end of the line before.');
+    add(lineRange(lines, position.line, position.character), 'A start marker at the start of a line ends the paragraph. Put <wbr> before it; "Format Document" does it.');
   }
   return checks.sort((a, b) => a.range.start.line - b.range.start.line || a.range.start.character - b.range.start.character);
 }

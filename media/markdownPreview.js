@@ -2,27 +2,22 @@
 // © 2026 Hannes Stauss (scalarion@nimblescape.com)
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
-// The script of the notes in the built-in Markdown preview (R-PREV-002). The
-// markdown-it plugin of the extension writes each note as an icon with a
-// hidden callout, which the icon names in its attribute aria-describedby. The
-// script shows the callout next to the icon while the pointer rests on the
-// icon or on the callout, or while the icon has the keyboard focus, and hides
-// it with Escape, on scrolling and when the preview gets new content. A click
-// with the mouse on the icon shows no callout: it follows the link of the
-// icon, which opens the note in the side view of the extension (R-PREV-003).
-// The listeners are on the document, so they also work for the content of a
-// later update of the preview. An icon with the attribute data-hover="off"
-// (setting showCalloutOnHover off) shows its callout only with the keyboard
-// focus, not under the pointer. An icon with the attribute data-icon="hidden"
-// (setting showIconsInPreview off) does not show; its passage still does.
-//
-// The plugin writes the start and the end of the selection of a note, its
-// passage, as two empty elements with the ID of the selection (R-NOTE-006).
-// The script highlights the text between them in the color of the note, with
-// the CSS Custom Highlight API, which changes no element of the page. A
-// selection without a start begins at the start of the block of its end. Each
-// passage has a faint highlight, and the passage under the pointer, or of the
-// note whose callout shows, a strong one.
+// The script of the notes in the built-in Markdown preview (R-PREV-001). The
+// preview shows no text, no icon and no callout of a note (Hannes,
+// 2026-10-28: "we completely drop the callouts on hover view", "we completely
+// drop the callout icons in the preview view"); the side view shows the
+// notes. The markdown-it plugin of the extension writes the start and the end
+// of the highlight of each note, the text from its start marker to its
+// reference, as two empty elements with the ID of the highlight (R-NOTE-006).
+// The script paints the text between them in the color of the note, with the
+// CSS Custom Highlight API, which changes no element of the page: a clear
+// highlight with a line below it, so that it stands out of the text (Hannes,
+// 2026-10-28: "when viewed make it good contrast"), and a strong one under
+// the pointer. An end with the attribute data-hidden (setting showHighlights
+// off) shows no highlight, unless its note is selected or the pointer is on its
+// text (Hannes, 2026-10-28: "even when the highlights are hidden, hover over a
+// highlight always shows the highlight"). A highlight without a start begins
+// at the start of the block of its end.
 //
 // VS Code passes a click in the preview to the extension only when the click
 // of the user is on a link: the page follows any other link itself, also a
@@ -30,65 +25,49 @@
 // puts the content of the page into a link of an open shadow tree of the
 // body: a link with the CSS `display: contents` around the slot of the
 // content, so the page shows and works as before. The link has an address
-// only for the time of a click: when the user presses the mouse button on the
-// text of a passage, the address of the icon of its note, so that the click
-// selects the note in the side view, as a click on its icon does; on the text
-// outside a passage while a note is selected, the address that deselects the
-// note. A click on a link of the text, the end of a drag that selects text,
-// and a double click, which opens the text editor, open no address of the
-// script. Chromium sends no click when the element of the press leaves the
-// page before the release, so the script moves no element of the page; and
-// the path of an event, where VS Code looks for the link, holds no element of
-// a closed shadow tree, so the shadow tree is open.
+// only for the time of a click: when the user presses the mouse button on a
+// highlight, also a hidden one, the address of its end (data-href), so that the click
+// selects the note in the side view (R-PREV-003); on the text outside a
+// highlight while a note is selected, the address that deselects the note. A
+// click on a link of the text, the end of a drag that selects text, and a
+// double click, which opens the text editor, open no address of the script.
+// Chromium sends no click when the element of the press leaves the page
+// before the release, so the script moves no element of the page; and the
+// path of an event, where VS Code looks for the link, holds no element of a
+// closed shadow tree, so the shadow tree is open.
 //
-// The icon of the selected note of the side view has the attribute
-// data-selected: its selection has a strong highlight and a frame of thin
-// lines in the color of the note, one for each line of the text, and the
-// passages and the icons of the other notes are dimmed. An icon with the
-// attribute data-reveal asks the preview to scroll to the note; the script
-// scrolls once for each number of the attribute. While the side view shows
-// the funnels, the icon has the attribute data-funnel with the top and the
-// bottom of the end of a band at the right edge of the preview: the script
-// draws the band from the passage of the note to this end, and draws it again
-// on scrolling, so that it follows the passage; the funnel of the side view
-// starts at this end (decision 12).
+// The end of the highlight of the selected note of the side view has the
+// attribute data-selected: its highlight is strong with a frame of thin lines
+// in the color of the note, one for each line of the text, and the highlights
+// of the other notes are dimmed. An end with the attribute data-reveal asks
+// the preview to scroll to the note; the script scrolls once for each number
+// of the attribute.
 
 (() => {
   'use strict';
 
-  const iconSelector = '.nimblescape-note-icon';
-
-  /** hideDelay is the time in milliseconds after which a callout goes when the pointer left it and its icon. */
-  const hideDelay = 300;
-
-  /** gap is the distance in pixels between an icon and its callout, and between a callout and the window border. */
-  const gap = 6;
-
-  /** edgeSelector finds the empty elements at the start and the end of a selection. */
+  /** edgeSelector finds the empty elements at the start and the end of a highlight. */
   const edgeSelector = '.nimblescape-note-edge';
 
-  /** blockSelector finds the block of the end of a selection without a start. */
+  /** endSelector finds the ends of the highlights, which hold the attributes of their notes. */
+  const endSelector = `${edgeSelector}[data-edge="end"]`;
+
+  /** blockSelector finds the block of the end of a highlight without a start. */
   const blockSelector = 'p, li, h1, h2, h3, h4, h5, h6, td, th, dd, dt';
 
-  /** controlSelector finds the elements whose click is their own: links, form controls and the callouts. */
-  const controlSelector = 'a, button, input, textarea, select, summary, label, [contenteditable], .nimblescape-note';
+  /** controlSelector finds the elements whose click is their own: links and form controls. */
+  const controlSelector = 'a, button, input, textarea, select, summary, label, [contenteditable]';
 
-  /** @type {{ icon: Element, callout: HTMLElement } | undefined} */
-  let open;
-
-  /** @type {Map<Element, { range: Range, color: string }>} the range and the color of the selection of each icon. */
-  let selections = new Map();
-
-  /** @type {ReturnType<typeof setTimeout> | undefined} */
-  let timer;
+  /** @type {Map<Element, { range: Range, color: string, shown: boolean }>} the range, the color and the visibility of the highlight of each end. */
+  let highlights = new Map();
 
   /** @type {string | undefined} the number of the last request to scroll to a note, which the script did. */
   let revealed;
 
-  /** @type {string | undefined} the selected note that a click outside its passage deselected: its label and its request to scroll. */
+  /** @type {string | undefined} the selected note that a click outside its highlight deselected: its label and its request to scroll. */
   let dismissed;
 
-  /** @type {Element | undefined} the icon of the passage under the pointer. */
+  /** @type {Element | undefined} the end of the highlight under the pointer. */
   let hovered;
 
   /** @type {HTMLAnchorElement | undefined} the link of the script around the content of the page, in the shadow tree of the body. */
@@ -97,58 +76,36 @@
   /** @type {boolean} whether the address of the link of the page deselects the selected note. */
   let deselects = false;
 
-  /** frames holds the frame of the selection of the selected note: one element for each line of its text. */
+  /** frames holds the frame of the highlight of the selected note: one element for each line of its text. */
   const frames = document.createElement('div');
   frames.className = 'nimblescape-note-frames';
   frames.setAttribute('aria-hidden', 'true');
 
-  const svgNamespace = 'http://www.w3.org/2000/svg';
-
-  /** band is the drawing of the band from the passage of the selected note to the right edge of the preview. */
-  const band = document.createElementNS(svgNamespace, 'svg');
-  band.setAttribute('class', 'nimblescape-note-band');
-  band.setAttribute('aria-hidden', 'true');
-
-  /** @type {{ icon: Element, range: Range | undefined, color: string, end: [number, number] } | undefined} the band of the selected note. */
-  let funnel;
-
-  /** @type {number | undefined} the frame of the animation in which the script draws the band again. */
-  let bandFrame;
-
   /**
-   * calloutOf returns the callout of an icon.
-   * @param {Element} icon
-   * @returns {HTMLElement | null}
-   */
-  const calloutOf = (icon) => {
-    const id = icon.getAttribute('aria-describedby');
-    return id ? document.getElementById(id) : null;
-  };
-
-  /**
-   * highlightsOf returns the highlights of the page, or undefined in a browser without the CSS Custom Highlight API.
+   * registryOf returns the highlights of the page, or undefined in a browser without the CSS Custom Highlight API.
    * @returns {HighlightRegistry | undefined}
    */
-  const highlightsOf = () => (typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight === 'function' ? CSS.highlights : undefined);
+  const registryOf = () => (typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight === 'function' ? CSS.highlights : undefined);
 
   /**
-   * keyOf returns the key of the selected note of an icon: its label and its request to scroll.
-   * @param {Element} icon
+   * keyOf returns the key of the selected note of an end: its label and its request to scroll.
+   * @param {Element} end
    */
-  const keyOf = (icon) => `${icon.getAttribute('data-note') ?? ''} ${icon.getAttribute('data-reveal') ?? ''}`;
+  const keyOf = (end) => `${end.getAttribute('data-note') ?? ''} ${end.getAttribute('data-reveal') ?? ''}`;
 
   /**
-   * chosen returns the icon of the selected note of the side view, unless a click outside its passage deselected it.
+   * chosen returns the end of the highlight of the selected note of the side view, unless a click outside its highlight
+   * deselected it.
    * @returns {Element | undefined}
    */
   const chosen = () => {
-    const icon = document.querySelector(`${iconSelector}[data-selected]`) ?? undefined;
-    return icon && keyOf(icon) !== dismissed ? icon : undefined;
+    const end = document.querySelector(`${endSelector}[data-selected]`) ?? undefined;
+    return end && keyOf(end) !== dismissed ? end : undefined;
   };
 
   /**
-   * rangeOf returns the range of the selection that ends at an end edge: from its start edge, or from the start of the
-   * block of the end, to the end edge.
+   * rangeOf returns the range of the highlight that ends at an end: from its start, or from the start of the block of
+   * the end, to the end.
    * @param {Element} end
    * @returns {Range | undefined}
    */
@@ -171,22 +128,20 @@
     return range.collapsed ? undefined : range;
   };
 
-  /** highlight finds the selection of each note, and paints them. */
+  /** highlight finds the highlight of each note, and paints them. */
   const highlight = () => {
-    selections = new Map();
-    for (const end of document.querySelectorAll(`${edgeSelector}[data-edge="end"]`)) {
+    highlights = new Map();
+    for (const end of document.querySelectorAll(endSelector)) {
       const range = rangeOf(end);
-      // The icon of the note follows the end of its selection.
-      const icon = end.nextElementSibling;
-      if (range && icon?.matches(iconSelector)) {
-        selections.set(icon, { range, color: end.getAttribute('data-color') ?? '1' });
+      if (range) {
+        highlights.set(end, { range, color: end.getAttribute('data-color') ?? '1', shown: !end.hasAttribute('data-hidden') });
       }
     }
-    if (!document.querySelector(`${iconSelector}[data-selected]`)) {
+    if (!document.querySelector(`${endSelector}[data-selected]`)) {
       dismissed = undefined;
     }
     // The link of the page exists before the first click, so that a click changes nothing of the page.
-    if (document.body && document.querySelector(iconSelector)) {
+    if (document.body && highlights.size > 0) {
       linkOfPage();
     }
     hovered = undefined;
@@ -194,54 +149,53 @@
   };
 
   /**
-   * paint highlights the selection of each note in the color of the note: faint, or dimmed while another note is
-   * selected; the selected note strong with a frame, and the passage under the pointer or of the open callout strong.
-   * It scrolls to the selected note on a request.
+   * paint paints the highlight of each note in the color of the note: clear, or dimmed while another note is selected;
+   * the selected note strong with a frame, and the highlight under the pointer strong. A hidden highlight shows only
+   * while its note is selected or the pointer is on it. It scrolls to the selected note on a request.
    */
   const paint = () => {
-    const icon = chosen();
-    document.documentElement.toggleAttribute('data-nimblescape-chosen', icon !== undefined);
-    const highlights = highlightsOf();
-    if (highlights) {
-      for (const name of [...highlights.keys()]) {
+    const selected = chosen();
+    document.documentElement.toggleAttribute('data-nimblescape-chosen', selected !== undefined);
+    const registry = registryOf();
+    if (registry) {
+      for (const name of [...registry.keys()]) {
         if (name.startsWith('nimblescape-note-')) {
-          highlights.delete(name);
+          registry.delete(name);
         }
       }
       /** @type {Map<string, { ranges: Range[], priority: number }>} */
       const named = new Map();
       /**
-       * add adds a range to a highlight.
+       * add adds a range to a highlight of the registry.
        * @param {string} name
        * @param {Range} range
        * @param {number} priority
        */
       const add = (name, range, priority) => named.set(name, { ranges: [...(named.get(name)?.ranges ?? []), range], priority });
-      const active = open?.icon ?? hovered;
-      for (const [owner, { range, color }] of selections) {
-        add(`nimblescape-note-${color}${icon && owner !== icon ? '-dim' : ''}`, range, 0);
-        if (owner === icon) {
+      for (const [end, { range, color, shown }] of highlights) {
+        if (end === selected) {
           add(`nimblescape-note-${color}-selected`, range, 2);
-        }
-        if (owner === active) {
-          add(`nimblescape-note-${color}-active`, range, 1);
+        } else {
+          if (shown) {
+            add(`nimblescape-note-${color}${selected ? '-dim' : ''}`, range, 0);
+          }
+          if (end === hovered) {
+            add(`nimblescape-note-${color}-active`, range, 1);
+          }
         }
       }
       for (const [name, { ranges, priority }] of named) {
         const painted = new Highlight(...ranges);
         painted.priority = priority;
-        highlights.set(name, painted);
+        registry.set(name, painted);
       }
     }
-    const selection = icon ? selections.get(icon) : undefined;
-    frame(selection?.range, selection?.color ?? '');
-    const end = (icon?.getAttribute('data-funnel') ?? '').split(' ').map(Number);
-    funnel = icon && end.length === 2 && end.every(Number.isFinite) ? { icon, range: selection?.range, color: selection?.color ?? colorOf(icon), end: [end[0], end[1]] } : undefined;
-    drawBand();
-    const request = icon?.getAttribute('data-reveal') ?? undefined;
-    if (icon && request !== undefined && request !== revealed) {
+    const own = selected ? highlights.get(selected) : undefined;
+    frame(own?.range, own?.color ?? '');
+    const request = selected?.getAttribute('data-reveal') ?? undefined;
+    if (selected && request !== undefined && request !== revealed) {
       revealed = request;
-      (selection ? frames.firstElementChild ?? icon : icon).scrollIntoView({ block: 'center' });
+      (frames.firstElementChild ?? selected).scrollIntoView({ block: 'center' });
     }
   };
 
@@ -281,97 +235,13 @@
   };
 
   /**
-   * colorOf returns the number of the color of an icon, from its class nimblescape-note-color-N.
-   * @param {Element} icon
-   */
-  const colorOf = (icon) => /nimblescape-note-color-(\d+)/.exec(icon.className)?.[1] ?? '1';
-
-  /**
-   * drawBand draws the band from the passage of the selected note, or from its icon for a note without a passage, to the
-   * end at the right edge of the preview, with curved sides, or removes it without a band.
-   */
-  const drawBand = () => {
-    bandFrame = undefined;
-    band.replaceChildren();
-    const rects = funnel ? [...(funnel.range?.getClientRects() ?? [funnel.icon.getBoundingClientRect()])].filter((rect) => rect.width > 0 && rect.height > 0) : [];
-    if (!funnel || rects.length === 0) {
-      band.remove();
-      return;
-    }
-    if (!band.isConnected) {
-      document.body.append(band);
-    }
-    const width = document.documentElement.clientWidth;
-    const right = Math.min(Math.max(...rects.map((rect) => rect.right)), width);
-    const top = Math.min(...rects.map((rect) => rect.top));
-    const bottom = Math.max(...rects.map((rect) => rect.bottom));
-    const [endTop, endBottom] = funnel.end;
-    const middle = (right + width) / 2;
-    const path = document.createElementNS(svgNamespace, 'path');
-    path.setAttribute('d', `M ${right} ${top} C ${middle} ${top} ${middle} ${endTop} ${width} ${endTop} L ${width} ${endBottom} C ${middle} ${endBottom} ${middle} ${bottom} ${right} ${bottom} Z`);
-    path.setAttribute('class', `nimblescape-note-color-${funnel.color}`);
-    band.append(path);
-  };
-
-  /** drawBandLater draws the band before the next frame, once for several scroll events. */
-  const drawBandLater = () => {
-    if (funnel && bandFrame === undefined) {
-      bandFrame = requestAnimationFrame(drawBand);
-    }
-  };
-
-  /** hide hides the open callout. */
-  const hide = () => {
-    clearTimeout(timer);
-    if (open) {
-      open.callout.hidden = true;
-      open.icon.removeAttribute('aria-expanded');
-      open = undefined;
-      paint();
-    }
-  };
-
-  /** hideLater hides the open callout after hideDelay. */
-  const hideLater = () => {
-    clearTimeout(timer);
-    timer = setTimeout(hide, hideDelay);
-  };
-
-  /**
-   * show shows the callout of an icon below the icon, or above it when there is no room below.
-   * @param {Element} icon
-   */
-  const show = (icon) => {
-    clearTimeout(timer);
-    const callout = calloutOf(icon);
-    if (!callout) {
-      return;
-    }
-    if (open && open.callout !== callout) {
-      hide();
-    }
-    open = { icon, callout };
-    icon.setAttribute('aria-expanded', 'true');
-    paint();
-    callout.hidden = false;
-    const place = icon.getBoundingClientRect();
-    const width = callout.offsetWidth;
-    const height = callout.offsetHeight;
-    const left = Math.max(gap, Math.min(place.left, window.innerWidth - width - gap));
-    const below = place.bottom + gap;
-    const above = place.top - gap - height;
-    callout.style.left = `${left}px`;
-    callout.style.top = `${below + height > window.innerHeight - gap && above >= gap ? above : below}px`;
-  };
-
-  /**
-   * selectionAt returns the icon of the selection at a point of the window: the selection that starts last, so that a
-   * selection inside another one wins, or undefined.
+   * highlightAt returns the end of the highlight at a point of the window, also of a hidden one: of the highlight that
+   * starts last, so that a highlight inside another one wins, or undefined.
    * @param {number} x
    * @param {number} y
    * @returns {Element | undefined}
    */
-  const selectionAt = (x, y) => {
+  const highlightAt = (x, y) => {
     /** @type {{ offsetNode: Node, offset: number } | null} */
     const caret =
       typeof document.caretPositionFromPoint === 'function'
@@ -384,12 +254,12 @@
       return undefined;
     }
     let found;
-    for (const [icon, { range }] of selections) {
+    for (const [end, { range }] of highlights) {
       if (range.isPointInRange(caret.offsetNode, caret.offset) && (!found || range.compareBoundaryPoints(Range.START_TO_START, found.range) > 0)) {
-        found = { icon, range };
+        found = { end, range };
       }
     }
-    return found?.icon;
+    return found?.end;
   };
 
   /**
@@ -438,52 +308,27 @@
 
   /** dismiss deselects the selected note in the preview, until the side view selects a note again. */
   const dismiss = () => {
-    const icon = chosen();
-    if (icon) {
-      dismissed = keyOf(icon);
+    const end = chosen();
+    if (end) {
+      dismissed = keyOf(end);
       paint();
     }
   };
 
-  document.addEventListener('mouseover', (event) => {
-    const target = targetOf(event);
-    const icon = target?.closest(iconSelector);
-    if (icon && icon.getAttribute('data-hover') !== 'off') {
-      show(icon);
-    } else if (icon) {
-      // The callout of an icon without hover stays as it is.
-    } else if (open && target && open.callout.contains(target)) {
-      clearTimeout(timer);
-    } else if (open) {
-      hideLater();
-    }
-  });
   document.addEventListener('mousemove', (event) => {
     const target = targetOf(event);
-    const icon = target && !target.closest(controlSelector) ? selectionAt(event.clientX, event.clientY) : undefined;
-    if (icon !== hovered) {
-      hovered = icon;
-      document.documentElement.toggleAttribute('data-nimblescape-passage', icon !== undefined);
+    const end = target && !target.closest(controlSelector) ? highlightAt(event.clientX, event.clientY) : undefined;
+    if (end !== hovered) {
+      hovered = end;
+      document.documentElement.toggleAttribute('data-nimblescape-highlight', end !== undefined);
       paint();
     }
   });
   document.documentElement.addEventListener('mouseleave', () => {
     if (hovered) {
       hovered = undefined;
-      document.documentElement.removeAttribute('data-nimblescape-passage');
+      document.documentElement.removeAttribute('data-nimblescape-highlight');
       paint();
-    }
-  });
-  document.addEventListener('focusin', (event) => {
-    const icon = targetOf(event)?.closest(iconSelector);
-    // Only the keyboard focus shows the callout; the focus of a click on the icon does not.
-    if (icon?.matches(':focus-visible')) {
-      show(icon);
-    }
-  });
-  document.addEventListener('focusout', (event) => {
-    if (targetOf(event)?.closest(iconSelector)) {
-      hideLater();
     }
   });
   // The script listens on the window before the preview and VS Code listen on the document and on the window.
@@ -496,9 +341,9 @@
       if (event.button !== 0 || event.detail > 1 || !target || target === document.body || target === document.documentElement || target.closest(controlSelector) || frames.contains(target)) {
         return;
       }
-      const icon = selectionAt(event.clientX, event.clientY);
-      const href = icon?.getAttribute('href');
-      const deselect = icon ? undefined : chosen()?.getAttribute('data-deselect');
+      const end = highlightAt(event.clientX, event.clientY);
+      const href = end?.getAttribute('data-href');
+      const deselect = end ? undefined : chosen()?.getAttribute('data-deselect');
       if (href) {
         arm(href, false);
       } else if (deselect) {
@@ -527,23 +372,8 @@
   );
   window.addEventListener('mouseup', () => setTimeout(disarm, 0), true);
   window.addEventListener('dragstart', disarm, true);
-  document.addEventListener('click', (event) => {
-    if (targetOf(event)?.closest(iconSelector)) {
-      hide();
-    }
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      hide();
-    }
-  });
-  window.addEventListener('scroll', hide, { passive: true });
-  window.addEventListener('scroll', drawBandLater, { passive: true });
   window.addEventListener('resize', paint);
-  window.addEventListener('vscode.markdown.updateContent', () => {
-    hide();
-    highlight();
-  });
+  window.addEventListener('vscode.markdown.updateContent', highlight);
   // The preview loads this script with `async`, and its own script adds the content to the page when the page is
   // parsed. This script can run before or after that, so it highlights now, when the page is parsed and when it is
   // loaded; highlight replaces the highlights of before.

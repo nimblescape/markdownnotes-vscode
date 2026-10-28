@@ -17,68 +17,50 @@ The first version.
 - Threads: each note is a thread with a tree of replies. A reply is a block
   quote with its own header, and a reply to a reply stands in the block quote
   of the answer it replies to.
+- Highlights: each note belongs to a text of the file, its highlight, from
+  its start marker `<wbr><!--[note-7k2q-->` to its reference. Every note has
+  a start marker, and `<wbr>` keeps the paragraph whole on GitHub also when
+  the marker starts a line. The start marker keeps the color of the note,
+  for example `<wbr><!--[note-7k2q green-->`; all notes have the same color,
+  blue, until the user gives a note one of six colors.
+- The text editor and the Markdown preview show the highlights in the colors
+  of their notes, with a good contrast, while the side view "Notes" is open.
+  "Hide Highlights" and "Show Highlights" in the title of the editors change
+  the setting `nimblescape.markdownNotes.showHighlights`; "Show Highlights"
+  also opens the side view, and closing the side view hides the highlights.
+  A hidden highlight shows while the pointer is on it. A click on a highlight
+  selects its note in the side view and opens the side view. The highlight of
+  the selected note is strong with a frame, and the other highlights are
+  dimmed; a click outside the highlights deselects the note.
+- The side view "Notes" is the only place of the text of the notes. It
+  lists the threads of the active Markdown file, also in the modes "Markdown
+  Preview" and "Markdown Editor" of VS Code, with their trees of replies.
+  Next to the text editor, each thread stands at the height of its highlight
+  and moves with the text, and only the selected thread has a line to its
+  highlight. Its buttons are icons with tooltips: "Reply", "Edit" and
+  "Delete" at each answer; the color, "Show as Text", "Answer" and "Delete
+  Thread" at each thread; "Add Note" in its title. "Show as Text" shows the
+  whole note as the file holds it, for a change of the whole text. The editor
+  of a text switches between "Write" and "Preview". The links of the notes
+  open: web and mail links with the system, files in VS Code at a line or a
+  heading. The view is in the secondary side bar, and the button "Show or
+  Hide Notes" in the title of the Markdown editors opens and closes it, also
+  in Zen Mode.
+- New notes: the user selects text, and a hover over the selected text shows
+  "Add Note" and the six colors; a click on a color opens the editor of the
+  new note in the side view. "Add Note" in the title of the side view and in
+  the context menu of the text editor does the same. There is no note
+  without highlighted text.
 - New notes and answers need a GitHub sign-in of VS Code, and name the GitHub
   login of the user as their author. VS Code shows each date in the local
   time of the reader, and its tooltip or hover the local time of the author.
-- The text of the notes shows in the side view "Notes", or with the setting
-  `nimblescape.markdownNotes.showNotesIn` set to `inline` in a collapsible box
-  below each note in the text editor, with one comment for each answer and
-  the label "Reply to …" at a reply to a reply. The text editor dims the
-  notes while the cursor is outside them, and everything outside a note while
-  the cursor is in it. It collapses the notes when a file opens, so that they
-  vanish, with a numbered marker in the color of the note in the left margin;
-  "Hide Note Text", "Show Note Text", "Collapse All Notes" and "Expand All
-  Notes" fold them, and the setting
-  `nimblescape.markdownNotes.keepNotesCollapsed` keeps them collapsed. The
-  Comments view lists the notes of the open Markdown files.
-- "Edit" turns an answer into an editor of Markdown, and "Save" writes the
-  text back into the note. The reply field answers the note, "Reply" at an
-  answer replies to this answer, the `+` in the gutter adds a note, "Delete"
-  removes an answer and keeps its replies, and "Delete Thread" removes a
-  note.
-- The side view "Notes" lists the threads of the active Markdown file, also
-  in the modes "Markdown Preview" and "Markdown Editor" of VS Code, with
-  their trees of replies, with "Reply", "Edit", "Delete", "Answer", "Delete
-  Thread" and "Add Note", and an editor with the tabs "Write" and "Preview".
-  The links of the notes open: web and mail links with the system, files in
-  VS Code at a line or a heading. The view is in the secondary side bar, and
-  the button "Show or Hide Notes" in the title of the Markdown editors opens
-  and closes it, also in Zen Mode.
-- The side view shows a badge with the number and the color of each note,
-  a strip that stands for the whole file with a mark for each note, and a
-  funnel from the selected thread to the passage of its note: the preview
-  draws a band from the passage to its right edge, which follows the
-  scrolling, and the funnel continues it; in the text editor the funnel
-  starts at the height of the rows of the passage, an estimate where lines
-  wrap; else it leads to the mark in the strip. "Show Funnels" and "Hide
-  Funnels" in its title turn them on and off. A click on a thread selects its note and shows
-  it in the mode of the file, and the passage of the selected note has a
-  strong highlight with a frame in the text editor and the preview.
-- A saved change of an answer gets the date of the save.
-- The text editor shows the header line of each answer as one rendered line
-  with the author and the date, for example "hannes · 2026-10-28 10:15",
-  also on the line of the cursor; the cursor does not stay on it.
-- Notes on a selection: a hidden start marker `<!--[note-7k2q-->` starts the
-  passage of a note and its reference ends it; without the marker, the
-  passage starts at the start of its paragraph, and the marker directly
-  before the reference is a point. The `+` on selected text adds such a note,
-  as for the comment of a pull request. The text editor hides the marker and
-  the reference behind thin bars or a dot in the color of the note and
-  highlights the passage; the preview highlights it and shows the icon of the
-  note at its end. The cursor steps over a hidden marker, and Backspace and
-  Delete never change it. A click on the passage selects its note in the side
-  view, in the text editor and in the preview, and a click outside the
-  passages deselects it. While a note is selected, the side view, the text
-  editor and the preview dim the other notes. The side view scrolls the
-  selected thread to its top; a click on its empty part or Escape deselects
-  the note.
-- The built-in Markdown preview shows each note as a small icon at its
-  reference, and never as a footnote. The icon shows the note as a callout on
-  hover and keyboard focus, and opens it in the side view on a click, as a
-  click on the highlighted passage does; a click shows no callout. The
-  passages have a faint highlight, and a strong one under the pointer. The
-  eye in the title of the preview hides and shows the notes, and the speech
-  bubble hides and shows only the icons ("Hide Note Icons in Preview").
+  A saved change of an answer gets the date of the save.
+- The text editor never shows the text of a note and its markers: it
+  collapses the notes, and collapses again a note that VS Code opens; the
+  cursor steps over a hidden marker, and Backspace and Delete never change
+  it. A header line that shows, for example of a note in the first line of
+  the file, shows rendered with the author and the date.
+- The Markdown preview shows the highlights, and never a note as a footnote.
 - A comment at the top of each file with notes, after a front matter, names
   the format of the notes with its version and links to the specification
   `docs/format.md`, so that programs and AI agents know how to read and add
@@ -87,16 +69,19 @@ The first version.
   off, and with each change of a note; it removes it with the last note, and
   changes no note of a file whose comment names a newer version.
 - The text editor and the Problems view warn at each form of a note that
-  GitHub shows differently: no blank line before or after the note, lines
-  without the indentation of four spaces, a second note of a label, a
-  reference without a note or a note without a reference, a note in a block
-  quote, a reference in the text of a link, in a heading or in a note, and a
-  start marker at the start of a line.
+  GitHub shows differently or that breaks a rule of the notes: no blank line
+  before or after the note, lines without the indentation of four spaces, a
+  second note of a label, a reference without a note or a note without a
+  reference, a note in a block quote, a reference in the text of a link, in
+  a heading or in a note, a note without a start marker or without
+  highlighted text, and a start marker without `<wbr>` at the start of a
+  line.
 - An own Markdown formatter for "Format Document" and format on save, the
   default for Markdown files: each paragraph on one line with its hard line
   breaks, aligned columns of the tables, no white space at the end of a line,
-  one blank line between blocks, and one line break at the end of the file.
-  It keeps code blocks, HTML, a front matter, math, containers and the
+  one blank line between blocks, one line break at the end of the file,
+  `<wbr>` before each start marker, and a start marker for each note without
+  one. It keeps code blocks, HTML, a front matter, math, containers and the
   notes, and keeps the text as it was when the preview would show it
   differently.
 - The formatter on the command line for programs and AI agents: the command
@@ -109,15 +94,8 @@ The first version.
   the preview shows the other footnotes of a file.
 - The notes work together with the Markdown extensions of other publishers,
   for example the extensions of Matt Bierner for Mermaid diagrams, emoji,
-  footnotes, checkboxes and the GitHub styles: in the text and in the
-  callouts. A footnote in a note is a footnote of the page.
-- The settings `nimblescape.markdownNotes.showNotesIn`,
-  `nimblescape.markdownNotes.collapseInEditor`,
-  `nimblescape.markdownNotes.keepNotesCollapsed`,
-  `nimblescape.markdownNotes.expandInEditor`,
-  `nimblescape.markdownNotes.showFunnels`,
-  `nimblescape.markdownNotes.showInPreview`,
-  `nimblescape.markdownNotes.showIconsInPreview`,
-  `nimblescape.markdownNotes.showCalloutOnHover`,
+  footnotes, checkboxes and the GitHub styles. A footnote in a note is a
+  footnote of the page.
+- The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.openLinksIn` and
   `nimblescape.markdownNotes.addFormatComment`.

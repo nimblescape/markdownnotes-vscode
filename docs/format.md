@@ -24,14 +24,15 @@ or GitHub does not show as intended.
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].
-Its reference ends the passage of the note; an HTML comment with "[" and the label directly before the
-passage starts it. The definition follows the block of the passage: "[^note-7k2q]: **login** · date",
-a blank line, and the body indented by four spaces. Each reply is a block quote with its own header.
+Its reference ends the highlight of the note. Its start marker starts the highlight: <wbr> and an HTML
+comment with "[", the label and an optional color name. Every note has one. The definition follows the
+block of the highlight: "[^note-7k2q]: **login** · date", a blank line, and the body indented by four
+spaces. Each reply is a block quote with its own header.
 -->
 
 # Title
 
-The agents <!--[note-7k2q-->change the work of teams[^note-7k2q] in three ways.
+The agents <wbr><!--[note-7k2q green-->change the work of teams[^note-7k2q] in three ways.
 
 [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
 
@@ -48,8 +49,10 @@ The agents <!--[note-7k2q-->change the work of teams[^note-7k2q] in three ways.
 The next paragraph.
 ```
 
-The note `note-7k2q` belongs to the passage "change the work of teams". Hannes
-wrote the note, Anna replied to it, and Hannes replied to Anna.
+The note `note-7k2q` belongs to the highlight "change the work of teams",
+the text from its start marker to its reference, as a text marker highlights
+text on paper. The note is green. Hannes wrote the note, Anna replied to it,
+and Hannes replied to Anna.
 
 ## 1. The comment of the format
 
@@ -85,26 +88,33 @@ DOCTYPE. GitHub and the Markdown preview do not show it.
 
 ## 3. The reference
 
-- The reference `[^note-7k2q]` ends the passage of the note, its selection.
+- The reference `[^note-7k2q]` ends the highlight of the note: it is the end
+  marker of the highlight. GitHub shows it as the number of the footnote.
 - It stands in the text of a paragraph, a heading, a list item or a table
-  cell, after the last character of the passage.
+  cell, after the last character of the highlight.
 - It must not stand in a code span, in a code block, in the text of a link
   (it then stands directly after the link) or in the text of a note.
 - Each note has one reference.
 
 ## 4. The start marker
 
-- The start marker `<!--[note-7k2q-->` stands directly before the first
-  character of the passage, in the same block as the reference.
-- It must not stand at the start of a line. GitHub reads a comment at the
-  start of a line as a block of HTML, which ends the paragraph. When the
-  passage starts at the start of a line, the marker stands at the end of the
-  line before it, in the same paragraph.
-- When the passage starts at the start of the text of its block, the marker
-  is left out: without a marker, the passage starts there.
-- A marker directly before the reference, `<!--[note-7k2q-->[^note-7k2q]`, is
-  a point: a note at a place of the text, without a passage.
-- Passages of different notes can overlap.
+- Every note has one start marker, `<wbr><!--[note-7k2q-->`, directly before
+  the first character of its highlight, in the same block as the reference.
+  The highlight is the text from the start marker to the reference, and it
+  holds at least one character.
+- The start marker is the element `<wbr>` and an HTML comment with `[` and the
+  label. GitHub and the Markdown preview show neither of them. `<wbr>` lets the
+  marker also stand at the start of a line: there, a comment alone would start
+  a block of HTML, which ends the paragraph.
+- The comment can name the color of the note after the label and a space:
+  `<wbr><!--[note-7k2q green-->`. The colors are `blue`, `green`, `orange`,
+  `purple`, `red` and `teal`. A marker without a color has the color `blue`,
+  the default, which is never written.
+- A reader also accepts a start marker without `<wbr>` that does not stand at
+  the start of a line, for example of an older file. The formatter adds the
+  `<wbr>`, and adds the start marker of a note without one at the start of the
+  text of its block.
+- Highlights of different notes can overlap.
 
 ## 5. The definition
 
@@ -157,12 +167,15 @@ The answers of a note are a tree, as in a discussion on Reddit.
 A program, for example an AI agent, follows these steps:
 
 - **Read the notes:** find the definitions whose label is a label of a note
-  and whose first line has a header; the passage of each note is the text
-  from its start marker, or the start of its block, to its reference.
-- **Add a note:** choose a new label; write the start marker and the
-  reference around the passage; write the definition after the outermost
-  block of the passage, with the login of the author and the current local
-  time with the offset; add the comment of the format when the file has none.
+  and whose first line has a header; the highlight of each note is the text
+  from its start marker to its reference.
+- **Add a note:** choose a new label; write the start marker
+  `<wbr><!--[note-7k2q-->` before the highlight and the reference after it;
+  write the definition after the outermost block of the highlight, with the
+  login of the author and the current local time with the offset; add the
+  comment of the format when the file has none.
+- **Color a note:** write the name of the color after the label in its start
+  marker, or remove the name for the default color.
 - **Answer:** write the reply at its place in the tree, with its own header.
 - **Change an answer:** change its body, keep its author, and write the
   current local time with the offset as its date.
@@ -170,15 +183,15 @@ A program, for example an AI agent, follows these steps:
   one level up. Deleting the only answer deletes the note.
 - **Delete a note:** remove its definition with one blank line next to it, its
   reference and its start marker, only when the user asks for it.
-- Never change a label, never put a start marker at the start of a line, never
-  put a definition into a block quote, and never write a note into a code
-  block.
+- Never change a label, never write a start marker without `<wbr>`, never
+  write a note without a start marker or a highlight without text, never put a
+  definition into a block quote, and never write a note into a code block.
 - **Format the file** after a change, as the extension does on save: run
   `npx -y @nimblescape/markdown-notes format <file>` with Node.js 22 or
   later. `npx -y @nimblescape/markdown-notes format --check <file>` changes
   nothing and exits with 1 when the file is not formatted. The formatter puts each
-  paragraph on one line, aligns the tables, and keeps the notes, code blocks
-  and HTML as they are.
+  paragraph on one line, aligns the tables, gives each start marker its
+  `<wbr>`, and keeps the notes, code blocks and HTML as they are.
 
 An AI agent writes as the author the GitHub login of the person that it works
 for, or a GitHub login of its own; the author of an answer is always known.

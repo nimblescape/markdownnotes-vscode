@@ -5,46 +5,58 @@
 /**
  * The side view "Notes", the note editor of the extension
  * ([R-SIDE-001](../docs/requirements.md#r-side-001) to
- * [R-SIDE-003](../docs/requirements.md#r-side-003)). It is a webview view in
- * the secondary side bar, beside the chat of VS Code, that lists the threads of the active Markdown file, each with
- * its answers rendered as Markdown, with author and date. It selects the
- * thread at the cursor of the text editor, or the thread whose icon the user
- * clicked in the preview ([R-PREV-003](../docs/requirements.md#r-prev-003)).
+ * [R-SIDE-003](../docs/requirements.md#r-side-003)), and the only place that
+ * shows the text of the notes (Hannes, 2026-10-28: "we completely drop the
+ * inline view"). It is a webview view in the secondary side bar, beside the
+ * chat of VS Code, that shows the threads of the active Markdown file, each
+ * with its answers rendered as Markdown, with author and date. It selects the
+ * thread at the cursor of the text editor, or the thread whose highlight the
+ * user clicked in the preview ([R-PREV-003](../docs/requirements.md#r-prev-003)).
  *
  * The view shows the answers of a thread as a tree: each reply after the
  * answer that it replies to, and the replies to a reply indented below it
  * ([R-NOTE-004](../docs/requirements.md#r-note-004)). The date of an answer
  * shows in the local time of the reader, with the local time of the author as
- * its tooltip ([R-NOTE-002](../docs/requirements.md#r-note-002)). Each answer
- * has the buttons "Reply", "Edit" and "Delete", each thread the buttons
- * "Answer", a reply to the note, and "Delete Thread", and the view the button
- * "Add Note", which adds a note at the selection or the line of the cursor of
- * the text editor. The editor of a text has
- * the tabs "Write" and "Preview"; the preview renders the text with the
- * Markdown preview of VS Code. A click on a link of a rendered text opens the
- * link ([src/links.ts](links.ts)). The view writes through the operations of the
- * threads of the text editor ([src/noteThreads.ts](noteThreads.ts)), so both
- * check and write a text in the same way. The script of the view is
+ * its tooltip ([R-NOTE-002](../docs/requirements.md#r-note-002)). The buttons
+ * are small icons with a tooltip, as the buttons in the title of an editor
+ * (Hannes, 2026-10-28: "exchange all the buttons on the note editor with
+ * icons"): each answer has "Reply", "Edit" and "Delete", each thread "Color",
+ * "Show as Text", "Answer" and "Delete Thread", and the title of the view
+ * "Add Note", which adds a note to the selected text of the text editor, as
+ * the hover of the selected text does
+ * ([src/selectionHover.ts](selectionHover.ts)). "Color" gives the note one of the colors of
+ * [src/notes/colors.ts](notes/colors.ts); every note has the same color by
+ * default. "Show as Text" switches the thread to its text view: the whole
+ * text of the note, as the text editor shows the file, which "Save" writes
+ * back. The editor of a text switches between writing and the preview, which
+ * renders the text with the Markdown preview of VS Code. A click on a link of
+ * a rendered text opens the link ([src/links.ts](links.ts)). The view writes
+ * through the operations of the threads ([src/noteThreads.ts](noteThreads.ts)),
+ * which check a text before they write it. The script of the view is
  * [media/notesView.js](../media/notesView.js); it gets the state of the view
  * from this module and sends the actions of the user back.
  *
- * Each thread shows the badge with the number and the color of its note, and
- * a click on a thread selects its note in the text editor
- * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The left edge of the
- * view, next to the text editor, has a strip that stands for the whole file,
- * with a mark for each note, or for the lines of its selection, and the part
- * of the file that the text editor shows. A funnel leads from the selected
- * thread to the passage of its note (decision 12): to the end of the band that
- * a Markdown preview of the file draws from the passage, else to the rows of
- * the passage in the text editor ([src/editorLayout.ts](editorLayout.ts)), and
- * else to the mark of its note. The setting `showFunnels` and the buttons
- * "Show Funnels" and "Hide Funnels" in the title of the view show and hide
- * them. The position of the cursor, not only its line, selects the thread,
- * because the selections of several notes can share a line. The text editor
- * and the Markdown preview show the selection of the note of the selected
- * thread with a strong highlight and a frame ([src/selectedNotes.ts](selectedNotes.ts)).
+ * A click on a thread selects its note in the text editor
+ * ([R-SIDE-007](../docs/requirements.md#r-side-007)). While a text editor
+ * shows the file, the view stands aligned to it, as the compare view of
+ * VS Code shows two texts side by side (decision 14): each thread stands at
+ * the height of the rows of its highlight and scrolls with the text, threads
+ * that would overlap move apart, and the selected thread stays at its
+ * highlight. The places come from the visible ranges of the editor
+ * ([src/editorLayout.ts](editorLayout.ts)), an estimate where lines wrap. The
+ * left edge of the view has a mark in the color of each note at the rows of
+ * its highlight, and only the selected thread has a line to its mark (Hannes,
+ * 2026-10-28: "only the selected one has the connection"). The mouse wheel
+ * over the view scrolls the text editor. While no text editor shows the file,
+ * for example in the Markdown preview, the view lists the threads, with the
+ * selected thread at its top: VS Code tells an extension no place of the
+ * preview. The position of the cursor, not only its line, selects the thread,
+ * because the highlights of several notes can share a line. The text editor
+ * and the Markdown preview show the highlight of the note of the selected
+ * thread in a strong color and with a frame
+ * ([src/selectedNotes.ts](selectedNotes.ts)).
  *
- * A click with the mouse on a selection in the text editor selects its thread
+ * A click with the mouse on a highlight in the text editor selects its thread
  * and opens the view when it is closed. A click on a thread while the
  * Markdown preview shows the file and no text editor does keeps the preview,
  * which scrolls to the note (Hannes, 2026-10-28: the editor area stays in its
@@ -52,41 +64,46 @@
  */
 
 import * as vscode from 'vscode';
-import { columnsOf, type EditorLayout, placeOf } from './editorLayout';
+import { columnsOf, type EditorLayout, placesOf } from './editorLayout';
 import { githubProvider } from './github';
 import { openLink } from './links';
-import { colorOf } from './notes/colors';
+import { hiddenText } from './format/format';
+import { colorIndexOf, colorNames, colorOf, noteColors } from './notes/colors';
+import { placeFor } from './notes/edits';
 import { authorDate, displayDate } from './notes/syntax';
-import { isNoteDocument, type NoteThreads, problemMessage } from './noteThreads';
+import { isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
 import type { SelectedNotes } from './selectedNotes';
-import { type Settings, showsInSideView } from './settings';
+import type { Settings } from './settings';
 
 /** notesViewId is the identifier of the side view, which the manifest contributes. */
 export const notesViewId = 'nimblescape.markdownNotes.notes';
 
 /**
- * viewCommands are the commands of the side view: the button "Hide Notes" in its title, and "Show or Hide Notes" of the
- * title of the Markdown editors and of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
+ * viewCommands are the commands of the side view: the buttons "Add Note" and "Hide Notes" in its title
+ * ([R-SIDE-003](../docs/requirements.md#r-side-003)), and "Show or Hide Notes" of the title of the Markdown editors and
+ * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
  */
 export const viewCommands = {
+  newNote: 'nimblescape.markdownNotes.newNote',
   hide: 'nimblescape.markdownNotes.hideNotes',
   toggle: 'nimblescape.markdownNotes.toggleNotes',
-  showFunnels: 'nimblescape.markdownNotes.showFunnels',
-  hideFunnels: 'nimblescape.markdownNotes.hideFunnels',
 };
 
 /** Message is a message of the script of the view. */
 export type Message =
   | { type: 'ready' }
   | { type: 'size'; height: number }
+  | { type: 'scroll'; rows: number }
   | { type: 'signIn' }
   | { type: 'reveal'; id: string; focus?: boolean }
   | { type: 'deselect' }
   | { type: 'save'; request: number; id: string; index: number; text: string }
   | { type: 'answer'; request: number; id: string; text: string; parent?: number }
-  | { type: 'add'; request: number; text: string }
+  | { type: 'add'; request: number; text: string; color?: string }
   | { type: 'deleteAnswer'; id: string; index: number }
   | { type: 'deleteNote'; id: string }
+  | { type: 'color'; id: string; color: string | undefined }
+  | { type: 'saveText'; request: number; id: string; text: string }
   | { type: 'render'; request: number; text: string }
   | { type: 'openLink'; href: string };
 
@@ -107,25 +124,27 @@ interface AnswerState {
 interface ThreadState {
   id: string;
   line: number;
-  /** number is the number of the note in the file, from 1, and color its color ([R-TEXT-006](../docs/requirements.md#r-text-006)). */
-  number: number;
+  /** color is the color of the note ([R-TEXT-006](../docs/requirements.md#r-text-006)), and colorName its name. */
   color: string;
-  /** mark is the first and the last line of the mark of the note in the strip: its selection, or the note itself. */
-  mark: [number, number];
+  colorName: string;
+  /** text is the whole text of the note, for its text view. */
+  text: string;
   answers: AnswerState[];
 }
 
-/** Visible is the part of the file that the text editor shows: its first and its last line, and the number of lines. */
-interface Visible {
-  /** lines are the first and the last visible line, or undefined while no text editor shows the file. */
-  lines: [number, number] | undefined;
-  lineCount: number;
-  /**
-   * start is the top and the bottom of the start of the funnel of the selected thread at the left edge of the view, in
-   * pixels from its top: the end of the band of the preview, or the rows of the passage in the text editor; undefined
-   * for the mark of the note in the strip.
-   */
-  start: [number, number] | undefined;
+/**
+ * Placement is the layout of the threads beside the text editor (decision 14), in pixels from the top of the view: the
+ * text of the editor, the rows of the highlight of each thread, and the row of the cursor.
+ */
+interface Placement {
+  /** editor is the top and the bottom of the text of the text editor. */
+  editor: [number, number];
+  /** highlights holds the top and the bottom of the rows of the highlight of each thread, by its identifier; estimates outside the visible rows. */
+  highlights: Record<string, [number, number]>;
+  /** cursor is the top and the bottom of the row of the cursor, where "Add Note" adds a note. */
+  cursor: [number, number] | undefined;
+  /** lineHeight is the height of a row of the editor, by which the mouse wheel over the view scrolls the editor. */
+  lineHeight: number;
 }
 
 /** State is the content of the view, which the script shows. */
@@ -133,19 +152,28 @@ export interface State {
   type: 'state';
   /** file is the name of the Markdown file, or undefined when no Markdown file was active. */
   file: string | undefined;
-  /** line is the index of the line of the cursor in the text editor, at which "Add Note" adds a note. */
+  /** line is the index of the line of the cursor in the text editor. */
   line: number | undefined;
+  /**
+   * highlight is the text that a new note highlights, the selected text of the text editor, shortened; or undefined
+   * when the selection holds no text that a note can highlight.
+   */
+  highlight: string | undefined;
   /** account is the GitHub login of the user, or undefined without a sign-in. */
   account: string | undefined;
   selected: string | undefined;
   threads: ThreadState[];
-  /** funnels tells whether the view shows the strip and the funnels. */
-  funnels: boolean;
-  visible: Visible;
+  /** colors are the colors that "Color" offers, by their names; the first one is the default. */
+  colors: { name: string; color: string }[];
+  /** placement is the layout of the threads beside the text editor, or undefined while no text editor shows the file. */
+  placement: Placement | undefined;
 }
 
 /** cacheSize is the number of rendered texts that the view keeps. */
 const cacheSize = 200;
+
+/** titleLength is the number of characters of the highlighted text in the title of the editor of a new note. */
+const titleLength = 60;
 
 /**
  * escapeHtml escapes the characters of a text that HTML reads as markup.
@@ -184,13 +212,6 @@ function modeOf(document: vscode.Uri): { mode: 'preview' | 'editor'; column: vsc
 }
 
 /**
- * meeting is the end of the band of the preview from the passage of the selected note to the right edge of the preview:
- * its top and its bottom in pixels from the top of the preview. The funnel of the side view starts there, so that both
- * meet at the top, where the selected thread stands (decision 12 of Hannes, 2026-10-28: "Preview draws its part").
- */
-export const meeting: readonly [number, number] = [8, 28];
-
-/**
  * workbench holds sizes of the window of VS Code in pixels, measured in VS Code 1.143 with its default settings: the
  * height of the bar of the tabs and of the breadcrumbs, the top of the page of the side view below the top of the bar of
  * the tabs, and the bottom of the text of a text editor below the bottom of the page of the side view. VS Code tells an
@@ -199,15 +220,15 @@ export const meeting: readonly [number, number] = [8, 28];
 const workbench = { tabs: 32, breadcrumbs: 22, viewTop: 28, editorBottom: 9 };
 
 /**
- * topOf returns the top of the content of an editor in pixels from the top of the page of the side view, which stands
- * at the same height of the window: a text editor and the mode "Markdown Preview" below the bar of the tabs and the
- * breadcrumbs, the preview to the side below the bar of the tabs.
- * @param toSide - Whether the editor is the preview to the side.
+ * textTop returns the top of the text of a text editor in pixels from the top of the page of the side view, which
+ * stands at the same height of the window: below the bar of the tabs, the breadcrumbs and the padding of the editor.
+ * @param configuration - The settings `editor` of the document.
  */
-function topOf(toSide: boolean): number {
+function textTop(configuration: vscode.WorkspaceConfiguration): number {
   const tabs = vscode.workspace.getConfiguration('workbench.editor').get<unknown>('showTabs');
   const breadcrumbs = vscode.workspace.getConfiguration('breadcrumbs').get<boolean>('enabled') ?? true;
-  return (tabs === 'none' || tabs === false ? 0 : workbench.tabs) + (breadcrumbs && !toSide ? workbench.breadcrumbs : 0) - workbench.viewTop;
+  const padding = configuration.get<{ top?: number }>('padding')?.top ?? 0;
+  return (tabs === 'none' || tabs === false ? 0 : workbench.tabs) + (breadcrumbs ? workbench.breadcrumbs : 0) - workbench.viewTop + padding;
 }
 
 /**
@@ -258,11 +279,15 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private version = 0;
   /** height is the height of the page of the view in pixels, which its script tells. */
   private height: number | undefined;
+  /** ready tells whether the script of the view started and receives messages. */
+  private ready = false;
+  /** newColor holds the request of "Add Note" for a script that did not start yet: the name of the color, or null for the default. */
+  private newColor: string | null | undefined;
   /** columns holds the estimated number of columns of the rows of the text editor of each document, by its URI. */
   private readonly columns = new Map<string, number>();
-  /** shownListeners are the listeners of the changes of the visibility of the view. */
-  private readonly shownListeners = new Set<() => void>();
   private readonly registrations: vscode.Disposable[];
+  /** visibility holds the listeners of the changes of the visibility of the view. */
+  private readonly visibility = new Set<() => void>();
 
   /**
    * @param extensionUri - The folder of the extension, which holds the script and the styles of the view.
@@ -271,6 +296,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param render - Renders a Markdown text as the Markdown preview does.
    * @param settingsOf - Returns the settings of a document.
    * @param chosen - The selected note of each document, which the view sets.
+   * @param hiddenLinesOf - Returns the lines of a document that its collapsed notes hide in the text editor.
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -279,21 +305,28 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     private readonly render: (text: string) => Promise<string>,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly chosen: SelectedNotes,
+    private readonly hiddenLinesOf: (document: vscode.TextDocument) => ReadonlySet<number>,
   ) {
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
       vscode.window.tabGroups.onDidChangeTabs(() => {
         this.followTab();
-        this.postVisible();
+        this.postPlacement();
       }),
       vscode.window.tabGroups.onDidChangeTabGroups(() => {
         this.followTab();
-        this.postVisible();
+        this.postPlacement();
       }),
       vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor, event.kind === vscode.TextEditorSelectionChangeKind.Mouse)),
       vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
         if (event.textEditor.document.uri.toString() === this.document?.toString()) {
-          this.postVisible();
+          this.postPlacement();
+        }
+      }),
+      vscode.window.onDidChangeVisibleTextEditors(() => this.postPlacement()),
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (['editor', 'workbench.editor.showTabs', 'breadcrumbs.enabled'].some((section) => event.affectsConfiguration(section))) {
+          this.postPlacement();
         }
       }),
       threads.onDidChange((document) => {
@@ -306,6 +339,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
           void this.refresh();
         }
       }),
+      vscode.commands.registerCommand(viewCommands.newNote, (color?: unknown) => this.newNote(color)),
       vscode.commands.registerCommand(viewCommands.hide, () => this.hide()),
       vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
     ];
@@ -319,6 +353,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
+    this.ready = false;
     const media = vscode.Uri.joinPath(this.extensionUri, 'media');
     view.webview.options = { enableScripts: true, localResourceRoots: [media] };
     view.webview.html = this.html(view.webview, media);
@@ -330,17 +365,40 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         this.followTab();
         void this.refresh();
       }
-      this.shownListeners.forEach((listener) => listener());
+      this.visibilityChanged();
     });
     view.onDidDispose(() => {
       if (this.view === view) {
         this.view = undefined;
+        this.ready = false;
+        this.visibilityChanged();
       }
     });
+    this.visibilityChanged();
   }
 
   /**
-   * show opens the view with the note at a line of a document, for a click on its icon in the preview.
+   * onDidChangeVisibility adds a listener that the view calls each time it opens or closes: the highlights show only
+   * while the view is open (Hannes, 2026-10-28: "closing the side view, also hides the highlights").
+   * @param listener - The listener.
+   */
+  onDidChangeVisibility(listener: () => void): vscode.Disposable {
+    this.visibility.add(listener);
+    return { dispose: () => this.visibility.delete(listener) };
+  }
+
+  /** visibilityChanged tells the listeners that the view opened or closed. */
+  private visibilityChanged(): void {
+    this.visibility.forEach((listener) => listener());
+  }
+
+  /** visible tells whether the view is open and shows its content. */
+  get visible(): boolean {
+    return this.view?.visible === true;
+  }
+
+  /**
+   * show opens the view with the note at a line of a document, for a click on its highlight in the preview.
    * @param document - The URI of the document.
    * @param line - The index of a line of the note.
    */
@@ -352,8 +410,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * deselect deselects the selected note of a document, for a click on the text of the preview outside the passage of
-   * the note.
+   * deselect deselects the selected note of a document, for a click on the text of the preview outside the highlight
+   * of the note.
    * @param document - The URI of the document.
    */
   deselect(document: vscode.Uri): void {
@@ -362,6 +420,33 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       void this.refresh();
     } else {
       this.chosen.select(document, undefined);
+    }
+  }
+
+  /**
+   * newNote opens the editor of a new note in the view, for the selected text of the text editor, in a color: the color
+   * of the icon of the hover of the selection ([src/selectionHover.ts](selectionHover.ts)), or the default color. Without
+   * selected text it opens nothing and tells the user to select text (Hannes, 2026-10-28: "there shall be no way to add
+   * a note without highlighting text").
+   * @param color - The name of the color; another value, such as the URI that a menu of VS Code passes, means the
+   * default color.
+   */
+  private async newNote(color?: unknown): Promise<void> {
+    const document = this.document;
+    const selection = document && this.selections.get(document.toString());
+    if (!selection || selection.isEmpty) {
+      void vscode.window.showInformationMessage(problemMessage({ kind: 'noText' }));
+      return;
+    }
+    if (!this.view?.visible) {
+      await vscode.commands.executeCommand(`${notesViewId}.focus`);
+    }
+    const named = colorNames.find((name) => name === color && name !== colorNames[0]);
+    if (this.ready) {
+      await this.view?.webview.postMessage({ type: 'new', color: named });
+    } else {
+      // The script of a view that opens just now gets the request when it starts.
+      this.newColor = named ?? null;
     }
   }
 
@@ -405,7 +490,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * follow makes the document of a text editor the document of the view, and selects the note at its cursor. Another
-   * editor, for example the preview, keeps the document of the view. A click with the mouse on a selection of a note
+   * editor, for example the preview, keeps the document of the view. A click with the mouse on a highlight of a note
    * opens the view when it is closed, and a click with the mouse outside the notes deselects the selected note (Hannes,
    * 2026-10-28: "clicking somewhere in the text shall deselect the selected note"); a move of the cursor with the keys
    * keeps it.
@@ -430,10 +515,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       this.select(document, selected);
       void this.refresh();
     } else {
-      void this.view?.webview.postMessage({ type: 'line', line });
+      void this.view?.webview.postMessage({ type: 'line', line, highlight: this.highlightOf(document) });
+      this.postPlacement();
     }
     const inSelection = entry?.note.selection !== undefined && !(entry.note.start.line <= active.line && active.line <= entry.note.end.line);
-    if (click && inSelection && !this.view?.visible && showsInSideView(this.settingsOf(document))) {
+    if (click && inSelection && !this.view?.visible) {
       void this.open();
     }
   }
@@ -441,7 +527,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /**
    * open opens the view and gives the focus back to the text editor.
    */
-  private async open(): Promise<void> {
+  async open(): Promise<void> {
     if (this.view) {
       this.view.show(true);
       return;
@@ -495,44 +581,19 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * visible returns the part of the document of the view that its text editor shows, the first visible text editor of
-   * the document.
+   * placement returns the layout of the threads beside the first visible text editor of the document of the view: the
+   * places of the highlights of its notes and of the cursor; undefined while no text editor shows the document, or before
+   * the script told the height of the view.
    */
-  private visible(): Visible {
-    const uri = this.document?.toString();
-    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
-    const document = editor?.document ?? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri);
-    const ranges = editor?.visibleRanges ?? [];
-    return {
-      lines: ranges.length > 0 ? [ranges[0].start.line, ranges[ranges.length - 1].end.line] : undefined,
-      lineCount: document?.lineCount ?? 1,
-      start: this.startOf(editor),
-    };
-  }
-
-  /**
-   * startOf returns the start of the funnel of the selected thread ([R-SIDE-007](../docs/requirements.md#r-side-007)):
-   * the end of the band of a Markdown preview of the document, which draws the band from the passage; else the rows of
-   * the passage in the text editor of the document, an estimate when the editor wraps its lines at its width; undefined
-   * while the editor shows no row of the passage, so that the funnel starts at the mark in the strip.
-   * @param editor - The first visible text editor of the document, or undefined.
-   */
-  private startOf(editor: vscode.TextEditor | undefined): [number, number] | undefined {
+  private placement(): Placement | undefined {
     const document = this.document;
-    const entry = document && this.selected !== undefined ? this.threads.entriesOf(document).find((candidate) => candidate.id === this.selected) : undefined;
-    if (!document || !entry || this.height === undefined) {
-      return undefined;
-    }
-    const mode = modeOf(document);
-    if (mode?.mode === 'preview') {
-      const top = topOf(mode.toSide);
-      return [meeting[0] + top, meeting[1] + top];
-    }
-    if (!editor) {
+    const uri = document?.toString();
+    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
+    if (!document || !editor || this.height === undefined || editor.visibleRanges.length === 0) {
       return undefined;
     }
     const configuration = vscode.workspace.getConfiguration('editor', editor.document);
-    const top = topOf(false) + (configuration.get<{ top?: number }>('padding')?.top ?? 0);
+    const top = textTop(configuration);
     const layout: EditorLayout = {
       ranges: editor.visibleRanges,
       lineHeight: lineHeightOf(configuration),
@@ -542,36 +603,54 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       lineCount: editor.document.lineCount,
     };
     const lineAt = (line: number): string => editor.document.lineAt(line).text;
-    const key = document.toString();
-    const columns = columnsOf(layout, lineAt, this.columns.get(key));
-    this.columns.set(key, columns);
-    const { note } = entry;
-    return placeOf(layout, lineAt, columns, note.selection ?? { start: note.start, end: note.end });
+    const columns = columnsOf(layout, lineAt, this.columns.get(uri!));
+    this.columns.set(uri!, columns);
+    const entries = this.threads.entriesOf(document);
+    const cursor = editor.selection.active;
+    const hidden = this.hiddenLinesOf(editor.document);
+    const highlights = [...entries.map(({ note }) => note.selection ?? { start: note.start, end: note.end }), { start: cursor, end: cursor }];
+    const places = placesOf(layout, lineAt, columns, highlights, (line) => hidden.has(line));
+    return {
+      editor: [top, top + layout.height],
+      highlights: Object.fromEntries(entries.flatMap((entry, index) => (places[index] ? [[entry.id, places[index]]] : []))),
+      cursor: places.at(-1),
+      lineHeight: layout.lineHeight,
+    };
   }
 
-  /** postVisible sends the visible part of the file and the start of the funnel to the script of the view. */
-  private postVisible(): void {
-    void this.view?.webview.postMessage({ type: 'visible', visible: this.visible() });
+  /** postPlacement sends the layout of the threads beside the text editor to the script of the view. */
+  private postPlacement(): void {
+    void this.view?.webview.postMessage({ type: 'placement', placement: this.placement() });
+  }
+
+  /** settingsChanged shows the view again after a change of the settings of the extension. */
+  settingsChanged(): void {
+    void this.refresh();
   }
 
   /**
-   * onDidChangeShown adds a listener of the changes of the visibility of the view, after which the preview draws or
-   * removes its band.
-   * @param listener - The listener.
+   * highlightOf returns the text that a new note highlights for the selection of the text editor of a document: the text
+   * from its start marker to its reference, without the markers and references of other notes, on one line and
+   * shortened; or undefined when the selection holds no text that a note can highlight.
+   * @param document - The URI of the document.
    */
-  onDidChangeShown(listener: () => void): vscode.Disposable {
-    this.shownListeners.add(listener);
-    return { dispose: () => this.shownListeners.delete(listener) };
-  }
-
-  /** shown tells whether the view is visible. */
-  get shown(): boolean {
-    return this.view?.visible ?? false;
-  }
-
-  /** settingsChanged shows the view again after a change of the settings, for the setting showFunnels. */
-  settingsChanged(): void {
-    void this.refresh();
+  private highlightOf(document: vscode.Uri): string | undefined {
+    const range = this.selections.get(document.toString());
+    const open = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === document.toString());
+    if (!range || range.isEmpty || !open) {
+      return undefined;
+    }
+    const lines = linesOf(open);
+    const place = placeFor(lines, range, this.threads.textReadingOf(open));
+    if (!place) {
+      return undefined;
+    }
+    const text = open
+      .getText(new vscode.Range(place.marker.line, place.marker.character, place.reference.line, place.reference.character))
+      .replace(hiddenText, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > titleLength ? `${text.slice(0, titleLength - 1).trimEnd()}…` : text;
   }
 
   /** state returns the content of the view. */
@@ -579,12 +658,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const document = this.document;
     const entries = document ? this.threads.entriesOf(document) : [];
     const threads = await Promise.all(
-      entries.map(async ({ id, note }, index) => ({
+      entries.map(async ({ id, note, text }) => ({
         id,
         line: note.start.line,
-        number: index + 1,
-        color: colorOf(index + 1),
-        mark: (note.selection ? [note.selection.start.line, note.selection.end.line] : [note.start.line, note.end.line]) as [number, number],
+        color: colorOf(note),
+        colorName: colorNames[colorIndexOf(note)],
+        text,
         answers: await Promise.all(
           note.answers.map(
             async (answer): Promise<AnswerState> => ({
@@ -604,11 +683,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       type: 'state',
       file: document?.path.split('/').pop(),
       line: document ? this.lines.get(document.toString()) : undefined,
+      highlight: document && this.highlightOf(document),
       account: await this.login(false),
       selected: entries.some((entry) => entry.id === this.selected) ? this.selected : undefined,
       threads,
-      funnels: this.settingsOf(document).showFunnels,
-      visible: this.visible(),
+      colors: colorNames.map((name, index) => ({ name, color: noteColors[index] })),
+      placement: this.placement(),
     };
   }
 
@@ -619,8 +699,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     }
     const version = ++this.version;
     const state = await this.state();
-    if (version === this.version) {
-      await this.view?.webview.postMessage(state);
+    if (version === this.version && this.view) {
+      this.view.description = state.file;
+      await this.view.webview.postMessage(state);
     }
   }
 
@@ -634,8 +715,31 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * reveal shows a note in the text editor of its document, with the cursor at the start of its selection or of the
-   * note, and opens its box.
+   * scroll scrolls the text editor of the document of the view by rows, for a turn of the mouse wheel over the view
+   * beside it (decision 14). The command of VS Code scrolls the active text editor by its rows, also by the rows of a
+   * wrapped line; a text editor that is not active scrolls by lines.
+   * @param rows - The number of rows, down when positive.
+   */
+  private async scroll(rows: number): Promise<void> {
+    const uri = this.document?.toString();
+    if (!uri || !Number.isInteger(rows) || rows === 0) {
+      return;
+    }
+    if (vscode.window.activeTextEditor?.document.uri.toString() === uri) {
+      await vscode.commands.executeCommand('editorScroll', { to: rows > 0 ? 'down' : 'up', by: 'wrappedLine', value: Math.abs(rows), revealCursor: false });
+      return;
+    }
+    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
+    const first = editor?.visibleRanges[0]?.start.line;
+    if (editor && first !== undefined) {
+      const line = Math.min(Math.max(first + rows, 0), editor.document.lineCount - 1);
+      editor.revealRange(new vscode.Range(line, 0, line, 0), vscode.TextEditorRevealType.AtTop);
+    }
+  }
+
+  /**
+   * reveal shows a note in the text editor of its document, with the cursor at the start of its highlight or of the
+   * note.
    * @param id - The identifier of the thread of the note.
    * @param focus - Whether the text editor gets the focus; a click on a thread leaves the focus in the view.
    */
@@ -657,14 +761,13 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const place = entry.note.selection?.start ?? entry.note.start;
     const start = new vscode.Position(place.line, place.character);
     if (shown?.mode === 'editor') {
-      // The mode "Markdown Editor" stays, and selects the passage of the note, because it shows no note.
+      // The mode "Markdown Editor" stays, and selects the selection of the note, because it shows no note.
       const end = entry.note.selection ? new vscode.Position(entry.note.selection.end.line, entry.note.selection.end.character) : start;
       await vscode.commands.executeCommand('vscode.openWith', uri, markdownModes.editor, { viewColumn: shown.column, selection: new vscode.Range(start, end), preserveFocus: !focus });
       return;
     }
     const document = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(document, { viewColumn: column, selection: new vscode.Range(start, start), preserveFocus: !focus });
-    this.threads.expand(uri, id);
   }
 
   /**
@@ -675,11 +778,19 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const document = this.document;
     switch (message.type) {
       case 'ready':
+        this.ready = true;
         await this.refresh();
+        if (this.newColor !== undefined) {
+          await this.view?.webview.postMessage({ type: 'new', color: this.newColor ?? undefined });
+          this.newColor = undefined;
+        }
         return;
       case 'size':
         this.height = message.height;
-        this.postVisible();
+        this.postPlacement();
+        return;
+      case 'scroll':
+        await this.scroll(message.rows);
         return;
       case 'signIn':
         await this.login(true);
@@ -716,7 +827,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;
         const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
-        const result = await this.threads.addNote(document, range, message.text);
+        const result = await this.threads.addNote(document, range, message.text, colorNames.find((name) => name === message.color));
         if ('id' in result) {
           this.select(document, result.id);
           await this.refresh();
@@ -724,10 +835,18 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.reply(message.request, 'problem' in result ? result.problem : undefined);
         return;
       }
+      case 'saveText':
+        await this.reply(message.request, await this.threads.saveNoteText(document, message.id, message.text));
+        return;
+      case 'color':
       case 'deleteAnswer':
       case 'deleteNote': {
         const problem =
-          message.type === 'deleteAnswer' ? await this.threads.deleteAnswer(document, message.id, message.index) : await this.threads.deleteNote(document, message.id);
+          message.type === 'color'
+            ? await this.threads.colorNote(document, message.id, message.color)
+            : message.type === 'deleteAnswer'
+              ? await this.threads.deleteAnswer(document, message.id, message.index)
+              : await this.threads.deleteNote(document, message.id);
         if (problem) {
           void vscode.window.showErrorMessage(problemMessage(problem));
         }
@@ -741,5 +860,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     for (const registration of this.registrations) {
       registration.dispose();
     }
+    this.visibility.clear();
   }
 }

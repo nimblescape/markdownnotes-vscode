@@ -6,16 +6,17 @@
 
 /*
  * The styles of the side view "Notes" (R-SIDE-001, R-SIDE-002). The view uses
- * the font, the colors and the buttons of the theme of VS Code. Each thread is
- * a box with the color of its note at its left side and the badge with its
- * number; the selected thread has a frame in this color, and the other
- * threads are dimmed (R-SIDE-007). The replies to a reply are indented below
- * it.
+ * the font and the colors of the theme of VS Code. Each thread is a box with
+ * the color of its note at its left side and a round button of this color;
+ * the selected thread has a frame in this color, and the other threads are
+ * dimmed (R-SIDE-007). The replies to a reply are indented below it. The
+ * buttons are small icons, as the buttons in the title of an editor, and the
+ * text view of a note has the font of the text editor.
  *
- * With the funnels, the strip at the left edge stands for the whole file: a
- * mark in the color of each note, and a frame for the part of the file that
- * the text editor shows. The funnel of the selected thread lies between the
- * strip and the thread.
+ * Aligned to the text editor (decision 14), the page does not scroll: each
+ * thread stands at the place that the script gives it, a mark in the color of
+ * each note stands at the left edge at the rows of its highlight, and a line
+ * leads from the mark of the selected note to its thread.
  */
 
 body {
@@ -62,29 +63,55 @@ button:disabled {
   opacity: 0.5;
 }
 
-button.primary,
-button.secondary {
-  padding: 4px 12px;
-  border: 1px solid var(--vscode-button-border, transparent);
-  border-radius: 2px;
+/* A button with an icon, as the buttons in the title of an editor of VS Code: monochrome, with a background under the pointer. */
+button.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  background: none;
 }
 
-button.primary {
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-button-background);
+button.icon:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
 }
 
-button.primary:hover:not(:disabled) {
-  background: var(--vscode-button-hoverBackground);
+button.icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
-button.secondary {
-  color: var(--vscode-button-secondaryForeground);
-  background: var(--vscode-button-secondaryBackground);
+/* The round button of the color of a note, and the colors that it offers. */
+button.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--vscode-contrastBorder, rgba(128, 128, 128, 0.5));
+  border-radius: 50%;
+  background: var(--swatch);
+  align-self: center;
 }
 
-button.secondary:hover:not(:disabled) {
-  background: var(--vscode-button-secondaryHoverBackground);
+button.swatch[aria-pressed='true'] {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.palette {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+
+.spacer {
+  flex: 1;
 }
 
 button.link {
@@ -102,10 +129,6 @@ button:focus-visible,
 textarea:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: 1px;
-}
-
-button.add {
-  margin: 4px 0 8px;
 }
 
 .thread {
@@ -127,98 +150,109 @@ body.with-selection .thread:not(.selected, :hover, :focus-within) {
   opacity: 0.5;
 }
 
-/* The selected thread scrolls to the top of the view, also the last one: an empty part follows the threads. */
+/* In the list, the selected thread scrolls to the top of the view, also the last one: an empty part follows the threads. */
 .thread {
   scroll-margin-top: 8px;
 }
 
-#notes:has(.thread)::after {
+body:not(.aligned) #notes:has(.thread)::after {
   content: '';
   display: block;
   height: 80vh;
 }
 
-.badge {
-  min-width: 1.4em;
-  padding: 0 4px;
-  border-radius: 8px;
-  color: #fff;
-  background: var(--note-color, var(--vscode-badge-background));
-  font-size: 0.85em;
-  font-weight: 700;
-  line-height: 1.4;
-  text-align: center;
-  align-self: center;
+/* The aligned view: the threads stand at the places of their highlights, and the page does not scroll. */
+html:has(body.aligned),
+body.aligned {
+  height: 100%;
+  overflow: hidden;
 }
 
-body.with-funnels {
-  padding-left: 30px;
+body.aligned {
+  padding-left: 18px;
 }
 
-.strip {
+body.aligned #notes {
+  position: relative;
+  height: 100%;
+}
+
+body.aligned .thread,
+body.aligned .new-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+body.aligned .new-note {
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 3px;
+}
+
+body.aligned .new-note h2.new-title {
+  margin-top: 0;
+}
+
+body.aligned > #notes > .hint {
+  margin-top: 8px;
+}
+
+.marks {
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
-  width: 6px;
+  width: 4px;
   display: none;
-  background: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.2));
 }
 
-body.with-funnels .strip {
+body.aligned .marks {
   display: block;
 }
 
-.strip .mark {
-  position: absolute;
-  left: 0;
-  width: 6px;
-  opacity: 0.85;
-}
-
-.strip .mark.selected {
-  opacity: 1;
-}
-
-.strip .visible {
+.marks .mark {
   position: absolute;
   left: 0;
   width: 4px;
-  border: 1px solid var(--vscode-foreground);
-  opacity: 0.6;
+  border-radius: 1px;
 }
 
-.funnels {
+body.with-selection .marks .mark:not(.selected) {
+  opacity: 0.4;
+}
+
+.connection {
   position: fixed;
   top: 0;
   left: 0;
-  width: 28px;
+  width: 100%;
   height: 100%;
   pointer-events: none;
   display: none;
 }
 
-body.with-funnels .funnels {
+body.aligned .connection {
   display: block;
 }
 
-.funnel {
-  opacity: 0.25;
+.connection .line {
+  fill: none;
+  stroke-width: 2;
 }
 
-.funnel.selected {
-  opacity: 0.45;
+.sign-in {
+  margin: 4px 0 0;
+  font-size: 0.9em;
 }
 
 .thread-header {
   display: flex;
   gap: 8px;
-  align-items: baseline;
-  margin-bottom: 4px;
-}
-
-.thread-header .delete {
-  margin-left: auto;
+  align-items: center;
+  margin-bottom: 2px;
 }
 
 .answer {
@@ -244,7 +278,7 @@ body.with-funnels .funnels {
   display: flex;
   flex-wrap: wrap;
   gap: 0 8px;
-  align-items: baseline;
+  align-items: center;
   font-size: 0.9em;
 }
 
@@ -254,7 +288,7 @@ body.with-funnels .funnels {
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 2px;
   margin-left: auto;
 }
 
@@ -288,30 +322,8 @@ body.with-funnels .funnels {
   max-width: 100%;
 }
 
-.answer-button {
-  margin-top: 4px;
-}
-
 .editor {
   margin: 4px 0;
-}
-
-.tabs {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 2px;
-}
-
-.tab {
-  padding: 2px 8px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--vscode-foreground);
-  background: none;
-}
-
-.tab[aria-selected='true'] {
-  border-bottom-color: var(--vscode-focusBorder);
 }
 
 textarea.text {
@@ -325,6 +337,15 @@ textarea.text {
   font-family: var(--vscode-editor-font-family);
   font-size: var(--vscode-editor-font-size, inherit);
   resize: vertical;
+}
+
+/* The text view of a note: its whole text as the text editor shows it, in the font of the text editor, without wrapping. */
+textarea.source {
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 4;
+  font-weight: var(--vscode-editor-font-weight, normal);
+  line-height: 1.4;
 }
 
 .preview {
@@ -343,6 +364,7 @@ textarea.text {
 
 .buttons {
   display: flex;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 2px;
+  align-items: center;
+  margin-top: 2px;
 }

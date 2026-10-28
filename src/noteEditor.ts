@@ -5,49 +5,46 @@
 /**
  * The overlay of the notes in the text editor: decorations and folding over
  * the text editor of VS Code, which stays as it is
- * ([R-GEN-007](../docs/requirements.md#r-gen-007)).
+ * ([R-GEN-007](../docs/requirements.md#r-gen-007)). The text editor never
+ * shows the notes and their markers (Hannes, 2026-10-28: "in the text view we
+ * never show the notes and the markers"); the side view shows them
+ * ([src/notesView.ts](notesView.ts)).
  *
- * - **Dimming after the cursor** ([R-TEXT-003](../docs/requirements.md#r-text-003)):
- *   while the cursor is outside the notes, the editor dims the notes; while it
- *   is in a note, it dims everything outside this note.
  * - **Collapsed notes** ([R-TEXT-005](../docs/requirements.md#r-text-005)): the
  *   extension gives VS Code a folding range for each note
  *   ([src/notes/folds.ts](notes/folds.ts)), so that a collapsed note vanishes
  *   into the line before it. It collapses the notes of a file the first time
- *   the file is in the active editor, when the setting `collapseInEditor` is
- *   on, and has the commands "Hide Note Text", "Show Note Text", "Collapse All
- *   Notes" and "Expand All Notes". The box of a note has the button "Hide Note
- *   Text" while the text of the note shows, and "Show Note Text" while it is
- *   folded.
- * - **Markers** ([R-TEXT-006](../docs/requirements.md#r-text-006)): each note
- *   has a marker in the left margin with its number, in its color: at its
- *   first line, or at the line that stays of its fold while it is collapsed.
- *   A note with a selection has it at the last line of the selection, beside
- *   the comment mark of VS Code, whose click opens the box (VS Code tells an
- *   extension of no click on the marker itself), and while the note is open
- *   also at its first line. The overview ruler shows a mark in the same color.
- * - **Selections** ([R-NOTE-006](../docs/requirements.md#r-note-006)): the
- *   selection of a note has a highlight in the color of the note. Its start
- *   marker `<!--[note-7k2q-->` and its reference `[^note-7k2q]` vanish: a thin
- *   bar in the color of the note stands at the start and at the end of the
- *   selection, and a dot at a point. The markers stay hidden also on the line
- *   of the cursor: the cursor steps over a marker as over one place, and
+ *   the file is in the active editor, collapses again a note that VS Code
+ *   opens, for example after a click on its fold arrow, and keeps the cursor
+ *   out of the lines of a collapsed note.
+ * - **Highlights** ([R-NOTE-006](../docs/requirements.md#r-note-006)): while
+ *   the setting `showHighlights` is on and the side view is open, the text
+ *   from the start marker to the reference of each note, its highlight, has a
+ *   background in the color of the note with a line below it, so that it
+ *   stands out of the text (Hannes, 2026-10-28: "when viewed make it good
+ *   contrast", "closing the side view, also hides the highlights"). The
+ *   highlight of the selected note of the side view is strong with a frame in
+ *   its color, also while the others are hidden, and the highlights of the
+ *   other notes are dimmed. A hidden highlight shows while the pointer rests
+ *   on its text (Hannes, 2026-10-28: "even when the highlights are hidden,
+ *   hover over a highlight always shows the highlight"): VS Code asks the
+ *   hover providers for the place of the pointer, so the extension learns it
+ *   there, and shows no hover. VS Code tells no event when the pointer leaves
+ *   the text, so the highlight stays until the pointer rests on other text,
+ *   the cursor moves, or the side view opens. The start marker
+ *   `<wbr><!--[note-7k2q-->` and the reference `[^note-7k2q]` vanish, also on the
+ *   line of the cursor: the cursor steps over a marker as over one place, and
  *   Backspace and Delete next to a marker delete the character on the other
- *   side of it ([src/notes/cursor.ts](notes/cursor.ts)), so that no key changes
- *   a marker. The selection of the selected note of the side view has a strong
- *   highlight with a frame in its color, and the selections, the bars and the
- *   markers of the other notes are dimmed.
- * - **Headers** ([R-TEXT-007](../docs/requirements.md#r-text-007)): the header
- *   line of each answer shows rendered, with the author and the date in the
- *   local time of the reader, for example `hannes · 2026-10-28 10:15`, and the
- *   date in the local time of the author as its hover, also on the line of
- *   the cursor. The cursor does not stay on a header line, and Backspace and
- *   Delete next to it change nothing, so that no key changes a header.
- * - **Notes that stay collapsed** ([R-TEXT-005](../docs/requirements.md#r-text-005)):
- *   with the setting `keepNotesCollapsed`, the notes collapse the first time a
- *   file is in the active editor, and the extension collapses again a note
- *   that VS Code opens, for example after a click on its fold arrow. The
- *   cursor does not stay in the lines of a collapsed note.
+ *   side of it ([src/notes/cursor.ts](notes/cursor.ts)), so that no key
+ *   changes a marker. The overview ruler shows a mark in the color of each
+ *   highlight.
+ * - **Headers** ([R-TEXT-007](../docs/requirements.md#r-text-007)): when a
+ *   fold starts on the first line of a note, which then stays, the header on
+ *   this line shows rendered, with the author and the date in the local time
+ *   of the reader, for example `hannes · 2026-10-28 10:15`, and the date in
+ *   the local time of the author as its hover. The cursor does not stay on a
+ *   header line, and Backspace and Delete next to it change nothing, so that
+ *   no key changes a header.
  *
  * VS Code tells an extension which lines are folded only by the visible
  * ranges of the editor, which end at the first line of a collapsed fold and
@@ -63,22 +60,13 @@
  */
 
 import * as vscode from 'vscode';
-import { colorIndexOf, colorOf, noteColors } from './notes/colors';
-import { type Fold, foldOf, foldsOf, headersOf } from './notes/folds';
+import { colorIndexOf, noteColors } from './notes/colors';
+import { type Fold, foldsOf, headersOf } from './notes/folds';
 import { deletion, locksLine, offLines, outside, type Side, type Span, spansOf } from './notes/cursor';
-import { type Marker, type Note, noteAt, type Position, same } from './notes/notes';
+import { type Note, type Position, same } from './notes/notes';
 import { authorDate } from './notes/syntax';
-import { isNoteDocument, type NoteThreads, rangeOf } from './noteThreads';
+import { isNoteDocument, type NoteThreads } from './noteThreads';
 import type { SelectedNotes } from './selectedNotes';
-import type { Settings } from './settings';
-
-/** editorCommands are the commands of the folds of the notes. */
-export const editorCommands = {
-  collapseNote: 'nimblescape.markdownNotes.collapseNote',
-  expandNote: 'nimblescape.markdownNotes.expandNote',
-  collapseAll: 'nimblescape.markdownNotes.collapseAllNotes',
-  expandAll: 'nimblescape.markdownNotes.expandAllNotes',
-} as const;
 
 /** deleteCommands are the commands of Backspace and Delete, and of the keys that delete a word, next to a hidden marker. */
 export const deleteCommands = {
@@ -103,29 +91,8 @@ const builtinDeletes = {
 /** keepTime is the time in milliseconds after VS Code read the folds of a document before the extension collapses its open notes again. */
 export const keepTime = 300;
 
-export { colorOf, noteColors } from './notes/colors';
-
-/** dimOpacity is the opacity of the marker of a note while another note is selected. */
-const dimOpacity = 0.35;
-
-/** dimAlpha is the alpha, as two hexadecimal digits, of the color of the bars of a note while another note is selected. */
+/** dimAlpha is the alpha, as two hexadecimal digits, of the color of the mark of a dimmed highlight in the overview ruler. */
 const dimAlpha = '59';
-
-/**
- * markerImage returns the image of the marker of a note: a speech bubble in its color with its number.
- * @param number - The number of the note, from 1.
- * @param dim - Whether another note is selected, so that the marker is dimmed.
- */
-export function markerImage(number: number, dim = false): string {
-  const label = number > 99 ? '…' : String(number);
-  const size = label.length > 1 ? 6.5 : 8;
-  return [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"${dim ? ` opacity="${dimOpacity}"` : ''}>`,
-    `<path d="M2.5 1.5h11A1.5 1.5 0 0 1 15 3v7.5a1.5 1.5 0 0 1-1.5 1.5H7.5L4 15v-3H2.5A1.5 1.5 0 0 1 1 10.5V3a1.5 1.5 0 0 1 1.5-1.5z" fill="${colorOf(number)}"/>`,
-    `<text x="8" y="9.6" font-family="sans-serif" font-size="${size}" font-weight="bold" fill="#fff" text-anchor="middle">${label}</text>`,
-    '</svg>',
-  ].join('');
-}
 
 /**
  * settleTime is the time in milliseconds after the first collapse of the notes of a document in which the extension
@@ -140,34 +107,10 @@ export const settleTime = 10_000;
 const linesOf = (document: vscode.TextDocument): string[] => document.getText().split(/\r\n|\r|\n/);
 
 /**
- * contains tells whether a note holds a position, its start and its end included.
- * @param note - The note.
- * @param position - The position.
- */
-const contains = (note: Note, position: vscode.Position): boolean => rangeOf(note).contains(position);
-
-/**
  * positionOf returns the position of VS Code of a position of a note.
  * @param position - The position.
  */
 const positionOf = (position: Position): vscode.Position => new vscode.Position(position.line, position.character);
-
-/**
- * edgeOf returns the decoration of a hidden marker of a selection: a thin bar in the color of the note at the start or
- * the end of the selection, or a dot at a point.
- * @param marker - The marker.
- * @param number - The number of the note, from 1.
- * @param dim - Whether another note is selected, so that the bar or the dot is dimmed.
- */
-function edgeOf(marker: Marker, number: number, dim: boolean): vscode.DecorationOptions {
-  const color = `${colorOf(number)}${dim ? dimAlpha : ''}`;
-  const at = positionOf(marker.kind === 'open' ? marker.end : marker.start);
-  const before: vscode.ThemableDecorationAttachmentRenderOptions =
-    marker.kind === 'point'
-      ? { contentText: '●', color, fontWeight: 'bold', margin: '0 1px' }
-      : { contentText: '', width: '2px', height: '1.1em', backgroundColor: color, margin: marker.kind === 'open' ? '0 1px 0 0' : '0 0 0 1px', textDecoration: 'none; vertical-align: text-bottom;' };
-  return { range: new vscode.Range(at, at), renderOptions: { before } };
-}
 
 /**
  * isCollapsed tells whether VS Code shows a fold collapsed in an editor: a visible range ends at its first line, and the
@@ -193,24 +136,40 @@ const isOpen = (editor: vscode.TextEditor, fold: Pick<Fold, 'start'>): boolean =
 
 /** NoteEditor keeps the decorations and the folds of the notes in the text editors. */
 export class NoteEditor implements vscode.Disposable {
-  /** dimmed is the decoration of the part of the text that the user does not work on. */
-  private readonly dimmed = vscode.window.createTextEditorDecorationType({ opacity: '0.55' });
-  /** hidden hides the first line of a collapsed fold that is the first line of a note. */
+  /** hidden hides the start markers and the references, and the first line of a collapsed fold that is the first line of a note. */
   private readonly hidden = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
-  /** highlights holds the decoration of the selections of each color of a note. */
-  private readonly highlights = noteColors.map((color) => vscode.window.createTextEditorDecorationType({ backgroundColor: `${color}33`, overviewRulerColor: color, overviewRulerLane: vscode.OverviewRulerLane.Center }));
-  /** faint holds the decoration of the selections of each color of the other notes while a note is selected: dimmed. */
-  private readonly faint = noteColors.map((color) => vscode.window.createTextEditorDecorationType({ backgroundColor: `${color}12`, overviewRulerColor: `${color}${dimAlpha}`, overviewRulerLane: vscode.OverviewRulerLane.Center }));
-  /** edges shows the bars and the dots in place of the hidden markers of the selections. */
-  private readonly edges = vscode.window.createTextEditorDecorationType({});
-  /** strong holds the decoration of the selection of the selected note of each color: a strong highlight with a frame. */
-  private readonly strong = noteColors.map((color) => vscode.window.createTextEditorDecorationType({ backgroundColor: `${color}66`, border: `1px solid ${color}`, borderRadius: '3px' }));
+  /**
+   * highlights holds the decoration of the highlights of each color of a note: a clear background with a line below.
+   * The highlights are styles of the text itself, not backgrounds behind it: VS Code takes the places of the backgrounds
+   * of a line from the number of its characters, which counts the hidden markers, so that a background after a hidden
+   * marker stands too far to the right, or does not show; a style of the text stays on the text (measured in VS Code
+   * 1.143).
+   */
+  private readonly highlights = noteColors.map((color) =>
+    vscode.window.createTextEditorDecorationType({
+      textDecoration: `underline 2px ${color}; text-underline-offset: 3px; background-color: ${color}47;`,
+      overviewRulerColor: color,
+      overviewRulerLane: vscode.OverviewRulerLane.Center,
+    }),
+  );
+  /** faint holds the decoration of the highlights of each color of the other notes while a note is selected: dimmed. */
+  private readonly faint = noteColors.map((color) =>
+    vscode.window.createTextEditorDecorationType({
+      textDecoration: `underline 1px ${color}${dimAlpha}; text-underline-offset: 3px; background-color: ${color}1f;`,
+      overviewRulerColor: `${color}${dimAlpha}`,
+      overviewRulerLane: vscode.OverviewRulerLane.Center,
+    }),
+  );
+  /** strong holds the decoration of the highlight of the selected note of each color: a strong highlight with a frame. */
+  private readonly strong = noteColors.map((color) =>
+    vscode.window.createTextEditorDecorationType({
+      textDecoration: `none; background-color: ${color}73; outline: 1px solid ${color}; border-radius: 3px;`,
+      overviewRulerColor: color,
+      overviewRulerLane: vscode.OverviewRulerLane.Full,
+    }),
+  );
   /** headers shows the rendered header of an answer in place of its header line. */
   private readonly headers = vscode.window.createTextEditorDecorationType({});
-  /** markers holds the decoration of the marker of each number of a note. */
-  private readonly markers: vscode.TextEditorDecorationType[] = [];
-  /** dimMarkers holds the decoration of the dimmed marker of each number of a note, while another note is selected. */
-  private readonly dimMarkers: vscode.TextEditorDecorationType[] = [];
   /** collapsed holds the documents whose notes the extension collapsed once, by their URIs. */
   private readonly collapsed = new Set<string>();
   /** pending holds the documents whose first collapse repeats, by their URIs: the version of the document and the time until which it repeats. */
@@ -223,19 +182,22 @@ export class NoteEditor implements vscode.Disposable {
   private readonly cursors = new WeakMap<vscode.TextEditor, readonly vscode.Selection[]>();
   /** contexts holds the values of markerContexts that the extension set last. */
   private readonly contexts = { left: false, right: false };
+  /** pointed is the note whose hidden highlight is under the pointer: the URI of its document and its label. */
+  private pointed: { document: string; label: string } | undefined;
 
   /**
    * @param threads - The threads of the notes, which read the notes of each document and tell their changes.
-   * @param settingsOf - Returns the settings of a document.
-   * @param selected - The selected note of each document, whose selection has the strong highlight.
+   * @param showsHighlights - Tells whether the highlights of a document show: the setting showHighlights is on and the
+   * side view is open.
+   * @param selected - The selected note of each document, whose highlight has the strong color.
    */
   constructor(
     private readonly threads: NoteThreads,
-    private readonly settingsOf: (document: vscode.Uri) => Settings,
+    private readonly showsHighlights: (document: vscode.Uri) => boolean,
     private readonly selected: SelectedNotes,
   ) {}
 
-  /** register registers the folding, the commands and the listeners, and decorates the visible editors. */
+  /** register registers the folding, the commands of the keys and the listeners, and decorates the visible editors. */
   register(): vscode.Disposable[] {
     const registrations = [
       vscode.languages.registerFoldingRangeProvider('markdown', {
@@ -248,10 +210,12 @@ export class NoteEditor implements vscode.Disposable {
           return this.foldsIn(document).map((fold) => new vscode.FoldingRange(fold.start, fold.end, vscode.FoldingRangeKind.Comment));
         },
       }),
-      vscode.commands.registerCommand(editorCommands.collapseNote, (thread?: vscode.CommentThread) => this.foldNote(thread, true)),
-      vscode.commands.registerCommand(editorCommands.expandNote, (thread?: vscode.CommentThread) => this.foldNote(thread, false)),
-      vscode.commands.registerCommand(editorCommands.collapseAll, () => this.foldAll(true)),
-      vscode.commands.registerCommand(editorCommands.expandAll, () => this.foldAll(false)),
+      vscode.languages.registerHoverProvider('markdown', {
+        provideHover: (document, position) => {
+          this.point(document, position);
+          return undefined;
+        },
+      }),
       vscode.commands.registerCommand(deleteCommands.left, () => this.deleteNext('left', false)),
       vscode.commands.registerCommand(deleteCommands.right, () => this.deleteNext('right', false)),
       vscode.commands.registerCommand(deleteCommands.wordLeft, () => this.deleteNext('left', true)),
@@ -263,6 +227,7 @@ export class NoteEditor implements vscode.Disposable {
       }),
       vscode.window.onDidChangeTextEditorSelection((event) => {
         this.stepOver(event.textEditor);
+        this.pointAt(undefined);
         this.decorate(event.textEditor);
       }),
       vscode.window.onDidChangeTextEditorVisibleRanges((event) => this.decorate(event.textEditor)),
@@ -279,6 +244,49 @@ export class NoteEditor implements vscode.Disposable {
     vscode.window.visibleTextEditors.forEach((editor) => this.decorate(editor));
     this.collapseOnce(vscode.window.activeTextEditor);
     return registrations;
+  }
+
+  /** showsChanged decorates the visible editors again after the highlights showed or vanished. */
+  showsChanged(): void {
+    this.pointed = undefined;
+    vscode.window.visibleTextEditors.forEach((editor) => this.decorate(editor));
+  }
+
+  /**
+   * point learns the place of the pointer in a document from a request for a hover: on the text of a hidden highlight,
+   * the highlight shows, of the note whose highlight starts last.
+   * @param document - The document.
+   * @param position - The position of the pointer.
+   */
+  private point(document: vscode.TextDocument, position: vscode.Position): void {
+    if (this.showsHighlights(document.uri)) {
+      this.pointAt(undefined);
+      return;
+    }
+    const note = this.notesIn(document)
+      .filter((candidate) => candidate.selection && !same(candidate.selection.start, candidate.selection.end))
+      .filter(({ selection }) => !positionOf(selection!.start).isAfter(position) && positionOf(selection!.end).isAfter(position))
+      .sort((a, b) => positionOf(a.selection!.start).compareTo(positionOf(b.selection!.start)))
+      .at(-1);
+    this.pointAt(note && { document: document.uri.toString(), label: note.label });
+  }
+
+  /**
+   * pointAt makes a note the note under the pointer, and decorates the editors of the documents of the old and the new
+   * one.
+   * @param pointed - The URI of the document and the label of the note, or undefined.
+   */
+  private pointAt(pointed: { document: string; label: string } | undefined): void {
+    const before = this.pointed;
+    if (before?.document === pointed?.document && before?.label === pointed?.label) {
+      return;
+    }
+    this.pointed = pointed;
+    for (const changed of new Set([before?.document, pointed?.document])) {
+      if (changed !== undefined) {
+        this.decorateAll(vscode.Uri.parse(changed));
+      }
+    }
   }
 
   /**
@@ -310,7 +318,7 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * spansIn returns the places of the hidden markers of the selections of the notes of a document.
+   * spansIn returns the places of the hidden markers of the highlights of the notes of a document.
    * @param document - The document.
    */
   private spansIn(document: vscode.TextDocument): Span[] {
@@ -326,28 +334,8 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * markerOf returns the decoration of the marker of a number, which it creates the first time.
-   * @param number - The number of a note, from 1.
-   * @param dim - Whether the marker is dimmed, because another note is selected.
-   */
-  private markerOf(number: number, dim = false): vscode.TextEditorDecorationType {
-    const markers = dim ? this.dimMarkers : this.markers;
-    while (markers.length < number) {
-      const created = markers.length + 1;
-      markers.push(
-        vscode.window.createTextEditorDecorationType({
-          gutterIconPath: vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(markerImage(created, dim)).toString('base64')}`),
-          gutterIconSize: 'contain',
-          overviewRulerColor: `${colorOf(created)}${dim ? dimAlpha : ''}`,
-          overviewRulerLane: vscode.OverviewRulerLane.Left,
-        }),
-      );
-    }
-    return markers[number - 1];
-  }
-
-  /**
-   * decorate gives a text editor the dimming, the markers and the hidden first lines of its notes.
+   * decorate gives a text editor the highlights of its notes, the hidden markers, and the hidden first lines and the
+   * rendered headers of its collapsed notes.
    * @param editor - The text editor.
    */
   private decorate(editor: vscode.TextEditor): void {
@@ -356,10 +344,6 @@ export class NoteEditor implements vscode.Disposable {
     const lines = linesOf(document);
     const folds = foldsOf(lines, notes);
     const cursor = editor.selection.active;
-    const current = notes.find((note) => contains(note, cursor));
-    const end = document.lineAt(Math.max(document.lineCount - 1, 0)).range.end;
-    const outside = current ? [new vscode.Range(new vscode.Position(0, 0), rangeOf(current).start), new vscode.Range(rangeOf(current).end, end)] : notes.map(rangeOf);
-    editor.setDecorations(this.dimmed, outside);
     const collapsed = new Set(folds.filter((fold) => isCollapsed(editor, fold)));
     const shut = this.shutIn(document);
     for (const fold of folds) {
@@ -368,58 +352,48 @@ export class NoteEditor implements vscode.Disposable {
         fold.notes.forEach((note) => (known ? shut.add(note.label) : shut.delete(note.label)));
       }
     }
-    this.threads.showFolded(document.uri, (note) => shut.has(note.label));
-    // A note with a selection has its marker at the last line of the selection, where VS Code shows the comment mark
-    // of its box, and while it is open also at its own first line. Notes of one line share it, as the notes of one
-    // collapsed fold, and the first of them shows its marker there.
-    const taken = new Set<number>();
-    const markerLines = notes.map((note) => {
-      const fold = foldOf(folds, note);
-      const shut = fold !== undefined && collapsed.has(fold);
-      const own = note.selection ? [note.selection.end.line, shut ? undefined : note.start.line] : [shut ? fold.start : note.start.line];
-      const free = [...new Set(own)].filter((line): line is number => line !== undefined && !taken.has(line));
-      free.forEach((line) => taken.add(line));
-      return free;
-    });
     // While a note is selected, the other notes are dimmed (Hannes, 2026-10-28: "other notes shall be dimmed when one
     // note is selected").
     const label = this.selected.labelOf(document.uri);
     const selectedLabel = notes.some((note) => note.label === label) ? label : undefined;
     const dims = (note: Note): boolean => selectedLabel !== undefined && note.label !== selectedLabel;
-    for (let number = 1; number <= Math.max(notes.length, this.markers.length, this.dimMarkers.length); number++) {
-      const note = notes[number - 1];
-      const ranges = (markerLines[number - 1] ?? []).map((line) => new vscode.Range(line, 0, line, 0));
-      const dim = note !== undefined && dims(note);
-      editor.setDecorations(this.markerOf(number), dim ? [] : ranges);
-      // The dimmed marker of a number exists once a note of the number was dimmed.
-      if (dim || number <= this.dimMarkers.length) {
-        editor.setDecorations(this.markerOf(number, true), dim ? ranges : []);
-      }
-    }
+    const shows = this.showsHighlights(document.uri);
+    const pointed = this.pointed?.document === document.uri.toString() ? this.pointed.label : undefined;
     const highlighted = this.highlights.map((): vscode.Range[] => []);
     const faint = this.faint.map((): vscode.Range[] => []);
     const strong = this.strong.map((): vscode.Range[] => []);
     const hidden = [...collapsed].filter((fold) => fold.hidesFirst && cursor.line !== fold.start).map((fold) => document.lineAt(fold.start).range);
-    const edges: vscode.DecorationOptions[] = [];
-    notes.forEach((note, index) => {
+    for (const note of notes) {
       const selection = note.selection;
       if (!selection) {
-        return;
+        continue;
       }
       const range = new vscode.Range(positionOf(selection.start), positionOf(selection.end));
-      if (!range.isEmpty) {
-        (note.label === selectedLabel ? strong : dims(note) ? faint : highlighted)[colorIndexOf(index + 1)].push(range);
+      const color = colorIndexOf(note);
+      if (range.isEmpty) {
+        // A note that highlights no text shows nothing.
+      } else if (note.label === selectedLabel) {
+        strong[color].push(range);
+      } else if (note.label === pointed || (shows && !dims(note))) {
+        highlighted[color].push(range);
+      } else if (shows) {
+        faint[color].push(range);
       }
       for (const marker of selection.markers) {
         hidden.push(new vscode.Range(positionOf(marker.start), positionOf(marker.end)));
-        edges.push(edgeOf(marker, index + 1, dims(note)));
       }
-    });
+    }
     this.highlights.forEach((highlight, index) => editor.setDecorations(highlight, highlighted[index]));
     this.faint.forEach((highlight, index) => editor.setDecorations(highlight, faint[index]));
     this.strong.forEach((highlight, index) => editor.setDecorations(highlight, strong[index]));
     const headers: vscode.DecorationOptions[] = [];
+    // VS Code shows the text before a hidden line at the end of the first line of its fold, so the headers in a closed
+    // fold get no text.
+    const closed = folds.filter((fold) => collapsed.has(fold) || (!isOpen(editor, fold) && fold.notes.length > 0 && fold.notes.every((note) => shut.has(note.label))));
     for (const header of headersOf(lines, notes)) {
+      if (closed.some((fold) => fold.start < header.line && header.line <= fold.end)) {
+        continue;
+      }
       const range = new vscode.Range(header.line, header.start, header.line, header.end);
       hidden.push(range);
       headers.push({
@@ -430,7 +404,6 @@ export class NoteEditor implements vscode.Disposable {
     }
     editor.setDecorations(this.headers, headers);
     editor.setDecorations(this.hidden, hidden);
-    editor.setDecorations(this.edges, edges);
     if (editor === vscode.window.activeTextEditor) {
       this.keepShut(editor, folds);
     }
@@ -514,16 +487,13 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * keepLater collapses the open notes of a document in the active editor again after keepTime, when the setting
-   * keepNotesCollapsed is on: VS Code read the folds of this version of the document, so the fold command acts on them.
+   * keepLater collapses the open notes of a document in the active editor again after keepTime: VS Code read the folds
+   * of this version of the document, so the fold command acts on them.
    * @param document - The document whose folds VS Code reads.
    */
   private keepLater(document: vscode.TextDocument): void {
     const key = document.uri.toString();
     this.read.set(key, document.version);
-    if (!this.settingsOf(document.uri).keepNotesCollapsed) {
-      return;
-    }
     setTimeout(() => {
       const editor = vscode.window.activeTextEditor;
       if (editor?.document === document && !document.isClosed) {
@@ -533,15 +503,15 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * keepShut collapses the notes that VS Code shows open in the active editor, when the setting keepNotesCollapsed is
-   * on, and moves a cursor in the lines of such a note out of them, because VS Code opens a fold that holds the cursor.
-   * The editor acts only on a version of the document whose folds VS Code read.
+   * keepShut collapses the notes that VS Code shows open in the active editor, and moves a cursor in the lines of such a
+   * note out of them, because VS Code opens a fold that holds the cursor. The editor acts only on a version of the
+   * document whose folds VS Code read.
    * @param editor - The active text editor.
    * @param folds - The folds of its document.
    */
   private keepShut(editor: vscode.TextEditor, folds: readonly Fold[]): void {
     const document = editor.document;
-    if (!this.settingsOf(document.uri).keepNotesCollapsed || this.read.get(document.uri.toString()) !== document.version) {
+    if (this.read.get(document.uri.toString()) !== document.version) {
       return;
     }
     const previous = this.cursors.get(editor)?.[0]?.active;
@@ -581,9 +551,32 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * fold collapses or expands folds in the active text editor, and takes the new state for the boxes of their notes
-   * until the visible ranges of the editor tell it.
-   * @param folds - The folds.
+   * hiddenLinesOf returns the lines of a document that its collapsed folds hide in the text editor, as far as the
+   * extension knows them: the lines after the first line of each fold whose notes are folded, and of the fold of the
+   * comment of the format after the first collapse. The side view counts the rows outside the visible ranges without
+   * them ([R-SIDE-007](../docs/requirements.md#r-side-007)).
+   * @param document - The document.
+   */
+  hiddenLinesOf(document: vscode.TextDocument): Set<number> {
+    const shut = this.shutIn(document);
+    const collapsedOnce = this.collapsed.has(document.uri.toString());
+    const hidden = new Set<number>();
+    for (const fold of this.foldsIn(document)) {
+      if (fold.notes.length > 0 ? fold.notes.every((note) => shut.has(note.label)) : collapsedOnce) {
+        for (let line = fold.start + 1; line <= fold.end; line++) {
+          hidden.add(line);
+        }
+      }
+    }
+    return hidden;
+  }
+
+  /**
+   * fold collapses or expands folds in the active text editor, and takes the new state of their notes until the visible
+   * ranges of the editor tell it. A fold command names lines, so it waits until VS Code applied the edits of the
+   * extension, for example the comment of the format that an opened file gets, and takes the lines of the folds from the
+   * document then: with the lines of before, the command would fold other lines, such as the section of a heading.
+   * @param folds - The folds: the folds of their notes, and the fold of the comment of the format.
    * @param collapse - Whether to collapse them.
    */
   private async fold(folds: readonly Pick<Fold, 'start' | 'notes'>[], collapse: boolean): Promise<void> {
@@ -591,10 +584,19 @@ export class NoteEditor implements vscode.Disposable {
     if (folds.length === 0 || !document) {
       return;
     }
+    await this.threads.settled(document);
+    if (vscode.window.activeTextEditor?.document !== document) {
+      return;
+    }
+    const labels = new Set(folds.flatMap((fold) => fold.notes.map((note) => note.label)));
+    const comment = folds.some((fold) => fold.notes.length === 0);
+    const current = this.foldsIn(document).filter((fold) => (fold.notes.length === 0 ? comment : fold.notes.some((note) => labels.has(note.label))));
+    if (current.length === 0) {
+      return;
+    }
     const shut = this.shutIn(document);
-    folds.forEach((fold) => fold.notes.forEach((note) => (collapse ? shut.add(note.label) : shut.delete(note.label))));
-    this.threads.showFolded(document.uri, (note) => shut.has(note.label));
-    await vscode.commands.executeCommand(collapse ? 'editor.fold' : 'editor.unfold', { levels: 1, direction: 'down', selectionLines: folds.map((fold) => fold.start) });
+    current.forEach((fold) => fold.notes.forEach((note) => (collapse ? shut.add(note.label) : shut.delete(note.label))));
+    await vscode.commands.executeCommand(collapse ? 'editor.fold' : 'editor.unfold', { levels: 1, direction: 'down', selectionLines: current.map((fold) => fold.start) });
   }
 
   /**
@@ -621,9 +623,8 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * collapseOnce collapses the notes of the document of the active editor the first time it is there, when the setting
-   * collapseInEditor or keepNotesCollapsed is on. A note that the user adds later stays open, except with
-   * keepNotesCollapsed.
+   * collapseOnce collapses the notes of the document of the active editor the first time it is there; keepShut
+   * collapses a note that the user adds later.
    * @param editor - The active text editor, or undefined.
    */
   private collapseOnce(editor: vscode.TextEditor | undefined): void {
@@ -635,53 +636,13 @@ export class NoteEditor implements vscode.Disposable {
       return;
     }
     this.collapsed.add(key);
-    const settings = this.settingsOf(editor.document.uri);
-    if (settings.collapseInEditor || settings.keepNotesCollapsed) {
-      this.pending.set(key, { version: editor.document.version, until: Date.now() + settleTime });
-      void this.fold(this.foldsIn(editor.document), true);
-    }
-  }
-
-  /**
-   * foldNote hides or shows the text of the note of a box, or of the note at the cursor of the active editor: the note
-   * that holds the cursor, or else the note whose selection holds it. Notes with only blank lines between them share
-   * one fold. After it shows the text, the editor scrolls to the note when it is outside the visible lines.
-   * @param thread - The thread of the box, or undefined.
-   * @param collapse - Whether to hide the text.
-   */
-  private async foldNote(thread: vscode.CommentThread | undefined, collapse: boolean): Promise<void> {
-    const uri = thread?.uri ?? vscode.window.activeTextEditor?.document.uri;
-    const document = uri && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri.toString());
-    if (!document || (!collapse && this.settingsOf(document.uri).keepNotesCollapsed)) {
-      return;
-    }
-    const cursor = vscode.window.activeTextEditor?.selection.active;
-    const note = thread ? this.threads.noteOfThread(thread) : cursor && noteAt(this.notesIn(document), cursor);
-    const fold = note && foldOf(this.foldsIn(document), note);
-    if (!fold) {
-      return;
-    }
-    const editor = vscode.window.activeTextEditor?.document === document ? vscode.window.activeTextEditor : await vscode.window.showTextDocument(document);
-    await this.fold([fold], collapse);
-    if (!collapse) {
-      editor.revealRange(rangeOf(note), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-    }
-  }
-
-  /**
-   * foldAll collapses or expands every note of the active editor; with the setting keepNotesCollapsed it expands none.
-   * @param collapse - Whether to collapse the notes.
-   */
-  private async foldAll(collapse: boolean): Promise<void> {
-    const editor = vscode.window.activeTextEditor;
-    if (editor && (collapse || !this.settingsOf(editor.document.uri).keepNotesCollapsed)) {
-      await this.fold(this.foldsIn(editor.document), collapse);
-    }
+    this.pending.set(key, { version: editor.document.version, until: Date.now() + settleTime });
+    void this.fold(this.foldsIn(editor.document), true);
   }
 
   /** dispose removes the decorations. */
   dispose(): void {
-    for (const decoration of [this.dimmed, this.hidden, this.edges, this.headers, ...this.highlights, ...this.faint, ...this.strong, ...this.markers, ...this.dimMarkers]) {
+    for (const decoration of [this.hidden, this.headers, ...this.highlights, ...this.faint, ...this.strong]) {
       decoration.dispose();
     }
   }

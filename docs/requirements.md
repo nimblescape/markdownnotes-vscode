@@ -14,9 +14,10 @@ The extension adds notes to Markdown files. A note is a footnote of the
 Markdown text ([decision 8](#decisions)), so the file stays plain Markdown:
 GitHub, the main target, and other Markdown tools show each note as a
 footnote at the end of the page. Several authors can answer a note and each
-other, so a note is a tree of answers. VS Code shows the notes in the text
-editor, in the Comments view, in a side view of the extension and in the
-Markdown preview.
+other, so a note is a tree of answers. VS Code shows the text of the notes in
+one place, the side view "Notes" of the extension, next to the text that each
+note is about: its highlight in the text editor and in the Markdown preview,
+as the highlights of a marker pen on paper.
 
 ## Plan
 
@@ -24,35 +25,37 @@ Markdown preview.
 | --- | --- | --- | --- |
 | 1 | Setup: manifest, build, CI, release workflows, license notices, the same structure as the other nimblescape extensions | [R-GEN-001](#r-gen-001) to [R-GEN-005](#r-gen-005) | done |
 | 2 | The note, its header, its label | [R-NOTE-001](#r-note-001) to [R-NOTE-003](#r-note-003) | done; as a footnote since step 17 |
-| 3 | The text editor and the Comments view: show, edit, save, add and delete notes | [R-TEXT-001](#r-text-001), [R-VIEW-001](#r-view-001), [R-EDIT-001](#r-edit-001) to [R-EDIT-004](#r-edit-004) | done, changes in step 7 |
-| 4 | The Markdown preview: callouts | [R-PREV-001](#r-prev-001) | done, changes in step 8 |
+| 3 | The text editor and the Comments view: show, edit, save, add and delete notes | [R-TEXT-001](#r-text-001), [R-VIEW-001](#r-view-001), [R-EDIT-001](#r-edit-001) to [R-EDIT-004](#r-edit-004) | done; the boxes and the Comments view dropped in step 24 |
+| 4 | The Markdown preview: callouts | [R-PREV-001](#r-prev-001) | done; dropped in step 24 |
 | 5 | Name `nimblescape-markdown-notes`, GitHub sign-in for the author | [R-GEN-005](#r-gen-005), [R-GEN-006](#r-gen-006), [R-NOTE-002](#r-note-002) | done |
 | 6 | Notes in the text, threads of answers | [R-NOTE-004](#r-note-004), [R-NOTE-005](#r-note-005), [R-EDIT-005](#r-edit-005) | done; as footnotes and a tree of answers since step 17 |
-| 7 | Text editor: dimmed comment source, collapsible notes as in GitHub pull requests | [R-TEXT-001](#r-text-001) to [R-TEXT-003](#r-text-003) | done |
-| 8 | Preview: icon, callout on hover, click opens the editor, the text without the notes | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done |
+| 7 | Text editor: dimmed comment source, collapsible notes as in GitHub pull requests | [R-TEXT-001](#r-text-001) to [R-TEXT-003](#r-text-003) | done; dropped in step 24 |
+| 8 | Preview: icon, callout on hover, click opens the editor, the text without the notes | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done; the icons and the callouts dropped in step 24 |
 | 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | done |
 | 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
 | 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-PREV-005](#r-prev-005) | done |
-| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered header lines | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | in progress: dimming, collapsed notes, markers and rendered header lines done; the highlighting of Markdown inside the notes is planned |
-| 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
+| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered header lines | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | done: collapsed notes and rendered header lines; the dimming, the markers in the left margin and the highlighting of Markdown inside the notes dropped in step 24 |
+| 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; the numbers and the funnels replaced in step 24 |
 | 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
 | 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | done |
 | 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done |
 | 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
-| 18 | The collapse at the start of VS Code, the buttons "Hide Note Text" and "Show Note Text", the marker beside the comment mark, the settings `showNotesIn` and `openLinksIn`, the funnel of the selected thread | [R-GEN-009](#r-gen-009), [R-GEN-010](#r-gen-010), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
-| 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a passage that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done |
+| 18 | The collapse at the start of VS Code, the buttons "Hide Note Text" and "Show Note Text", the marker beside the comment mark, the settings `showNotesIn` and `openLinksIn`, the funnel of the selected thread | [R-GEN-009](#r-gen-009), [R-GEN-010](#r-gen-010), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; replaced in step 24, apart from `openLinksIn` and the collapse at the start |
+| 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a highlight that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done; the settings `keepNotesCollapsed` and `showCalloutOnHover` dropped in step 24 |
 | 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done |
-| 21 | A click on a passage of the preview that keeps the page, no callout on a click, a click outside a passage that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint passages of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done |
-| 22 | The funnel that follows the passage of the selected note: the band of the preview from the passage to its right edge, and the start of the funnel at the rows of the passage in the text editor | [R-SIDE-007](#r-side-007) | done |
+| 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
+| 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
+| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done |
 
 ## General
 
 ### R-GEN-001
 
 **Built-in editors.** The extension extends the editors that VS Code has for
-Markdown files: the text editor, the Comments view and the Markdown preview.
-It adds one view of its own, the side view of [R-SIDE-001](#r-side-001). It
+Markdown files: the text editor and the Markdown preview. It adds one view of
+its own, the side view of [R-SIDE-001](#r-side-001), and uses no comment
+threads of VS Code and no Comments view ([R-GEN-009](#r-gen-009)). It
 changes no other part of a Markdown file than the parts of a note: its
 definition, its reference and its start marker, and the comment of the format
 at the top of a file with notes ([R-NOTE-007](#r-note-007)).
@@ -121,14 +124,14 @@ publishers work as without it, for example the extensions of Matt Bierner for
 Mermaid diagrams, emoji, footnotes, checkboxes and the GitHub styles of the
 preview. The extension adds:
 
-- decorations, folding ranges and comment threads in the text editor;
-- a grammar that is injected into the Markdown grammar of VS Code and applies
-  only inside a note ([R-TEXT-004](#r-text-004));
+- decorations, folding ranges, hovers and warnings in the text editor;
 - a markdown-it plugin that changes only the footnotes that are notes, with
   their references and start markers, and gives every other token to the
   rules of the preview and of the other plugins;
 - styles and a script of the preview that apply only to its own elements;
-- the side view ([R-SIDE-001](#r-side-001)).
+- the side view ([R-SIDE-001](#r-side-001));
+- a formatter of Markdown files ([R-FMT-001](#r-fmt-001)), which the user can
+  replace with another one.
 
 The tests render the notes together with the markdown-it plugins of these
 extensions, in both orders of the plugins: markdown-it-footnote,
@@ -138,10 +141,9 @@ the page. The rules of the notes run before the rules of markdown-it-footnote,
 so that plugin never shows a note as a footnote, and the plugin of the
 extension never renders the other footnotes itself: two footnote plugins
 would write the list of the footnotes twice. A footnote in the text of a note
-is a footnote of the page. The callout of a note gets no frame of the page. A
-check in VS Code 1.143 with the five extensions of Matt Bierner showed the
-emoji, the footnotes, the checkboxes, a Mermaid diagram and the GitHub styles
-in the text and in the callouts.
+is a footnote of the page. A check in VS Code 1.143 with the five extensions
+of Matt Bierner showed the emoji, the footnotes, the checkboxes, a Mermaid
+diagram and the GitHub styles in the text.
 
 ### R-GEN-008
 
@@ -157,29 +159,37 @@ documents can recommend the extension to everyone who opens it, in its file
 ### R-GEN-009
 
 **Where the text of the notes shows.** The text of the notes shows in one
-place only, never in two (Hannes, 2026-10-28: "we only have one, either the
-inline or the side view", [decision 7](#decisions)). The setting
-`nimblescape.markdownNotes.showNotesIn` chooses it:
+place only, the side view ([R-SIDE-001](#r-side-001)) (Hannes, 2026-10-28:
+"we completely drop the inline view", [decision 15](#decisions)):
 
-- `sideView` (the default): in the side view ([R-SIDE-001](#r-side-001)).
-  The text editor shows no boxes and no `+` for a new note; the user adds a
-  note in the side view ([R-SIDE-003](#r-side-003)). A click on a selection
-  opens the side view ([R-SIDE-007](#r-side-007)).
-- `inline`: in the boxes of the text editor ([R-TEXT-001](#r-text-001)). The
-  side view and the button "Show or Hide Notes" do not show, and a click on
-  the icon of a note in the preview opens the box of the note in the text
-  editor ([R-PREV-003](#r-prev-003)).
+- The text editor never shows the text of a note and its markers (Hannes,
+  2026-10-28: "in the text view we never show the notes and the markers"):
+  the notes are always collapsed ([R-TEXT-005](#r-text-005)), and the start
+  markers and the references are hidden ([R-NOTE-006](#r-note-006)). It shows
+  no boxes of comments, no `+` for a new note and no icons in the left margin
+  (Hannes: "drop all colored icons on the left").
+- The Markdown preview shows no icon and no callout of a note (Hannes: "we
+  completely drop the callouts on hover view", "we completely drop the
+  callout icons in the preview view"), only the highlights
+  ([R-PREV-001](#r-prev-001)).
+- The text editor and the preview show the highlight of each note, the text
+  that the note is about, while the side view is open
+  ([R-GEN-011](#r-gen-011)), and a click on a highlight selects its note in
+  the side view and opens the side view when it is closed
+  ([R-SIDE-007](#r-side-007)).
 
-The markers, the folds, the warnings and the preview stay in each case. A
-value of an older version, `both`, counts as `sideView`.
+The side view shows the whole text of a note also as the file holds it, in
+its text view ([R-SIDE-002](#r-side-002)). The settings `showNotesIn`,
+`expandInEditor`, `collapseInEditor`, `keepNotesCollapsed`,
+`showCalloutOnHover`, `showInPreview`, `showIconsInPreview` and
+`showFunnels` of earlier versions have no effect.
 
 ### R-GEN-010
 
 **Where a link of a note opens.** A click on a link to a file in the text of
 a note opens the file in a new window of VS Code, so that the Markdown file
-and its preview stay as they are (Hannes, 2026-10-28). This holds for the
-callouts of the preview, the boxes of the text editor and the side view
-([R-SIDE-005](#r-side-005)). The setting
+and its preview stay as they are (Hannes, 2026-10-28). The text of the notes
+shows only in the side view ([R-SIDE-005](#r-side-005)). The setting
 `nimblescape.markdownNotes.openLinksIn` chooses the place:
 
 - `newWindow` (the default): a new window of VS Code. A file that a tab of
@@ -190,11 +200,42 @@ callouts of the preview, the boxes of the text editor and the side view
   opens only after the user agrees.
 
 A web link or a mail link opens with the system in each case, and a link to a
-place of the Markdown file itself in its editor. A link of a callout is a URI
-of VS Code for the extension, and a link of a box runs a command of the
-extension; the extension opens such a link only for a Markdown document that
-is open in VS Code. The editor of a box shows the links as the file holds
-them.
+place of the Markdown file itself in its editor.
+
+### R-GEN-011
+
+**Show and hide the highlights.** The highlight of a note is the text from
+its start marker to its reference ([R-NOTE-006](#r-note-006)), as the
+highlight of a marker pen on paper (Hannes, 2026-10-28: "it is Highlights you
+would on paper do with a marker pen"). The highlights can show or be hidden,
+and while they show, they have a good contrast (Hannes: "the selections can
+be viewed or hidden, when viewd make it good constrast"):
+
+- The setting `nimblescape.markdownNotes.showHighlights` (on by default)
+  shows the highlights in the text editor and in the Markdown preview.
+- The highlights show only while the side view "Notes" is open (Hannes,
+  2026-10-28: "closing the side view, also hides the highlights"). Closing the
+  side view hides them and does not change the setting; opening it shows
+  them again.
+- The title of the text editor and of the preview of a Markdown file has the
+  button "Hide Highlights" (a closed eye) while the highlights show, which
+  turns the setting off, and else the button "Show Highlights" (an open eye),
+  which turns the setting on and opens the side view. The button changes the
+  setting in the settings of the workspace when they hold a value, else in the
+  settings of the user. The Command Palette has the same commands.
+- A hidden highlight shows while the pointer rests on its text, in the text
+  editor and in the preview (Hannes, 2026-10-28: "even when the higlights are
+  not are hidden, hover over a highlight always shows the higlight"), and a
+  click on it selects its note ([R-SIDE-007](#r-side-007)). In the preview it
+  goes away when the pointer leaves the text. VS Code tells an extension the
+  place of the pointer in the text editor only when it asks the hover
+  providers, and tells no event when the pointer leaves the text; so in the
+  text editor the highlight stays until the pointer rests on other text, the
+  cursor moves or the side view opens.
+- The highlight of the selected note of the side view always shows, strong
+  and with a frame in the color of the note ([R-NOTE-006](#r-note-006)).
+
+A change of the setting renders the open previews again.
 
 ## Notes
 
@@ -207,14 +248,16 @@ the block of the reference, whose first line is the header of the note
 syntax, with each line indented by four spaces:
 
 ```markdown
-The agents <!--[note-7k2q-->change the work of teams[^note-7k2q] in three ways.
+The agents <wbr><!--[note-7k2q-->change the work of teams[^note-7k2q] in three ways.
 
 [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
 
     Which three ways?
 ```
 
-A footnote is a note only when its label has the form of the label of a note
+The start marker `<wbr><!--[note-7k2q-->` before the text and the reference
+`[^note-7k2q]` after it mark the highlight of the note
+([R-NOTE-006](#r-note-006)). A footnote is a note only when its label has the form of the label of a note
 ([R-NOTE-003](#r-note-003)) and its first line is a header. Every other
 footnote is no note: the extension shows it nowhere and never changes it.
 
@@ -247,8 +290,8 @@ header itself and keeps it as it is when it saves an answer.
 digits, for example `note-7k2q` (Hannes, 2026-10-28). The extension draws the
 label of a new note anew until no footnote of the file uses it, so that two
 notes of different branches of a repository hardly ever get the same label.
-A label never changes. It is not the number of the note
-([R-TEXT-006](#r-text-006)), which changes when a note is added before it.
+A label never changes, also when a note is added before it, and the user
+does not see it: the side view names a thread by the line of its note.
 
 ### R-NOTE-004
 
@@ -280,11 +323,9 @@ markers:
 
 A block quote whose first line is a header starts a reply; every other block
 quote belongs to the body of its answer. The replies to an answer stand in
-the order of the file, after the body of the answer. The side view and the
-preview show the tree: the replies to a reply indented below it. The boxes of
-the text editor show the answers in the order of the file, each reply to a
-reply with the label "Reply to" and the author of that answer, because a box
-of VS Code has no tree. GitHub shows the tree as nested block quotes.
+the order of the file, after the body of the answer. The side view shows the
+tree: the replies to a reply indented below it. GitHub shows the tree as
+nested block quotes.
 
 ### R-NOTE-005
 
@@ -304,41 +345,54 @@ so the extension warns at it ([R-TEXT-008](#r-text-008)).
 
 ### R-NOTE-006
 
-**Selection of a note.** A note belongs to an exact passage of the text, its
-selection, as a note in the PDF preview of Apple does (Hannes, 2026-10-28):
-from its start marker `<!--[note-7k2q-->` to its reference `[^note-7k2q]`.
-The user selects the passage in the text editor and adds the note
+**Highlight of a note.** A note belongs to an exact text, its highlight, as
+the highlight of a marker pen on paper (Hannes, 2026-10-28: "it is Highlights
+you would on paper do with a marker pen"): from its start marker
+`<wbr><!--[note-7k2q-->` to its reference `[^note-7k2q]`, the end marker of
+the highlight (Hannes: "the end marker is always the footnote markdown?"). The
+user selects the text in the text editor and adds the note
 ([R-EDIT-003](#r-edit-003)).
 
-- The start marker is a comment inside the line, so it ends no paragraph, and
-  GitHub and other renderers show the text without it.
-- Without a start marker, the selection starts at the start of the text of
-  the block of the reference: its paragraph, its heading or its table cell.
-- A start marker directly before the reference makes a point, a note at a
-  place of the text without a passage.
-- A start marker never starts a line. GitHub (cmark-gfm) reads a comment at
-  the start of a line as an HTML block, which ends the paragraph and shows the
-  rest of the line without Markdown. When a selection starts at the start of
-  a line, the start marker goes to the end of the line before it; at the
-  start of the block the extension leaves it out.
-- Selections can overlap.
-- The text editor and the preview highlight the selection in the color of its
-  note, and the funnel of the side view leads from the thread to its
-  selection ([R-SIDE-007](#r-side-007)). The preview shows the icon of the
-  note at its reference. In the preview the highlight is faint, and strong
-  under the pointer and while the callout of the note shows (Hannes,
-  2026-10-28: "selected text appears dimmed but a hover highlights it"). The
-  selection of the note that the side view selects has a strong highlight
-  and a frame in the color of the note, in the text editor and in the preview
-  ([decision 10](#decisions)). While a note is selected, the other notes are
-  dimmed: their highlights, their bars and markers in the text editor, and
-  their icons in the preview (Hannes, 2026-10-28: "other notes shall be
-  dimmed when one note is selected").
-- In the text editor the start marker and the reference vanish: a thin bar in
-  the color of the note stands at the start and at the end of the selection,
-  and a dot at a point. They never show, also not on the line of the cursor,
-  because the extension writes them and the user does not edit them (Hannes,
-  2026-10-28: "there is no reason to make the markers editable at all"):
+- Every note has one start marker (Hannes, 2026-10-28: "there should never be
+  a note without a start marker"). The start marker is `<wbr>` and a comment
+  with `[` and the label of the note, inside the line, so it ends no
+  paragraph, and GitHub and other renderers show the text without it.
+- The start marker holds the color of the note after the label, for example
+  `<wbr><!--[note-7k2q green-->` ([R-TEXT-006](#r-text-006)). A marker
+  without a color name has the default color.
+- The start marker always starts with `<wbr>` (Hannes, 2026-10-28: "why not
+  always start with <wbr>"). GitHub (cmark-gfm) reads a comment at the start
+  of a line as an HTML block, which ends the paragraph and shows the rest of
+  the line without Markdown; the empty element `<wbr>` before the comment
+  keeps the line a line of the paragraph, also at the start of a paragraph, a
+  list item or a block quote. A reader also accepts a start marker without
+  `<wbr>` inside a line. The text editor warns at a start marker without
+  `<wbr>` at the start of a line, and at a note without a start marker
+  ([R-TEXT-008](#r-text-008)); "Format Document" adds both
+  ([R-FMT-002](#r-fmt-002)).
+- A highlight holds text: a start marker directly before the reference
+  highlights no text, which the text editor warns at, and the text editor and
+  the preview show no highlight for it. The extension adds no note without a
+  highlight (Hannes, 2026-10-28: "there shall be no way to add a note without
+  highlighting text").
+- A highlight stays in one block of text: its paragraph, its heading, its
+  list item or its table cell. The highlights of several notes can overlap.
+- While the side view is open and the setting `showHighlights` is on
+  ([R-GEN-011](#r-gen-011)), the text editor and the preview show each
+  highlight in the color of its note, with a background and a line below the
+  text, so that it stands out of the text. In the preview a highlight is
+  strong under the pointer. The highlight of the note that the side view
+  selects is strong, with a frame in the color of the note, in the text
+  editor and in the preview ([decision 10](#decisions)), also while the other
+  highlights are hidden. While a note is selected, the highlights of the
+  other notes are dimmed (Hannes, 2026-10-28: "other notes shall be dimmed
+  when one note is selected"). The overview ruler of the text editor has a
+  mark in the color of each highlight that shows.
+- In the text editor the start marker and the reference never show, also not
+  on the line of the cursor, because the extension writes them and the user
+  does not edit them (Hannes, 2026-10-28: "there is no reason to make the
+  markers editable at all", "in the text view we never show the notes and the
+  markers"):
   - The cursor steps over a hidden marker as over one place: a move into a
     marker goes to its edge in the direction of the move, and past the
     markers that follow it directly; a click goes to the nearer edge.
@@ -347,13 +401,14 @@ The user selects the passage in the text editor and adds the note
     (Ctrl+Backspace and Ctrl+Delete, on macOS Alt) the word there. No key
     deletes a part of a marker. Other edits of the file, for example "Find
     and Replace", still change the text as it is.
-- A click with the mouse on the selection in the text editor selects the note
-  in the side view, and no longer shows the markers (Hannes, 2026-10-28: "it
-  shall not expand, it shall select the note in the side view").
-- The box of the comments API of a note belongs to its selection, as the
-  comment of a pull request belongs to its lines ([R-TEXT-001](#r-text-001)).
+- A click with the mouse on a highlight in the text editor or in the preview,
+  also on a hidden highlight, selects its note in the side view, and opens
+  the side view when it is closed (Hannes, 2026-10-28: "hovering over a
+  highlight and clicking it opens the side view"). In the text editor the
+  cursor stays in the text.
 
-This is [decision 6](#decisions).
+This is [decision 6](#decisions), with [decision 16](#decisions) and
+[decision 17](#decisions).
 
 ### R-NOTE-007
 
@@ -396,53 +451,71 @@ always knows it is a notes md document"). The
 - The text editor folds the comment into its first line, as it folds a note
   ([R-TEXT-005](#r-text-005)).
 
-## Text editor and Comments view
+## Text editor
 
 ### R-TEXT-001
 
-**Notes in the text editor.** The text editor shows each note of an open
-Markdown file directly in the text, as the extension GitHub Pull Requests
-shows the comments of a pull request: a box below the note that shows the
-answers of the thread rendered as normal Markdown, each with its author and
-date, and a mark in the gutter at the lines of the note. The extension uses
-the comments API of VS Code for this. The boxes follow the text: after a
-change of the file, each box moves with its note, and an open box stays open.
+**Notes in the text editor.** Dropped ([decision 15](#decisions)). The text
+editor showed each note in a box of the comments API of VS Code below the
+note, as the extension GitHub Pull Requests shows the comments of a pull
+request. The side view is the only place of the text of the notes
+([R-GEN-009](#r-gen-009)).
 
 ### R-TEXT-002
 
-**Collapsible boxes.** Each box can be collapsed and expanded, as a comment
-of a pull request can. The boxes are collapsed when a file opens; the setting
-`nimblescape.markdownNotes.expandInEditor` opens them all. The lines of the
-note itself collapse as in [R-TEXT-005](#r-text-005).
+**Collapsible boxes.** Dropped with the boxes of
+[R-TEXT-001](#r-text-001), and with them the setting `expandInEditor`.
 
 ### R-TEXT-003
 
-**Dimming after the cursor.** The text editor dims the part of the file that
-the user does not work on (Hannes, 2026-10-28): while the cursor is outside
-the notes, it dims the notes, so that the Markdown of the document stands out;
-while the cursor is in a note, it dims everything outside this note, so that
-the note stands out as a Markdown text of its own ([R-TEXT-004](#r-text-004)).
+**Dimming after the cursor.** Dropped: the text editor never shows the text
+of a note ([R-TEXT-005](#r-text-005)), so there is no note to dim or to
+stand out.
 
 ### R-TEXT-004
 
-**Markdown inside a note.** Inside a note, the text editor works as in a
-Markdown file of its own, "Markdown within Markdown" (Hannes, 2026-10-28):
-the body of each answer has the highlighting of Markdown, also on the lines
-that are indented by four spaces, which the Markdown grammar of VS Code shows
-as a code block otherwise. The extension adds this with a grammar that is
-injected into the Markdown grammar of VS Code ([R-GEN-007](#r-gen-007)).
+**Markdown inside a note.** Dropped: the text editor never shows the text of
+a note. The side view shows it rendered, and as the file holds it in the
+text view of a thread ([R-SIDE-002](#r-side-002)).
 
 ### R-TEXT-005
 
-**Collapsed notes.** A note can be collapsed, so that it vanishes from the
-text editor and only a marker shows where it is (Hannes, 2026-10-28). The
-editor folds the lines of the definition of the note together with the blank
-lines before it into the last line of text before the note, so that this line
-stays and the note does not. VS Code shows the end of this line with "⋯" and, after the
-setting `editor.foldingHighlight`, with the background of a folded line. The marker is a note icon in the left margin of this line, in
-the color of the note ([R-TEXT-006](#r-text-006)), at the place where GitHub
-and VS Code show their comment markers. The folding arrow of VS Code next to
-the marker opens the note again, and so does a move of the cursor into it.
+**Collapsed notes.** The text editor never shows the text of a note (Hannes,
+2026-10-28: "in the text view we never show the notes and the markers"):
+every note is collapsed, and nothing expands it. The editor folds the lines
+of the definition of the note together with the blank lines before it into
+the last line of text before the note, so that this line stays and the note
+does not. VS Code shows the end of this line with "⋯" and, after the setting
+`editor.foldingHighlight`, with the background of a folded line.
+
+- The fold keeps the blank lines after the note, so that the paragraph break
+  after the block of the note stays.
+- Notes with only blank lines between them share one fold.
+- After a list item of one line, the fold starts on the line of the item.
+- After a heading, a list item of more lines, a block quote, a table, a code
+  block or HTML, the Markdown extension of VS Code has a fold of its own that
+  starts or ends on that line, so the fold of the note starts on the last
+  blank line before the note and also takes the blank lines after it. The
+  blank lines before the note stay where the text had them.
+- Before a heading, the fold leaves the last blank line before the heading,
+  where the fold of the section of a heading before the note ends. Else
+  VS Code drops the fold of the note and folds the section.
+- A note in the first line of the file has no line before it; its first line
+  stays, and the extension hides the text of that line and shows its header
+  rendered ([R-TEXT-007](#r-text-007)).
+
+The notes collapse when a file shows in the text editor the first time. VS Code
+itself opens a fold for a click on its arrow, for a search or for a cursor in
+it; the extension then moves the cursor out of the note and collapses it
+again, after VS Code read the folds of the current version of the file, so
+that the fold command acts on the fold of the note and not on a fold around
+it. The cursor does not stay in the lines of a collapsed note: a move down
+goes to the next line after the note, a move up to the end of the line
+before it. The text of the notes shows in the side view
+([R-GEN-009](#r-gen-009)). The settings `collapseInEditor` and
+`keepNotesCollapsed`, the buttons "Hide Note Text" and "Show Note Text" and
+the commands "Collapse All Notes" and "Expand All Notes" of earlier versions
+are dropped.
 
 VS Code reads the folds of all extensions again when an extension adds its
 folding provider, and a fold during the reading before has no effect. At the
@@ -452,65 +525,31 @@ stayed open (Hannes, 2026-10-28). The extension therefore collapses the notes
 again each time VS Code reads the folds of the unchanged file, for 10 seconds
 after the first collapse.
 
-- The fold keeps the blank lines after the note, so that the paragraph break
-  after the block of the note stays.
-- Notes with only blank lines between them share one fold.
-- After a heading, a list, a block quote, a code block or HTML, the fold of
-  the Markdown extension of VS Code starts on that line, so the fold of the
-  note starts on the first blank line before the note and also takes the
-  blank lines after it. One blank line stays where the text had one.
-- A note in the first line of the file has no line before it; its first line
-  stays with the marker, and the extension hides the text of that line.
-
-Every note is collapsed when a file opens; the setting
-`nimblescape.markdownNotes.collapseInEditor` with the value `false` keeps the
-notes open. The title of the box of a note has the button "Hide Note Text"
-while the text of the note shows in the editor, and "Show Note Text" while
-it is folded (Hannes, 2026-10-28: the button "Collapse Note" looked like a
-button that closes the box, and it did nothing while the text was folded
-already). "Show Note Text" scrolls the editor to the note. The arrow at the
-right of the title of the box closes the box. The Command Palette has the
-commands "Collapse All Notes" and "Expand All Notes". A note that the user
-adds stays open.
-
-The setting `nimblescape.markdownNotes.keepNotesCollapsed` (off by default)
-keeps the notes collapsed (Hannes, 2026-10-28: "with it disabled, clicking a
-selection does not expand and there is no way to expand the notes in the text
-view"). The notes collapse when a file opens, also with `collapseInEditor`
-off, and nothing expands them: the buttons "Hide Note Text" and "Show Note
-Text" and the command "Expand All Notes" do not show, and the commands that
-expand a note do nothing. VS Code itself opens a fold for a click on its
-arrow, for a search or for a cursor in it; the extension then moves the
-cursor out of the note and collapses it again, after VS Code read the folds
-of the current version of the file, so that the fold command acts on the
-fold of the note and not on a fold around it. The text of the notes shows in
-the side view, or in the boxes ([R-GEN-009](#r-gen-009)).
-
-The cursor does not stay in the lines of a collapsed note, which VS Code
-would open for it: a move down goes to the next line after the note, a move up
-to the end of the line before it.
-
 ### R-TEXT-006
 
-**Number and color of a note.** Each note of a file has a number, its place
-in the file from the top, and a color from a list of six colors that show a
-white number on light and on dark themes. The number and the color show in
-the marker of the note in the left margin of the text editor, at the first
-line of the note or at the line that stays of a collapsed note, as a mark in
-the overview ruler of the editor, and at the thread in the side view
-([R-SIDE-007](#r-side-007)). A note with a selection
-([R-NOTE-006](#r-note-006)) has its marker at the last line of the
-selection, and while the note is open also at the first line of the note.
-VS Code tells an extension of no click on a marker in the left margin, so the
-marker stands beside the comment mark of VS Code (the gray speech bubble) at
-the last line of the selection, whose click opens and closes the box
-(Hannes, 2026-10-28).
+**Color of a note.** Every note has the same color by default, and the user
+gives a note another color in the side view (Hannes, 2026-10-28: "notes can
+be colored in the notes editor, by default they get all the same color"):
+the button with the color of a thread opens the colors, and the hover over
+the selected text offers them for a new note ([R-EDIT-006](#r-edit-006)).
+The six colors are blue (the default), green, orange, purple, red and teal,
+which show on light and on dark themes. The file keeps the
+color in the start marker of the note, after its label, for example
+`<wbr><!--[note-7k2q green-->`; the default color has no name in the marker
+([R-NOTE-006](#r-note-006), [decision 16](#decisions)). The color shows in
+the highlight of the note in the text editor and in the preview, in its mark
+in the overview ruler, and at the thread and at its mark in the side view
+([R-SIDE-007](#r-side-007)). The text editor shows no marker of a note in
+its left margin (Hannes, 2026-10-28: "drop all colored icons on the left"),
+and a note has no number.
 
 ### R-TEXT-007
 
 **Rendered header lines.** The extension writes the header of each answer
-itself, and the user does not edit it (Hannes, 2026-10-28). The text editor
-therefore shows each header line rendered, with the author and the date in
+itself, and the user does not edit it (Hannes, 2026-10-28). Where the text
+editor shows a header line, on the line that stays of a note in the first
+line of the file ([R-TEXT-005](#r-text-005)) or while VS Code opens a note
+for a moment, it shows the line rendered, with the author and the date in
 the local time of the reader, for example "hannes · 2026-10-28 10:15", and
 the local time of the author as its hover ([R-NOTE-002](#r-note-002)). The
 label of the first answer and the markup of the header vanish with it; the
@@ -525,7 +564,8 @@ the date of its save ([R-EDIT-002](#r-edit-002)).
 
 **Warnings.** The text editor and the Problems view warn at each form of a
 note that GitHub or another Markdown viewer shows differently from the
-extension ([R-NOTE-005](#r-note-005)):
+extension ([R-NOTE-005](#r-note-005)), or that breaks a rule of the notes
+([R-NOTE-006](#r-note-006)):
 
 - a definition without a blank line before or after it;
 - a line of a note without the indentation of four spaces (a hint);
@@ -537,13 +577,21 @@ extension ([R-NOTE-005](#r-note-005)):
 - a reference in the text of a note, which names no note;
 - a reference in a heading, which changes the anchor of the heading on GitHub
   (a hint);
-- a start marker at the start of a line, which ends the paragraph.
+- a note without a start marker;
+- a note whose highlight holds no text, a start marker directly before the
+  reference;
+- a start marker without `<wbr>` at the start of a line, which ends the
+  paragraph.
+
+"Format Document" adds a missing start marker and a missing `<wbr>`
+([R-FMT-002](#r-fmt-002)).
 
 ### R-VIEW-001
 
-**Comments view.** The Comments view lists the notes of the open Markdown
-files with their author, date and text, and the number of answers. A click on
-a note goes to the note in the text editor.
+**Comments view.** Dropped with the boxes of [R-TEXT-001](#r-text-001)
+([decision 15](#decisions)). The Comments view of VS Code listed the notes
+of the open Markdown files. The side view lists the notes of the active
+Markdown file ([R-SIDE-001](#r-side-001)).
 
 ## Side view
 
@@ -554,36 +602,69 @@ side bar, the side bar of VS Code that also holds the chat (Hannes,
 2026-10-28). The view is not in the primary side bar, so that the Explorer
 stays usable while the view is open. The container "Markdown Notes" of the
 view is in the secondary side bar only; the user can still move the view as
-any view of VS Code. The view lists the threads of the active Markdown
-file, each with the answers rendered as Markdown, with author and date. The
-active Markdown file is the file of the active text editor, or of the active
-tab in the mode "Markdown Preview" or "Markdown Editor" of VS Code
-([R-PREV-006](#r-prev-006)); another editor keeps the file of the view. It
-shows the selected thread at its top: the note at the cursor of the text
-editor, or the note that the user clicked in the preview
-([R-PREV-003](#r-prev-003)) (Hannes, 2026-10-28: "selecting in the editor
-shall always scroll the side view so the selected note is on top"). An empty
-part after the last thread lets also the last thread scroll to the top.
+any view of VS Code. The view is the only place of the text of the notes
+([R-GEN-009](#r-gen-009)). It shows the threads of the active Markdown file,
+each with the answers rendered as Markdown, with author and date. The active
+Markdown file is the file of the active text editor, or of the active tab in
+the mode "Markdown Preview" or "Markdown Editor" of VS Code
+([R-PREV-006](#r-prev-006)); another editor keeps the file of the view. The
+selected thread is the note at the cursor of the text editor, or the note
+that the user clicked in the preview ([R-PREV-003](#r-prev-003)).
+
+While a text editor shows the file, the view stands aligned to it
+([R-SIDE-007](#r-side-007)). While no text editor shows the file, for
+example in the Markdown preview, the view lists the threads with the file
+and the GitHub account at its top, and shows the selected thread at its top
+(Hannes, 2026-10-28: "selecting in the editor shall always scroll the side
+view so the selected note is on top"); an empty part after the last thread
+lets also the last thread scroll to the top.
 
 ### R-SIDE-002
 
-**Note editor.** The side view is the editor of the notes. Each answer has
-the buttons "Reply", "Edit" and "Delete", and each thread the button
-"Answer", a reply to the note ([R-EDIT-005](#r-edit-005)). The view shows the
-answers as a tree, with the date of each answer in the local time of the
-reader and the local time of the author as its tooltip
-([R-NOTE-002](#r-note-002), [R-NOTE-004](#r-note-004)). The editor
-of an answer has the tabs "Visual" (the rendered text, which the user edits
-directly, [R-SIDE-004](#r-side-004)), "Markdown" (the Markdown text) and
-"Preview" (the text rendered as the preview renders it). "Save" (or
-Ctrl+Enter) writes the text into the note
-([R-EDIT-002](#r-edit-002)); "Cancel" keeps the note as it is.
+**Note editor.** The side view is the editor of the notes. Its buttons are
+small icons with a tooltip, the codicons of VS Code, as the buttons in the
+title of an editor of VS Code (Hannes, 2026-10-28: "exchange all the buttons
+on the note editor with icons", "similar as the header icons of the tab where
+you dan switch between preview and text mode"):
+
+- Each answer has "Reply", "Edit" and "Delete".
+- Each thread has the button with its color, which opens the colors of the
+  notes ([R-TEXT-006](#r-text-006)), the line of its note, which shows the
+  note in the text editor, and "Show as Text", "Answer" (a reply to the note,
+  [R-EDIT-005](#r-edit-005)) and "Delete Thread".
+- "Show as Text" switches the thread to its text view: the whole text of the
+  note, the lines of its definition as the file holds them, in the font of
+  the text editor (Hannes, 2026-10-28: "the text editor view of the notes
+  toggles the complete note in the side view in a text view", decided with
+  the option "Button on each thread"). The user changes the text there.
+  "Save" writes it into the file when it stays the definition of the same
+  note: it starts with the label and the header, ends where the note ends,
+  and adds or removes no other note. "Cancel" drops the change, and "Show the
+  Rendered Note" switches back.
+
+The view shows the answers as a tree, with the date of each answer in the
+local time of the reader and the local time of the author as its tooltip
+([R-NOTE-002](#r-note-002), [R-NOTE-004](#r-note-004)). The editor of an
+answer switches between "Write" (the Markdown text) and "Preview" (the text
+rendered as the preview renders it). "Save" (or Ctrl+Enter) writes the text
+into the note ([R-EDIT-002](#r-edit-002)); "Cancel" (or Escape) keeps the
+note as it is. The visual editing of [R-SIDE-004](#r-side-004) is planned.
 
 ### R-SIDE-003
 
-**New note from the side view.** The side view has a button "Add Note" that
-adds a note for the selection of the text editor, or at the line of its
-cursor ([R-EDIT-003](#r-edit-003)).
+**New note from the side view.** The title of the side view has the button
+"Add Note" (`+`), and the context menu of the text editor has the command
+"Add Note" while text is selected. Both open the editor of a new note in the
+side view for the selected text of the text editor
+([R-EDIT-003](#r-edit-003)): its title shows the text that the note will
+highlight, and the colors let the user choose the color of the note. Without
+selected text, "Add Note" opens no editor and shows a message that asks the
+user to select the text that the note is about (Hannes, 2026-10-28: "there
+shall be no way to add a note without highlighting text"); when the user
+removes the selection while the editor is open, its title asks for it, and
+"Add Note" of the editor adds no note. The hover over the selected text opens
+the same editor with the color that the user chose there
+([R-EDIT-006](#r-edit-006)).
 
 ### R-SIDE-004
 
@@ -629,83 +710,80 @@ also in Zen Mode (Hannes, 2026-10-28):
 
 ### R-SIDE-007
 
-**Link between a callout and its note.** When the side view is open, the
-user sees which callout of the view belongs to which note of the text
-(Hannes, 2026-10-28):
+**The view next to the text.** When the side view is open, the user sees
+which thread of the view belongs to which highlight of the text (Hannes,
+2026-10-28). The view stands aligned to the text editor, as the compare view
+of VS Code shows two texts side by side ([decision 14](#decisions)):
 
-- **Badge:** each thread shows the badge with the number and the color of its
-  note ([R-TEXT-006](#r-text-006)).
+- **Aligned threads:** while a text editor shows the file, each thread
+  stands at the height of the rows of its highlight in the text editor, and
+  moves with the text when the editor scrolls. Threads that would overlap
+  move apart: the thread that the user works on stays at its highlight, the
+  editor of a new note or else the selected thread or else the first thread
+  whose highlight the editor shows; the threads before it move up and the
+  threads after it move down. The editor of a new note stands at the row of
+  the cursor. The view does not scroll itself: the mouse wheel over the view
+  scrolls the text editor.
+- **Marks and connection:** the left edge of the view, next to the editor,
+  has a mark in the color of each note at the rows of its highlight. Only the
+  selected thread has a line from its mark to the thread (Hannes,
+  2026-10-28: "only the selected one has the connection").
 - **Common selection:** the selected thread of the view and its note in the
-  text editor are highlighted together: the selection of the note has a
-  strong highlight and a frame in its color, in the text editor and in the
-  preview ([decision 10](#decisions)). A click on a thread selects its note
-  and shows it where the file is open, and the focus stays in the view; the
-  file keeps its mode (Hannes, 2026-10-28: "it shall stay in the mode the
-  view is"):
+  text are highlighted together: the highlight of the note is strong, with a
+  frame in its color, in the text editor and in the preview
+  ([decision 10](#decisions)), also while the other highlights are hidden
+  ([R-GEN-011](#r-gen-011)). A click on a thread selects its note and shows
+  it where the file is open, and the focus stays in the view; the file keeps
+  its mode (Hannes, 2026-10-28: "it shall stay in the mode the view is"):
   - in the text editor, the editor scrolls to the note, with the cursor at
-    the start of its selection;
+    the start of its highlight;
   - when no text editor shows the file but the Markdown preview does, the
-    preview scrolls to the selection and highlights it;
-  - in the mode "Markdown Editor" of VS Code, that editor selects the passage.
+    preview scrolls to the highlight;
+  - in the mode "Markdown Editor" of VS Code, that editor selects the text of
+    the highlight.
 
-  A move of the cursor into a note or into its selection selects its thread,
-  and a click with the mouse into a selection also opens the view when it is
-  closed and the setting `showNotesIn` is `sideView`. The position of the cursor,
-  not only its line, names the note, because the selections of several notes
-  can share a line; of several selections at the position, the one that
-  starts last is the note (Hannes, 2026-10-28: a click selected the note
-  above).
-- **Deselect:** a click with the mouse into the text outside the notes, in the
-  text editor or in the preview ([R-PREV-003](#r-prev-003)), deselects the
-  selected note (Hannes, 2026-10-28: "clicking somewhere in the text shall
-  deselect the selected note"); a move of the cursor with the keys keeps it.
-  In the view, a click on its empty part, outside the threads, or Escape
-  outside an editor deselects it too.
+  A move of the cursor into a highlight selects its thread, and a click with
+  the mouse on a highlight also opens the view when it is closed
+  ([R-NOTE-006](#r-note-006)). The position of the cursor, not only its
+  line, names the note, because the highlights of several notes can share a
+  line; of several highlights at the position, the one that starts last is
+  the note (Hannes, 2026-10-28: a click selected the note above).
+- **Deselect:** a click with the mouse into the text outside the highlights,
+  in the text editor or in the preview ([R-PREV-003](#r-prev-003)),
+  deselects the selected note (Hannes, 2026-10-28: "clicking somewhere in the
+  text shall deselect the selected note"); a move of the cursor with the keys
+  keeps it. In the view, a click on its empty part, outside the threads, or
+  Escape outside an editor deselects it too.
 - **Dimming:** while a thread is selected, the view dims the other threads;
   a thread under the pointer or with the focus shows clear.
-- **Strip:** the left edge of the view, next to the editor, has a narrow
-  strip that stands for the whole file, with a mark for each note and the
-  part of the file that the text editor shows; for a note with a selection
-  ([R-NOTE-006](#r-note-006)), the mark spans the lines of the selection.
-- **Funnel:** a funnel leads from the selected thread to the passage of its
-  note (Hannes, 2026-10-28: only the selected one; "the funnel shall stick to
-  the position of the selected item so when the text scrolls it directs to
-  the selected item", "the funnel shall point to the green selected area";
-  [decision 12](#decisions)):
-  - While a Markdown preview of the file shows, the preview draws a band in
-    the color of the note from the passage to its right edge, and draws it
-    again when the page scrolls. The band ends at the top, where the
-    selected thread stands in the view, and the funnel of the view starts at
-    this end, so that both form one band.
-  - Else the funnel starts at the left edge of the view at the rows of the
-    passage in the text editor, and follows them when the text scrolls.
-  - While the editor shows no row of the passage, the funnel starts at the
-    mark of the note in the strip.
-- **Option:** the title of the view has a button that shows or hides the
-  funnels (Hannes, 2026-10-28). The buttons "Show Funnels" and "Hide
-  Funnels" change the setting `nimblescape.markdownNotes.showFunnels`, which
-  is on by default.
 
-VS Code lets no view draw into the text editor and tells no extension where a
-line of the text is on the screen, so the funnel ends at the edge of the
-view. VS Code tells an extension the rows that the text editor shows,
-also inside a wrapped line; the extension counts the rows from there, so
-the start of the funnel is exact without wrapped lines, apart from a part
-of a row at the top. Where the editor wraps lines at its width, the
-extension estimates the number of columns of a row from the rows that fill
-the editor, and wraps the lines by words. The heights of the bars of VS Code
-come from VS Code 1.143 with its default settings; the extension reads the
-settings of the tabs, the breadcrumbs, the font and the wrapping, but not
-other changes of the layout, for example an open panel below the editor.
+VS Code lets no view draw into the text editor, and tells no extension where
+a line of the text is on the screen, so the line of the selected thread ends
+at the edge of the view. VS Code tells an extension the rows that the text
+editor shows, also inside a wrapped line; the extension counts the rows from
+there, so the places of the threads are exact without wrapped lines, apart
+from a part of a row at the top. Where the editor wraps lines at its width,
+the extension estimates the number of columns of a row from the rows that
+fill the editor, and wraps the lines by words. The heights of the bars of
+VS Code come from VS Code 1.143 with its default settings; the extension
+reads the settings of the tabs, the breadcrumbs, the font and the wrapping,
+but not other changes of the layout, for example an open panel below the
+editor. The Markdown preview tells an extension no place of its text, so the
+view stands aligned only to the text editor; next to the preview, it lists
+the threads ([R-SIDE-001](#r-side-001)).
+
+The badges with the number of a note, the strip of the whole file and the
+funnels of earlier versions ([decision 12](#decisions)), with the setting
+`showFunnels`, are dropped.
 
 ## Editing
 
 ### R-EDIT-001
 
-**Edit.** The user can edit each answer of a note: in the side view
-([R-SIDE-002](#r-side-002)), and in the box of the text editor with the button
-"Edit", which turns the answer into an editor of Markdown. This includes the
-answers of other authors ([decision 2](#decisions)).
+**Edit.** The user can edit each answer of a note in the side view, with
+the button "Edit" of the answer, and the whole note in the text view of its
+thread ([R-SIDE-002](#r-side-002)). This includes the answers of other
+authors ([decision 2](#decisions)).
 
 ### R-EDIT-002
 
@@ -724,21 +802,25 @@ undo the change.
 
 ### R-EDIT-003
 
-**Add a note.** The user adds a note to the selected text or at a line: with
-the `+` of the text editor, as for the comment of a pull request (Hannes,
-2026-10-28), or with "Add Note" of the side view. With selected text, the
-note belongs to exactly this selection ([R-NOTE-006](#r-note-006)): the
-extension writes the start marker before it, the reference after it, and the
-definition after the outermost block of the selection
-([R-NOTE-005](#r-note-005)). A selection that spans several blocks belongs to
-the block of its end. Without selected text, on a line of a paragraph, a
-heading, a list item or a table cell, the extension writes a point at the end
-of the text of the line. On another line, for example in a code block or on a
-blank line, the extension adds no note and says why. The new note has a new
-label ([R-NOTE-003](#r-note-003)) and a header with the GitHub login of the
-author ([R-GEN-006](#r-gen-006)) and the local date and time with the offset
-of the zone ([R-NOTE-002](#r-note-002)). An empty text adds no note, and
-"Cancel" in a new box leaves the file as it is.
+**Add a note.** The user selects the text that the note is about in the text
+editor and adds the note: with a color of the hover over the selected text
+([R-EDIT-006](#r-edit-006)), or with "Add Note" in the title of the side view
+or in the context menu of the text editor ([R-SIDE-003](#r-side-003)). The
+note belongs to exactly this text, its highlight ([R-NOTE-006](#r-note-006)):
+the extension writes the start marker with `<wbr>` and the color before it,
+the reference after it, and the definition after the outermost block of the
+highlight ([R-NOTE-005](#r-note-005)). A selection that spans several blocks
+belongs to the block of its end, and its highlight starts at the start of
+the text of that block. The reference never stands in a code span or a link,
+and moves after it. There is no way to add a note without selected text
+(Hannes, 2026-10-28: "there shall be no way to add a note without
+highlighting text"): without selected text, or on a line without text of a
+paragraph, a heading, a list item or a table cell, for example in a code
+block, the extension adds no note and says why. The new note has a new label
+([R-NOTE-003](#r-note-003)) and a header with the GitHub login of the author
+([R-GEN-006](#r-gen-006)) and the local date and time with the offset of the
+zone ([R-NOTE-002](#r-note-002)). An empty text adds no note, and "Cancel"
+in the editor of a new note leaves the file as it is.
 
 ### R-EDIT-004
 
@@ -754,82 +836,103 @@ change.
 
 ### R-EDIT-005
 
-**Answer.** The user answers a thread: in the reply field of the box in the
-text editor, or with "Answer" of the side view, which adds a reply to the
-note. The button "Reply" of an answer, in the box and in the side view, adds
-a reply to this answer. The extension writes the reply after the replies to
+**Answer.** The user answers a thread with "Answer" of the side view, which
+adds a reply to the note. The button "Reply" of an answer in the side view
+adds a reply to this answer. The extension writes the reply after the replies to
 the same answer, one level deeper ([R-NOTE-004](#r-note-004)), with its own
 header: the GitHub login of the author and the date and time
 ([R-NOTE-002](#r-note-002)).
+
+### R-EDIT-006
+
+**Hover over the selected text.** When the user selects text in the text
+editor, a hover over the selected text offers to add a note (Hannes,
+2026-10-28: "selecting text shows a hover over the selected text with color
+icons that allow to create the note"):
+
+- The hover shows "Add Note" and an icon of each color of the notes
+  ([R-TEXT-006](#r-text-006)), each with the name of its color as its
+  tooltip. A click on an icon opens the editor of a new note in the side view
+  in this color, and opens the side view when it is closed
+  ([R-SIDE-003](#r-side-003)); the note is added when the user saves its
+  text.
+- The hover shows 600 milliseconds after the user stopped selecting the text
+  with the mouse or the keys, at the cursor, which stands at an edge of the
+  selection, and also while the pointer rests on the selected text.
+- It shows only for one selection that starts and ends in one block of text
+  that a note can highlight, in a Markdown file that the extension can
+  change, and not after a command or an edit changed the selection, so that
+  "Select All" shows no hover.
+- The hover takes no focus, so the keys keep working in the text editor, and
+  Escape or a move of the cursor closes it as any hover of VS Code.
+
+The hover is a hover of VS Code, which shows only Markdown: each icon is a
+codicon in the color of its note, and a link that runs the command "Add
+Note" with the name of the color.
 
 ## Markdown preview
 
 ### R-PREV-001
 
-**Icon.** The built-in Markdown preview shows each note as a small,
-unobtrusive icon at its reference in the text, at the end of its selection. A
-note without a reference shows its icon in the left margin of the preview, at
-the height of its definition. The icon shows the number of answers of a
-thread with more than one answer. Outside the notes, the preview shows the
-file as without the extension.
+**Highlights in the preview.** The built-in Markdown preview shows the
+highlight of each note ([R-NOTE-006](#r-note-006)) in the color of the note,
+with a background and a line below the text, while the side view is open and
+the setting `showHighlights` is on ([R-GEN-011](#r-gen-011)). The highlight
+is strong under the pointer; a hidden highlight shows while the pointer is on
+its text. The preview shows no icon and no callout of a note (Hannes,
+2026-10-28: "we completely drop the callouts on hover view", "we completely
+drop the callout icons in the preview view", [decision 15](#decisions)); the
+side view shows the text of the notes. The script of the preview paints the
+highlights with the CSS Custom Highlight API, which changes no element of the
+page. Outside the highlights, the preview shows the file as without the
+extension.
 
 ### R-PREV-002
 
-**Callout on hover.** When the pointer rests on the icon, or the icon has the
-keyboard focus, the preview shows the note as a rendered callout next to the
-icon: a box with a colored bar at its left side, and each answer with its
-author, its date in the local time of the reader with the local time of the
-author as the tooltip ([R-NOTE-002](#r-note-002)), and its body rendered as
-Markdown with the plugins of the preview. The replies to a reply show
-indented below it ([R-NOTE-004](#r-note-004)). The callout uses the colors of
-the theme of VS Code. The setting `nimblescape.markdownNotes.showCalloutOnHover`
-(on by default) with the value `false` shows the callout only for the
-keyboard focus, not while the pointer rests on the icon (Hannes,
-2026-10-28). A click with the mouse on the icon shows no callout, also not
-by the focus that the click gives the icon; it selects the note
-([R-PREV-003](#r-prev-003)) (Hannes, 2026-10-28: "a click on an icon when
-showCalloutOnHover off shall not show a callout").
+**Callout on hover.** Dropped ([decision 15](#decisions)), with the setting
+`showCalloutOnHover`. The preview showed the note as a callout next to its
+icon.
 
 ### R-PREV-003
 
-**Click opens the editor.** A click on the icon, or on the highlighted
-selection of the note (Hannes, 2026-10-28: "clicking a selection shall select
-the note in the sideview, not only clicking the icon"), opens the note in the
-side view ([R-SIDE-001](#r-side-001)), where the user can edit and answer it.
-A click on the text outside the selections while a note is selected
-deselects it ([R-SIDE-007](#r-side-007)). The page of the preview stays as it
-is (Hannes, 2026-10-28: "clicking a selection in preview breaks the view").
-A click on a link or a button in the selection, a click that ends a
-selection of text, and a double click, which opens the text editor, do what
-they always do. The Markdown preview lets a page open only some kinds of
-links, and VS Code passes a click to the extension only when the user clicks
-a link; the icon is a link of the scheme `vscode://` to the extension, for
-which VS Code may ask once whether the extension may open it. For a click on
-the text, the script of the preview gives the content of the page such a
-link for the time of the click, without a change of the page.
+**Click selects the note.** A click on a highlight, also on a hidden one
+under the pointer, selects its note in the side view
+([R-SIDE-001](#r-side-001)), and opens the side view when it is closed
+(Hannes, 2026-10-28: "hovering over a highlight and clicking it opens the
+side view"), where the user can edit and answer the note. A click on the text
+outside the highlights while a note is selected deselects it
+([R-SIDE-007](#r-side-007)). The page of the preview stays as it is (Hannes,
+2026-10-28: "clicking a selection in preview breaks the view"). A click on a
+link or a button in the highlight, a click that ends a selection of text, and
+a double click, which opens the text editor, do what they always do.
+
+The Markdown preview lets a page open only some kinds of links, and VS Code
+passes a click to the extension only when the user clicks a link. The script
+of the preview therefore gives the content of the page, for the time of the
+click, a link of the scheme `vscode://` to the extension, without a change of
+the page; VS Code may ask once whether the extension may open such a link.
 
 ### R-PREV-004
 
 **The text without the notes.** The preview shows the text without the
 notes: the definition of a note leaves the page, and its reference and its
-start marker leave the text, where the icon stands
-([R-PREV-001](#r-prev-001)). A note never shows as a footnote, also with the
+start marker leave the text. A note never shows as a footnote, also with the
 extension Markdown Footnotes ([R-GEN-008](#r-gen-008)), and every other
-footnote shows as that extension shows it. The scrolling of the preview still
-follows the lines of the text editor, and never uses a callout.
+footnote shows as that extension shows it. A footnote that a note names in
+its text stays in the list of the footnotes of the page. The scrolling of
+the preview still follows the lines of the text editor.
 
 ### R-PREV-005
 
-**Show and hide the notes of the preview.** The title of the Markdown
-preview has a button that shows or hides the notes (Hannes, 2026-10-28):
-"Hide Notes in Preview" while the preview shows them, "Show Notes in Preview"
-while it hides them. The button changes the setting
-`nimblescape.markdownNotes.showInPreview`: in the settings of the workspace
-when they hold a value, else in the settings of the user. Without the notes,
-the preview shows the text without the notes ([R-PREV-004](#r-prev-004)), and
-without icons and callouts. A change of the setting renders the open previews
-again. By default, the preview shows the
-notes ([decision 5](#decisions)).
+**Show and hide the highlights of the preview.** The title of the Markdown
+preview has the buttons "Hide Highlights" and "Show Highlights" of
+[R-GEN-011](#r-gen-011), as the title of the text editor has. A change of
+the setting `showHighlights` and the opening and closing of the side view
+render the open previews again. Without the highlights, the preview shows the
+text without the notes ([R-PREV-004](#r-prev-004)), the highlight of the
+selected note, and the highlight under the pointer. The setting
+`showInPreview` and the buttons "Hide Notes in Preview" and "Show Notes in
+Preview" of earlier versions are dropped.
 
 ### R-PREV-006
 
@@ -845,30 +948,21 @@ editor mode"):
   the markdown-it plugin, the styles and the script of the extension, as the
   preview to the side does ([R-PREV-001](#r-prev-001) to
   [R-PREV-005](#r-prev-005)). Its title has the buttons "Show or Hide Notes"
-  ([R-SIDE-006](#r-side-006)), "Hide Notes in Preview" or "Show Notes in
-  Preview", and "Hide Note Icons in Preview" or "Show Note Icons in Preview"
-  ([R-PREV-007](#r-prev-007)).
+  ([R-SIDE-006](#r-side-006)) and "Hide Highlights" or "Show Highlights"
+  ([R-GEN-011](#r-gen-011)).
 - **Markdown Editor** (the custom editor `vscode.markdown.editor`): the
-  visual editor, which shows no notes ([R-GEN-001](#r-gen-001)). Its title
-  has the button "Show or Hide Notes", and the side view shows the notes of
-  the file.
+  visual editor, which shows no notes and no highlights
+  ([R-GEN-001](#r-gen-001)). Its title has the buttons "Show or Hide Notes"
+  and "Hide Highlights" or "Show Highlights", and the side view shows the
+  notes of the file.
 
 In each mode, the side view follows the file, and a click on a thread keeps
 the mode ([R-SIDE-007](#r-side-007)).
 
 ### R-PREV-007
 
-**Show and hide the icons of the preview.** The title of the Markdown
-preview has a button that hides or shows the icons of the notes and keeps
-their highlighted passages (Hannes, 2026-10-28: "in preview mode, a icon
-shall allow to hide the callout icons"): "Hide Note Icons in Preview" while
-the preview shows the icons, "Show Note Icons in Preview" while it hides
-them, both only while the preview shows the notes
-([R-PREV-005](#r-prev-005)). The button changes the setting
-`nimblescape.markdownNotes.showIconsInPreview`, on by default, as the button
-of R-PREV-005 changes its setting. Without the icons, a click on a passage
-still opens its note ([R-PREV-003](#r-prev-003)); a note without a passage,
-a point, then shows in the side view only.
+**Show and hide the icons of the preview.** Dropped with the icons
+([decision 15](#decisions)), and with them the setting `showIconsInPreview`.
 
 ## Formatter
 
@@ -899,9 +993,10 @@ that Undo takes the whole change back.
 - No line ends with white space, apart from a hard line break.
 - One blank line stands between two blocks and around each ATX heading, no
   blank line at the start of the file, and the file ends with one line break.
-- A start marker of a note at the start of a line joins the paragraph before
-  it, and the line after it joins too, so that GitHub shows the paragraph
-  with the passage ([R-NOTE-006](#r-note-006)).
+- Each start marker of a note starts with `<wbr>`, so that a start marker at
+  the start of a line ends no paragraph on GitHub, and a note without a start
+  marker gets one at the start of the text of the block of its reference
+  ([R-NOTE-006](#r-note-006)). The color of a marker stays.
 
 ### R-FMT-003
 
@@ -975,12 +1070,14 @@ them.
 5. **What is hidden by default** ([R-PREV-005](#r-prev-005),
    [R-TEXT-005](#r-text-005)): the text editor collapses the notes by
    default; the Markdown preview shows them by default and has a button that
-   hides them.
-6. **Form of a selection** ([R-NOTE-006](#r-note-006)): a hidden start marker
-   with the label of the note before the passage, and the reference of the
-   note as its end. The other choices were a quote of the passage in the
-   note, which no longer finds the passage after a change of it or when the
-   passage occurs twice, and a second hidden marker at the end.
+   hides them. Since [decision 15](#decisions), the notes are always collapsed
+   in the text editor, and the preview shows the highlights by default
+   ([R-GEN-011](#r-gen-011)).
+6. **Form of a highlight** ([R-NOTE-006](#r-note-006)): a hidden start marker
+   with the label of the note before the highlighted text, and the reference
+   of the note as its end. The other choices were a quote of the highlighted
+   text in the note, which no longer finds the text after a change of it or
+   when the text occurs twice, and a second hidden marker at the end.
 7. **Where the text of a note shows** ([R-TEXT-001](#r-text-001),
    [R-SIDE-001](#r-side-001), [R-GEN-009](#r-gen-009)): in one place only,
    the side view by default, and the setting `showNotesIn` chooses the boxes
@@ -990,6 +1087,8 @@ them.
    and the setting also chose both (Hannes, 14:55). The other choices were the
    side view with a setting for the boxes that is off by default, and the
    boxes with the Comments panel of VS Code without the side view.
+   [Decision 15](#decisions) replaces this decision: only the side view
+   shows the text of the notes.
 8. **Notes as footnotes** ([R-NOTE-001](#r-note-001), Hannes, 12:47): a note
    is a Markdown footnote with a header, not an HTML comment, because GitHub
    is the main target and shows a footnote, while it hides a comment. The
@@ -1001,39 +1100,99 @@ them.
    the tree too. The other choices were a flat list of answers, each reply
    with a line that names the answer that it replies to, and a flat list
    first with the tree later.
-10. **The passage of the selected note** ([R-SIDE-007](#r-side-007),
+10. **The highlight of the selected note** ([R-SIDE-007](#r-side-007),
     [R-NOTE-006](#r-note-006), Hannes, 2026-10-28: "the funnel shall go to
     the selection not the side bar"): VS Code lets no view draw into the text
     editor, so the funnel stays between the thread and the strip of the view,
-    and the selection of the selected note gets a strong highlight and a
+    and the highlight of the selected note gets a strong color and a
     frame in its color in the text editor and in the preview. VS Code tells
     an extension which lines the editor shows, not where they stand on the
-    screen, so a funnel cannot end exactly at the passage. The other choices
+    screen, so a funnel cannot end exactly at the highlight. The other choices
     were a funnel without the strip that ends at the edge of the view at an
     estimated height, which is wrong where lines wrap, and the strong
-    highlight without the strip and the funnel.
+    highlight without the strip and the funnel. The strong highlight with the
+    frame stays; [decision 14](#decisions) replaces the strip and the
+    funnel.
 11. **Place of the comment of the format** ([R-NOTE-007](#r-note-007),
     Hannes, 2026-10-28, 16:32): the comment stands at the top of the file, after a
     front matter, and the notes of a file without it work as before. The
     other choices were the top with notes only in files that hold the
     comment, which hides the notes of older files, and the end of the file,
     where a program finds it only after it read the whole file.
-12. **The funnel reaches the passage** ([R-SIDE-007](#r-side-007), Hannes,
+12. **The funnel reaches the highlight** ([R-SIDE-007](#r-side-007), Hannes,
     2026-10-28, 17:16, confirmed 17:21): the preview draws its part of the
-    funnel, a band from the passage to its right edge that follows the
+    funnel, a band from the highlight to its right edge that follows the
     scrolling, and the side view continues it to the thread; the two parts
     meet at the top, where the selected thread stands. In the text editor,
-    the funnel starts at the rows of the passage, which the extension
+    the funnel starts at the rows of the highlight, which the extension
     computes from the visible lines, an estimate where lines wrap. This
     replaces the part of decision 10 that keeps the funnel at the strip. The
     other choices were the start at the computed rows in the text editor
     only, with the strip in the preview, and the strip in both.
+    [Decision 14](#decisions) replaces this decision (Hannes, 19:23: "the
+    current implementation is not what we want").
 13. **The formatter for agents** ([R-FMT-004](#r-fmt-004), Hannes,
     2026-10-28, 19:05): an npm package in the folder `cli/` of this
     repository, which the release publishes to npmjs.com with the version of
     the extension, as the extension nimblescape TypeScript does. The other
     choices were a run with npx from the GitHub repository, without npmjs.com,
     and a tool for the agents in VS Code only.
+14. **The view next to the text** ([R-SIDE-007](#r-side-007), Hannes,
+    2026-10-28, 19:50): the side view stands aligned to the text editor, as
+    the compare view of VS Code shows two texts side by side: each thread at
+    the height of its highlight, with the scrolling of the text. Only the
+    selected thread has a line to its highlight (Hannes, 19:51: "only the
+    selected one has the connection"). The places are estimates where lines
+    wrap, and the view lists the threads next to the preview, which tells an
+    extension no place of its text. The other choices were a compare layout
+    in the preview, with the text on the left and the notes at the exact
+    height of their text on the right; an editor of the extension in a tab
+    with the text and the notes side by side; and the compare editor of
+    VS Code with the text without the notes against the file. This replaces
+    [decision 12](#decisions) and the strip of [decision 10](#decisions).
+15. **Only the side view** ([R-GEN-009](#r-gen-009), Hannes, 2026-10-28,
+    19:58 to 20:07): "we completely drop the inline view", "we completely drop
+    the callouts on hover view", "we completely drop the callout icons in the
+    preview view", "drop all colored icons on the left", "in the text view we
+    never show the notes and the markers". The side view is the only place of
+    the text of the notes: no boxes of the comments API and no Comments view,
+    no icons and callouts in the preview, no markers in the left margin of the
+    text editor, and the notes always collapsed in the text editor. A button
+    on each thread switches it to the text view of its note (decided with the
+    option "Button on each thread"; the other choices were one button for the
+    view that switches all threads, and the text view next to the text
+    editor and the rendered answers next to the preview, without a button).
+    The buttons of the side view are icons (Hannes, 20:06: "exchange all the
+    buttons on the note editor with icons"). This replaces
+    [decision 7](#decisions).
+16. **The color of a note** ([R-TEXT-006](#r-text-006), Hannes, 2026-10-28,
+    20:03: "notes can be colored in the notes editor, by default they get all
+    the same color"; 20:10): all notes have the default color blue, and the
+    start marker keeps another color after the label:
+    `<wbr><!--[note-7k2q green-->`. The other choices were a comment at the
+    end of the header line, `<!-- color: green -->`, and the name of the color
+    as a word at the end of the header, which GitHub shows.
+17. **Start and end of a highlight** ([R-NOTE-006](#r-note-006), Hannes,
+    2026-10-28, 20:09 to 20:25): "there should never be a note without a
+    start marker"; "why not always start with <wbr>"; the end marker is
+    always the reference of the footnote; "there shall be no way to add a
+    note without highlighting text". The text of a note is its highlight
+    (Hannes, 20:22: "it is Highlights you would on paper do with a marker
+    pen"), not a passage or a selection. Every note has one start marker,
+    which always starts with `<wbr>`, so that it ends no paragraph on GitHub
+    also at the start of a line. Before, a note without a start marker began
+    at the start of its block, and the extension wrote no start marker
+    there, or wrote it at the end of the line before.
+18. **Highlights with the side view** ([R-GEN-011](#r-gen-011),
+    [R-EDIT-006](#r-edit-006), Hannes, 2026-10-28, 20:00 to 20:32): the
+    setting `showHighlights` and the buttons "Show Highlights" and "Hide
+    Highlights" show and hide the highlights, with a good contrast; the
+    highlights show only while the side view is open ("closing the side view,
+    also hides the highlights"); a hidden highlight shows under the pointer,
+    and a click on it opens the side view; the hover over the selected text
+    offers the colors for a new note. Closing the side view keeps the
+    setting, and "Show Highlights" also opens the side view, so that one
+    click shows the highlights.
 
 ---
 

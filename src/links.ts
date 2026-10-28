@@ -3,14 +3,12 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The links of the rendered notes: in the side view "Notes"
- * ([R-SIDE-005](../docs/requirements.md#r-side-005)), in the boxes of the text
- * editor and in the callouts of the Markdown preview
- * ([R-GEN-010](../docs/requirements.md#r-gen-010)). The page of the side view
+ * The links of the rendered notes in the side view "Notes"
+ * ([R-SIDE-005](../docs/requirements.md#r-side-005),
+ * [R-GEN-010](../docs/requirements.md#r-gen-010)). The page of the side view
  * resolves a relative link against its own address, and VS Code opens only
  * some schemes from a webview, so the script of the view sends each click on
- * a link to the extension. A link to a file in a box runs a command of the
- * extension, and in a callout it is a URI of VS Code for the extension.
+ * a link to the extension.
  *
  * This module opens the link as the Markdown preview of VS Code does: a web
  * link or a mail link with the system, a link to a file relative to the
@@ -25,9 +23,6 @@
 
 import * as vscode from 'vscode';
 import type { LinkTarget } from './settings';
-
-/** openLinkCommand is the command that the links to files of the boxes run, with the link and the URI of the document of the note. */
-export const openLinkCommand = 'nimblescape.markdownNotes.openLink';
 
 /**
  * documentTypes are the extensions of the files that the program of the system opens without a question: documents and
@@ -151,56 +146,6 @@ export function isFileLink(href: string): boolean {
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(href)?.[1].toLowerCase();
   return scheme === undefined ? href !== '' && !href.startsWith('#') : scheme === 'file';
 }
-
-/**
- * commandLinks returns a Markdown text whose links to files have another address, for the box of a note: inline links
- * `[text](address)` and the definitions of reference links `[label]: address`. Fenced code blocks and code spans stay
- * as they are. The box shows the returned text, and its editor the text itself.
- * @param text - The Markdown text.
- * @param address - Returns the new address of a link to a file.
- */
-export function commandLinks(text: string, address: (href: string) => string): string {
-  const replaced = (destination: string): string => {
-    const href = destination.startsWith('<') ? destination.slice(1, -1) : destination;
-    return isFileLink(href) ? address(href) : destination;
-  };
-  let fence: string | undefined;
-  return text
-    .split('\n')
-    .map((line) => {
-      const marks = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-      if (fence) {
-        if (marks && marks[0] === fence[0] && marks.length >= fence.length && line.trim() === marks) {
-          fence = undefined;
-        }
-        return line;
-      }
-      if (marks) {
-        fence = marks;
-        return line;
-      }
-      const definition = /^( {0,3}\[[^\]]+\]:[ \t]*)(<[^<>]*>|\S+)(.*)$/.exec(line);
-      if (definition) {
-        return definition[1] + replaced(definition[2]) + definition[3];
-      }
-      return line
-        .split(/(`+[^`]*`+)/)
-        .map((part, index) =>
-          index % 2 === 1 ? part : part.replace(/\]\(([ \t]*)(<[^<>\n]*>|[^\s()<>]+(?:\([^\s()]*\)[^\s()<>]*)*)/g, (_, space: string, destination: string) => `](${space}${replaced(destination)}`),
-        )
-        .join('');
-    })
-    .join('\n');
-}
-
-/**
- * commandAddress returns the address of a link of a box that runs the command openLinkCommand with the link and the
- * document of the note. The arguments are JSON, and the parentheses are encoded too, so that they do not end the link.
- * @param href - The address of the link.
- * @param document - The URI of the Markdown document of the note.
- */
-export const commandAddress = (href: string, document: vscode.Uri): string =>
-  `command:${openLinkCommand}?${encodeURIComponent(JSON.stringify([href, document.toString()])).replace(/\(/g, '%28').replace(/\)/g, '%29')}`;
 
 /**
  * openFile opens a file in VS Code: in a new window, or in the editor at a position. A file that a tab of VS Code shows

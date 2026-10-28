@@ -45,7 +45,7 @@ links to its details.
   Matt Bierner (`bierner.markdown-footnotes`) together with this extension
   (`extensionPack`). It is an extension of its own, with its own markdown-it
   plugin for the preview; you can disable or uninstall it.
-- **Links of the preview.** The icon of a note is a link
+- **Links of the preview.** A click on the highlight of a note opens a link
   `vscode://nimblescape.nimblescape-markdown-notes/open?document=…&line=…`.
   The extension opens only a Markdown file that is open or that belongs to
   the workspace, and only shows its notes. See
@@ -64,9 +64,9 @@ links to its details.
 ## The trust model
 
 **The text of a note is data.** The extension reads the text of the open
-Markdown files and shows the body of each answer as Markdown: in the box of
-the note, with the comments of VS Code; in the side view; and in the Markdown
-preview, with the renderer of the preview. A note cannot start a program,
+Markdown files and shows the body of each answer as Markdown in the side
+view, rendered with the renderer of the Markdown preview. The preview shows
+only the highlights of the notes, not their text. A note cannot start a program,
 read a file or connect to an address through the extension.
 
 A note from a stranger can still:
@@ -83,38 +83,36 @@ A note from a stranger can still:
 | Part | Runs as | Trusts |
 | --- | --- | --- |
 | The extension (`dist/extension.js`) | Your user, in the extension host of VS Code, where the workspace is | VS Code. It reads the documents only as text. |
-| The boxes of the notes | The comments of VS Code, in the VS Code window | The Markdown text that the extension gives to VS Code, which renders it as an untrusted Markdown string |
+| The hover over the selected text | The hovers of VS Code, in the VS Code window | A fixed Markdown text of the extension, which holds no text of the file and may run only the command "Add Note" |
 | The side view (`media/notesView.js`) | A webview of VS Code, in the VS Code window | The state that the extension sends: the answers and their HTML, which the Markdown preview renderer made from the text of the file |
 | The markdown-it plugin, the styles and the script of the preview (`media/markdownPreview.css`, `media/markdownPreview.js`) | The Markdown extension of VS Code, which renders the page of the Markdown preview, with the security policy of the Markdown preview | The Markdown text of the document |
 
 In a remote window (SSH, WSL, a container), the extension runs where the
-workspace is, and the boxes, the side view and the previews show in the
+workspace is, and the hovers, the side view and the previews show in the
 VS Code window of your computer. The text of a note then goes over the
 connection of VS Code, as the text of an open file does.
 
 ## Rendering
 
-- **The boxes.** The extension gives the body of each answer to VS Code as a
-  Markdown string (`vscode.MarkdownString`) with HTML on (`supportHtml`) and
-  without trust (`isTrusted` is not set). VS Code then shows only the HTML
-  elements and attributes of its allow list, runs no script, and runs no
-  command link of the body. The relative links and images of the body start
-  at the folder of the document (`baseUri`).
-- **The Markdown preview.** The plugin (`src/markdown/markdownIt.ts`) renders
-  the body of each answer with the same markdown-it instance as the rest of
-  the document, so the body gets the same options, plugins and security
-  policy of the preview as the rest of the file. The extension writes the
-  author, the date and the labels as escaped text. A block of HTML of a note
-  that opens a comment and does not close it shows as escaped text, because
-  the callout stands in the page before the blocks after the note, and the
-  open comment would hide the rest of the page. The extension does not change
-  the security setting of the Markdown preview.
-- **The script of the preview.** `media/markdownPreview.js` only shows and
-  hides the callouts that the plugin wrote into the page, places them next to
-  their icons, highlights the selections and draws the frame of the selected
-  note. A click on a highlighted passage clicks the link of the icon of its
-  note, which the plugin wrote ([Links to the extension](#links-to-the-extension)).
-  It reads no text of the page and sends no message.
+- **The Markdown preview.** The plugin (`src/markdown/markdownIt.ts`) takes
+  the notes out of the page and writes the start and the end of each
+  highlight as empty elements, with the number of the color, the label of the
+  note and the link to the extension as escaped attributes. The extension
+  does not change the security setting of the Markdown preview.
+- **The script of the preview.** `media/markdownPreview.js` only paints the
+  highlights with the CSS Custom Highlight API, which changes no element of
+  the page, and draws the frame of the selected note. For the time of a click
+  on a highlight, it gives the link of the end of the highlight, which the
+  plugin wrote, to a link around the content of the page, so that VS Code
+  passes the click to the extension
+  ([Links to the extension](#links-to-the-extension)). It reads no text of
+  the page and sends no message.
+- **The hover over the selected text.** The hover is a Markdown string of the
+  extension (`vscode.MarkdownString`) with HTML on (`supportHtml`) and a
+  trust that allows only the command "Add Note"
+  (`isTrusted: { enabledCommands: [...] }`). Its text is fixed in the code:
+  "Add Note" and a link for each color, which runs "Add Note" with the name
+  of the color. It holds no text of the file.
 - **No network.** The extension has no network code and starts no program.
 
 ## Side view
@@ -133,8 +131,9 @@ connection of VS Code, as the text of an open file does.
   `script`, `iframe`, `object`, `form`, `meta`, `base`), the attributes of
   events, and the addresses of the schemes `javascript:` and `vbscript:`.
 - The script sends the actions of the user to the extension as messages. The
-  extension checks and writes each text with the same operations as the boxes
-  of the text editor ([Changes of a file](#changes-of-a-file)).
+  extension checks each text before it writes it
+  ([Changes of a file](#changes-of-a-file)), and gives a color to a note
+  only when its name is one of the six colors of the notes.
 - A click on a link of a rendered text does not load the address in the page
   of the view: the script stops the click and sends the address to the
   extension ([Links of the notes](#links-of-the-notes)).
@@ -160,23 +159,25 @@ change the file. So a click on a link in the side view opens:
 
 ## Links to the extension
 
-The Markdown preview opens only links of some schemes; the icon of a note is
-a link of the scheme `vscode://` to the extension, which VS Code passes to the
-URI handler of the extension. VS Code may ask once whether the extension may
+The Markdown preview opens only links of some schemes; a click on a
+highlight opens a link of the scheme `vscode://` to the extension, which
+VS Code passes to the URI handler of the extension. VS Code may ask once whether the extension may
 open it. Such a link can also come from outside VS Code, for example from a
 web page, so the extension:
 
-- handles only the path `/open` with a document and the index of a line;
+- handles only the path `/open` with a document and the index of a line,
+  and the path `/deselect` with a document;
 - opens only a document that is open in VS Code, or a file of a folder of the
   workspace, and only when it is a Markdown document that can have notes;
-- only shows the notes of the document in the side view. A link changes no
-  file and runs no command.
+- only shows the notes of the document in the side view, or deselects its
+  selected note. A link changes no file and runs no command.
 
 ## Changes of a file
 
 - The extension changes a document on a click on "Save", "Add Note",
-  "Answer", "Delete" or "Delete Thread", in a box of the text editor or in the
-  side view, with one edit of the document (`vscode.workspace.applyEdit`),
+  "Answer", "Reply", "Delete" or "Delete Thread" or on a color in the side
+  view, and on "Save" of the text view of a note, with one edit of the
+  document (`vscode.workspace.applyEdit`),
   and when it adds the comment of the format (below).
   Backspace and Delete next to a hidden marker run a command of the
   extension instead of the command of VS Code, which deletes the character
@@ -207,11 +208,13 @@ web page, so the extension:
   must hold the same note at the same place, with the same answers, headers,
   bodies and depths in the tree of answers, when the parser of the Markdown
   preview reads it (`src/notes/edits.ts`). So a saved note never ends early,
-  never starts another answer and never changes the Markdown around it.
-- The extension shows boxes, and so writes, only for Markdown documents of a
-  writable file system and for new documents that were not saved yet
-  (`untitled`). A version of a file in Git and a Markdown cell of a notebook
-  get no boxes.
+  never starts another answer and never changes the Markdown around it. The
+  text view of a note must stay the definition of the same note, with its
+  label and header, and must add or remove no other note.
+- The extension shows the notes in the text editor and the side view, and
+  so writes, only for Markdown documents of a writable file system and for
+  new documents that were not saved yet (`untitled`). A version of a file in
+  Git and a Markdown cell of a notebook get no notes there.
 
 ## GitHub sign-in
 
@@ -236,8 +239,9 @@ supported. In Restricted Mode and in a virtual workspace, the extension
 activates with all features, because it only reads and changes the text of
 the open Markdown documents and runs no program of the workspace. The settings
 of the extension can come from the settings of a workspace
-(`.vscode/settings.json`): `expandInEditor` opens the boxes, and
-`showInPreview` turns the icons off.
+(`.vscode/settings.json`): `showHighlights` hides the highlights, and
+`openLinksIn` chooses where a link to a file opens; a link of another scheme
+still needs your agreement.
 
 ## Stored data
 
@@ -254,7 +258,7 @@ address.
 
 ## Known limits
 
-- The box of a note, the side view and the Markdown preview show the images
+- The side view and the Markdown preview show the images
   that the body of a note names, also from an `https:` address of the
   internet, as the Markdown preview does for the rest of the file. VS Code
   then loads the image from that address.

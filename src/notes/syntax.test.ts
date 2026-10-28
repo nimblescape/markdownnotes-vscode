@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { authorDate, displayDate, formatDate, newLabel, normalizeBody, noteLines, parseDate, readDefinition, readHeader, readMarker, readNote, usedLabels } from './syntax';
+import { authorDate, displayDate, formatDate, markerText, newLabel, normalizeBody, noteLines, parseDate, readDefinition, readHeader, readMarker, readNote, usedLabels } from './syntax';
 
 describe('labels and headers', () => {
   test('a new label is note- and four random small letters or digits that no footnote of the text uses', () => {
@@ -35,8 +35,17 @@ describe('labels and headers', () => {
     expect(readDefinition('[^1]: **hannes** · 2026-10-28 10:15+01:00')).toBeUndefined();
     expect(readDefinition('[^note-7K2Q]: **hannes** · 2026-10-28 10:15+01:00')).toBeUndefined();
     expect(readDefinition('[^note-7k2q]: A real footnote.')).toBeUndefined();
-    expect(readMarker('<!--[note-7k2q-->text')).toBe('note-7k2q');
     expect(readMarker('<!--[a3-->')).toBeUndefined();
+  });
+
+  test('a start marker is <wbr> and a comment with the label and an optional color; a reader also takes it without <wbr> (Hannes, 2026-10-28)', () => {
+    expect(markerText('note-7k2q')).toBe('<wbr><!--[note-7k2q-->');
+    expect(markerText('note-7k2q', 'blue')).toBe('<wbr><!--[note-7k2q-->');
+    expect(markerText('note-7k2q', 'green')).toBe('<wbr><!--[note-7k2q green-->');
+    expect(readMarker('<wbr><!--[note-7k2q-->text')).toEqual({ label: 'note-7k2q', color: undefined, length: 22 });
+    expect(readMarker('<wbr><!--[note-7k2q green-->text')).toEqual({ label: 'note-7k2q', color: 'green', length: 28 });
+    expect(readMarker('<!--[note-7k2q-->text')).toEqual({ label: 'note-7k2q', color: undefined, length: 17 });
+    expect(readMarker('<wbr>text')).toBeUndefined();
   });
 });
 

@@ -8,10 +8,12 @@
  * the actions of the user (R-SIDE-001 to R-SIDE-003): the page and its
  * policy, the threads of the active Markdown file with the rendered answers
  * and their tree (R-NOTE-004), the thread at the cursor, the save, the reply
- * to the note and to an answer, the new note, the delete, the preview of a
- * text, the GitHub sign-in (R-GEN-006), and the reveal of a note in the text
- * editor. The tests run in the zone Europe/Vienna (vitest.config.mts), which
- * is UTC+01:00 on 2026-10-28.
+ * to the note and to an answer, the new note for the selected text in a
+ * color, the color and the text view of a note, the delete, the preview of a
+ * text, the GitHub sign-in (R-GEN-006), the reveal of a note in the text
+ * editor, the layout of the threads beside the text editor (decision 14), and
+ * the links. The tests run in the zone Europe/Vienna (vitest.config.mts),
+ * which is UTC+01:00 on 2026-10-28.
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -92,8 +94,11 @@ const send = async (view: FakeView, message: unknown): Promise<void> => {
  */
 const results = (view: FakeView) => view.messages.filter((message) => message.type === 'result');
 
-/** linkCalls returns the commands that the links ran, without the folds that the overlay of the text editor runs. */
-const linkCalls = () => fake.calls.filter(({ command }) => !command.startsWith('editor.'));
+/**
+ * linkCalls returns the commands that the links ran, without the folds that the overlay of the text editor runs, the
+ * context keys and the refresh of the previews.
+ */
+const linkCalls = () => fake.calls.filter(({ command }) => !command.startsWith('editor.') && command !== 'setContext' && command !== 'markdown.preview.refresh');
 
 /** newWindow is the command that moves the active editor into a new window of VS Code. */
 const newWindow = 'workbench.action.moveEditorToNewWindow';
@@ -123,15 +128,16 @@ test('the view shows the threads of the active Markdown file with the rendered a
     type: 'state',
     file: 'a.md',
     line: 13,
+    highlight: undefined,
     account: 'hannes',
     selected: undefined,
     threads: [
       {
         id: '1',
         line: 4,
-        number: 1,
         color: '#1a7fe0',
-        mark: [2, 2],
+        colorName: 'blue',
+        text: '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The **text**.\n\n    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > An answer.',
         answers: [
           {
             author: 'ann',
@@ -149,14 +155,23 @@ test('the view shows the threads of the active Markdown file with the rendered a
       {
         id: '2',
         line: 16,
-        number: 2,
-        color: '#2e8b3e',
-        mark: [14, 14],
+        // Every note has the same color until the user chooses another one (Hannes, 2026-10-28 20:03).
+        color: '#1a7fe0',
+        colorName: 'blue',
+        text: '[^note-bbbb]: **bob** · 2026-10-28 09:00-02:00\n\n    Second.',
         answers: [{ author: 'bob', date: '2026-10-28 12:00', authorDate: '2026-10-28 09:00 at the author (UTC−02:00)', body: 'Second.', html: '<p>Second.</p>\n', depth: 0, parent: undefined }],
       },
     ],
-    funnels: true,
-    visible: { lines: [0, 19], lineCount: 20, start: undefined },
+    colors: [
+      { name: 'blue', color: '#1a7fe0' },
+      { name: 'green', color: '#2e8b3e' },
+      { name: 'orange', color: '#c7731a' },
+      { name: 'purple', color: '#8a4fc0' },
+      { name: 'red', color: '#d33b3b' },
+      { name: 'teal', color: '#138a8a' },
+    ],
+    // The fake shows the file in no tab, so the view knows no layout of the text editor.
+    placement: undefined,
   });
   expect(fake.sessions.map((session) => session.options)).toContainEqual({ silent: true });
   expect(fake.sessions.map((session) => session.options)).not.toContainEqual({ createIfNone: true });
@@ -168,11 +183,12 @@ test('the view selects the thread at the cursor and follows the active Markdown 
   fake.fire('selection', { textEditor: editor });
   await settle();
   expect(view.state().selected).toBe('1');
-  // A move of the cursor outside the notes keeps the selection and tells the script the line for a new note.
+  // A move of the cursor outside the notes keeps the selection and tells the script the line, and the selected text
+  // that a new note would highlight: none without a selection.
   editor.selection = { active: new FakePosition(12, 0) };
   fake.fire('selection', { textEditor: editor });
   await settle();
-  expect(view.messages.at(-1)).toEqual({ type: 'line', line: 12 });
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 12, highlight: undefined });
   expect(view.state().selected).toBe('1');
   const other = new FakeEditor(fake.open('Other\n', '/folder/b.md'));
   fake.fire('activeEditor', other);
@@ -219,26 +235,36 @@ test('Save writes an answer and a refused text returns its message (R-SIDE-003, 
 });
 
 test('Answer, Reply and Add Note need the GitHub sign-in, and write the login and the date (R-EDIT-003, R-EDIT-005, R-NOTE-004, R-GEN-006)', async () => {
-  const { document, view } = await start(note, 12);
+  const { document, editor, view } = await start(note, 12);
   await send(view, { type: 'answer', request: 1, id: '1', text: 'A third answer.' });
   expect(results(view)[0]).toEqual({ type: 'result', request: 1, message: expect.stringMatching(/^The change was not saved: sign in with GitHub/) });
   expect(document.text).toBe(note);
   fake.signIn = 'carl';
-  // Add Note adds a note for the line of the cursor, with a point at the end of the line, and selects it (R-NOTE-006).
+  // Add Note needs selected text (Hannes, 2026-10-28: "there shall be no way to add a note without highlighting text").
   await send(view, { type: 'add', request: 2, text: 'A new note.' });
-  expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: undefined });
-  expect(document.text).toMatch(/\n\nMore\.<!--\[(note-[a-z0-9]{4})-->\[\^\1\]\n\n\[\^\1\]: \*\*carl\*\* · 2026-10-28 10:15\+01:00\n\n {4}A new note\.\n$/);
+  expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringMatching(/^The note was not added: select the text/) });
+  expect(document.text).toBe(note);
+  // Add Note adds a note that highlights the selected text, in the color of the editor of the new note, and selects it
+  // (R-NOTE-006).
+  editor.selection = { anchor: new FakePosition(12, 0), active: new FakePosition(12, 4) };
+  fake.fire('selection', { textEditor: editor, kind: 2 });
+  await settle();
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 12, highlight: 'More' });
+  await send(view, { type: 'add', request: 3, text: 'A new note.', color: 'green' });
+  expect(results(view)[2]).toEqual({ type: 'result', request: 3, message: undefined });
+  expect(document.text).toMatch(/\n\n<wbr><!--\[(note-[a-z0-9]{4}) green-->More\[\^\1\]\.\n\n\[\^\1\]: \*\*carl\*\* · 2026-10-28 10:15\+01:00\n\n {4}A new note\.\n$/);
   let state = view.state();
   expect(state.threads).toHaveLength(2);
   expect(state.selected).toBe(state.threads[1].id);
+  expect(state.threads[1]).toMatchObject({ colorName: 'green', color: '#2e8b3e' });
   expect(state.threads[1].answers[0]).toMatchObject({ author: 'carl', body: 'A new note.' });
   // Answer replies to the note, after the replies to the note.
-  await send(view, { type: 'answer', request: 3, id: '1', text: 'A third answer.' });
-  expect(results(view)[2]).toEqual({ type: 'result', request: 3, message: undefined });
-  expect(document.text).toContain('    > An answer.\n\n    > **carl** · 2026-10-28 10:15+01:00\n    >\n    > A third answer.\n\nMore.');
-  // Reply replies to an answer, in its block quote after its body and its replies.
-  await send(view, { type: 'answer', request: 4, id: '1', text: 'Thanks.', parent: 1 });
+  await send(view, { type: 'answer', request: 4, id: '1', text: 'A third answer.' });
   expect(results(view)[3]).toEqual({ type: 'result', request: 4, message: undefined });
+  expect(document.text).toContain('    > An answer.\n\n    > **carl** · 2026-10-28 10:15+01:00\n    >\n    > A third answer.\n\n<wbr><!--[note-');
+  // Reply replies to an answer, in its block quote after its body and its replies.
+  await send(view, { type: 'answer', request: 5, id: '1', text: 'Thanks.', parent: 1 });
+  expect(results(view)[4]).toEqual({ type: 'result', request: 5, message: undefined });
   expect(document.text).toContain('    > An answer.\n    >\n    > > **carl** · 2026-10-28 10:15+01:00\n    > >\n    > > Thanks.\n\n    > **carl** · ');
   state = view.state();
   expect(state.threads[0].answers.map((answer) => [answer.author, answer.depth, answer.parent, answer.body])).toEqual([
@@ -283,26 +309,25 @@ test('Sign in asks VS Code for a GitHub session, and a change of the sessions sh
   expect(view.state().account).toBe('other');
 });
 
-test('a click on the line of a thread shows its note in the text editor and opens its box, and a click on the thread keeps the focus in the view (R-SIDE-007)', async () => {
-  fake.settings.set('', { showNotesIn: 'inline' });
+test('a click on the line of a thread shows its note in the text editor, and a click on the thread keeps the focus in the view (R-SIDE-007)', async () => {
   const { document, editor, view } = await start();
   await send(view, { type: 'reveal', id: '1' });
   expect(fake.shown).toEqual([{ document, options: { viewColumn: editor.viewColumn, selection: expect.objectContaining({ start: new FakePosition(2, 0) }), preserveFocus: false } }]);
-  expect(fake.live()[0].collapsibleState).toBe(1);
   await send(view, { type: 'reveal', id: '9' });
   expect(fake.shown).toHaveLength(1);
   await send(view, { type: 'reveal', id: '1', focus: false });
   expect(fake.shown[1].options).toMatchObject({ preserveFocus: true });
 });
 
-test('a note with a selection has the lines of its selection as its mark, and the cursor goes to the start of the selection (R-SIDE-007)', async () => {
-  const { view } = await start('The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n');
-  expect(view.state().threads).toEqual([expect.objectContaining({ number: 1, mark: [0, 1], line: 3 })]);
+test('a click on a thread puts the cursor at the start of the highlight of its note (R-SIDE-007)', async () => {
+  await start('The agents <wbr><!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n');
+  const view = fake.resolveView(notesViewId);
+  await send(view, { type: 'ready' });
   await send(view, { type: 'reveal', id: '1' });
-  expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 28) }) });
+  expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 33) }) });
 });
 
-test('a click on a thread keeps the mode of the file: the preview scrolls to the note, and the mode "Markdown Editor" selects its passage (R-SIDE-007)', async () => {
+test('a click on a thread keeps the mode of the file: the preview scrolls to the note, and the mode "Markdown Editor" selects its highlight (R-SIDE-007)', async () => {
   const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
   const { document, view } = await start(text);
   const states = () => view.messages.filter((message) => message.type === 'state').length;
@@ -318,7 +343,7 @@ test('a click on a thread keeps the mode of the file: the preview scrolls to the
   fake.tabGroups = [{ viewColumn: 2, tabs: [], activeTab: { input: { viewType: markdownModes.preview, uri: document.uri }, label: 'a.md' } }];
   await send(view, { type: 'reveal', id: '1' });
   expect(fake.shown).toEqual([]);
-  // The mode "Markdown Editor" opens the document in its own mode again, with the passage of the note selected.
+  // The mode "Markdown Editor" opens the document in its own mode again, with the highlight of the note selected.
   fake.tabGroups = [{ viewColumn: 2, tabs: [], activeTab: { input: { viewType: markdownModes.editor, uri: document.uri }, label: 'a.md' } }];
   await send(view, { type: 'reveal', id: '1', focus: false });
   expect(fake.shown).toEqual([]);
@@ -349,7 +374,7 @@ test('the view follows the active tab that shows a Markdown file in the mode "Ma
   expect(view.state().threads).toHaveLength(1);
 });
 
-test('a mouse click into the selection of a note opens the hidden view, and the keyboard or a click on the note itself does not (R-SIDE-007)', async () => {
+test('a mouse click into the highlight of a note opens the hidden view, and the keyboard or a click on the note itself does not (R-SIDE-007)', async () => {
   const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
   const { editor, view } = await start(text);
   view.visible = false;
@@ -365,11 +390,6 @@ test('a mouse click into the selection of a note opens the hidden view, and the 
   await move(1, 2, 2);
   expect(view.shows).toBe(1);
   expect(view.state().selected).toBe('1');
-  // With the setting showNotesIn "inline" the side view does not show.
-  view.visible = false;
-  fake.settings.set('', { showNotesIn: 'inline' });
-  await move(0, 30, 2);
-  expect(view.shows).toBe(1);
 });
 
 test('a mouse click outside the notes deselects the selected note, a move with the keys keeps it, and the script of the view deselects it for a click on its empty part or Escape (R-SIDE-007)', async () => {
@@ -391,53 +411,31 @@ test('a mouse click outside the notes deselects the selected note, a move with t
   expect(view.state().selected).toBeUndefined();
 });
 
-test('the view sends the visible lines of the text editor, and the setting showFunnels (R-SIDE-007)', async () => {
-  const { editor, view } = await start();
-  editor.visibleRanges = [new FakeRange(3, 0, 8, 0)];
-  fake.fire('visibleRanges', { textEditor: editor });
-  expect(view.messages.at(-1)).toEqual({ type: 'visible', visible: { lines: [3, 8], lineCount: 14, start: undefined } });
-  // The button "Hide Funnels" writes the setting in the user settings, and the view shows the new state.
-  await fake.run(viewCommands.hideFunnels);
-  await settle();
-  expect(fake.updates).toEqual([{ key: 'showFunnels', value: false, target: 1 }]);
-  expect(view.state()).toMatchObject({ funnels: false });
-  await fake.run(viewCommands.showFunnels);
-  await settle();
-  expect(view.state()).toMatchObject({ funnels: true });
-});
-
-test('the funnel of the selected thread starts at the rows of its passage in the text editor, or at the end of the band of the preview (R-SIDE-007, decision 12)', async () => {
+test('the view sends the layout of the threads beside the text editor: the rows of the highlight of each note and of the cursor, which follow the scrolling of the editor (R-SIDE-007, decision 14)', async () => {
   // Rows of 20 pixels; the text of the editor starts 26 pixels below the top of the view, below the tabs and the breadcrumbs.
   fake.settings.set('workspace', { addFormatComment: false, lineHeight: 20 });
-  const { editor, view } = await start(note, 2);
+  const { editor, view } = await start(note, 12);
+  const placement = () => view.messages.filter((message) => message.type === 'placement' || message.type === 'state').at(-1)?.placement;
+  // The view tells its height first.
+  expect(placement()).toBeUndefined();
   await send(view, { type: 'size', height: 600 });
-  const funnelStart = () => (view.messages.filter((message) => message.type === 'visible' || message.type === 'state').at(-1)?.visible as { start?: unknown } | undefined)?.start;
-  // The passage of the note is line 2, the third row.
-  expect(funnelStart()).toEqual([66, 86]);
-  // The editor scrolls one line down, so the passage is on the second row, which starts half a row lower, because the
-  // editor can show a part of the row above; scrolled further, the funnel starts at the mark.
+  // The highlight of the note is line 2, the third row, and the cursor is on line 12; the text of the editor ends 9
+  // pixels below the bottom of the view.
+  expect(placement()).toEqual({ editor: [26, 609], highlights: { '1': [66, 86] }, cursor: [266, 286], lineHeight: 20 });
+  // The editor scrolls one line down, so the highlight is on the second row, which starts half a row lower, because the
+  // editor can show a part of the row above.
   editor.visibleRanges = [new FakeRange(1, 0, 13, 0)];
   fake.fire('visibleRanges', { textEditor: editor });
-  expect(funnelStart()).toEqual([56, 76]);
-  editor.visibleRanges = [new FakeRange(4, 0, 13, 0)];
-  fake.fire('visibleRanges', { textEditor: editor });
-  expect(funnelStart()).toBeUndefined();
-  // At five columns, the title of seven characters takes two rows, and the passage "The text" too.
+  expect(placement()).toMatchObject({ highlights: { '1': [56, 76] }, cursor: [256, 276] });
+  // At five columns, the title of seven characters takes two rows, and the highlight "The text" too.
   fake.settings.set('workspace', { addFormatComment: false, lineHeight: 20, wordWrap: 'wordWrapColumn', wordWrapColumn: 5 });
   editor.visibleRanges = [new FakeRange(0, 0, 13, 0)];
   fake.fire('visibleRanges', { textEditor: editor });
-  expect(funnelStart()).toEqual([86, 126]);
-  // The preview to the side draws the band from the passage, and the funnel starts at its end, below the bar of the tabs.
-  fake.tabGroups = [{ viewColumn: 2, tabs: [], activeTab: { input: { viewType: 'mainThreadWebview-markdown.preview' }, label: 'Preview a.md' } }];
-  fake.fire('tabs', {});
-  expect(funnelStart()).toEqual([12, 32]);
-  // The mode "Markdown Preview" has the breadcrumbs too.
-  fake.tabGroups = [{ viewColumn: 1, tabs: [], activeTab: { input: { viewType: markdownModes.preview, uri: editor.document.uri }, label: 'a.md' } }];
-  fake.fire('tabs', {});
-  expect(funnelStart()).toEqual([34, 54]);
-  // Without a selected thread, there is no funnel.
-  await send(view, { type: 'deselect' });
-  expect(funnelStart()).toBeUndefined();
+  expect(placement()).toMatchObject({ highlights: { '1': [86, 126] } });
+  // Without a text editor of the file, for example with the preview only, there is no layout.
+  fake.editors = [];
+  fake.fire('visibleEditors', []);
+  expect(placement()).toBeUndefined();
 });
 
 test('without an active Markdown file the view shows no threads, and an action returns that no note is there', async () => {
@@ -533,4 +531,62 @@ test('a link of another scheme opens only after a question, and a link that runs
   ]);
   expect(linkCalls()).toEqual([]);
   expect(fake.external).toHaveLength(2);
+});
+
+test('"Add Note" opens the editor of a new note for the selected text in the color of the hover, and without selected text tells to select text (R-EDIT-003, R-EDIT-006)', async () => {
+  const { editor, view } = await start(note, 12);
+  await fake.run(viewCommands.newNote, 'green');
+  expect(fake.infos).toEqual([expect.stringMatching(/^The note was not added: select the text in the text editor/)]);
+  expect(view.messages.some((message) => message.type === 'new')).toBe(false);
+  editor.selection = { anchor: new FakePosition(2, 4), active: new FakePosition(2, 8) };
+  fake.fire('selection', { textEditor: editor, kind: 1 });
+  await settle();
+  await fake.run(viewCommands.newNote, 'green');
+  expect(view.messages.at(-1)).toEqual({ type: 'new', color: 'green' });
+  // The default color and an unknown name open the editor in the default color, which the start marker does not name.
+  await fake.run(viewCommands.newNote, 'blue');
+  await fake.run(viewCommands.newNote, { name: 'green' });
+  expect(view.messages.slice(-2)).toEqual([
+    { type: 'new', color: undefined },
+    { type: 'new', color: undefined },
+  ]);
+});
+
+test('"Add Note" opens the hidden view, and a view that opens just now gets the request when its script starts (R-EDIT-006)', async () => {
+  const document = fake.open(note);
+  const editor = new FakeEditor(document, 2);
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  await fake.activate();
+  editor.selection = { anchor: new FakePosition(2, 4), active: new FakePosition(2, 8) };
+  fake.fire('selection', { textEditor: editor, kind: 1 });
+  await settle();
+  await fake.run(viewCommands.newNote, 'red');
+  expect(fake.calls.map(({ command }) => command)).toContain(`${notesViewId}.focus`);
+  // VS Code resolves the view, and its script starts.
+  const view = fake.resolveView(notesViewId);
+  expect(view.messages.some((message) => message.type === 'new')).toBe(false);
+  await send(view, { type: 'ready' });
+  expect(view.messages.at(-1)).toEqual({ type: 'new', color: 'red' });
+  expect(view.state().highlight).toBe('text');
+});
+
+test('the palette of a thread colors its note in its start marker, and the text view saves the whole note (R-NOTE-006, R-EDIT-001)', async () => {
+  const text = 'The <wbr><!--[note-aaaa-->text[^note-aaaa] of the page.\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The text.\n';
+  const { document, view } = await start(text, 4);
+  await send(view, { type: 'color', id: '1', color: 'purple' });
+  // A change of a file writes the comment of the format at its top (R-NOTE-007).
+  expect(document.text).toBe(marked(text.replace('<!--[note-aaaa-->', '<!--[note-aaaa purple-->')));
+  expect(view.state().threads[0]).toMatchObject({ colorName: 'purple', color: '#8a4fc0' });
+  await send(view, { type: 'color', id: '1', color: undefined });
+  expect(document.text).toBe(marked(text));
+  // The text view shows the whole note, and Save writes it as it is, without a new date.
+  expect(view.state().threads[0].text).toBe('[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The text.');
+  await send(view, { type: 'saveText', request: 1, id: '1', text: '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The changed text.\n\n    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > Yes.' });
+  expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
+  expect(document.text).toContain('    The changed text.\n\n    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > Yes.\n');
+  expect(view.state().threads[0].answers.map((answer) => answer.author)).toEqual(['ann', 'bob']);
+  // A text that is not this one note keeps the file as it is.
+  await send(view, { type: 'saveText', request: 2, id: '1', text: 'No header.' });
+  expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('the text must stay this one note') });
 });

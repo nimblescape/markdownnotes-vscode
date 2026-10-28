@@ -11,15 +11,20 @@
  * one fold.
  *
  * A fold that starts on a blank line, or on the first line of the note, also
- * takes the blank lines after the note, so that one blank line stays where
- * the text had one.
+ * takes the blank lines after the note, so that the blank lines before the
+ * note stay where the text had them.
  *
- * The Markdown extension of VS Code folds headings, lists, block quotes, code
- * blocks and blocks of HTML from their first line. VS Code keeps only one of
- * two folds that start on the same line, so a fold of a note starts only on a
- * line of the text of a paragraph, or else on the first blank line before the
- * note, or on the first line of the note itself. The module uses no API of
- * VS Code.
+ * The Markdown extension of VS Code folds the section of each heading, each
+ * list item, block quote, table, code block and block of HTML: from the first
+ * line of the block to its last line, without one blank line at its end, and
+ * a fold of one line is no fold. VS Code keeps only one of two folds that
+ * start on the same line, and drops a fold that starts inside another fold
+ * and ends after it. So a fold of a note starts on the last line of a
+ * paragraph at the start of the lines, or on a list item of one line at the
+ * start of a line with one blank line after it, or else on the last blank line
+ * before the note, or on the first line of the note itself; and it never takes
+ * the last blank line before a heading, which ends the section of a heading
+ * before it. The module uses no API of VS Code.
  *
  * The header of each answer shows as one rendered line with the author and
  * the date in the local time of the reader
@@ -50,10 +55,51 @@ const isBlank = (line: string): boolean => line.trim() === '';
 
 /**
  * isText tells whether a line is a line of the text of a paragraph, on which no fold of the Markdown extension starts:
- * no heading, list item, block quote, fence, table row, thematic break, setext underline, HTML or line of a note.
+ * no heading, list item, block quote, fence, table row, thematic break, setext underline, HTML or line of a note. A
+ * line that starts with the start marker of a note is text: its `<wbr>` starts no block of HTML.
  * @param line - The line.
  */
-export const isText = (line: string): boolean => !isBlank(line) && !/^\s*(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|`{3}|~{3}|<|\||\[\^|([-*_=]\s*){3,}$)/.test(line);
+export const isText = (line: string): boolean =>
+  !isBlank(line) && !/^\s*(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|`{3}|~{3}|<(?!wbr><!--\[note-)|\||\[\^|([-*_=]\s*){3,}$)/.test(line);
+
+/**
+ * isHeading tells whether a heading starts on a line: a heading with `#`, or the text of a heading whose line of `=` or
+ * `-` follows the text.
+ * @param lines - The lines of the text.
+ * @param line - The index of the line.
+ */
+function isHeading(lines: readonly string[], line: number): boolean {
+  if (/^ {0,3}#{1,6}(\s|$)/.test(lines[line])) {
+    return true;
+  }
+  const underline = /^ {0,3}(=+|-+)[ \t]*$/;
+  let next = line;
+  while (next < lines.length && isText(lines[next]) && !underline.test(lines[next])) {
+    next++;
+  }
+  return next > line && next < lines.length && underline.test(lines[next]);
+}
+
+/**
+ * startsFold tells whether the fold of a note can start on the last line of the block before the note, so that this
+ * line stays visible: the last line of a paragraph whose lines are text at the start of the lines, which no fold of
+ * the Markdown extension holds, or a list item of one line at the start of a line with one blank line after it, whose
+ * fold of the Markdown extension loses this blank line and so holds one line, which VS Code does not fold.
+ * @param lines - The lines of the text.
+ * @param line - The index of the last line of the block.
+ * @param note - The note after the block.
+ */
+function startsFold(lines: readonly string[], line: number, note: Note): boolean {
+  if (/^([-*+]|\d{1,9}[.)])[ \t]+\S/.test(lines[line])) {
+    return line + 2 === note.start.line;
+  }
+  for (let first = line; first >= 0 && !isBlank(lines[first]); first--) {
+    if (!isText(lines[first]) || /^\s/.test(lines[first])) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /**
  * foldsOf returns the folds of the notes of a text.
@@ -71,11 +117,11 @@ export function foldsOf(lines: readonly string[], notes: readonly Note[]): Fold[
     }
     if (last && previous && line === previous.end.line) {
       // The note follows another note with only blank lines between them.
-      last.end = endOf(lines, note, isText(lines[last.start]));
+      last.end = endOf(lines, note, !last.hidesFirst && !isBlank(lines[last.start]));
       last.notes.push(note);
     } else {
-      const onText = line >= 0 && isText(lines[line]);
-      const start = onText ? line : line + 1 < note.start.line ? line + 1 : note.start.line;
+      const onText = line >= 0 && startsFold(lines, line, note);
+      const start = onText ? line : line + 1 < note.start.line ? note.start.line - 1 : note.start.line;
       folds.push({ start, end: endOf(lines, note, onText), notes: [note], hidesFirst: start === note.start.line });
     }
     previous = note;
@@ -92,7 +138,8 @@ export function foldsOf(lines: readonly string[], notes: readonly Note[]): Fold[
 /**
  * endOf returns the last line of the fold of a note: the line of its end, or the last blank line after it when a line
  * follows the blank lines and the fold starts on a blank line or on the note itself, because the line of the start
- * then already stands for the blank lines.
+ * then already stands for the blank lines. Before a heading, the fold leaves the last blank line, which the fold of
+ * the section of a heading before the note does not hold.
  * @param lines - The lines of the text.
  * @param note - The note.
  * @param onText - Whether the fold starts on a line of text.
@@ -102,10 +149,10 @@ function endOf(lines: readonly string[], note: Note, onText: boolean): number {
   while (next < lines.length && isBlank(lines[next])) {
     next++;
   }
-  if (next === lines.length) {
+  if (onText || next === lines.length) {
     return note.end.line;
   }
-  return onText ? note.end.line : next - 1;
+  return isHeading(lines, next) ? Math.max(note.end.line, next - 2) : next - 1;
 }
 
 /**

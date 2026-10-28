@@ -3,16 +3,18 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The place of a passage in the text editor, which the side view needs for the start of the funnel of the selected
- * note ([R-SIDE-007](../docs/requirements.md#r-side-007); decision 12 of Hannes, 2026-10-28: "the funnel shall stick
- * to the position of the selected item so when the text scrolls it directs to the selected item"). The API of VS Code
- * gives no pixels of a text editor, only its visible ranges: from the first to the last row that the editor shows
- * completely, also inside a wrapped line, with one range for each part between folds. The module counts the rows of
- * these ranges, so that the place is exact without wrapped lines, apart from the part of a row that the editor
- * scrolled out at the top. The editor wraps a line at its width by default, which the API does not give either: the
- * module wraps the lines by words, as the editor does with the text of the document, also with the characters of the
- * hidden markers, and finds the number of columns for which the rows of the visible text fill the height of the
- * editor, so that the place of a wrapped line is an estimate. The module uses no API of VS Code.
+ * The places of the highlights in the text editor, at which the side view puts the threads of their notes
+ * ([R-SIDE-007](../docs/requirements.md#r-side-007); decision 14 of Hannes, 2026-10-28: the side view aligned to the
+ * editor, as the compare view of VS Code shows two texts side by side). The API of VS Code gives no pixels of a text
+ * editor, only its visible ranges: from the first to the last row that the editor shows completely, also inside a
+ * wrapped line, with one range for each part between folds. The module counts the rows of these ranges, so that the
+ * place is exact without wrapped lines, apart from the part of a row that the editor scrolled out at the top. Above and
+ * below the visible ranges, it counts the rows of the lines up to the highlight, without the lines that collapsed notes
+ * hide, so that a thread scrolls in and out of the view with its highlight. The editor wraps a line at its width by
+ * default, which the API does not give either: the module wraps the lines by words, as the editor does with the text
+ * of the document, also with the characters of the hidden markers, and finds the number of columns for which the rows
+ * of the visible text fill the height of the editor, so that the place of a wrapped line is an estimate. The module
+ * uses no API of VS Code.
  */
 
 import { hiddenText, visibleWidth } from './format/format';
@@ -203,7 +205,7 @@ type Row = number | 'above' | 'below';
  * visible rows. A position in a fold is on the row of the fold.
  * @param lines - The visible lines.
  * @param position - The position.
- * @param end - Whether the position ends a passage, so that its row is the row of the character before it.
+ * @param end - Whether the position ends a highlight, so that its row is the row of the character before it.
  */
 function rowAt(lines: readonly VisibleLine[], position: Position, end: boolean): Row {
   let row = 0;
@@ -227,28 +229,61 @@ function rowAt(lines: readonly VisibleLine[], position: Position, end: boolean):
 }
 
 /**
- * placeOf returns the top and the bottom of the rows of a passage in pixels from the top of the side view, cut to the
- * rows that the editor shows, or undefined when the editor shows no row of it. Below the top of a text that the editor
- * scrolled, the first visible row starts half of the free height of the editor lower, as an estimate.
+ * placesOf returns the top and the bottom of the rows of highlights in pixels from the top of the side view: inside the
+ * rows that the editor shows from the visible ranges, and above and below them from the rows of the lines between the
+ * highlight and the visible rows, without the hidden lines, an estimate. Below the top of a text that the editor
+ * scrolled, the first visible row starts half of the free height of the editor lower, as an estimate. A highlight
+ * without characters, a point, has the row of its place. Without visible ranges, no highlight has a place.
  * @param layout - The layout.
  * @param lineAt - Returns the text of a line.
  * @param columns - The number of columns of a row, from columnsOf.
- * @param passage - The passage.
+ * @param highlights - The highlights.
+ * @param hidden - Tells whether a line is hidden in a collapsed fold, for the lines outside the visible ranges.
  */
-export function placeOf(layout: EditorLayout, lineAt: (line: number) => string, columns: number, passage: Span): [number, number] | undefined {
+export function placesOf(
+  layout: EditorLayout,
+  lineAt: (line: number) => string,
+  columns: number,
+  highlights: readonly Span[],
+  hidden: (line: number) => boolean,
+): ([number, number] | undefined)[] {
   const lines = visibleLines(layout, lineAt, columns);
-  const point = passage.start.line === passage.end.line && passage.start.character === passage.end.character;
-  const first = rowAt(lines, passage.start, false);
-  const last = rowAt(lines, passage.end, !point);
-  if (first === 'below' || last === 'above') {
-    return undefined;
+  const first = lines[0];
+  const last = lines.at(-1);
+  if (!first || !last) {
+    return highlights.map(() => undefined);
   }
-  const start = layout.ranges[0]?.start;
-  const scrolled = start !== undefined && (start.line > 0 || start.character > 0);
-  const free = layout.height - countOf(lines) * layout.lineHeight;
+  const count = countOf(lines);
+  // The rows of the lines outside the visible ranges, summed from the first line that a highlight needs.
+  const low = Math.min(first.line, ...highlights.map((highlight) => highlight.start.line));
+  const high = Math.max(last.line, ...highlights.map((highlight) => highlight.end.line));
+  const sums = [0];
+  for (let line = low; line <= high; line++) {
+    const outsideRows = line < first.line || line > last.line ? (hidden(line) ? 0 : rowStarts(lineAt(line), columns).length) : 0;
+    sums.push(sums.at(-1)! + outsideRows);
+  }
+  /** rowsBetween returns the rows of the lines outside the visible ranges from one line up to another, without it. */
+  const rowsBetween = (from: number, to: number): number => (to > from ? sums[to - low] - sums[from - low] : 0);
+  const rowOfPosition = (position: Position, end: boolean): number => {
+    const row = rowAt(lines, position, end);
+    if (typeof row === 'number') {
+      return row;
+    }
+    const starts = rowStarts(lineAt(position.line), columns);
+    const at = rowOf(starts, end ? Math.max(position.character - 1, 0) : position.character);
+    if (row === 'above') {
+      return position.line === first.line ? at - first.first : -(starts.length - at + rowsBetween(position.line + 1, first.line) + first.first);
+    }
+    return position.line === last.line ? count + at - last.last - 1 : count + last.starts.length - 1 - last.last + rowsBetween(last.line + 1, position.line) + at;
+  };
+  const start = layout.ranges[0].start;
+  const scrolled = start.line > 0 || start.character > 0;
+  const free = layout.height - count * layout.lineHeight;
   const top = layout.top + (scrolled && free > 0 ? Math.min(free, layout.lineHeight) / 2 : 0);
-  const bottom = layout.top + layout.height;
-  const from = first === 'above' ? layout.top : Math.min(top + first * layout.lineHeight, bottom);
-  const to = last === 'below' ? bottom : Math.min(top + (last + 1) * layout.lineHeight, bottom);
-  return from < to ? [from, to] : undefined;
+  return highlights.map((highlight) => {
+    const point = highlight.start.line === highlight.end.line && highlight.start.character === highlight.end.character;
+    const from = rowOfPosition(highlight.start, false);
+    const to = Math.max(rowOfPosition(highlight.end, !point), from);
+    return [top + from * layout.lineHeight, top + (to + 1) * layout.lineHeight];
+  });
 }

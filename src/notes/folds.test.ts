@@ -31,10 +31,31 @@ describe('the folds of the notes', () => {
     expect(folds(`Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    A\n`)).toEqual([{ start: 0, end: 4, notes: 1, hidesFirst: false }]);
   });
 
-  test('after a line where a fold of the Markdown extension starts, the fold starts on the first blank line, or on the note', () => {
-    expect(folds(`- Item[^note-aaaa]\n\n[^note-aaaa]: ${header}\n\n    A\n\nNext.\n`)).toEqual([{ start: 1, end: 5, notes: 1, hidesFirst: false }]);
+  test('a note after a paragraph that starts with the start marker of a note folds into its line', () => {
+    expect(folds(`# Plan\n\n<wbr><!--[note-aaaa-->Text[^note-aaaa] more.\n\n[^note-aaaa]: ${header}\n\n    A\n\nNext.\n`)).toEqual([
+      { start: 2, end: 6, notes: 1, hidesFirst: false },
+    ]);
+  });
+
+  test('after a line where a fold of the Markdown extension starts or ends, the fold starts on the last blank line, or on the note', () => {
+    expect(folds(`- Item[^note-aaaa]\n\n\n[^note-aaaa]: ${header}\n\n    A\n\nNext.\n`)).toEqual([{ start: 2, end: 6, notes: 1, hidesFirst: false }]);
+    expect(folds(`- Item\n\n  More[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    A\n\nNext.\n`)).toEqual([{ start: 3, end: 7, notes: 1, hidesFirst: false }]);
+    expect(folds(`> Quote\nlazy[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    A\n\nNext.\n`)).toEqual([{ start: 2, end: 6, notes: 1, hidesFirst: false }]);
     expect(folds(`# Title[^note-aaaa]\n[^note-aaaa]: ${header}\n\nNext.`)).toEqual([{ start: 1, end: 2, notes: 1, hidesFirst: true }]);
     expect(folds(`[^note-aaaa]: ${header}\n\n    A\n\n\nText[^note-aaaa].\n`)).toEqual([{ start: 0, end: 4, notes: 1, hidesFirst: true }]);
+  });
+
+  test('a note after a list item of one line with one blank line after it folds into the line of the item', () => {
+    expect(folds(`- One\n- Item[^note-aaaa]\n\n[^note-aaaa]: ${header}\n\n    A\n\nNext.\n`)).toEqual([{ start: 1, end: 5, notes: 1, hidesFirst: false }]);
+    expect(folds(`1. One\n2. Item[^note-aaaa]\n\n[^note-aaaa]: ${header}\n\n    A\n`)).toEqual([{ start: 1, end: 5, notes: 1, hidesFirst: false }]);
+  });
+
+  test('a fold never takes the last blank line before a heading, where the fold of the section of a heading ends', () => {
+    const note = `[^note-aaaa]: ${header}\n\n    A\n\n`;
+    expect(folds(`## Tasks\n\n- [ ] Item\n    - Sub[^note-aaaa]\n\n${note}## Next\n`)).toEqual([{ start: 4, end: 7, notes: 1, hidesFirst: false }]);
+    expect(folds(`## Tasks\n\n> Quote[^note-aaaa]\n\n${note}\nNext\n====\n`)).toEqual([{ start: 3, end: 7, notes: 1, hidesFirst: false }]);
+    expect(folds(`## Tasks\n\n> Quote[^note-aaaa]\n\n${note}Next\n`)).toEqual([{ start: 3, end: 7, notes: 1, hidesFirst: false }]);
+    expect(folds(`## Tasks\n\nText[^note-aaaa].\n\n${note}## Next\n`)).toEqual([{ start: 2, end: 6, notes: 1, hidesFirst: false }]);
   });
 
   test('notes with only blank lines between them share one fold, which takes all answers', () => {
@@ -68,10 +89,10 @@ describe('the folds of the notes', () => {
   });
 
   test('a line of text is no heading, list item, block quote, fence, table row, thematic break, HTML or definition of a footnote', () => {
-    for (const line of ['Text', '  continued text', '*emphasis*', '2025; Singla et al., 2025).', 'Text[^note-aaaa].']) {
+    for (const line of ['Text', '  continued text', '*emphasis*', '2025; Singla et al., 2025).', 'Text[^note-aaaa].', '<wbr><!--[note-aaaa green-->Text']) {
       expect(isText(line), line).toBe(true);
     }
-    for (const line of ['', '  ', '# Title', '- item', '* item', '1. item', '2) item', '> quote', '```js', '~~~', '| a |', '---', '***', '===', '<div>', '[^note-aaaa]: x', '  [^1]: x']) {
+    for (const line of ['', '  ', '# Title', '- item', '* item', '1. item', '2) item', '> quote', '```js', '~~~', '| a |', '---', '***', '===', '<div>', '<!--[note-aaaa-->Text', '[^note-aaaa]: x', '  [^1]: x']) {
       expect(isText(line), line).toBe(false);
     }
   });
