@@ -20,7 +20,15 @@
  * - **Markers** ([R-TEXT-006](../docs/requirements.md#r-text-006)): each note
  *   has a marker in the left margin with its number, in its color: at its
  *   first line, or at the line that stays of its fold while it is collapsed.
- *   The overview ruler shows a mark in the same color.
+ *   A note with a selection has it at the first line of the selection, and
+ *   while it is open also at its first line. The overview ruler shows a mark
+ *   in the same color.
+ * - **Selections** ([R-NOTE-006](../docs/requirements.md#r-note-006)): the
+ *   selection of a note has a highlight in the color of the note. Its markers
+ *   `<!--[a1-->` and `<!--a1]-->` vanish: a thin bar in the color of the note
+ *   stands at the start and at the end of the selection, and a dot at a point
+ *   `<!--[a1]-->`. On the line of the cursor the markers show as they are,
+ *   dimmed, so that the cursor never moves through hidden text.
  *
  * VS Code tells an extension which lines are folded only by the visible
  * ranges of the editor, which end at the first line of a collapsed fold and
@@ -28,8 +36,9 @@
  */
 
 import * as vscode from 'vscode';
+import { colorIndexOf, colorOf, noteColors } from './notes/colors';
 import { type Fold, foldOf, foldsOf } from './notes/folds';
-import type { Note } from './notes/notes';
+import type { Marker, Note, Position } from './notes/notes';
 import { isNoteDocument, type NoteThreads, rangeOf } from './noteThreads';
 import type { Settings } from './settings';
 
@@ -40,17 +49,7 @@ export const editorCommands = {
   expandAll: 'nimblescape.markdownNotes.expandAllNotes',
 } as const;
 
-/**
- * noteColors are the colors of the notes, by their numbers: the first note has the first color. The colors carry a
- * white number on both light and dark themes.
- */
-export const noteColors = ['#1a7fe0', '#2e8b3e', '#c7731a', '#8a4fc0', '#d33b3b', '#138a8a'] as const;
-
-/**
- * colorOf returns the color of a note.
- * @param number - The number of the note, from 1.
- */
-export const colorOf = (number: number): string => noteColors[(number - 1) % noteColors.length];
+export { colorOf, noteColors } from './notes/colors';
 
 /**
  * markerImage returns the image of the marker of a note: a speech bubble in its color with its number.
@@ -81,6 +80,28 @@ const linesOf = (document: vscode.TextDocument): string[] => document.getText().
 const contains = (note: Note, position: vscode.Position): boolean => rangeOf(note).contains(position);
 
 /**
+ * positionOf returns the position of VS Code of a position of a note.
+ * @param position - The position.
+ */
+const positionOf = (position: Position): vscode.Position => new vscode.Position(position.line, position.character);
+
+/**
+ * edgeOf returns the decoration of a hidden marker of a selection: a thin bar in the color of the note at the start or
+ * the end of the selection, or a dot at a point.
+ * @param marker - The marker.
+ * @param number - The number of the note, from 1.
+ */
+function edgeOf(marker: Marker, number: number): vscode.DecorationOptions {
+  const color = colorOf(number);
+  const at = positionOf(marker.kind === 'open' ? marker.end : marker.start);
+  const before: vscode.ThemableDecorationAttachmentRenderOptions =
+    marker.kind === 'point'
+      ? { contentText: '●', color, fontWeight: 'bold', margin: '0 1px' }
+      : { contentText: '', width: '2px', height: '1.1em', backgroundColor: color, margin: marker.kind === 'open' ? '0 1px 0 0' : '0 0 0 1px', textDecoration: 'none; vertical-align: text-bottom;' };
+  return { range: new vscode.Range(at, at), renderOptions: { before } };
+}
+
+/**
  * isCollapsed tells whether VS Code shows a fold collapsed in an editor: a visible range ends at its first line, and the
  * next one starts after its last line, or the fold ends the document.
  * @param editor - The text editor.
@@ -100,6 +121,12 @@ export class NoteEditor implements vscode.Disposable {
   private readonly dimmed = vscode.window.createTextEditorDecorationType({ opacity: '0.55' });
   /** hidden hides the first line of a collapsed fold that is the first line of a note. */
   private readonly hidden = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
+  /** highlights holds the decoration of the selections of each color of a note. */
+  private readonly highlights = noteColors.map((color) => vscode.window.createTextEditorDecorationType({ backgroundColor: `${color}33`, overviewRulerColor: color, overviewRulerLane: vscode.OverviewRulerLane.Center }));
+  /** edges shows the bars and the dots in place of the hidden markers of the selections. */
+  private readonly edges = vscode.window.createTextEditorDecorationType({});
+  /** faint dims the markers of the selections on the line of the cursor. */
+  private readonly faint = vscode.window.createTextEditorDecorationType({ opacity: '0.45' });
   /** markers holds the decoration of the marker of each number of a note. */
   private readonly markers: vscode.TextEditorDecorationType[] = [];
   /** collapsed holds the documents whose notes the extension collapsed once, by their URIs. */
@@ -191,20 +218,47 @@ export class NoteEditor implements vscode.Disposable {
     const outside = current ? [new vscode.Range(new vscode.Position(0, 0), rangeOf(current).start), new vscode.Range(rangeOf(current).end, end)] : notes.map(rangeOf);
     editor.setDecorations(this.dimmed, outside);
     const collapsed = new Set(folds.filter((fold) => isCollapsed(editor, fold)));
+    // A note with a selection has its marker at the first line of the selection, and while it is open also at its
+    // own first line. Notes of one line share it, as the notes of one collapsed fold, and the first of them shows its
+    // marker there.
+    const taken = new Set<number>();
     const lines = notes.map((note) => {
       const fold = foldOf(folds, note);
-      return fold && collapsed.has(fold) ? fold.start : note.start.line;
+      const shut = fold !== undefined && collapsed.has(fold);
+      const own = note.selection ? [note.selection.start.line, shut ? undefined : note.start.line] : [shut ? fold.start : note.start.line];
+      const free = [...new Set(own)].filter((line): line is number => line !== undefined && !taken.has(line));
+      free.forEach((line) => taken.add(line));
+      return free;
     });
     for (let number = 1; number <= Math.max(notes.length, this.markers.length); number++) {
-      // Notes of one collapsed fold share its line, and the first of them shows its marker there.
-      const line = lines[number - 1];
-      const shown = line !== undefined && lines.indexOf(line) === number - 1;
-      editor.setDecorations(this.markerOf(number), shown ? [new vscode.Range(line, 0, line, 0)] : []);
+      editor.setDecorations(this.markerOf(number), (lines[number - 1] ?? []).map((line) => new vscode.Range(line, 0, line, 0)));
     }
-    editor.setDecorations(
-      this.hidden,
-      [...collapsed].filter((fold) => fold.hidesFirst && cursor.line !== fold.start).map((fold) => document.lineAt(fold.start).range),
-    );
+    const highlighted = this.highlights.map((): vscode.Range[] => []);
+    const hidden = [...collapsed].filter((fold) => fold.hidesFirst && cursor.line !== fold.start).map((fold) => document.lineAt(fold.start).range);
+    const edges: vscode.DecorationOptions[] = [];
+    const faint: vscode.Range[] = [];
+    notes.forEach(({ selection }, index) => {
+      if (!selection) {
+        return;
+      }
+      const range = new vscode.Range(positionOf(selection.start), positionOf(selection.end));
+      if (!range.isEmpty) {
+        highlighted[colorIndexOf(index + 1)].push(range);
+      }
+      for (const marker of selection.markers) {
+        const place = new vscode.Range(positionOf(marker.start), positionOf(marker.end));
+        if (marker.start.line === cursor.line) {
+          faint.push(place);
+        } else {
+          hidden.push(place);
+          edges.push(edgeOf(marker, index + 1));
+        }
+      }
+    });
+    this.highlights.forEach((highlight, index) => editor.setDecorations(highlight, highlighted[index]));
+    editor.setDecorations(this.hidden, hidden);
+    editor.setDecorations(this.edges, edges);
+    editor.setDecorations(this.faint, faint);
   }
 
   /**
@@ -272,7 +326,7 @@ export class NoteEditor implements vscode.Disposable {
 
   /** dispose removes the decorations. */
   dispose(): void {
-    for (const decoration of [this.dimmed, this.hidden, ...this.markers]) {
+    for (const decoration of [this.dimmed, this.hidden, this.edges, this.faint, ...this.highlights, ...this.markers]) {
       decoration.dispose();
     }
   }

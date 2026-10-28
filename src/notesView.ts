@@ -26,7 +26,7 @@
 import * as vscode from 'vscode';
 import { githubProvider } from './github';
 import { openLink } from './links';
-import type { Note } from './notes/notes';
+import type { Note, Position } from './notes/notes';
 import { displayDate } from './notes/syntax';
 import { isNoteDocument, type NoteEntry, type NoteThreads, problemMessage } from './noteThreads';
 
@@ -103,6 +103,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private selected: string | undefined;
   /** lines holds the line of the cursor of each document, by its URI. */
   private readonly lines = new Map<string, number>();
+  /** selections holds the selection of the text editor of each document, by its URI, for "Add Note". */
+  private readonly selections = new Map<string, vscode.Range>();
   /** rendered holds the HTML of rendered texts, by the text. */
   private readonly rendered = new Map<string, string>();
   /** version counts the states, so that only the newest one reaches the view. */
@@ -183,12 +185,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * noteAt returns the note of a document that holds a line.
+   * noteAt returns the note of a document that holds a line, or whose selection holds it.
    * @param document - The URI of the document.
    * @param line - The index of the line.
    */
   private noteAt(document: vscode.Uri, line: number): NoteEntry | undefined {
-    return this.threads.entriesOf(document).find(({ note }) => note.start.line <= line && line <= note.end.line);
+    const holds = (start: Position, end: Position) => start.line <= line && line <= end.line;
+    const entries = this.threads.entriesOf(document);
+    return entries.find(({ note }) => holds(note.start, note.end)) ?? entries.find(({ note }) => note.selection && holds(note.selection.start, note.selection.end));
   }
 
   /**
@@ -203,6 +207,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const document = editor.document.uri;
     const line = editor.selection.active.line;
     this.lines.set(document.toString(), line);
+    const { active } = editor.selection;
+    this.selections.set(document.toString(), new vscode.Range(editor.selection.start ?? active, editor.selection.end ?? active));
     const changed = document.toString() !== this.document?.toString();
     const selected = this.noteAt(document, line)?.id;
     this.document = document;
@@ -366,7 +372,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.reply(message.request, await this.threads.answer(document, message.id, message.text));
         return;
       case 'add': {
-        const result = await this.threads.addNote(document, this.lines.get(document.toString()) ?? 0, message.text);
+        const line = this.lines.get(document.toString()) ?? 0;
+        const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
+        const result = await this.threads.addNote(document, range, message.text);
         if ('id' in result) {
           this.selected = result.id;
           await this.refresh();

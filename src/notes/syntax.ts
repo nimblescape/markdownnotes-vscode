@@ -408,6 +408,56 @@ export function readNote(text: string): NoteText | undefined {
   };
 }
 
+/** MarkerKind tells what a marker of a selection marks: its start, its end, or a point of the text. */
+export type MarkerKind = 'open' | 'close' | 'point';
+
+/** MarkerText is the content of a marker of a selection: its kind and the ID of the selection. */
+export interface MarkerText {
+  kind: MarkerKind;
+  id: string;
+}
+
+/** selectionField is the field of the front matter of the first answer of a note that names the ID of its selection. */
+export const selectionField = 'selection';
+
+/** selectionId matches the ID of a selection: a letter, then letters and digits, as `a3`. */
+const selectionId = /^[A-Za-z][A-Za-z0-9]{0,31}$/;
+
+/** markerPattern matches a marker of a selection: `<!--[a3-->` opens it, `<!--a3]-->` closes it, `<!--[a3]-->` marks a point. */
+const markerPattern = /^<!--(\[)?([A-Za-z][A-Za-z0-9]{0,31})(\])?-->$/;
+
+/**
+ * readMarker reads a comment as a marker of the selection of a note ([R-NOTE-006](../../docs/requirements.md#r-note-006)),
+ * or returns undefined for another comment.
+ * @param comment - The comment, from `<!--` to `-->`.
+ */
+export function readMarker(comment: string): MarkerText | undefined {
+  const match = markerPattern.exec(comment);
+  if (!match || (!match[1] && !match[3])) {
+    return undefined;
+  }
+  return { kind: match[1] && match[3] ? 'point' : match[1] ? 'open' : 'close', id: match[2] };
+}
+
+/**
+ * markerText returns the comment of a marker of a selection.
+ * @param kind - The kind of the marker.
+ * @param id - The ID of the selection.
+ */
+export function markerText(kind: MarkerKind, id: string): string {
+  return kind === 'open' ? `${commentStart}[${id}${commentEnd}` : kind === 'close' ? `${commentStart}${id}]${commentEnd}` : `${commentStart}[${id}]${commentEnd}`;
+}
+
+/**
+ * selectionOf returns the ID of the selection of a note: the field `selection` of the front matter of its first answer,
+ * or undefined for a note without a selection or with an ID of another form.
+ * @param note - The content of the comment of the note.
+ */
+export function selectionOf(note: NoteText): string | undefined {
+  const id = note.answers[0]?.frontMatter?.fields[selectionField];
+  return id !== undefined && selectionId.test(id) ? id : undefined;
+}
+
 /**
  * bodyProblem returns the first forbidden text that a body holds, or undefined
  * ([R-NOTE-003](../../docs/requirements.md#r-note-003)).
@@ -445,6 +495,7 @@ export function normalizeBody(text: string): string {
 export interface Fields {
   author?: string;
   date?: string;
+  selection?: string;
 }
 
 /**

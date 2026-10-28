@@ -30,6 +30,13 @@ The first version.
   mail links with the system, files in VS Code at a line or a heading. The
   view is in the secondary side bar, and the button "Show or Hide Notes" in
   the title of the Markdown editors opens and closes it, also in Zen Mode.
+- Notes on a selection: a note can belong to an exact passage of the text,
+  with two hidden markers `<!--[a1-->` and `<!--a1]-->` around the passage
+  and `selection: a1` in its front matter, or to a point `<!--[a1]-->`. The
+  `+` on selected text adds such a note, as for the comment of a pull
+  request. The text editor hides the markers behind a thin bar or a dot in
+  the color of the note and highlights the passage; the preview highlights it
+  and shows the icon of the note at its end.
 - The built-in Markdown preview shows each note as a small icon: an inline
   note in the text, a block note in the left margin. The icon shows the note
   as a callout on hover and keyboard focus, and opens it in the side view on

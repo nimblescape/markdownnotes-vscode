@@ -15,7 +15,34 @@
  * the left margin of the page. Its callout is hidden until the script of the
  * preview shows it next to the icon: a box with a colored bar at its left
  * side, and each answer with a header (author, date) and its body.
+ *
+ * Each note has the color of its number, as its marker in the text editor
+ * (src/notes/colors.ts): the class nimblescape-note-color-N sets the variable
+ * --nimblescape-note-color for the icon and the bar of the callout. The script
+ * highlights the selection of a note in the same color (R-NOTE-006).
  */
+
+.nimblescape-note-color-1 { --nimblescape-note-color: #1a7fe0; }
+.nimblescape-note-color-2 { --nimblescape-note-color: #2e8b3e; }
+.nimblescape-note-color-3 { --nimblescape-note-color: #c7731a; }
+.nimblescape-note-color-4 { --nimblescape-note-color: #8a4fc0; }
+.nimblescape-note-color-5 { --nimblescape-note-color: #d33b3b; }
+.nimblescape-note-color-6 { --nimblescape-note-color: #138a8a; }
+
+::highlight(nimblescape-note-1) { background-color: rgba(26, 127, 224, 0.2); }
+::highlight(nimblescape-note-2) { background-color: rgba(46, 139, 62, 0.2); }
+::highlight(nimblescape-note-3) { background-color: rgba(199, 115, 26, 0.2); }
+::highlight(nimblescape-note-4) { background-color: rgba(138, 79, 192, 0.2); }
+::highlight(nimblescape-note-5) { background-color: rgba(211, 59, 59, 0.2); }
+::highlight(nimblescape-note-6) { background-color: rgba(19, 138, 138, 0.2); }
+
+/* The selection of the note whose callout shows. */
+::highlight(nimblescape-note-1-active) { background-color: rgba(26, 127, 224, 0.4); }
+::highlight(nimblescape-note-2-active) { background-color: rgba(46, 139, 62, 0.4); }
+::highlight(nimblescape-note-3-active) { background-color: rgba(199, 115, 26, 0.4); }
+::highlight(nimblescape-note-4-active) { background-color: rgba(138, 79, 192, 0.4); }
+::highlight(nimblescape-note-5-active) { background-color: rgba(211, 59, 59, 0.4); }
+::highlight(nimblescape-note-6-active) { background-color: rgba(19, 138, 138, 0.4); }
 
 .nimblescape-note-icon {
   display: inline-flex;
@@ -24,8 +51,8 @@
   margin-left: 0.1em;
   padding: 0 2px;
   border-radius: 3px;
-  color: var(--vscode-textLink-foreground, #3794ff);
-  opacity: 0.6;
+  color: var(--nimblescape-note-color, var(--vscode-textLink-foreground, #3794ff));
+  opacity: 0.75;
   line-height: 1;
   vertical-align: 0.05em;
   text-decoration: none;
@@ -78,7 +105,7 @@
   max-height: 60vh;
   overflow: auto;
   border: 1px solid var(--vscode-editorHoverWidget-border, #c8c8c8);
-  border-left: 4px solid var(--vscode-textLink-foreground, #3794ff);
+  border-left: 4px solid var(--nimblescape-note-color, var(--vscode-textLink-foreground, #3794ff));
   border-radius: 4px;
   background: var(--vscode-editorHoverWidget-background, #f3f3f3);
   color: var(--vscode-editorHoverWidget-foreground, inherit);

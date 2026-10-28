@@ -193,12 +193,12 @@ describe('nimblescape Markdown Notes', () => {
     const { document } = await open(note, 2);
     const html = await vscode.commands.executeCommand<string>('markdown.api.render', document);
     const link = `${vscode.env.uriScheme}://${extensionId}/open?${new URLSearchParams({ document: document.uri.toString(), line: '2' }).toString().replace(/&/g, '&amp;')}`;
-    assert.ok(html.includes(`<div class="nimblescape-note-anchor"><a class="nimblescape-note-icon" aria-label="Note by ann, 2 answers" aria-describedby="nimblescape-note-1" href="${link}">`), html);
-    assert.match(html, /<div class="nimblescape-note" id="nimblescape-note-1" role="note" aria-label="Note by ann, 2 answers" hidden>/);
+    assert.ok(html.includes(`<div class="nimblescape-note-anchor"><a class="nimblescape-note-icon nimblescape-note-color-1" aria-label="Note by ann, 2 answers" aria-describedby="nimblescape-note-1" href="${link}">`), html);
+    assert.match(html, /<div class="nimblescape-note nimblescape-note-color-1" id="nimblescape-note-1" role="note" aria-label="Note by ann, 2 answers" hidden>/);
     assert.match(html, /<span class="nimblescape-note-author">ann<\/span><time class="nimblescape-note-date" datetime="2026-10-28T10:15\+01:00">2026-10-28 10:15<\/time>/);
     assert.match(html, /<span class="nimblescape-note-author">bob<\/span><\/div>/);
     assert.match(html, /<strong>text<\/strong> of the note\./);
-    assert.match(html, /A sentence<a class="nimblescape-note-icon" aria-label="Note" aria-describedby="nimblescape-note-2" href="[^"]*line=14">.*?<\/a> and more\.<\/p>/);
+    assert.match(html, /A sentence<a class="nimblescape-note-icon nimblescape-note-color-2" aria-label="Note" aria-describedby="nimblescape-note-2" href="[^"]*line=14">.*?<\/a> and more\.<\/p>/);
     assert.doesNotMatch(html, /&lt;!--|<!-- note/);
   });
 

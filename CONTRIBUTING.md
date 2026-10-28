@@ -14,16 +14,17 @@ describes its security model.
 | `src/extension.ts` | The editor wiring: activation starts the threads of the notes and the side view, returns the markdown-it plugin for the Markdown preview with the settings and the links of the rendered document, handles the links of the icons of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open`) and the buttons of the preview that show and hide its notes, and refreshes the previews and the threads when a setting of the extension changes. |
 | `src/github.ts` | The GitHub sign-in: the login of the GitHub session of VS Code, the author of new notes and answers. |
 | `src/settings.ts` | The settings of the extension, their defaults, and the check of their values. It uses no API of VS Code. |
-| `src/notes/syntax.ts` | The syntax of one note: which comment is a note and its kind (`note` or `note inline`), its answers with their front matters and bodies, the texts that a note must not contain, the comments of a text as markdown-it 14 finds them, the inline rule and the block rule of markdown-it for the notes, and the dates of a front matter. It uses no API of VS Code, so the extension and the plugin share it. |
-| `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; and the place of a new note. It uses no API of VS Code. |
+| `src/notes/syntax.ts` | The syntax of one note: which comment is a note and its kind (`note` or `note inline`), the markers of a selection (`<!--[a1-->`, `<!--a1]-->`, `<!--[a1]-->`) and the key `selection`, its answers with their front matters and bodies, the texts that a note must not contain, the comments of a text as markdown-it 14 finds them, the inline rule and the block rule of markdown-it for the notes, and the dates of a front matter. It uses no API of VS Code, so the extension and the plugin share it. |
+| `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; the markers of the selections and the selection of each note; and the place of a new note and of the markers of its selection. It uses no API of VS Code. |
+| `src/notes/colors.ts` | The color of each number of a note, which the text editor, the preview and the side view share. It uses no API of VS Code. |
 | `src/notes/edits.ts` | The edits of the text when an answer is saved, added or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected answers. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the warning at a nested note, and the operations that the side view uses too. |
-| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", and the numbered markers in the left margin and the overview ruler. |
+| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", the numbered markers in the left margin and the overview ruler, and the highlight and the hidden markers of the selections. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes without a paragraph break. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, the actions of its script, and the commands "Hide Notes" and "Show or Hide Notes". |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes each note as an icon with a hidden callout, removes the inline notes with their blanks from the paragraphs, and leaves every other token as it is. |
-| `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code, and the script that shows the callout of an icon on hover and focus. |
+| `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code and of the notes, and the script that shows the callout of an icon on hover and focus and highlights the selections. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads, the answers, the editors with the tabs "Write" and "Preview", and the messages to the extension. |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
@@ -173,6 +174,22 @@ holds the line, or after the leaf block before it
 of the comment ([R-EDIT-005](docs/requirements.md#r-edit-005)), and deleting
 the only answer deletes the note ([R-EDIT-004](docs/requirements.md#r-edit-004)).
 
+**Selections** ([R-NOTE-006](docs/requirements.md#r-note-006)). `read` in
+`src/notes/notes.ts` also reads the markers of the selections, from the
+inline comments of every block and from the comments of HTML blocks, and
+gives each note with the key `selection` in its first front matter the
+selection with this ID: from the end of the opening marker, or from the start
+of the block of the closing marker without one, to the start of the closing
+marker; a point is an empty selection at its marker. `selectionPlaceFor`
+gives the places of the markers of a new note for a range of the editor and
+never puts a marker at the start of a line, because cmark-gfm, the renderer
+of GitHub, reads a comment there as an HTML block and ends the paragraph.
+`insertNote` writes the markers and the note in one edit, and `deleteNote`
+removes the markers with the note; deleting the first answer moves the key
+`selection` to the next answer. The storage of the notes and the markers
+stays in `src/notes/`, so that another form of storage changes only this
+folder.
+
 ## Text editor
 
 `src/noteThreads.ts` uses the comments API of VS Code, which has the boxes in
@@ -235,7 +252,19 @@ extensions of Markdown stay as they are
   type for each number of a note, with a gutter icon, an SVG speech bubble
   in the color of the number as a `data:` URI, and a mark in the overview
   ruler. VS Code 1.143 shows the `data:` URI in the left margin. A note of a
-  collapsed fold has its marker at the line that stays of the fold.
+  collapsed fold has its marker at the line that stays of the fold. A note
+  with a selection has it at the first line of the selection, and while it is
+  open also at its first line.
+- **Selections** ([R-NOTE-006](docs/requirements.md#r-note-006)): one
+  decoration type for each color highlights the selections, with a mark in
+  the overview ruler. The markers get the decoration type with
+  `textDecoration: 'none; display: none;'`, which hides their text, and one
+  decoration type draws a thin bar or a dot in the color of the note with a
+  `before` attachment of each range (`renderOptions`) at the place of the
+  marker. On the line of the cursor the markers are dimmed instead, so that
+  the cursor never moves through hidden text. The thread of a note with a
+  selection has the selection as its range; VS Code gives the `+` on
+  selected text the exact characters of the selection.
 
 The operations `saveAnswer`, `answer`, `addNote`, `deleteAnswer` and
 `deleteNote` of `NoteThreads` write the changes for the boxes and for the side
@@ -346,7 +375,13 @@ pointer rests on it or it has the focus, and places it below the icon, or
 above it when there is no room ([R-PREV-002](docs/requirements.md#r-prev-002)).
 It hides the callout 300 ms after the pointer leaves the icon and the callout,
 on Escape, on a scroll, and when the preview renders new content
-(`vscode.markdown.updateContent`).
+(`vscode.markdown.updateContent`). The plugin writes the start and the end of
+a selection as empty elements `span.nimblescape-note-edge` with the ID and the
+color, and the icon of the note after the end. The script highlights each
+selection with the CSS Custom Highlight API (`CSS.highlights`, one highlight
+`nimblescape-note-N` for each color and a stronger one while the callout of
+the note shows), which changes no element of the page; a browser without the
+API shows no highlight.
 
 The preview gives every token with lines the attribute `data-line` and the
 class `code-line` after the plugins of the extensions, for the scrolling with

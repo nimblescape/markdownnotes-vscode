@@ -254,9 +254,28 @@ Which three ways?
   number of the note ([R-TEXT-006](#r-text-006)), which changes when a note is
   added before it.
 - Selections can overlap, and a note without `selection` stays as it is.
+- A marker never starts a line. GitHub (cmark-gfm) reads a comment at the
+  start of a line as an HTML block, which ends the paragraph and shows the
+  rest of the line without Markdown. When a selection starts at the start of
+  a line, the opening marker goes to the end of the line before it; at the
+  start of a paragraph the extension leaves it out, and the selection starts
+  at the start of the paragraph.
+- A note at a place in the text, without a passage, has one point marker
+  `<!--[a4]-->`, a selection without text. New notes in the text use this form
+  in place of an inline note `<!-- note inline` ([R-NOTE-005](#r-note-005)),
+  which the extension still reads.
 - The text editor and the preview highlight the selection in the color of its
   note, and the funnel of the side view leads from the thread to its
-  selection ([R-SIDE-007](#r-side-007)).
+  selection ([R-SIDE-007](#r-side-007)). The preview shows the icon of the
+  note at the end of the selection, or at the point, and the highlight is
+  stronger while the callout of the note shows.
+- In the text editor the markers vanish: a thin bar in the color of the note
+  stands at the start and at the end of the selection, and a dot at a point.
+  On the line of the cursor the markers show as they are, dimmed, so that the
+  cursor never moves through hidden text (Hannes, 2026-10-28).
+- The box of the comments API of a note with a selection belongs to the
+  selection, as the comment of a pull request belongs to its lines
+  ([R-TEXT-001](#r-text-001)).
 
 This is [decision 6](#decisions).
 
@@ -336,7 +355,9 @@ white number on light and on dark themes. The number and the color show in
 the marker of the note in the left margin of the text editor, at the first
 line of the note or at the line that stays of a collapsed note, as a mark in
 the overview ruler of the editor, and at the thread in the side view
-([R-SIDE-007](#r-side-007)).
+([R-SIDE-007](#r-side-007)). A note with a selection
+([R-NOTE-006](#r-note-006)) has its marker at the first line of the
+selection, and while the note is open also at the first line of the note.
 
 ### R-VIEW-001
 
@@ -461,14 +482,18 @@ text that would change the Markdown around the note is refused as in
 
 ### R-EDIT-003
 
-**Add a note.** The user adds a note at a line: with the `+` in the gutter of
-the text editor, or with "Add Note" of the side view. On a line of a
-paragraph, the extension writes an inline note after that line
-([R-NOTE-005](#r-note-005)), so that the note keeps its exact place in the
-text. On another line, it writes a block note after the block of the line,
-in the block quote or the list item of the block. The new note has a front
-matter with the GitHub login of the author ([R-GEN-006](#r-gen-006)) and the
-local date and time in minutes with the offset of the zone.
+**Add a note.** The user adds a note to the selected text or at a line: with
+the `+` of the text editor, as for the comment of a pull request (Hannes,
+2026-10-28), or with "Add Note" of the side view. With selected text, the
+note belongs to exactly this selection ([R-NOTE-006](#r-note-006)): the
+extension writes the two markers around it and the note after its paragraph.
+Without selected text, on a line of a paragraph or a heading, the extension
+writes a point marker at the end of the text of the line, so that the note
+keeps its exact place in the text. On another line, it writes a block note
+after the block of the line, in the block quote or the list item of the
+block. The new note has a front matter with the GitHub login of the author
+([R-GEN-006](#r-gen-006)), the local date and time in minutes with the offset
+of the zone, and the ID of its selection.
 
 ### R-EDIT-004
 
@@ -570,6 +595,12 @@ them.
    passage after a change of it or when the passage occurs twice, and one
    marker at the start of the passage with the inline note directly after the
    passage as its end, which allows no front matter and no answers.
+7. **Where the text of a note shows** ([R-TEXT-001](#r-text-001),
+   [R-SIDE-001](#r-side-001)): for now both, the boxes of the comments API
+   in the text editor and the side view (Hannes, 12:00). The other choices
+   were the side view alone, with a setting for the boxes that is off by
+   default, and the boxes with the Comments panel of VS Code without the
+   side view.
 
 ---
 

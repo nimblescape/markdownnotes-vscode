@@ -101,8 +101,8 @@ describe('the plugin', () => {
     expect(icons(html)).toBe(
       [
         '<h1 data-line="0" class="code-line" dir="auto">T</h1>',
-        `<div class="${noteClass}-anchor"><a class="${noteClass}-icon" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=2">[icon]</a></div>`,
-        `<div class="${noteClass}" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
+        `<div class="${noteClass}-anchor"><a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=2">[icon]</a></div>`,
+        `<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
         `<div class="${noteClass}-answer">`,
         `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span><time class="${noteClass}-date" datetime="2026-10-28T10:15+01:00">2026-10-28 10:15</time></div>`,
         `<div class="${noteClass}-body">`,
@@ -144,8 +144,8 @@ describe('the plugin', () => {
     const html = icons(preview(true).render('Version 2.0 comes out.\n<!-- note inline\n---\nauthor: hannes\n---\nWhich day?\n-->\nThe beta starts before.\n\nNext.\n'));
     expect(html).toBe(
       [
-        `<p data-line="0" class="code-line" dir="auto">Version 2.0 comes out.<a class="${noteClass}-icon" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a> The beta starts before.</p>`,
-        `<div class="${noteClass}" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
+        `<p data-line="0" class="code-line" dir="auto">Version 2.0 comes out.<a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a> The beta starts before.</p>`,
+        `<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
         `<div class="${noteClass}-answer">`,
         `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span></div>`,
         `<div class="${noteClass}-body">`,
@@ -162,7 +162,7 @@ describe('the plugin', () => {
   test('joins the paragraph around several inline notes, also in a list item and a block quote, with a space and no line break', () => {
     const notes = '<!-- note inline\nA\n-->\n<!-- note inline\nB\n-->\n';
     expect(icons(plain(preview(true).render(`One\n${notes}Two\n`)))).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a><a [^>]*>\[icon\]<\/a> Two<\/p>\n/);
-    expect(icons(plain(preview(true).render('- One\n  <!-- note inline\n  A\n  -->\n  Two\n')))).toMatch(/^<ul>\n<li>One<a [^>]*>\[icon\]<\/a> Two<div class="nimblescape-note" [^]*<\/div>\n<\/li>\n<\/ul>\n$/);
+    expect(icons(plain(preview(true).render('- One\n  <!-- note inline\n  A\n  -->\n  Two\n')))).toMatch(/^<ul>\n<li>One<a [^>]*>\[icon\]<\/a> Two<div class="nimblescape-note nimblescape-note-color-1" [^]*<\/div>\n<\/li>\n<\/ul>\n$/);
     expect(icons(plain(preview(true).render('> One\n> <!-- note inline\n> A\n> -->\n> Two\n')))).toMatch(/^<blockquote>\n<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class/);
     // The option breaks of markdown-it, which the setting markdown.preview.breaks turns on, adds no line break either.
     const breaks = extendMarkdownIt(new MarkdownIt({ html: true, breaks: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: () => undefined });
@@ -180,7 +180,7 @@ describe('the plugin', () => {
 
   test('an inline note never ends a paragraph: blank lines around it join the paragraphs before and after it (R-PREV-004)', () => {
     for (const text of ['One\n<!-- note inline\nA\n-->\n\nTwo\n', 'One\n\n<!-- note inline\nA\n-->\nTwo\n', 'One\n\n\n<!-- note inline\n\n---\nauthor: ann\n---\nA\n\n# Text\n-->\n\nTwo\n']) {
-      expect(icons(plain(preview(true).render(text))), text).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class="nimblescape-note" [^]*<\/div>\n$/);
+      expect(icons(plain(preview(true).render(text))), text).toMatch(/^<p>One<a [^>]*>\[icon\]<\/a> Two<\/p>\n<div class="nimblescape-note nimblescape-note-color-1" [^]*<\/div>\n$/);
       expect(preview(true, false).render(text), text).toBe('<p data-line="0" class="code-line" dir="auto">One Two</p>\n');
     }
     // A block note between two paragraphs keeps them apart.
@@ -191,7 +191,7 @@ describe('the plugin', () => {
     const html = icons(plain(preview(true).render('A sentence <!-- note\nFirst\n-->   and <!-- note\nSecond\n--> end.\n\nNext.\n')));
     expect(html).toMatch(
       new RegExp(
-        `^<p>A sentence<a class="${noteClass}-icon" aria-label="Note" aria-describedby="${noteClass}-1" href="vscode://a\\.b/open\\?line=0">\\[icon\\]</a> and<a [^>]*href="vscode://a\\.b/open\\?line=2">\\[icon\\]</a> end\\.</p>\n<div class="${noteClass}" id="${noteClass}-1"[^]*<p dir="auto">First</p>[^]*<div class="${noteClass}" id="${noteClass}-2"[^]*<p dir="auto">Second</p>[^]*</div>\n<p>Next\\.</p>\n$`,
+        `^<p>A sentence<a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note" aria-describedby="${noteClass}-1" href="vscode://a\\.b/open\\?line=0">\\[icon\\]</a> and<a [^>]*href="vscode://a\\.b/open\\?line=2">\\[icon\\]</a> end\\.</p>\n<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1"[^]*<p dir="auto">First</p>[^]*<div class="${noteClass} ${noteClass}-color-2" id="${noteClass}-2"[^]*<p dir="auto">Second</p>[^]*</div>\n<p>Next\\.</p>\n$`,
       ),
     );
   });
@@ -211,7 +211,7 @@ describe('the plugin', () => {
   test('escapes the link, and shows an icon without a link that takes the focus when the rendering has no document', () => {
     const md = extendMarkdownIt(new MarkdownIt({ html: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: (env) => (env as { link?: string }).link });
     expect(md.render('<!-- note\nText\n-->\n', { link: 'vscode://a.b/open?x="1"&y=2' })).toContain('href="vscode://a.b/open?x=&quot;1&quot;&amp;y=2"');
-    expect(md.render('<!-- note\nText\n-->\n', {})).toContain(`<span class="${noteClass}-icon" aria-label="Note" aria-describedby="${noteClass}-1" role="img" tabindex="0">`);
+    expect(md.render('<!-- note\nText\n-->\n', {})).toContain(`<span class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note" aria-describedby="${noteClass}-1" role="img" tabindex="0">`);
   });
 
   test('shows the text of a note that holds another comment as it is, so that the page stays visible (R-NOTE-003)', () => {
@@ -239,6 +239,38 @@ describe('the plugin', () => {
   test('with showInPreview off, shows no icon and no callout, and still removes the inline notes with their blanks (R-PREV-005)', () => {
     const text = '<!-- note\nBlock\n-->\n\nOne\n<!-- note inline\nInline\n-->\nTwo <!-- note\nIn a line\n--> three.\n';
     expect(preview(true, false).render(text)).toBe('<p data-line="4" class="code-line" dir="auto">One Two three.</p>\n');
+  });
+
+  test('shows a note with a selection by its icon at the end of the selection, with the two edges of the selection (R-NOTE-006)', () => {
+    const note = (id: string) => `<!-- note\n---\nauthor: hannes\nselection: ${id}\n---\nWhich?\n-->\n`;
+    const html = icons(preview(true).render(`The agents <!--[a1-->change the work<!--a1]--> of teams.\n${note('a1')}\nNext.\n`));
+    expect(html).toBe(
+      [
+        '<p data-line="0" class="code-line" dir="auto">The agents ' +
+          `<span class="${noteClass}-edge" data-selection="a1" data-edge="start" data-color="1"></span>change the work` +
+          `<span class="${noteClass}-edge" data-selection="a1" data-edge="end" data-color="1"></span>` +
+          `<a class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" href="vscode://a.b/open?line=1">[icon]</a> of teams.</p>`,
+        // The note after the paragraph has no icon of its own in the margin, only its callout.
+        `<div class="${noteClass} ${noteClass}-color-1" id="${noteClass}-1" role="note" aria-label="Note by hannes" hidden>`,
+        `<div class="${noteClass}-answer">`,
+        `<div class="${noteClass}-header"><span class="${noteClass}-author">hannes</span></div>`,
+        `<div class="${noteClass}-body">`,
+        '<p dir="auto">Which?</p>',
+        '</div>',
+        '</div>',
+        '</div>',
+        '<p data-line="9" class="code-line" dir="auto">Next.</p>',
+        '',
+      ].join('\n'),
+    );
+    // Without an opening marker the selection starts at the start of its paragraph, and a point shows the icon only.
+    expect(icons(plain(preview(true).render(`The agents change<!--a1]--> the work.\n\n${note('a1')}`)))).toMatch(
+      /^<p>The agents change<span class="nimblescape-note-edge" data-selection="a1" data-edge="end" data-color="1"><\/span><a [^>]*>\[icon\]<\/a> the work\.<\/p>\n<div class/,
+    );
+    expect(icons(plain(preview(true).render(`One <!--[a2]-->two.\n${note('a2')}`)))).toMatch(/^<p>One <a [^>]*>\[icon\]<\/a>two\.<\/p>\n<div class/);
+    // Markers without a note stay comments, and with showInPreview off the markers vanish with the notes.
+    expect(preview(true).render('One <!--[a1-->two<!--a1]-->.\n')).toBe(preview(false).render('One <!--[a1-->two<!--a1]-->.\n'));
+    expect(preview(true, false).render(`The agents <!--[a1-->change the work<!--a1]--> of teams.\n${note('a1')}`)).toBe('<p data-line="0" class="code-line" dir="auto">The agents change the work of teams.</p>\n');
   });
 
   test('reads the setting and the link for the environment of each rendering', () => {

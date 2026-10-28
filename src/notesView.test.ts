@@ -156,10 +156,10 @@ test('Answer and Add Note need the GitHub sign-in, and write the login and the d
   expect(results(view)[0]).toEqual({ type: 'result', request: 1, message: expect.stringMatching(/^The change was not saved: sign in with GitHub/) });
   expect(document.text).toBe(note);
   fake.signIn = 'carl';
-  // Add Note adds a note at the line of the cursor and selects it.
+  // Add Note adds a note for the line of the cursor, with a point at the end of the line, and selects it (R-NOTE-006).
   await send(view, { type: 'add', request: 2, text: 'A new note.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: undefined });
-  expect(document.text).toMatch(/\n\nMore\.\n<!-- note inline\n---\nauthor: carl\ndate: 2026-10-28T10:15[+-]\d{2}:\d{2}\n---\nA new note\.\n-->\n$/);
+  expect(document.text).toMatch(/\n\nMore\.<!--\[a1\]-->\n<!-- note\n---\nauthor: carl\ndate: 2026-10-28T10:15[+-]\d{2}:\d{2}\nselection: a1\n---\nA new note\.\n-->\n$/);
   let state = view.state();
   expect(state.threads).toHaveLength(2);
   expect(state.selected).toBe(state.threads[1].id);

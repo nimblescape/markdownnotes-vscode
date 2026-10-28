@@ -7,8 +7,9 @@
  * ([src/noteEditor.ts](noteEditor.ts)) with a fake of the API of VS Code
  * ([src/testing/fakeVscode.ts](testing/fakeVscode.ts)): the dimming after the
  * cursor (R-TEXT-003), the collapse of the notes the first time a file is in
- * the active editor and the commands of the folds (R-TEXT-005), and the
- * markers in the left margin (R-TEXT-006).
+ * the active editor and the commands of the folds (R-TEXT-005), the
+ * markers in the left margin (R-TEXT-006), and the highlight and the hidden
+ * markers of the selections (R-NOTE-006).
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -139,4 +140,42 @@ test('"Collapse Note" collapses the note of its box, and the commands of the Com
     ['editor.unfold', [0, 6]],
     ['editor.fold', [0, 6]],
   ]);
+});
+
+test('a selection has a highlight in the color of its note, and its markers vanish behind a bar or a dot, except on the line of the cursor (R-NOTE-006)', async () => {
+  const content = 'The agents <!--[a1-->change the work<!--a1]--> of teams.\n<!-- note\n---\nselection: a1\n---\nWhich?\n-->\n\nA point <!--[a2]-->here.\n<!-- note\n---\nselection: a2\n---\nP\n-->\n';
+  fake.settings.set('', { collapseInEditor: false });
+  const editor = await start(7, content);
+  const [first, second] = typesOf(editor, 'backgroundColor');
+  expect(first.options).toMatchObject({ backgroundColor: `${noteColors[0]}33`, overviewRulerColor: noteColors[0] });
+  expect(editor.decorations.get(first)).toEqual([new FakeRange(0, 21, 0, 36)]);
+  // A point selects no text.
+  expect(editor.decorations.get(second)).toEqual([]);
+  const [hidden] = typesOf(editor, 'textDecoration');
+  const [, faint] = typesOf(editor, 'opacity');
+  const edges = [...editor.decorations.keys()].find((type) => Object.keys((type as DecorationType).options).length === 0)!;
+  expect(editor.decorations.get(hidden)).toEqual([new FakeRange(0, 11, 0, 21), new FakeRange(0, 36, 0, 46), new FakeRange(8, 8, 8, 19)]);
+  expect(editor.decorations.get(faint)).toEqual([]);
+  const shown = editor.decorations.get(edges) as { range: FakeRange; renderOptions: { before: Record<string, string> } }[];
+  expect(shown.map(({ range }) => range)).toEqual([new FakeRange(0, 21, 0, 21), new FakeRange(0, 36, 0, 36), new FakeRange(8, 8, 8, 8)]);
+  expect(shown.map(({ renderOptions }) => renderOptions.before)).toEqual([
+    expect.objectContaining({ contentText: '', width: '2px', backgroundColor: colorOf(1) }),
+    expect.objectContaining({ contentText: '', width: '2px', backgroundColor: colorOf(1) }),
+    expect.objectContaining({ contentText: '●', color: colorOf(2) }),
+  ]);
+  // The marker of a note also stands at the first line of its selection, and only there while the note is collapsed.
+  const markers = () => typesOf(editor, 'gutterIconPath').map((type) => editor.linesOf(type));
+  expect(markers()).toEqual([
+    [0, 1],
+    [8, 9],
+  ]);
+  editor.visibleRanges = [new FakeRange(0, 0, 0, 56), new FakeRange(7, 0, 8, 33), new FakeRange(15, 0, 15, 0)];
+  fake.fire('visibleRanges', { textEditor: editor });
+  expect(markers()).toEqual([[0], [8]]);
+  // On the line of the cursor the markers show as they are, dimmed.
+  editor.selection = { active: new FakePosition(0, 3) };
+  fake.fire('selection', { textEditor: editor });
+  expect(editor.decorations.get(faint)).toEqual([new FakeRange(0, 11, 0, 21), new FakeRange(0, 36, 0, 46)]);
+  expect(editor.decorations.get(hidden)).toEqual([new FakeRange(8, 8, 8, 19)]);
+  expect(editor.linesOf(edges)).toEqual([8]);
 });

@@ -75,6 +75,10 @@ export class FakeRange {
     }
   }
 
+  get isEmpty(): boolean {
+    return this.start.line === this.end.line && this.start.character === this.end.character;
+  }
+
   isEqual(other: FakeRange): boolean {
     return JSON.stringify([this.start, this.end]) === JSON.stringify([other.start, other.end]);
   }
@@ -166,8 +170,8 @@ export class FakeDocument {
 
 /** FakeEditor stands for a vscode.TextEditor. */
 export class FakeEditor {
-  /** decorations holds the ranges of each decoration type. */
-  readonly decorations = new Map<object, FakeRange[]>();
+  /** decorations holds the ranges, or the options with their ranges, of each decoration type. */
+  readonly decorations = new Map<object, (FakeRange | { range: FakeRange })[]>();
   selection: { active: FakePosition };
   /** visibleRanges are the visible lines; VS Code splits them at a collapsed fold. */
   visibleRanges: FakeRange[];
@@ -186,10 +190,10 @@ export class FakeEditor {
    * @param type - The decoration type.
    */
   linesOf(type: object): number[] {
-    return (this.decorations.get(type) ?? []).map((range) => range.start.line);
+    return (this.decorations.get(type) ?? []).map((item) => ('range' in item ? item.range : item).start.line);
   }
 
-  setDecorations(type: object, ranges: FakeRange[]): void {
+  setDecorations(type: object, ranges: (FakeRange | { range: FakeRange })[]): void {
     this.decorations.set(type, ranges);
   }
 }

@@ -137,41 +137,116 @@ describe('deleteAnswer', () => {
   });
 });
 
+/**
+ * at returns an empty range at a position.
+ * @param line - The index of the line.
+ * @param character - The index of the character.
+ */
+const at = (line: number, character = 0) => ({ start: { line, character }, end: { line, character } });
+
+/**
+ * span returns a range of a text.
+ * @param startLine - The index of the line of the start.
+ * @param startCharacter - The index of the character of the start.
+ * @param endLine - The index of the line of the end.
+ * @param endCharacter - The index of the character after the end.
+ */
+const span = (startLine: number, startCharacter: number, endLine: number, endCharacter: number) => ({
+  start: { line: startLine, character: startCharacter },
+  end: { line: endLine, character: endCharacter },
+});
+
+/**
+ * selected returns the text of the selection of the one note of a text, without the markers in it.
+ * @param text - The text.
+ */
+function selected(text: string): string | undefined {
+  const all = lines(text);
+  const selection = findNotes(all)[0]?.selection;
+  if (!selection) {
+    return undefined;
+  }
+  const { start, end } = selection;
+  const part = start.line === end.line ? all[start.line].slice(start.character, end.character) : [all[start.line].slice(start.character), ...all.slice(start.line + 1, end.line), all[end.line].slice(0, end.character)].join('\n');
+  return part.replace(/<!--\[?a\d+\]?-->/g, '');
+}
+
 describe('insertNote', () => {
-  test('adds an inline note after a line of a paragraph, with the fields as front matter (R-NOTE-005)', () => {
+  test('marks a point at the end of a line of a paragraph and adds the note after the paragraph, with the fields as front matter (R-NOTE-006)', () => {
     const text = lines('# Title\n\nFirst line\nsecond line\n\nLast.\n');
-    const result = insertNote(text, 2, 'A **note**.', { author: 'A', date: '2026-10-28T10:15+01:00' });
-    expect(result).toMatchObject({ start: { line: 3, character: 0 } });
+    const result = insertNote(text, at(2), 'A **note**.', { author: 'A', date: '2026-10-28T10:15+01:00' });
+    expect(result).toMatchObject({ start: { line: 4, character: 0 } });
     expect(after(text, result)).toBe(
-      '# Title\n\nFirst line\n<!-- note inline\n---\nauthor: A\ndate: 2026-10-28T10:15+01:00\n---\nA **note**.\n-->\nsecond line\n\nLast.\n',
+      '# Title\n\nFirst line<!--[a1]-->\nsecond line\n<!-- note\n---\nauthor: A\ndate: 2026-10-28T10:15+01:00\nselection: a1\n---\nA **note**.\n-->\n\nLast.\n',
     );
     const changed = lines(after(text, result) as string);
-    expect(findNotes(changed)).toMatchObject([{ kind: 'inline', start: { line: 3, character: 0 }, answers: [{ author: 'A', body: 'A **note**.' }] }]);
+    expect(findNotes(changed)).toMatchObject([
+      { kind: 'block', start: { line: 4, character: 0 }, answers: [{ author: 'A', body: 'A **note**.' }], selection: { id: 'a1', start: { line: 2, character: 10 }, end: { line: 2, character: 10 } } },
+    ]);
+  });
+
+  test('marks an exact selection in a line with an opening and a closing marker (R-NOTE-006)', () => {
+    const text = lines('The agents change the work of teams in three ways.\n\nNext.\n');
+    const result = after(text, insertNote(text, span(0, 11, 0, 35), 'Which?', { author: 'A' }));
+    expect(result).toBe('The agents <!--[a1-->change the work of teams<!--a1]--> in three ways.\n<!-- note\n---\nauthor: A\nselection: a1\n---\nWhich?\n-->\n\nNext.\n');
+    expect(selected(result as string)).toBe('change the work of teams');
+  });
+
+  test('never writes a marker at the start of a line, so that no viewer ends the paragraph there (R-NOTE-006)', () => {
+    // At the start of a paragraph, the selection has no opening marker and starts at the start of its block.
+    const first = lines('The agents change the work.\n');
+    const atStart = after(first, insertNote(first, span(0, 0, 0, 10), 'Who?', {})) as string;
+    expect(atStart.split('\n')[0]).toBe('The agents<!--a1]--> change the work.');
+    expect(selected(atStart)).toBe('The agents');
+    // At the start of a later line, the opening marker goes to the end of the line before.
+    const two = lines('One line\ntwo line\n');
+    const later = after(two, insertNote(two, span(1, 0, 1, 3), 'Note', {})) as string;
+    expect(later.split('\n').slice(0, 2)).toEqual(['One line<!--[a1-->', 'two<!--a1]--> line']);
+    expect(selected(later)).toBe('\ntwo');
+    // A selection of whole lines ends at the end of its last line.
+    const whole = lines('One\nTwo\n\nNext\n');
+    expect((after(whole, insertNote(whole, span(0, 0, 1, 0), 'Note', {})) as string).split('\n')[0]).toBe('One<!--a1]-->');
+  });
+
+  test('takes the next free ID, and marks a selection over two paragraphs with the note after the second one', () => {
+    const text = lines('First <!--[a1]--> paragraph.\n<!-- note\n---\nselection: a1\n---\nOld\n-->\n\nSecond paragraph.\n');
+    const result = after(text, insertNote(text, span(0, 0, 8, 6), 'New', {})) as string;
+    expect(result).toContain('Second<!--a2]--> paragraph.\n<!-- note\n---\nselection: a2\n---\nNew\n-->');
   });
 
   test('adds a block note after another block, and a note without a front matter when no field has a value', () => {
     const text = lines('```\ncode\n```\n');
-    expect(after(text, insertNote(text, 1, 'Note', { author: undefined, date: '' }))).toBe('```\ncode\n```\n<!-- note\nNote\n-->\n');
+    expect(after(text, insertNote(text, at(1), 'Note', { author: undefined, date: '' }))).toBe('```\ncode\n```\n<!-- note\nNote\n-->\n');
   });
 
   test('adds a note in a block quote and in a list item with the prefix of the block', () => {
     const quote = lines('> Quote\n');
-    expect(after(quote, insertNote(quote, 0, 'One\n\nTwo', {}))).toBe('> Quote\n> <!-- note inline\n> One\n>\n> Two\n> -->\n');
+    expect(after(quote, insertNote(quote, at(0), 'One\n\nTwo', {}))).toBe('> Quote<!--[a1]-->\n> <!-- note\n> ---\n> selection: a1\n> ---\n> One\n>\n> Two\n> -->\n');
     const item = lines('- Item\n  more\n');
-    const result = insertNote(item, 1, 'Note', {});
+    const result = insertNote(item, at(1), 'Note', {});
     expect(result).toMatchObject({ start: { line: 2, character: 2 } });
-    expect(after(item, result)).toBe('- Item\n  more\n  <!-- note inline\n  Note\n  -->\n');
+    expect(after(item, result)).toBe('- Item\n  more<!--[a1]-->\n  <!-- note\n  ---\n  selection: a1\n  ---\n  Note\n  -->\n');
   });
 
   test('adds a note after the last line of a text without a line break at its end', () => {
     const text = lines('Text');
-    const result = insertNote(text, 0, 'Note', {});
+    const result = insertNote(text, at(0), 'Note', {});
     expect(result).toMatchObject({ start: { line: 1, character: 0 } });
-    expect(after(text, result)).toBe('Text\n<!-- note inline\nNote\n-->');
+    expect(after(text, result)).toBe('Text<!--[a1]-->\n<!-- note\n---\nselection: a1\n---\nNote\n-->');
   });
 
   test('refuses a text with another comment (R-NOTE-003)', () => {
-    expect(insertNote(lines('Text\n'), 0, 'A <!-- b', {})).toEqual({ problem: { kind: 'nested', text: '<!--' } });
+    expect(insertNote(lines('Text\n'), at(0), 'A <!-- b', {})).toEqual({ problem: { kind: 'nested', text: '<!--' } });
+  });
+});
+
+describe('selections', () => {
+  test('deleting a note removes the markers of its selection, and deleting its first answer keeps the selection', () => {
+    const text = lines('The agents <!--[a1-->change the work<!--a1]--> of teams.\n<!-- note\n---\nauthor: A\nselection: a1\n---\nOne\n---\nauthor: B\n---\nTwo\n-->\n\nNext.\n');
+    expect(applyEdit(text, deleteNote(text, only(text))).join('\n')).toBe('The agents change the work of teams.\n\nNext.\n');
+    const kept = after(text, deleteAnswer(text, only(text), 0)) as string;
+    expect(kept).toContain('<!-- note\n---\nauthor: B\nselection: a1\n---\nTwo\n-->');
+    expect(selected(kept)).toBe('change the work');
   });
 });
 

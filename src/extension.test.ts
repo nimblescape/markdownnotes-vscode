@@ -84,7 +84,7 @@ test('the export renders the icons with the setting showInPreview and the link o
   const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
   // A rendering without a document has no link to the side view.
   const plain = md.render(note);
-  expect(plain).toContain(`class="${noteClass}-icon"`);
+  expect(plain).toContain(`class="${noteClass}-icon ${noteClass}-color-1"`);
   expect(plain).not.toContain('href=');
   const document = new FakeUri('file', '/folder/a.md');
   const query = new URLSearchParams({ document: document.toString(), line: '2' }).toString();
@@ -267,22 +267,22 @@ test('Cancel closes the editor and shows the answer as the document holds it', a
   expect(bodyOf(fake.live()[0].comments[0])).toBe('The **text**.');
 });
 
-test('Add Note signs in with GitHub and writes a new note with the login and the date after the line (R-EDIT-003, R-GEN-006)', async () => {
+test('Add Note signs in with GitHub and writes a new note for the selection with the login and the date after the paragraph (R-EDIT-003, R-GEN-006, R-NOTE-006)', async () => {
   vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   const document = fake.open('# Title\n\nFirst line\nsecond line\n\nLast.\n');
   fake.signIn = 'hannes';
   await fake.activate();
-  // VS Code creates the thread of the `+` at the line, without comments.
-  const thread = new FakeThread(fake, document.uri, new FakeRange(2, 0, 2, 0), []);
+  // VS Code creates the thread of the `+` at the selected word, without comments.
+  const thread = new FakeThread(fake, document.uri, new FakeRange(2, 6, 2, 10), []);
   await run(noteCommands.addNote, { thread, text: 'A **new** note.' });
   expect(fake.sessions).toEqual([{ provider: githubProvider, scopes: githubScopes, options: { createIfNone: true } }]);
   expect(document.text).toMatch(
-    /^# Title\n\nFirst line\n<!-- note inline\n---\nauthor: hannes\ndate: 2026-10-28T10:15[+-]\d{2}:\d{2}\n---\nA \*\*new\*\* note\.\n-->\nsecond line\n\nLast\.\n$/,
+    /^# Title\n\nFirst <!--\[a1-->line<!--a1\]-->\nsecond line\n<!-- note\n---\nauthor: hannes\ndate: 2026-10-28T10:15[+-]\d{2}:\d{2}\nselection: a1\n---\nA \*\*new\*\* note\.\n-->\n\nLast\.\n$/,
   );
-  // The thread of the `+` becomes the thread of the note.
+  // The thread of the `+` becomes the thread of the note, at its selection.
   await vi.advanceTimersByTimeAsync(1000);
   expect(fake.live()).toEqual([thread]);
-  expect(thread).toMatchObject({ canReply: true, contextValue: noteContext, collapsibleState: 1, range: new FakeRange(3, 0, 9, 3) });
+  expect(thread).toMatchObject({ canReply: true, contextValue: noteContext, collapsibleState: 1, range: new FakeRange(2, 16, 2, 20) });
   expect(thread.comments).toHaveLength(1);
   expect(thread.comments[0]).toMatchObject({ author: { name: 'hannes' }, mode: 1, contextValue: noteContext });
   expect(bodyOf(thread.comments[0])).toBe('A **new** note.');
@@ -308,7 +308,7 @@ test('Add Note without a GitHub sign-in or with a refused text keeps the text in
   expect(thread.comments).toEqual([draft]);
   draft.body = new FakeMarkdownString('Good text');
   await run(noteCommands.saveAnswer, draft);
-  expect(document.text).toMatch(/^Text\n<!-- note inline\n---\nauthor: hannes\ndate: .*\n---\nGood text\n-->\n$/);
+  expect(document.text).toMatch(/^Text<!--\[a1\]-->\n<!-- note\n---\nauthor: hannes\ndate: .*\nselection: a1\n---\nGood text\n-->\n$/);
   await vi.advanceTimersByTimeAsync(1000);
   expect(fake.live()).toEqual([thread]);
   expect(thread.comments.map((comment) => comment.contextValue)).toEqual([noteContext]);

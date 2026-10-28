@@ -57,8 +57,15 @@ describes each step and where its protection ends.
   Markdown, and "Save" writes the text back into the comment. The reply field
   of a box adds an answer. "Delete" removes an answer, and "Delete Thread"
   the whole note.
-- **New notes.** The `+` in the gutter of a line adds a note: an inline note
-  after a line of a paragraph, or a block note after another block.
+- **New notes.** The `+` adds a note, as for the comment of a pull request:
+  on selected text, a note that belongs to exactly this passage; on a line
+  of a paragraph, a note at a point at the end of the line; on another line,
+  a block note after the block.
+- **Notes on a selection.** Two hidden markers `<!--[a1-->` and `<!--a1]-->`
+  stand around the passage. The text editor hides them behind a thin bar in
+  the color of the note and highlights the passage; the preview highlights
+  it and shows the icon of the note at its end. GitHub shows the paragraph
+  without the markers.
 - **Side view "Notes".** The view lists the threads of the active Markdown
   file and selects the thread at the cursor. Each answer has "Edit" and
   "Delete", each thread "Answer" and "Delete Thread". The editor has the tabs
@@ -117,6 +124,21 @@ Which day exactly?
 The beta starts one week before.
 ```
 
+A note on a selection belongs to an exact passage, which two hidden markers
+with an ID enclose. The note after the paragraph names the ID:
+
+```markdown
+The agents <!--[a3-->change the work of teams<!--a3]--> in three ways.
+<!-- note
+---
+author: hannes
+date: 2026-10-28T11:45+01:00
+selection: a3
+---
+Which three ways?
+-->
+```
+
 In the text editor:
 
 | Action | How |
@@ -124,7 +146,7 @@ In the text editor:
 | Open the box of a note | Click the mark in the gutter at the note, or a note in the Comments view. |
 | Edit an answer | Click "Edit" (pencil) at the answer, change the text, then click "Save" or press Ctrl+Enter. "Cancel" keeps the answer as it is. |
 | Answer a note | Write the text in the reply field of its box, then click "Answer". |
-| Add a note | Click the `+` in the gutter of a line, write the text, then click "Add Note". |
+| Add a note | Select a passage or put the cursor on a line, click the `+` in the gutter, write the text, then click "Add Note". |
 | Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) in the title of the box. Undo brings it back. |
 
 In the Markdown preview (Ctrl+K V opens it to the side), move the pointer to

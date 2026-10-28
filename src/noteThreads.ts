@@ -183,6 +183,14 @@ const linesOf = (document: vscode.TextDocument): string[] => document.getText().
  */
 export const rangeOf = (note: Note): vscode.Range => new vscode.Range(note.start.line, note.start.character, note.end.line, note.end.character);
 
+/**
+ * threadRangeOf returns the range of the thread of a note: its selection, as the range of a comment of a pull request
+ * ([R-NOTE-006](../docs/requirements.md#r-note-006)), or the range of the note without one.
+ * @param note - The note.
+ */
+export const threadRangeOf = (note: Note): vscode.Range =>
+  note.selection ? new vscode.Range(note.selection.start.line, note.selection.start.character, note.selection.end.line, note.selection.end.character) : rangeOf(note);
+
 /** NoteThreads keeps the threads of the notes of the open Markdown documents. */
 export class NoteThreads implements vscode.Disposable {
   private readonly controller: vscode.CommentController;
@@ -370,7 +378,7 @@ export class NoteThreads implements vscode.Disposable {
    * @param thread - The thread of the `+`, or undefined for a new thread.
    */
   private create(document: vscode.TextDocument, note: Note, raw: string, thread?: vscode.CommentThread): Entry {
-    const created = thread ?? this.controller.createCommentThread(document.uri, rangeOf(note), []);
+    const created = thread ?? this.controller.createCommentThread(document.uri, threadRangeOf(note), []);
     created.canReply = true;
     created.label = threadLabel;
     created.contextValue = noteContext;
@@ -407,7 +415,7 @@ export class NoteThreads implements vscode.Disposable {
    * @param raw - The text of its comment in the document.
    */
   private update(entry: Entry, document: vscode.Uri, note: Note, raw: string): void {
-    const range = rangeOf(note);
+    const range = threadRangeOf(note);
     if (!entry.thread.range?.isEqual(range)) {
       entry.thread.range = range;
     }
@@ -602,20 +610,21 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * addNote adds a note of the signed-in user for a line of a document ([R-EDIT-003](../docs/requirements.md#r-edit-003)).
+   * addNote adds a note of the signed-in user for a range of a document ([R-EDIT-003](../docs/requirements.md#r-edit-003)):
+   * with a selection of the range in the text of a paragraph or a heading, or for its line elsewhere.
    * @param uri - The URI of the document.
-   * @param line - The index of the line.
+   * @param range - The range, for example the selection of the text editor or the range of the thread of the `+`.
    * @param text - The text of the note.
    * @param thread - The thread of the `+`, which becomes the thread of the note, or undefined for a new thread.
    * @returns The identifier of the thread of the new note, or the problem that prevents it.
    */
-  async addNote(uri: vscode.Uri, line: number, text: string, thread?: vscode.CommentThread): Promise<{ id: string } | { problem: Problem }> {
+  async addNote(uri: vscode.Uri, range: vscode.Range, text: string, thread?: vscode.CommentThread): Promise<{ id: string } | { problem: Problem }> {
     const author = await this.authorOf();
     if (!author) {
       return { problem: { kind: 'signIn' } };
     }
     const document = await vscode.workspace.openTextDocument(uri);
-    const result = insertNote(linesOf(document), line, normalizeBody(text), { author, date: formatDate(new Date()) });
+    const result = insertNote(linesOf(document), range, normalizeBody(text), { author, date: formatDate(new Date()) });
     if ('problem' in result) {
       return result;
     }
@@ -629,7 +638,7 @@ export class NoteThreads implements vscode.Disposable {
     }
     // The thread of the new note takes it, so that the next reading keeps the thread.
     const entry = this.create(document, note, document.getText(rangeOf(note)), thread);
-    entry.thread.range = rangeOf(note);
+    entry.thread.range = threadRangeOf(note);
     entry.thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
     entry.expected = note.start;
     this.entries.set(uri.toString(), [...(this.entries.get(uri.toString()) ?? []), entry]);
@@ -666,7 +675,7 @@ export class NoteThreads implements vscode.Disposable {
    * @param draft - The comment that holds a refused text from before, or undefined.
    */
   private async writeNew(thread: vscode.CommentThread, text: string, draft: NoteComment | undefined): Promise<void> {
-    const result = await this.addNote(thread.uri, thread.range?.end.line ?? 0, text, thread);
+    const result = await this.addNote(thread.uri, thread.range ?? new vscode.Range(0, 0, 0, 0), text, thread);
     if ('problem' in result) {
       const comment = draft ?? new NoteComment(thread, undefined, thread.uri, { body: text, author: undefined });
       comment.body = markdown(text, thread.uri);

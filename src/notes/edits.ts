@@ -19,8 +19,8 @@
  * blank line in a note inside the text of a line, never reaches the file.
  */
 
-import { findNotes, insertionFor, type Note, type Position } from './notes';
-import { type Answer, answerLines, bodyProblem, commentEnd, commentStart, commentText, type Fields, frontMatterLines } from './syntax';
+import { findNotes, insertionFor, nextSelectionId, type Note, type Position, type Range, selectionPlaceFor } from './notes';
+import { type Answer, answerLines, bodyProblem, commentEnd, commentStart, commentText, type Fields, frontMatterLines, markerText, selectionField, selectionOf } from './syntax';
 
 /** Edit replaces the text between two positions of the lines of a text. Its text has `\n` as line breaks. */
 export interface Edit {
@@ -68,6 +68,38 @@ export function applyEdit(lines: readonly string[], edit: Edit): string[] {
   const before = lines[edit.start.line].slice(0, edit.start.character);
   const after = lines[edit.end.line].slice(edit.end.character);
   return [...lines.slice(0, edit.start.line), ...`${before}${edit.text}${after}`.split('\n'), ...lines.slice(edit.end.line + 1)];
+}
+
+/**
+ * editBetween returns one edit that turns the lines of a text into other lines: it replaces the lines between the
+ * lines that both texts share at their start and at their end.
+ * @param old - The lines of the text.
+ * @param next - The lines of the changed text.
+ */
+export function editBetween(old: readonly string[], next: readonly string[]): Edit {
+  let first = 0;
+  while (first < old.length && first < next.length && old[first] === next[first]) {
+    first++;
+  }
+  let oldEnd = old.length;
+  let nextEnd = next.length;
+  while (oldEnd > first && nextEnd > first && old[oldEnd - 1] === next[nextEnd - 1]) {
+    oldEnd--;
+    nextEnd--;
+  }
+  const text = next.slice(first, nextEnd).join('\n');
+  if (oldEnd > first && nextEnd > first) {
+    return { start: { line: first, character: 0 }, end: { line: oldEnd - 1, character: old[oldEnd - 1].length }, text };
+  }
+  if (oldEnd > first) {
+    // Only lines go: with their line breaks, or with the line break before them at the end of the text.
+    return oldEnd < old.length
+      ? { start: { line: first, character: 0 }, end: { line: oldEnd, character: 0 }, text: '' }
+      : { start: { line: first - 1, character: old[first - 1].length }, end: { line: oldEnd - 1, character: old[oldEnd - 1].length }, text: '' };
+  }
+  return first < old.length
+    ? { start: { line: first, character: 0 }, end: { line: first, character: 0 }, text: `${text}\n` }
+    : { start: { line: first - 1, character: old[first - 1].length }, end: { line: first - 1, character: old[first - 1].length }, text: `\n${text}` };
 }
 
 /**
@@ -192,49 +224,90 @@ export function deleteAnswer(lines: readonly string[], note: Note, index: number
   const answer = note.answers[index];
   const next = note.answers[index + 1];
   const textLines = note.text.split('\n');
-  const changed = [...textLines.slice(0, answer.start), ...(next ? textLines.slice(next.start) : closing(textLines, answer.end))];
-  return rewrite(lines, note, changed, expectedOf(note.answers.filter((_, other) => other !== index)));
+  const rest = next ? textLines.slice(next.start) : closing(textLines, answer.end);
+  const answers = expectedOf(note.answers.filter((_, other) => other !== index));
+  const id = selectionOf(note);
+  if (index === 0 && next && id) {
+    // The selection of the note moves into the front matter of the answer that becomes the first one.
+    const field = `${selectionField}: ${id}`;
+    const frontMatter = next.frontMatter ? [...next.frontMatter.lines.slice(0, -1), field, next.frontMatter.lines.at(-1)!] : ['---', field, '---'];
+    rest.splice(0, next.frontMatter?.lines.length ?? 0, ...frontMatter);
+    answers[0] = { ...answers[0], frontMatter };
+  }
+  return rewrite(lines, note, [...textLines.slice(0, answer.start), ...rest], answers);
 }
 
 /**
- * insertNote returns the edit that adds a note for a line, with a front matter of the fields
- * ([R-EDIT-003](../../docs/requirements.md#r-edit-003)), and the position of the new note: an inline note after a
- * line of a paragraph, a block note after another block.
+ * insertNote returns the edit that adds a note for a range of the text, with a front matter of the fields
+ * ([R-EDIT-003](../../docs/requirements.md#r-edit-003)), and the position of the new note. In the text of a paragraph
+ * or a heading, the note gets a selection ([R-NOTE-006](../../docs/requirements.md#r-note-006)): the markers of the
+ * range, or a point at the end of the line for an empty range, and the note after the block, so that no Markdown
+ * viewer shows a break in the paragraph. Elsewhere it is a block note after the block of the line.
  * @param lines - The lines of the Markdown text.
- * @param line - The index of the line that the note belongs to.
+ * @param range - The range that the note belongs to, for example the selection of the text editor.
  * @param body - The body, as normalizeBody returns it.
  * @param fields - The fields of the front matter.
  */
-export function insertNote(lines: readonly string[], line: number, body: string, fields: Fields): Result & { start?: Position } {
-  const frontMatter = frontMatterLines(fields);
+export function insertNote(lines: readonly string[], range: Range, body: string, fields: Fields): Result & { start?: Position } {
   const problem = check(body);
   if (problem) {
     return { problem };
   }
-  const place = insertionFor(lines, Math.min(Math.max(line, 0), lines.length - 1));
-  const comment = place.prefix + withPrefix(commentText(place.kind, frontMatter, body), place.prefix);
-  let edit: Edit;
-  let start: Position;
-  if (place.line < lines.length) {
-    edit = { start: { line: place.line, character: 0 }, end: { line: place.line, character: 0 }, text: `${comment}\n` };
-    start = { line: place.line, character: place.prefix.length };
-  } else {
-    // After the last line: a text without a line break at its end gets one before the note.
-    const last = lines.length - 1;
-    edit = { start: { line: last, character: lines[last].length }, end: { line: last, character: lines[last].length }, text: `\n${comment}` };
-    start = { line: lines.length, character: place.prefix.length };
+  // A new note is always a block note: an inline note on lines of its own ends the paragraph in other viewers.
+  const kind = 'block';
+  const selection = selectionPlaceFor(lines, range);
+  const id = selection ? nextSelectionId(lines) : undefined;
+  const place = selection ?? { ...insertionFor(lines, Math.min(Math.max(range.start.line, 0), lines.length - 1)), markers: [] };
+  const frontMatter = frontMatterLines(id ? { ...fields, selection: id } : fields);
+  const next = [...lines];
+  for (const { kind: marker, position } of [...place.markers].reverse()) {
+    const line = next[position.line];
+    next[position.line] = line.slice(0, position.character) + markerText(marker, id!) + line.slice(position.character);
   }
-  return readsBack(applyEdit(lines, edit), start, place.kind, [{ frontMatter, body }]) ? { edit, start } : { problem: { kind: 'structure' } };
+  const comment = place.prefix + withPrefix(commentText(kind, frontMatter, body), place.prefix);
+  next.splice(place.line, 0, ...comment.split('\n'));
+  const start = { line: place.line, character: place.prefix.length };
+  const written = findNotes(next).find((note) => note.start.line === start.line && note.start.character === start.character);
+  if (!readsBack(next, start, kind, [{ frontMatter, body }]) || (id && written?.selection?.id !== id)) {
+    return { problem: { kind: 'structure' } };
+  }
+  return { edit: editBetween(lines, next), start };
 }
 
 /**
- * deleteNote returns the edit that removes a note from the text ([R-EDIT-004](../../docs/requirements.md#r-edit-004)).
- * A note on lines of its own loses its lines, and between two blank lines one of them; another note loses its comment
+ * deleteNote returns the edit that removes a note and the markers of its selection from the text
+ * ([R-EDIT-004](../../docs/requirements.md#r-edit-004)). A note on lines of its own loses its lines, and between two blank lines one of them; another note loses its comment
  * and one space before it, so that no two spaces stay.
  * @param lines - The lines of the Markdown text.
  * @param note - The note.
  */
 export function deleteNote(lines: readonly string[], note: Note): Edit {
+  if (!note.selection) {
+    return deleteComment(lines, note);
+  }
+  // The markers of the selection go with the note; they have no line of their own.
+  const next = [...lines];
+  const markers = [...note.selection.markers].sort((a, b) => b.start.line - a.start.line || b.start.character - a.start.character);
+  for (const marker of markers) {
+    const line = next[marker.start.line];
+    next[marker.start.line] = line.slice(0, marker.start.character) + line.slice(marker.end.character);
+  }
+  const shift = (position: Position): Position => ({
+    line: position.line,
+    character:
+      position.character -
+      markers.filter((marker) => marker.start.line === position.line && marker.end.character <= position.character).reduce((sum, marker) => sum + marker.end.character - marker.start.character, 0),
+  });
+  const shifted = { ...note, start: shift(note.start), end: shift(note.end) };
+  return editBetween(lines, applyEdit(next, deleteComment(next, shifted)));
+}
+
+/**
+ * deleteComment returns the edit that removes the comment of a note from the text.
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ */
+function deleteComment(lines: readonly string[], note: Note): Edit {
   const before = lines[note.start.line].slice(0, note.start.character);
   const after = lines[note.end.line].slice(note.end.character);
   if (note.place === 'block' && /^[ \t>]*$/.test(before) && after.trim() === '') {

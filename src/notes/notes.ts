@@ -29,13 +29,16 @@ import {
   inlineNoteRule,
   innerText,
   type Kind,
+  type MarkerKind,
   type NoteLinesMeta,
   noteLinesRule,
   noteLinesTokenType,
   noteTokenType,
   type NoteText,
   onlyComments,
+  readMarker,
   readNote,
+  selectionOf,
 } from './syntax';
 
 /** Position is a place in the lines of a text: the index of the line and the index of the character in the line. */
@@ -50,6 +53,35 @@ export interface Position {
  */
 export type Place = 'block' | 'inline';
 
+/** Marker is a marker of a selection in a Markdown text ([R-NOTE-006](../../docs/requirements.md#r-note-006)). */
+export interface Marker {
+  kind: MarkerKind;
+  /** id is the ID of the selection. */
+  id: string;
+  /** start is the position of the `<` of `<!--`. */
+  start: Position;
+  /** end is the position after the `>` of `-->`. */
+  end: Position;
+  /** blockStart is the position of the first character of the text of the block of the marker. */
+  blockStart: Position;
+}
+
+/**
+ * NoteSelection is the passage of the text that a note belongs to ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
+ * from the end of its opening marker, or from the start of the text of its block without one, to the start of its
+ * closing marker. A point is an empty selection at its marker.
+ */
+export interface NoteSelection {
+  /** id is the ID of the selection. */
+  id: string;
+  /** start is the position of the first character of the passage. */
+  start: Position;
+  /** end is the position after the last character of the passage. */
+  end: Position;
+  /** markers are the markers of the selection in the text. */
+  markers: Marker[];
+}
+
 /** Note is a comment of a Markdown text, with its place and its content. */
 export interface Note extends NoteText {
   /** place tells where the note stands. */
@@ -62,6 +94,8 @@ export interface Note extends NoteText {
   text: string;
   /** prefix is the prefix of each further line of the note: the markers of its block quotes and the indentation of its list items. */
   prefix: string;
+  /** selection is the passage of the text that the note belongs to, when the markers of its selection are in the text. */
+  selection?: NoteSelection;
 }
 
 /**
@@ -261,21 +295,51 @@ function positionOf(lines: readonly string[]): (offset: number) => Position {
  */
 const parse = (lines: readonly string[]): Token[] => parser.parse(lines.join('\n'), {});
 
+/** markerPattern matches the comments in a text that can be markers of a selection. */
+const markerPattern = /<!--\[?[A-Za-z][A-Za-z0-9]{0,31}\]?-->/g;
+
 /**
- * findNotes returns the notes of a Markdown text, with their places and their contents: each note of an HTML block
- * that holds only comments, each inline note `<!-- note inline` on lines of its own, and each note in the text of a
- * paragraph or a heading, where markdown-it reads the comment of the note as a comment of Markdown. Every other
- * comment is left out.
+ * before tells whether a position comes before another one, or is the same.
+ * @param a - The position.
+ * @param b - The other position.
+ */
+const before = (a: Position, b: Position): boolean => a.line < b.line || (a.line === b.line && a.character <= b.character);
+
+/** Reading is the notes and the markers of the selections of a Markdown text. */
+interface Reading {
+  notes: Note[];
+  markers: Marker[];
+}
+
+/**
+ * read returns the notes and the markers of a Markdown text, with their places and their contents: each note of an
+ * HTML block that holds only comments, each inline note `<!-- note inline` on lines of its own, each note in the text
+ * of a paragraph or a heading, where markdown-it reads the comment of the note as a comment of Markdown, and each
+ * marker of a selection in a text or in an HTML block. Every other comment is left out.
  * @param lines - The lines of the Markdown text.
  */
-export function findNotes(lines: readonly string[]): Note[] {
-  if (!lines.some((line) => /<!--[ \t]*note(?:[ \t]+inline)?[ \t]*$/i.test(line))) {
-    return [];
-  }
+function read(lines: readonly string[]): Reading {
   const tokens = parse(lines);
   const position = positionOf(lines);
   const notes: Note[] = [];
+  const markers: Marker[] = [];
   const containers: Token[] = [];
+  /**
+   * addMarker adds a marker of a comment of the text of a token.
+   * @param locator - The locator of the token.
+   * @param content - The text of the token.
+   * @param start - The offset of the comment in the text of the token.
+   * @param end - The offset after the comment.
+   */
+  const addMarker = (locator: Locator, content: string, start: number, end: number): void => {
+    const marker = readMarker(content.slice(start, end));
+    const startPosition = locator.position(start);
+    const endPosition = locator.position(end);
+    const blockStart = locator.position(content.length - content.trimStart().length);
+    if (marker && startPosition && endPosition && blockStart) {
+      markers.push({ ...marker, start: startPosition, end: endPosition, blockStart });
+    }
+  };
   tokens.forEach((token, index) => {
     if (token.type === noteLinesTokenType && token.map) {
       const text = innerText(token.content);
@@ -290,11 +354,15 @@ export function findNotes(lines: readonly string[]): Note[] {
     } else if (token.type === 'blockquote_close' || token.type === 'list_item_close') {
       containers.pop();
     } else if (token.type === 'html_block' && token.map) {
+      const locator = new Locator(lines, token.map[0], token.content);
+      // A marker at the start of a line starts an HTML block, which the extension never writes, but reads.
+      for (const match of token.content.matchAll(markerPattern)) {
+        addMarker(locator, token.content, match.index, match.index + match[0].length);
+      }
       const spans = onlyComments(token.content);
       if (!spans?.length) {
         return;
       }
-      const locator = new Locator(lines, token.map[0], token.content);
       const prefix = containerPrefix(lines[token.map[0]], token.map[0], containers);
       for (const span of spans) {
         const note = noteAt(locator, token.content, span.start, span.end, 'block', prefix);
@@ -303,10 +371,10 @@ export function findNotes(lines: readonly string[]): Note[] {
         }
       }
     } else if (token.type === 'inline' && token.map) {
-      const parent = tokens[index - 1];
-      if (!inlineParents.has(parent?.type) || !token.children?.some((child) => child.type === noteTokenType)) {
+      if (!token.children?.some((child) => child.type === noteTokenType)) {
         return;
       }
+      const parent = tokens[index - 1];
       const first = token.map[0];
       const locator = new Locator(lines, first, token.content);
       const prefix = containerPrefix(lines[first], first, containers);
@@ -315,14 +383,53 @@ export function findNotes(lines: readonly string[]): Note[] {
           continue;
         }
         const { start, end } = child.meta as InlineNoteMeta;
-        const note = noteAt(locator, token.content, start, end, 'inline', prefix);
+        addMarker(locator, token.content, start, end);
+        // A note has several lines, so only the text of a paragraph or a heading holds one; a marker has one line.
+        const note = inlineParents.has(parent?.type) ? noteAt(locator, token.content, start, end, 'inline', prefix) : undefined;
         if (note) {
           notes.push(note);
         }
       }
     }
   });
-  return notes;
+  for (const note of notes) {
+    const id = selectionOf(note);
+    const own = markers.filter((marker) => marker.id === id);
+    const point = own.find((marker) => marker.kind === 'point');
+    const open = own.find((marker) => marker.kind === 'open');
+    const close = own.find((marker) => marker.kind === 'close');
+    if (!id) {
+      continue;
+    }
+    if (point) {
+      note.selection = { id, start: point.start, end: point.start, markers: own };
+    } else if (close && open && before(open.end, close.start)) {
+      note.selection = { id, start: open.end, end: close.start, markers: own };
+    } else if (close && !open) {
+      // Without an opening marker, the selection starts at the start of the text of its block.
+      note.selection = { id, start: close.blockStart, end: close.start, markers: own };
+    }
+  }
+  return { notes, markers };
+}
+
+/** noteKeyword matches a line that can start a note, so that a text without one needs no parsing. */
+const noteKeyword = /<!--[ \t]*note(?:[ \t]+inline)?[ \t]*$/i;
+
+/**
+ * findNotes returns the notes of a Markdown text, with their places, their contents and their selections.
+ * @param lines - The lines of the Markdown text.
+ */
+export function findNotes(lines: readonly string[]): Note[] {
+  return lines.some((line) => noteKeyword.test(line)) ? read(lines).notes : [];
+}
+
+/**
+ * findMarkers returns the markers of the selections of a Markdown text, also of selections without a note.
+ * @param lines - The lines of the Markdown text.
+ */
+export function findMarkers(lines: readonly string[]): Marker[] {
+  return lines.some((line) => line.includes('-->')) ? read(lines).markers : [];
 }
 
 /** Insertion is the place of a new note: the line before which it goes, the prefix of its lines, and its kind. */
@@ -375,4 +482,177 @@ export function insertionFor(lines: readonly string[], line: number): Insertion 
   }
   const inline = found !== undefined && (block.token.type === 'heading_open' || block.token.type === noteLinesTokenType);
   return { line: end, prefix, kind: inline ? 'inline' : 'block' };
+}
+
+/** TextBlock is a paragraph or a heading, with the start and the end of the text of each of its lines. */
+interface TextBlock {
+  /** first is the index of the first line of the text. */
+  first: number;
+  /** last is the index of the last line of the text. */
+  last: number;
+  /** end is the index of the line after the block. */
+  end: number;
+  /** prefix is the prefix of a note after the block. */
+  prefix: string;
+  /** starts holds the position of the first character of the text of each line, by the index of the line. */
+  starts: Map<number, Position>;
+  /** ends holds the position after the last character of the text of each line, by the index of the line. */
+  ends: Map<number, Position>;
+}
+
+/**
+ * textBlocksOf returns the paragraphs and the headings of a Markdown text, the blocks whose text holds the markers of
+ * a selection.
+ * @param lines - The lines of the Markdown text.
+ * @param tokens - The tokens of the text.
+ */
+function textBlocksOf(lines: readonly string[], tokens: readonly Token[]): TextBlock[] {
+  const blocks: TextBlock[] = [];
+  const containers: Token[] = [];
+  tokens.forEach((token, index) => {
+    if (token.type === 'blockquote_open' || token.type === 'list_item_open') {
+      containers.push(token);
+    } else if (token.type === 'blockquote_close' || token.type === 'list_item_close') {
+      containers.pop();
+    } else if (inlineParents.has(token.type) && token.map && tokens[index + 1]?.type === 'inline') {
+      const content = tokens[index + 1].content;
+      const locator = new Locator(lines, token.map[0], content);
+      const starts = new Map<number, Position>();
+      const ends = new Map<number, Position>();
+      let offset = 0;
+      for (const text of content.split('\n')) {
+        const start = locator.position(offset + text.length - text.trimStart().length);
+        const end = locator.position(offset + text.trimEnd().length);
+        if (start && end) {
+          starts.set(start.line, start);
+          ends.set(end.line, end);
+        }
+        offset += text.length + 1;
+      }
+      const found = [...starts.keys()];
+      if (found.length > 0) {
+        blocks.push({
+          first: Math.min(...found),
+          last: Math.max(...found),
+          end: token.map[1],
+          prefix: containerPrefix(lines[token.map[0]], token.map[0], containers),
+          starts,
+          ends,
+        });
+      }
+    }
+  });
+  return blocks;
+}
+
+/** Range is a part of the lines of a text, from its start to its end. */
+export interface Range {
+  start: Position;
+  end: Position;
+}
+
+/**
+ * SelectionPlace is the place of a new note with a selection ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
+ * the markers in the text, and the line before which the note goes, after the block of the end of the selection.
+ */
+export interface SelectionPlace {
+  /** markers are the markers to write, with their positions in the text before the change. */
+  markers: { kind: MarkerKind; position: Position }[];
+  /** line is the index of the line before which the note goes. */
+  line: number;
+  /** prefix is the prefix of each line of the note. */
+  prefix: string;
+}
+
+/**
+ * same tells whether two positions are the same.
+ * @param a - The position.
+ * @param b - The other position.
+ */
+const same = (a: Position, b: Position): boolean => a.line === b.line && a.character === b.character;
+
+/**
+ * selectionPlaceFor returns the place of a new note for a range of a Markdown text, when the range is in the text of
+ * paragraphs or headings. An empty range gets a point at the end of the text of its line. A marker never starts a
+ * line, because a comment at the start of a line starts an HTML block, which ends the paragraph in every Markdown
+ * viewer: the opening marker goes to the end of the text of the line before, and at the start of the text of a block
+ * it is left out, so that the selection starts at the start of its block.
+ * @param lines - The lines of the Markdown text.
+ * @param range - The range, for example the selection of the text editor.
+ */
+export function selectionPlaceFor(lines: readonly string[], range: Range): SelectionPlace | undefined {
+  const blocks = textBlocksOf(lines, parse(lines));
+  const blockAt = (line: number): TextBlock | undefined => blocks.find((block) => block.first <= line && line <= block.last);
+  let { start, end } = range;
+  const startBlock = blockAt(start.line);
+  if (!startBlock) {
+    return undefined;
+  }
+  if (same(start, end)) {
+    return { markers: [{ kind: 'point', position: startBlock.ends.get(start.line)! }], line: startBlock.end, prefix: startBlock.prefix };
+  }
+  // A selection of whole lines ends at the start of the next line, which belongs to the line before.
+  const endLineBlock = blockAt(end.line);
+  if (end.line > start.line && (!endLineBlock || end.character <= endLineBlock.starts.get(end.line)!.character)) {
+    const previous = end.line - 1;
+    const block = blockAt(previous);
+    if (!block) {
+      return undefined;
+    }
+    end = block.ends.get(previous)!;
+  }
+  const endBlock = blockAt(end.line);
+  if (!endBlock) {
+    return undefined;
+  }
+  // The selection starts and ends in the text of its lines.
+  const lineStart = startBlock.starts.get(start.line)!;
+  if (start.character < lineStart.character) {
+    start = lineStart;
+  }
+  if (start.character >= startBlock.ends.get(start.line)!.character && start.line < end.line) {
+    start = (blockAt(start.line + 1) ?? startBlock).starts.get(start.line + 1) ?? start;
+  }
+  const lineEnd = endBlock.ends.get(end.line)!;
+  if (end.character > lineEnd.character) {
+    end = lineEnd;
+  }
+  if (!before(start, end) || same(start, end)) {
+    return { markers: [{ kind: 'point', position: startBlock.ends.get(start.line)! }], line: startBlock.end, prefix: startBlock.prefix };
+  }
+  const markers: SelectionPlace['markers'] = [];
+  const startOfLine = same(start, (blockAt(start.line) ?? startBlock).starts.get(start.line)!);
+  const block = blockAt(start.line)!;
+  if (!startOfLine) {
+    markers.push({ kind: 'open', position: start });
+  } else if (start.line > block.first) {
+    markers.push({ kind: 'open', position: block.ends.get(start.line - 1)! });
+  } else if (block !== endBlock) {
+    // The selection starts at the start of a block before the block of its end: the opening marker goes to the end of
+    // the text before, when it is the text of a paragraph or a heading.
+    let previous = start.line - 1;
+    while (previous >= 0 && lines[previous].trim() === '') {
+      previous--;
+    }
+    const before = previous >= 0 ? blockAt(previous) : undefined;
+    if (before) {
+      markers.push({ kind: 'open', position: before.ends.get(previous)! });
+    }
+  }
+  markers.push({ kind: 'close', position: end });
+  return { markers, line: endBlock.end, prefix: endBlock.prefix };
+}
+
+/**
+ * nextSelectionId returns a new ID of a selection: `a` and the smallest number that no marker and no note of the text
+ * uses.
+ * @param lines - The lines of the Markdown text.
+ */
+export function nextSelectionId(lines: readonly string[]): string {
+  const used = new Set([...findMarkers(lines).map((marker) => marker.id), ...findNotes(lines).flatMap((note) => selectionOf(note) ?? [])]);
+  let number = 1;
+  while (used.has(`a${number}`)) {
+    number++;
+  }
+  return `a${number}`;
 }

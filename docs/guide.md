@@ -24,6 +24,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [No comment in a note](#no-comment-in-a-note) | everywhere | available | [R-NOTE-003](requirements.md#r-note-003) |
 | [Threads of answers](#threads) | the Markdown file | available | [R-NOTE-004](requirements.md#r-note-004) |
 | [Inline notes](#inline-notes) | the Markdown file | available | [R-NOTE-005](requirements.md#r-note-005) |
+| [Notes on a selection](#notes-on-a-selection) | the Markdown file, text editor, preview | available | [R-NOTE-006](requirements.md#r-note-006) |
 | [GitHub sign-in](#github-sign-in) | VS Code | available | [R-GEN-006](requirements.md#r-gen-006) |
 | [Boxes of the notes](#notes-in-the-text-editor) | text editor | available | [R-TEXT-001](requirements.md#r-text-001), [R-TEXT-002](requirements.md#r-text-002) |
 | [Collapsed notes with markers](#collapsed-notes) | text editor | available | [R-TEXT-005](requirements.md#r-text-005), [R-TEXT-006](requirements.md#r-text-006) |
@@ -193,6 +194,49 @@ after it: the text before and after the note is one paragraph in the
 preview. A note between two paragraphs that keeps them apart is a block note
 `<!-- note`.
 
+### Notes on a selection
+
+A note can belong to an exact passage of the text, its selection. Two hidden
+markers with an ID stand around the passage, and the note after the
+paragraph names the ID in the key `selection` of its front matter:
+
+```markdown
+The agents <!--[a3-->change the work of teams<!--a3]--> in three ways.
+<!-- note
+---
+author: hannes
+date: 2026-10-28T11:45+01:00
+selection: a3
+---
+Which three ways?
+-->
+```
+
+- `<!--[a3-->` opens the selection and `<!--a3]-->` closes it. A note at a
+  place in the text, without a passage, has one marker `<!--[a3]-->`, a
+  point. The letter keeps the ID apart from the number of the note, which
+  changes when a note is added before it.
+- The markers are comments inside the line, so GitHub and other renderers
+  show the paragraph as one paragraph, without the markers.
+- A marker never starts a line: a comment at the start of a line ends the
+  paragraph on GitHub. When the passage starts at the start of a line, the
+  opening marker stands at the end of the line before it. At the start of a
+  paragraph the opening marker is left out, and the selection starts at the
+  start of the paragraph.
+- In the text editor the markers vanish. A thin bar in the color of the note
+  stands at the start and at the end of the selection, a dot at a point, and
+  the passage has a highlight in the color of the note. On the line of the
+  cursor the markers show as they are, dimmed, so that you see where the
+  cursor is.
+- The preview highlights the passage in the color of the note and shows the
+  icon of the note at its end. While the callout of the note shows, the
+  highlight is stronger.
+
+The extension writes the markers and the ID itself when you add a note to
+selected text ([Add a note](#add-a-note)). New notes at a place in the text
+are points; inline notes `<!-- note inline` stay as they are and keep
+working.
+
 ### No comment in a note
 
 The text of a note must not contain another comment: not the start of a
@@ -227,7 +271,9 @@ The text editor shows each note of an open Markdown file with the comments
 of VS Code, as the extension GitHub Pull Requests shows the comments of a
 pull request. A mark in the gutter shows the lines of the note, and a box
 below the note shows each answer of the thread as Markdown, with its author
-and date. The box has the title "Markdown note".
+and date. The box of a note on a selection stands below the selection. The
+box has the title "Markdown note". The side view "Notes" shows the same
+threads; both stay for now (Hannes, 2026-10-28).
 
 The boxes are collapsed when a file opens, so that the text stays readable; a
 click on the mark opens a box, and the arrow in the title of the box closes
@@ -351,26 +397,33 @@ refuses a text with a comment.
 
 In the text editor:
 
-1. Move the mouse over the gutter of a line, left of the text, and click the
-   `+`.
-2. Write the text of the note in the box, in Markdown.
-3. Click "Add Note", or press Ctrl+Enter. "Cancel" removes the box.
+1. Select the passage that the note is about, or put the cursor on a line.
+2. Move the mouse over the gutter, left of the text, and click the `+`, as
+   for the comment of a pull request. The command "Comments: Add Comment on
+   Current Selection" does the same.
+3. Write the text of the note in the box, in Markdown.
+4. Click "Add Note", or press Ctrl+Enter. "Cancel" removes the box.
 
-In the side view, put the cursor of the text editor on the line, click "Add
-Note", write the text, and click "Add Note" below the text.
+In the side view, select the passage or put the cursor of the text editor on
+the line, click "Add Note", write the text, and click "Add Note" below the
+text.
 
 The extension writes the new note on lines of its own:
 
-- On a line of a paragraph, it writes an inline note after that line, so that
-  the note keeps its exact place in the text and the paragraph does not
-  split.
+- With selected text, the note belongs to exactly this passage: the
+  extension writes the two markers around it and the note after its
+  paragraph ([Notes on a selection](#notes-on-a-selection)).
+- Without selected text, on a line of a paragraph or a heading, it writes a
+  point marker at the end of the text of the line and the note after the
+  paragraph, so that the note keeps its exact place in the text and the
+  paragraph does not split.
 - On another line, it writes a block note after the block of the line, for
-  example after a heading, a list or a code block. In a block quote or in a
-  list item, the note stays in it.
+  example after a list or a code block. In a block quote or in a list item,
+  the note stays in it.
 
-The new note has a front matter with the GitHub login of the author and the
+The new note has a front matter with the GitHub login of the author, the
 local date and time in minutes with the offset of the zone, for example
-`2026-10-28T10:15+01:00`.
+`2026-10-28T10:15+01:00`, and the ID of its selection.
 
 ## Answer a note
 
@@ -400,8 +453,13 @@ The built-in Markdown preview (Ctrl+Shift+V, or Ctrl+K V to the side) shows
 each note as a small, unobtrusive icon at its place:
 
 - the icon of an inline note in the text, after the word before the note;
+- the icon of a note on a selection at the end of the selection, which has a
+  highlight in the color of the note;
 - the icon of a block note in the left margin of the preview, at the height
   of its place.
+
+Each icon has the color of its note, the same color as the marker of the note
+in the text editor.
 
 The icon shows the number of answers of a thread with more than one answer.
 When the pointer rests on the icon, or the icon has the keyboard focus (Tab),
