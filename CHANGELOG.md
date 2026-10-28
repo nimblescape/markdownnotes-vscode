@@ -63,12 +63,18 @@ The first version.
   highlights the passage; the preview highlights it and shows the icon of the
   note at its end. The cursor steps over a hidden marker, and Backspace and
   Delete never change it. A click on the passage selects its note in the side
-  view.
+  view, in the text editor and in the preview, and a click outside the
+  passages deselects it. While a note is selected, the side view, the text
+  editor and the preview dim the other notes. The side view scrolls the
+  selected thread to its top; a click on its empty part or Escape deselects
+  the note.
 - The built-in Markdown preview shows each note as a small icon at its
   reference, and never as a footnote. The icon shows the note as a callout on
   hover and keyboard focus, and opens it in the side view on a click, as a
-  click on the highlighted passage does. The eye
-  in the title of the preview hides and shows the notes.
+  click on the highlighted passage does; a click shows no callout. The
+  passages have a faint highlight, and a strong one under the pointer. The
+  eye in the title of the preview hides and shows the notes, and the speech
+  bubble hides and shows only the icons ("Hide Note Icons in Preview").
 - A comment at the top of each file with notes, after a front matter, names
   the format of the notes with its version and links to the specification
   `docs/format.md`, so that programs and AI agents know how to read and add
@@ -82,6 +88,13 @@ The first version.
   reference without a note or a note without a reference, a note in a block
   quote, a reference in the text of a link, in a heading or in a note, and a
   start marker at the start of a line.
+- An own Markdown formatter for "Format Document" and format on save, the
+  default for Markdown files: each paragraph on one line with its hard line
+  breaks, aligned columns of the tables, no white space at the end of a line,
+  one blank line between blocks, and one line break at the end of the file.
+  It keeps code blocks, HTML, a front matter, math, containers and the
+  notes, and keeps the text as it was when the preview would show it
+  differently.
 - The extension pack installs "Markdown Footnotes" of Matt Bierner, so that
   the preview shows the other footnotes of a file.
 - The notes work together with the Markdown extensions of other publishers,
@@ -94,5 +107,7 @@ The first version.
   `nimblescape.markdownNotes.expandInEditor`,
   `nimblescape.markdownNotes.showFunnels`,
   `nimblescape.markdownNotes.showInPreview`,
-  `nimblescape.markdownNotes.showCalloutOnHover` and
-  `nimblescape.markdownNotes.openLinksIn`.
+  `nimblescape.markdownNotes.showIconsInPreview`,
+  `nimblescape.markdownNotes.showCalloutOnHover`,
+  `nimblescape.markdownNotes.openLinksIn` and
+  `nimblescape.markdownNotes.addFormatComment`.

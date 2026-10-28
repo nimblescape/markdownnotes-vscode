@@ -102,7 +102,8 @@ test('with the cursor outside the notes the editor dims the notes, and with the 
 });
 
 test('each note has a marker with its number in its color in the left margin and in the overview ruler (R-TEXT-006)', async () => {
-  const editor = await start();
+  // The cursor stands outside the notes, so that no note is selected and no marker is dimmed.
+  const editor = await start(12);
   const markers = typesOf(editor, 'gutterIconPath');
   // The marker stands at the first line of the selection, and while the note is open also at its first line.
   expect(markers.map((type) => editor.linesOf(type))).toEqual([
@@ -303,6 +304,36 @@ test('the passage of the note that the side view selects has a strong highlight 
   expect(highlighted()).toEqual([[new FakeRange(0, 28, 1, 8)]]);
   const [type] = [...editor.decorations.keys()].filter((candidate) => strong(candidate as DecorationType)) as DecorationType[];
   expect(type.options).toMatchObject({ backgroundColor: `${noteColors[0]}66`, border: `1px solid ${noteColors[0]}` });
+});
+
+test('while a note is selected, the passages, the bars and the markers of the other notes are dimmed (R-SIDE-007)', async () => {
+  const content = ['The <!--[note-aaaa-->agents[^note-aaaa] work.', '', hannes, '', '    A', '', 'More <!--[note-bbbb-->text[^note-bbbb].', '', anna, '', '    B', '', 'End.'].join('\n');
+  fake.settings.set('', { collapseInEditor: false });
+  const editor = await start(12, content);
+  const lines = (color: string) => [...editor.decorations.entries()].filter(([type]) => (type as DecorationType).options.backgroundColor === color).flatMap(([, items]) => items);
+  const bars = () => editor.decorations.get(attachmentType(editor, (before) => before.contentText === '')) as Attachment[];
+  const dimmed = () => typesOf(editor, 'gutterIconPath').filter((type) => Buffer.from(String(type.options.gutterIconPath).split(',')[1], 'base64').toString().includes(' opacity='));
+  expect(lines(`${noteColors[1]}33`)).toEqual([new FakeRange(6, 22, 6, 26)]);
+  expect(dimmed()).toEqual([]);
+  // A mouse click into the passage of the first note selects it.
+  editor.selection = { active: new FakePosition(0, 24) };
+  fake.fire('selection', { textEditor: editor, kind: 2 });
+  await vi.runAllTimersAsync();
+  expect(lines(`${noteColors[0]}66`)).toEqual([new FakeRange(0, 21, 0, 27)]);
+  expect(lines(`${noteColors[1]}33`)).toEqual([]);
+  expect(lines(`${noteColors[1]}12`)).toEqual([new FakeRange(6, 22, 6, 26)]);
+  expect(bars().map(({ renderOptions }) => renderOptions.before.backgroundColor)).toEqual([colorOf(1), colorOf(1), `${colorOf(2)}59`, `${colorOf(2)}59`]);
+  const [dim] = dimmed();
+  expect(editor.linesOf(dim)).toEqual([6, 8]);
+  expect(dim.options.overviewRulerColor).toBe(`${colorOf(2)}59`);
+  expect(markerImage(2, true)).toContain('opacity="0.35"');
+  // A mouse click outside the notes deselects the note, and nothing is dimmed.
+  editor.selection = { active: new FakePosition(12, 1) };
+  fake.fire('selection', { textEditor: editor, kind: 2 });
+  await vi.runAllTimersAsync();
+  expect(lines(`${noteColors[1]}12`)).toEqual([]);
+  expect(lines(`${noteColors[1]}33`)).toEqual([new FakeRange(6, 22, 6, 26)]);
+  expect(editor.linesOf(dim)).toEqual([]);
 });
 
 test('a selection has a highlight in the color of its note, and its start marker and its reference vanish behind a bar or a dot, also on the line of the cursor (R-NOTE-006)', async () => {

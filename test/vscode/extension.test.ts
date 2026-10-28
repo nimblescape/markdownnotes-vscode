@@ -229,8 +229,8 @@ describe('nimblescape Markdown Notes', () => {
     const html = await vscode.commands.executeCommand<string>('markdown.api.render', document);
     const link = `${vscode.env.uriScheme}://${extensionId}/open?${new URLSearchParams({ document: document.uri.toString(), line: '4' }).toString().replace(/&/g, '&amp;')}`;
     const edge = (number: number, side: string) => `<span class="nimblescape-note-edge" data-selection="nimblescape-note-${number}" data-edge="${side}" data-color="${number}"></span>`;
-    assert.ok(html.includes(`The text${edge(1, 'end')}<a class="nimblescape-note-icon nimblescape-note-color-1" aria-label="Note by ann, 2 answers" aria-describedby="nimblescape-note-1" href="${link}">`), html);
-    assert.match(html, new RegExp(`and ${edge(2, 'start')}a passage${edge(2, 'end')}<a class="nimblescape-note-icon nimblescape-note-color-2" aria-label="Note by carl" aria-describedby="nimblescape-note-2" href="[^"]*line=12">`));
+    assert.ok(html.includes(`The text${edge(1, 'end')}<a class="nimblescape-note-icon nimblescape-note-color-1" aria-label="Note by ann, 2 answers" aria-describedby="nimblescape-note-1" data-note="note-aaaa" href="${link}">`), html);
+    assert.match(html, new RegExp(`and ${edge(2, 'start')}a passage${edge(2, 'end')}<a class="nimblescape-note-icon nimblescape-note-color-2" aria-label="Note by carl" aria-describedby="nimblescape-note-2" data-note="note-bbbb" href="[^"]*line=12">`));
     assert.match(html, /<div class="nimblescape-note nimblescape-note-color-1" id="nimblescape-note-1" role="note" aria-label="Note by ann, 2 answers" hidden>/);
     // The date shows in the local time of the reader, and its tooltip in the local time of the author.
     assert.match(html, /<span class="nimblescape-note-author">ann<\/span><time class="nimblescape-note-date" datetime="2026-10-28T10:15\+01:00" title="2026-10-28 10:15 at the author \(UTC\+01:00\)">2026-10-28 \d{2}:\d{2}<\/time>/);

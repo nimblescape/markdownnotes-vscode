@@ -20,8 +20,9 @@
  * Each note has the color of its number, as its marker in the text editor
  * (src/notes/colors.ts): the class nimblescape-note-color-N sets the variable
  * --nimblescape-note-color for the icon and the bar of the callout. The script
- * highlights the selection of a note in the same color (R-NOTE-006), and the
- * selection of the selected note of the side view stronger, with a frame.
+ * highlights the selection of a note in the same color (R-NOTE-006): faint,
+ * strong under the pointer, and the selection of the selected note of the
+ * side view strong with a frame, while the other notes are dimmed.
  */
 
 .nimblescape-note-color-1 { --nimblescape-note-color: #1a7fe0; }
@@ -31,12 +32,21 @@
 .nimblescape-note-color-5 { --nimblescape-note-color: #d33b3b; }
 .nimblescape-note-color-6 { --nimblescape-note-color: #138a8a; }
 
-::highlight(nimblescape-note-1) { background-color: rgba(26, 127, 224, 0.2); }
-::highlight(nimblescape-note-2) { background-color: rgba(46, 139, 62, 0.2); }
-::highlight(nimblescape-note-3) { background-color: rgba(199, 115, 26, 0.2); }
-::highlight(nimblescape-note-4) { background-color: rgba(138, 79, 192, 0.2); }
-::highlight(nimblescape-note-5) { background-color: rgba(211, 59, 59, 0.2); }
-::highlight(nimblescape-note-6) { background-color: rgba(19, 138, 138, 0.2); }
+/* The passage of each note: a faint highlight (Hannes, 2026-10-28: "selected text appears dimmed but a hover highlights it"). */
+::highlight(nimblescape-note-1) { background-color: rgba(26, 127, 224, 0.12); }
+::highlight(nimblescape-note-2) { background-color: rgba(46, 139, 62, 0.12); }
+::highlight(nimblescape-note-3) { background-color: rgba(199, 115, 26, 0.12); }
+::highlight(nimblescape-note-4) { background-color: rgba(138, 79, 192, 0.12); }
+::highlight(nimblescape-note-5) { background-color: rgba(211, 59, 59, 0.12); }
+::highlight(nimblescape-note-6) { background-color: rgba(19, 138, 138, 0.12); }
+
+/* The passages of the other notes while a note is selected: dimmed. */
+::highlight(nimblescape-note-1-dim) { background-color: rgba(26, 127, 224, 0.05); }
+::highlight(nimblescape-note-2-dim) { background-color: rgba(46, 139, 62, 0.05); }
+::highlight(nimblescape-note-3-dim) { background-color: rgba(199, 115, 26, 0.05); }
+::highlight(nimblescape-note-4-dim) { background-color: rgba(138, 79, 192, 0.05); }
+::highlight(nimblescape-note-5-dim) { background-color: rgba(211, 59, 59, 0.05); }
+::highlight(nimblescape-note-6-dim) { background-color: rgba(19, 138, 138, 0.05); }
 
 /* The selection of the selected note of the side view, which also has a frame. */
 ::highlight(nimblescape-note-1-selected) { background-color: rgba(26, 127, 224, 0.4); }
@@ -62,7 +72,7 @@
   pointer-events: none;
 }
 
-/* The selection of the note whose callout shows. */
+/* The passage under the pointer, and the passage of the note whose callout shows. */
 ::highlight(nimblescape-note-1-active) { background-color: rgba(26, 127, 224, 0.4); }
 ::highlight(nimblescape-note-2-active) { background-color: rgba(46, 139, 62, 0.4); }
 ::highlight(nimblescape-note-3-active) { background-color: rgba(199, 115, 26, 0.4); }
@@ -82,6 +92,21 @@
   line-height: 1;
   vertical-align: 0.05em;
   text-decoration: none;
+  cursor: pointer;
+}
+
+/* The icons of the other notes while a note is selected: dimmed. */
+html[data-nimblescape-chosen] .nimblescape-note-icon:not([data-selected], :hover, :focus-visible, [aria-expanded='true']) {
+  opacity: 0.3;
+}
+
+/* The icons that the setting showIconsInPreview hides; their passages still show. */
+.nimblescape-note-icon[data-icon='hidden'] {
+  display: none;
+}
+
+/* A click on a passage selects its note: the pointer shows it. */
+html[data-nimblescape-passage] {
   cursor: pointer;
 }
 

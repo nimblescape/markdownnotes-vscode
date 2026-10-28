@@ -28,7 +28,9 @@
 //
 // Each thread shows the badge with the number and the color of its note, and
 // a click on a thread, outside its buttons and editors, selects its note in
-// the text editor (R-SIDE-007). While the setting showFunnels is on, the left
+// the text editor (R-SIDE-007). The view scrolls the selected thread to its
+// top, and dims the other threads while a thread is selected. A click on the
+// empty part of the view, or Escape outside an editor, deselects the thread. While the setting showFunnels is on, the left
 // edge of the view has a strip that stands for the whole file, with a mark
 // for each note and a frame for the part of the file that the text editor
 // shows, and a funnel leads from the selected thread, while it is visible, to
@@ -373,6 +375,7 @@
     for (const thread of state.threads) {
       root.append(threadOf(thread));
     }
+    document.body.classList.toggle('with-selection', state.threads.some((thread) => thread.id === state.selected));
     drawLater();
     const key = focusKey ?? activeKey;
     const field = key ? root.querySelector(`.editor[data-key="${CSS.escape(key)}"] textarea`) : null;
@@ -449,10 +452,25 @@
     }
   };
 
-  /** scrollToSelected scrolls the selected thread into the view. */
+  /** scrollToSelected scrolls the selected thread to the top of the view (Hannes, 2026-10-28: "so the selected note is on top"). */
   const scrollToSelected = () => {
-    root.querySelector('.thread.selected')?.scrollIntoView({ block: 'nearest' });
+    root.querySelector('.thread.selected')?.scrollIntoView({ block: 'start' });
   };
+
+  // A click on the empty part of the view, outside the threads and the controls, deselects the selected thread.
+  document.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (state.selected !== undefined && (!target || !target.closest('.thread, .top, button, a, textarea, .editor, .new-title, .strip, .funnels'))) {
+      vscode.postMessage({ type: 'deselect' });
+    }
+  });
+  // Escape outside an editor deselects the selected thread; in an editor it cancels the editor.
+  document.addEventListener('keydown', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (event.key === 'Escape' && !event.defaultPrevented && state.selected !== undefined && !target?.closest('textarea, .editor')) {
+      vscode.postMessage({ type: 'deselect' });
+    }
+  });
 
   // A click on a link of a rendered text opens the link through the extension: the page of the view would resolve a
   // relative link against its own address, and VS Code opens only some schemes from a webview. The listener runs

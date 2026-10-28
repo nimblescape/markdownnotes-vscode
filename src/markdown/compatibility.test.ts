@@ -132,6 +132,8 @@ describe.each(orders)('with the plugin of the extension %s', (_name, create) => 
     expect(html.match(/<section class="footnotes">/g)).toHaveLength(1);
     expect(html).toMatch(/<\/div>\n<hr class="footnotes-sep">\n<section class="footnotes">[^]*The footnote\.[^]*The footnote of the note\.[^]*<\/section>\n<\/div><\/div>$/);
     expect(html.match(/<li id="fn\d+" class="footnote-item">/g)).toHaveLength(2);
-    expect(html).not.toContain('note-7k2q');
+    // The label stands only in the attribute data-note of the icon, for the script of the preview.
+    expect(html.match(/note-7k2q/g)).toHaveLength(1);
+    expect(html).toContain(' data-note="note-7k2q"');
   });
 });

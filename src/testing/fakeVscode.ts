@@ -122,6 +122,18 @@ export class FakeWorkspaceEdit {
   }
 }
 
+/** FakeTextEdit stands for a vscode.TextEdit. */
+export class FakeTextEdit {
+  constructor(
+    readonly range: FakeRange,
+    readonly newText: string,
+  ) {}
+
+  static replace(range: FakeRange, newText: string): FakeTextEdit {
+    return new FakeTextEdit(range, newText);
+  }
+}
+
 /** FakeDiagnostic stands for a vscode.Diagnostic. */
 export class FakeDiagnostic {
   source: string | undefined;
@@ -384,6 +396,8 @@ export class Fake {
   errors: string[] = [];
   diagnostics = new Map<string, FakeDiagnostic[]>();
   folding = new Map<string, { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }>();
+  /** formatters holds the provider of "Format Document" of each language. */
+  formatters = new Map<string, { provideDocumentFormattingEdits(document: FakeDocument): FakeTextEdit[] }>();
   listeners = new Map<string, ((event: unknown) => void)[]>();
   controller: { id: string; options?: unknown; commentingRangeProvider?: { provideCommentingRanges(document: FakeDocument): FakeRange[] } } | undefined;
   /** login is the GitHub login of the session; undefined means no session, and a sign-in is refused. */
@@ -423,6 +437,7 @@ export class Fake {
       Selection: FakeSelection,
       MarkdownString: FakeMarkdownString,
       WorkspaceEdit: FakeWorkspaceEdit,
+      TextEdit: FakeTextEdit,
       Diagnostic: FakeDiagnostic,
       FoldingRange: FakeFoldingRange,
       ThemeColor: FakeThemeColor,
@@ -460,6 +475,10 @@ export class Fake {
           }),
         registerFoldingRangeProvider: (language: string, provider: { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }) => {
           this.folding.set(language, provider);
+          return this.registration();
+        },
+        registerDocumentFormattingEditProvider: (selector: { language: string }, provider: { provideDocumentFormattingEdits(document: FakeDocument): FakeTextEdit[] }) => {
+          this.formatters.set(selector.language, provider);
           return this.registration();
         },
       },

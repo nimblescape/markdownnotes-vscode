@@ -35,7 +35,8 @@
  *   Backspace and Delete next to a marker delete the character on the other
  *   side of it ([src/notes/cursor.ts](notes/cursor.ts)), so that no key changes
  *   a marker. The selection of the selected note of the side view has a strong
- *   highlight with a frame in its color.
+ *   highlight with a frame in its color, and the selections, the bars and the
+ *   markers of the other notes are dimmed.
  * - **Headers** ([R-TEXT-007](../docs/requirements.md#r-text-007)): the header
  *   line of each answer shows rendered, with the author and the date in the
  *   local time of the reader, for example `hannes · 2026-10-28 10:15`, and the
@@ -104,15 +105,22 @@ export const keepTime = 300;
 
 export { colorOf, noteColors } from './notes/colors';
 
+/** dimOpacity is the opacity of the marker of a note while another note is selected. */
+const dimOpacity = 0.35;
+
+/** dimAlpha is the alpha, as two hexadecimal digits, of the color of the bars of a note while another note is selected. */
+const dimAlpha = '59';
+
 /**
  * markerImage returns the image of the marker of a note: a speech bubble in its color with its number.
  * @param number - The number of the note, from 1.
+ * @param dim - Whether another note is selected, so that the marker is dimmed.
  */
-export function markerImage(number: number): string {
+export function markerImage(number: number, dim = false): string {
   const label = number > 99 ? '…' : String(number);
   const size = label.length > 1 ? 6.5 : 8;
   return [
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">',
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"${dim ? ` opacity="${dimOpacity}"` : ''}>`,
     `<path d="M2.5 1.5h11A1.5 1.5 0 0 1 15 3v7.5a1.5 1.5 0 0 1-1.5 1.5H7.5L4 15v-3H2.5A1.5 1.5 0 0 1 1 10.5V3a1.5 1.5 0 0 1 1.5-1.5z" fill="${colorOf(number)}"/>`,
     `<text x="8" y="9.6" font-family="sans-serif" font-size="${size}" font-weight="bold" fill="#fff" text-anchor="middle">${label}</text>`,
     '</svg>',
@@ -149,9 +157,10 @@ const positionOf = (position: Position): vscode.Position => new vscode.Position(
  * the end of the selection, or a dot at a point.
  * @param marker - The marker.
  * @param number - The number of the note, from 1.
+ * @param dim - Whether another note is selected, so that the bar or the dot is dimmed.
  */
-function edgeOf(marker: Marker, number: number): vscode.DecorationOptions {
-  const color = colorOf(number);
+function edgeOf(marker: Marker, number: number, dim: boolean): vscode.DecorationOptions {
+  const color = `${colorOf(number)}${dim ? dimAlpha : ''}`;
   const at = positionOf(marker.kind === 'open' ? marker.end : marker.start);
   const before: vscode.ThemableDecorationAttachmentRenderOptions =
     marker.kind === 'point'
@@ -190,6 +199,8 @@ export class NoteEditor implements vscode.Disposable {
   private readonly hidden = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
   /** highlights holds the decoration of the selections of each color of a note. */
   private readonly highlights = noteColors.map((color) => vscode.window.createTextEditorDecorationType({ backgroundColor: `${color}33`, overviewRulerColor: color, overviewRulerLane: vscode.OverviewRulerLane.Center }));
+  /** faint holds the decoration of the selections of each color of the other notes while a note is selected: dimmed. */
+  private readonly faint = noteColors.map((color) => vscode.window.createTextEditorDecorationType({ backgroundColor: `${color}12`, overviewRulerColor: `${color}${dimAlpha}`, overviewRulerLane: vscode.OverviewRulerLane.Center }));
   /** edges shows the bars and the dots in place of the hidden markers of the selections. */
   private readonly edges = vscode.window.createTextEditorDecorationType({});
   /** strong holds the decoration of the selection of the selected note of each color: a strong highlight with a frame. */
@@ -198,6 +209,8 @@ export class NoteEditor implements vscode.Disposable {
   private readonly headers = vscode.window.createTextEditorDecorationType({});
   /** markers holds the decoration of the marker of each number of a note. */
   private readonly markers: vscode.TextEditorDecorationType[] = [];
+  /** dimMarkers holds the decoration of the dimmed marker of each number of a note, while another note is selected. */
+  private readonly dimMarkers: vscode.TextEditorDecorationType[] = [];
   /** collapsed holds the documents whose notes the extension collapsed once, by their URIs. */
   private readonly collapsed = new Set<string>();
   /** pending holds the documents whose first collapse repeats, by their URIs: the version of the document and the time until which it repeats. */
@@ -315,20 +328,22 @@ export class NoteEditor implements vscode.Disposable {
   /**
    * markerOf returns the decoration of the marker of a number, which it creates the first time.
    * @param number - The number of a note, from 1.
+   * @param dim - Whether the marker is dimmed, because another note is selected.
    */
-  private markerOf(number: number): vscode.TextEditorDecorationType {
-    while (this.markers.length < number) {
-      const created = this.markers.length + 1;
-      this.markers.push(
+  private markerOf(number: number, dim = false): vscode.TextEditorDecorationType {
+    const markers = dim ? this.dimMarkers : this.markers;
+    while (markers.length < number) {
+      const created = markers.length + 1;
+      markers.push(
         vscode.window.createTextEditorDecorationType({
-          gutterIconPath: vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(markerImage(created)).toString('base64')}`),
+          gutterIconPath: vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(markerImage(created, dim)).toString('base64')}`),
           gutterIconSize: 'contain',
-          overviewRulerColor: colorOf(created),
+          overviewRulerColor: `${colorOf(created)}${dim ? dimAlpha : ''}`,
           overviewRulerLane: vscode.OverviewRulerLane.Left,
         }),
       );
     }
-    return this.markers[number - 1];
+    return markers[number - 1];
   }
 
   /**
@@ -366,28 +381,42 @@ export class NoteEditor implements vscode.Disposable {
       free.forEach((line) => taken.add(line));
       return free;
     });
-    for (let number = 1; number <= Math.max(notes.length, this.markers.length); number++) {
-      editor.setDecorations(this.markerOf(number), (markerLines[number - 1] ?? []).map((line) => new vscode.Range(line, 0, line, 0)));
+    // While a note is selected, the other notes are dimmed (Hannes, 2026-10-28: "other notes shall be dimmed when one
+    // note is selected").
+    const label = this.selected.labelOf(document.uri);
+    const selectedLabel = notes.some((note) => note.label === label) ? label : undefined;
+    const dims = (note: Note): boolean => selectedLabel !== undefined && note.label !== selectedLabel;
+    for (let number = 1; number <= Math.max(notes.length, this.markers.length, this.dimMarkers.length); number++) {
+      const note = notes[number - 1];
+      const ranges = (markerLines[number - 1] ?? []).map((line) => new vscode.Range(line, 0, line, 0));
+      const dim = note !== undefined && dims(note);
+      editor.setDecorations(this.markerOf(number), dim ? [] : ranges);
+      // The dimmed marker of a number exists once a note of the number was dimmed.
+      if (dim || number <= this.dimMarkers.length) {
+        editor.setDecorations(this.markerOf(number, true), dim ? ranges : []);
+      }
     }
     const highlighted = this.highlights.map((): vscode.Range[] => []);
+    const faint = this.faint.map((): vscode.Range[] => []);
     const strong = this.strong.map((): vscode.Range[] => []);
     const hidden = [...collapsed].filter((fold) => fold.hidesFirst && cursor.line !== fold.start).map((fold) => document.lineAt(fold.start).range);
     const edges: vscode.DecorationOptions[] = [];
-    const selectedLabel = this.selected.labelOf(document.uri);
-    notes.forEach(({ label, selection }, index) => {
+    notes.forEach((note, index) => {
+      const selection = note.selection;
       if (!selection) {
         return;
       }
       const range = new vscode.Range(positionOf(selection.start), positionOf(selection.end));
       if (!range.isEmpty) {
-        (label === selectedLabel ? strong : highlighted)[colorIndexOf(index + 1)].push(range);
+        (note.label === selectedLabel ? strong : dims(note) ? faint : highlighted)[colorIndexOf(index + 1)].push(range);
       }
       for (const marker of selection.markers) {
         hidden.push(new vscode.Range(positionOf(marker.start), positionOf(marker.end)));
-        edges.push(edgeOf(marker, index + 1));
+        edges.push(edgeOf(marker, index + 1, dims(note)));
       }
     });
     this.highlights.forEach((highlight, index) => editor.setDecorations(highlight, highlighted[index]));
+    this.faint.forEach((highlight, index) => editor.setDecorations(highlight, faint[index]));
     this.strong.forEach((highlight, index) => editor.setDecorations(highlight, strong[index]));
     const headers: vscode.DecorationOptions[] = [];
     for (const header of headersOf(lines, notes)) {
@@ -652,7 +681,7 @@ export class NoteEditor implements vscode.Disposable {
 
   /** dispose removes the decorations. */
   dispose(): void {
-    for (const decoration of [this.dimmed, this.hidden, this.edges, this.headers, ...this.highlights, ...this.strong, ...this.markers]) {
+    for (const decoration of [this.dimmed, this.hidden, this.edges, this.headers, ...this.highlights, ...this.faint, ...this.strong, ...this.markers, ...this.dimMarkers]) {
       decoration.dispose();
     }
   }

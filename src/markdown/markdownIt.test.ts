@@ -103,10 +103,11 @@ const header = '**hannes** · 2026-10-28 10:15+01:00';
  * iconOf returns the HTML of the icon of a note.
  * @param number - The number of the note.
  * @param line - The line of the definition, for the link.
+ * @param note - The label of the note: note-aaaa for the first note, note-bbbb for the second, note-cccc for the third.
  * @param label - The label of the icon.
  */
-const iconOf = (number: number, line: number, label = 'Note by hannes'): string =>
-  `<a class="${noteClass}-icon ${noteClass}-color-${number}" aria-label="${label}" aria-describedby="${noteClass}-${number}" href="vscode://a.b/open?line=${line}">[icon]</a>`;
+const iconOf = (number: number, line: number, note = `note-${['aaaa', 'bbbb', 'cccc'][number - 1]}`, label = 'Note by hannes'): string =>
+  `<a class="${noteClass}-icon ${noteClass}-color-${number}" aria-label="${label}" aria-describedby="${noteClass}-${number}" data-note="${note}" href="vscode://a.b/open?line=${line}">[icon]</a>`;
 
 /**
  * edgeOf returns the HTML of the start or the end of the selection of a note.
@@ -255,7 +256,7 @@ describe('the plugin', () => {
     const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n[^note-aaaa]: ${header}\n\n    Again.\n\n> [^note-bbbb]: ${header}\n`;
     const html = icons(plain(preview(true).render(text)));
     expect(html).toContain(`<p>Text${edgeOf(1, 'end')}${iconOf(1, 2)}.</p>`);
-    expect(html).toContain(`<div class="${noteClass}-anchor">${iconOf(2, 4)}</div>`);
+    expect(html).toContain(`<div class="${noteClass}-anchor">${iconOf(2, 4, 'note-aaaa')}</div>`);
     expect(html).toMatch(new RegExp(`<blockquote>\n<div class="${noteClass}-anchor"><a [^>]*>\\[icon\\]</a></div>\n<div class="${noteClass} ${noteClass}-color-3"[^]*</blockquote>\n$`));
   });
 
@@ -283,7 +284,7 @@ describe('the plugin', () => {
     const md = extendMarkdownIt(new MarkdownIt({ html: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: (env) => (env as { link?: string }).link, fileLinkOf: () => undefined });
     const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n`;
     expect(md.render(text, { link: 'vscode://a.b/open?x="1"&y=2' })).toContain('href="vscode://a.b/open?x=&quot;1&quot;&amp;y=2"');
-    expect(md.render(text, {})).toContain(`<span class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" role="img" tabindex="0">`);
+    expect(md.render(text, {})).toContain(`<span class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" data-note="note-aaaa" role="img" tabindex="0">`);
   });
 
   test('gives the links of a callout that name files the address of the extension, and keeps the tokens of the document as they are (R-GEN-010)', () => {
@@ -312,25 +313,30 @@ describe('the plugin', () => {
     expect(plain(preview(true, false).render(text))).toBe('<p>One two three.</p>\n<blockquote>\n<p><strong>anna</strong> · 2026-10-28 11:02+01:00</p>\n</blockquote>\n<p>Next.</p>\n');
   });
 
-  test('marks the icons for the script of the preview: without a callout on hover after the setting showCalloutOnHover, and the selected note with its request to scroll (R-PREV-002, R-SIDE-007)', () => {
+  test('marks the icons for the script of the preview: without a callout on hover after the setting showCalloutOnHover, hidden after the setting showIconsInPreview, and the selected note with its request to scroll and its link that deselects it (R-PREV-002, R-PREV-003, R-PREV-007, R-SIDE-007)', () => {
     const selections = new Map<unknown, { label: string | undefined; reveal: number | undefined }>();
     const md = extendMarkdownIt(new MarkdownIt({ html: true }), {
-      settingsOf: (env) => ({ showInPreview: true, showCalloutOnHover: (env as { hover?: boolean }).hover }),
+      settingsOf: (env) => ({ showInPreview: true, showCalloutOnHover: (env as { hover?: boolean }).hover, showIconsInPreview: (env as { icons?: boolean }).icons }),
       linkOf: () => 'vscode://a.b/open',
       fileLinkOf: () => undefined,
       selectedOf: (env) => selections.get((env as { id?: string }).id),
+      deselectLinkOf: (env) => (env as { deselect?: string }).deselect,
     });
     const text = `A[^note-aaaa] B[^note-bbbb]\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}\n`;
     const attributes = (env: object) =>
-      [...md.render(text, env).matchAll(/<a class="[^"]*-icon[^>]*>/g)].map((match) => [...match[0].matchAll(/ data-(?:hover|selected|reveal)="[^"]*"/g)].join(''));
-    // A missing setting shows the callout, as the default of the setting does.
+      [...md.render(text, env).matchAll(/<a class="[^"]*-icon[^>]*>/g)].map((match) => [...match[0].matchAll(/ data-(?:hover|icon|selected|reveal|deselect)="[^"]*"/g)].join(''));
+    // A missing setting shows the callout and the icon, as the default of the setting does.
     expect(attributes({})).toEqual(['', '']);
-    expect(attributes({ hover: true })).toEqual(['', '']);
+    expect(attributes({ hover: true, icons: true })).toEqual(['', '']);
     expect(attributes({ hover: false })).toEqual([' data-hover="off"', ' data-hover="off"']);
+    expect(attributes({ icons: false })).toEqual([' data-icon="hidden"', ' data-icon="hidden"']);
     selections.set('x', { label: 'note-bbbb', reveal: undefined });
     selections.set('y', { label: 'note-aaaa', reveal: 4 });
     expect(attributes({ id: 'x' })).toEqual(['', ' data-selected="true"']);
     expect(attributes({ id: 'y' })).toEqual([' data-selected="true" data-reveal="4"', '']);
+    expect(attributes({ id: 'x', deselect: 'vscode://a.b/deselect?d="1"' })).toEqual(['', ' data-selected="true" data-deselect="vscode://a.b/deselect?d=&quot;1&quot;"']);
+    // Each icon names its note, for the script of the preview.
+    expect([...md.render(text, {}).matchAll(/ data-note="([^"]*)"/g)].map((match) => match[1])).toEqual(['note-aaaa', 'note-bbbb']);
   });
 
   test('reads the setting and the link for the environment of each rendering', () => {

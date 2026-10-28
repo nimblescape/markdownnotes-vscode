@@ -23,7 +23,9 @@ footnote in the file, with the GitHub login of the author.
   start marker and the comment of the format at the top of the file. When an
   editor shows a file with notes without that comment, the extension adds
   it; the setting `nimblescape.markdownNotes.addFormatComment` turns this off. You save the
-  file as usual, and Undo takes the change back.
+  file as usual, and Undo takes the change back. When you save a Markdown
+  file, the formatter of the extension formats it; `"editor.formatOnSave":
+  false` for `[markdown]` in the settings of VS Code turns this off.
   Other footnotes, for example `[^1]`, stay as they are.
 - **GitHub sign-in.** New notes and answers need a sign-in with GitHub, so
   that the author is always known. The extension uses the GitHub sign-in of
@@ -86,7 +88,8 @@ describes each step and where its protection ends.
   GitHub shows the paragraph without the marker. The cursor steps over a
   hidden marker, and Backspace and Delete never change it. A click on the
   passage selects the note in the side view, and the passage of the selected
-  note has a strong highlight with a frame.
+  note has a strong highlight with a frame, while the other notes are dimmed.
+  A click into the text outside the notes deselects the note.
 - **Side view "Notes".** The view lists the threads of the active Markdown
   file, also in the modes "Markdown Preview" and "Markdown Editor" of
   VS Code, and selects the thread at the cursor. A click on a thread shows
@@ -98,14 +101,19 @@ describes each step and where its protection ends.
   of the Markdown editors opens and closes it with one click, also in Zen
   Mode. Each thread has a badge with the number and the color of its note,
   and a funnel leads from each thread to the mark of its note in a strip that
-  stands for the whole file.
+  stands for the whole file. The selected thread scrolls to the top of the
+  view.
 - **Icons in the Markdown preview.** The preview shows each note as a small
   icon at its reference, and never as a footnote at the end of the page. On
   hover or keyboard focus, the icon shows the rendered callout with all
   answers; the setting `nimblescape.markdownNotes.showCalloutOnHover` turns
   off the callout on hover. A click on the icon or on the highlighted passage
   opens the note in the side view. The eye in the title of the preview hides
-  and shows the notes.
+  and shows the notes, and the speech bubble hides and shows only the icons.
+- **Formatter.** The extension formats a Markdown file when you save it:
+  each paragraph on one line with its hard line breaks, aligned tables,
+  no spaces at the end of a line, one blank line between blocks. Code, HTML,
+  a front matter and the notes stay as they are.
 - **For AI agents.** A comment at the top of each file with notes names the
   format of the notes, like a DOCTYPE, as soon as an editor shows the file,
   and links to its
@@ -184,9 +192,14 @@ extension to everyone who opens it.
 | `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnel from the selected thread to its mark in the side view "Notes". |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor, with `showNotesIn` set to `inline`. The value `false` shows only the mark at each note. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The eye in the title of the preview changes it. |
-| `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus. |
+| `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus. A click on the icon never shows it. |
+| `nimblescape.markdownNotes.showIconsInPreview` | `true` | Shows the icons of the notes in the preview. The value `false` hides them and keeps the highlighted passages. The speech bubble in the title of the preview changes it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes as soon as an editor shows it. The value `false` adds it only with a change of a note. |
-| `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in the editor of VS Code, `system` with the program of your system. |
+| `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
+
+The formatter is the default formatter of Markdown files with format on
+save. To turn it off, set `"editor.formatOnSave": false` in a
+`"[markdown]"` block of your settings.
 
 ## Limits
 

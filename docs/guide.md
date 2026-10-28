@@ -41,8 +41,9 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Add a note](#add-a-note) | text editor, side view | available | [R-EDIT-003](requirements.md#r-edit-003) |
 | [Answer a note or an answer](#answer-a-note) | text editor, side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | text editor, side view | available | [R-EDIT-004](requirements.md#r-edit-004) |
-| [Icons and callouts](#icons-and-callouts-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001) to [R-PREV-005](requirements.md#r-prev-005) |
+| [Icons and callouts](#icons-and-callouts-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001) to [R-PREV-005](requirements.md#r-prev-005), [R-PREV-007](requirements.md#r-prev-007) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
+| [Formatter](#formatter) | text editor, on save | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-003](requirements.md#r-fmt-003) |
 | [Settings](#settings) | VS Code | available | [R-GEN-009](requirements.md#r-gen-009), [R-GEN-010](requirements.md#r-gen-010) |
 
 ## Write a note
@@ -187,13 +188,18 @@ hidden start marker `<!--[note-7k2q-->` to the reference `[^note-7k2q]`.
     changes the text of the file as it is.
 - A click with the mouse on the passage in the text editor selects its note in
   the side view "Notes", and opens the side view when it is closed.
-- The preview highlights the passage in the color of the note and shows the
-  icon of the note at its reference. While the callout of the note shows, the
-  highlight is stronger. A click on the passage selects its note in the side
-  view, as a click on its icon does.
+- The preview highlights the passage faintly in the color of the note and
+  shows the icon of the note at its reference. Under the pointer and while
+  the callout of the note shows, the highlight is strong. A click on the
+  passage selects its note in the side view, as a click on its icon does.
 - The note that is selected in the side view has a strong highlight with a
   frame in its color, in the text editor and in the preview, so that you see
-  which passage the selected thread belongs to.
+  which passage the selected thread belongs to. The other notes are dimmed:
+  their passages, their bars and markers in the text editor, and their icons
+  in the preview.
+- A click with the mouse into the text outside the notes, in the text editor
+  or in the preview, deselects the note. A move of the cursor with the keys
+  keeps it.
 
 The extension writes the start marker and the reference itself when you add a
 note ([Add a note](#add-a-note)).
@@ -407,7 +413,11 @@ the editor of the notes:
   author. The active Markdown file is the file of the text editor, of the
   Markdown preview, or of the mode "Markdown Editor" of VS Code.
 - The view selects the thread at the cursor of the text editor, and the
-  thread whose icon or passage you clicked in the preview, and scrolls to it.
+  thread whose icon or passage you clicked in the preview, and scrolls it to
+  the top of the view. The other threads are dimmed while a thread is
+  selected; a thread under the pointer shows clear. A click on the empty part
+  of the view, or Escape outside an editor, deselects the thread, as a click
+  into the text outside the notes does.
 - Each thread shows a badge with the number of its note, in the color of the
   note, the same as the marker in the left margin of the text editor; the
   left side of the thread has this color too.
@@ -568,7 +578,8 @@ in the text editor.
 
 The icon shows the number of answers of a thread with more than one answer.
 When the pointer rests on the icon, or the icon has the keyboard focus (Tab),
-the preview shows the note as a callout next to the icon. The setting
+the preview shows the note as a callout next to the icon. A click on the icon
+shows no callout. The setting
 `nimblescape.markdownNotes.showCalloutOnHover` with the value `false` shows
 the callout only for the keyboard focus, not for the pointer. The callout is
 a box with a colored bar at its left side, and each answer with its author,
@@ -578,11 +589,21 @@ date shows the local time of the author. The callout uses the colors of the
 theme of VS Code. Escape closes it.
 
 A click on the icon, or on the highlighted passage of the note, opens the
-note in the side view "Notes", where you can edit and answer it. The icon is a
-link of the scheme `vscode://` to the extension; VS Code may ask once whether
-the extension may open it. The note that is selected in the side view has a
-strong highlight with a frame in its color, and a click on its thread scrolls
-the preview to it.
+note in the side view "Notes", where you can edit and answer it, and a click
+on the text outside the passages deselects it. The pointer shows a hand over
+a passage. A click on a link of the text, a drag that selects text and a
+double click, which opens the text editor, work as without the extension.
+The icon is a link of the scheme `vscode://` to the extension; VS Code may
+ask once whether the extension may open it. The note that is selected in the
+side view has a strong highlight with a frame in its color, the other notes
+are dimmed, and a click on its thread scrolls the preview to it.
+
+The button "Hide Note Icons in Preview" (a speech bubble) in the title of the
+preview hides the icons and keeps the highlighted passages, and "Show Note
+Icons in Preview" shows them again. A click on a passage still opens its
+note; a note without a passage then shows in the side view only. The buttons
+change the setting `nimblescape.markdownNotes.showIconsInPreview`, as the
+buttons below change their setting.
 
 Outside the notes, the preview shows the file as without the extension. The
 button "Hide Notes in Preview" (the eye) in the title of the preview hides
@@ -601,7 +622,7 @@ top right of the editor, or "Reopen Editor With…", changes the mode:
 | Mode | Notes |
 | --- | --- |
 | Text Editor | All features of this guide. |
-| Markdown Preview | The icons, the callouts and the highlights, as in the preview to the side. The buttons "Show or Hide Notes" and "Hide Notes in Preview" are in its title. The side view "Notes" shows the notes of the file, and a click on a thread keeps the mode and scrolls to the note. |
+| Markdown Preview | The icons, the callouts and the highlights, as in the preview to the side. The buttons "Show or Hide Notes", "Hide Notes in Preview" and "Hide Note Icons in Preview" are in its title. The side view "Notes" shows the notes of the file, and a click on a thread keeps the mode and scrolls to the note. |
 | Markdown Editor | The side view "Notes" shows the notes of the file, and a click on a thread selects its passage in the Markdown Editor. The Markdown Editor itself shows no notes. |
 
 The Markdown Editor renders the file with its own engine, which takes no
@@ -611,6 +632,42 @@ such an API. The Markdown Editor therefore shows a start marker as a gap, a
 reference as its text, for example `[^note-7k2q]`, and the text of a note as
 a code block. The notes stay in the file as they are. Use the text editor or
 the mode "Markdown Preview" to read the notes in the text.
+
+## Formatter
+
+The extension brings a formatter of Markdown files. It is the default
+formatter of Markdown, and VS Code runs it when you save a Markdown file and
+on "Format Document" (Shift+Alt+F). It changes:
+
+- Each paragraph stands on one line, also in a list item or a block quote.
+  A hard line break stays: two spaces or a backslash at the end of a line.
+  Turn on the word wrap of VS Code (Alt+Z) to read long lines.
+- The columns of a table are aligned, after the alignment of its delimiter
+  row, by the width that the text editor shows: the hidden markers of the
+  notes count nothing, and a wide character, such as a Chinese character or
+  an emoji, counts two columns.
+- No line ends with spaces, apart from a hard line break; one blank line
+  stands between two blocks and around each heading with `#`; the file ends
+  with one line break.
+- A start marker of a note at the start of a line joins the paragraph before
+  it, so that GitHub shows the paragraph with the passage.
+
+It keeps code blocks, HTML and comments (also the comment of the format of
+the notes), a front matter, math blocks (`$$`), containers (`:::`), headings
+underlined with `===` or `---`, and the notes as they are. When the formatted
+text would show other blocks or another text in the preview, it changes
+nothing. Undo takes a change back.
+
+To turn it off, add to your settings (`settings.json`):
+
+```json
+"[markdown]": {
+  "editor.formatOnSave": false
+}
+```
+
+Another formatter takes over with `"editor.defaultFormatter"` in the same
+block, for example `"esbenp.prettier-vscode"`.
 
 ## Settings
 
@@ -622,7 +679,8 @@ the mode "Markdown Preview" to read the notes in the text.
 | `nimblescape.markdownNotes.showFunnels` | `true` | Shows the strip with the marks of the notes and the funnel from the selected thread to its mark in the side view "Notes". The buttons "Show Funnels" and "Hide Funnels" in the title of the view change it. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens, with `showNotesIn` set to `inline`. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes, icons and callouts. The buttons of the preview change it. A folder of a workspace can have its own value. |
-| `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus; a click on the icon or the passage still selects the note in the side view. |
+| `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus. A click on the icon or the passage never shows it; it selects the note in the side view. |
+| `nimblescape.markdownNotes.showIconsInPreview` | `true` | Shows the icons of the notes in the preview. The value `false` hides them and keeps the highlighted passages, which still open their notes. The buttons "Hide Note Icons in Preview" and "Show Note Icons in Preview" change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes as soon as an editor shows it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. |
 

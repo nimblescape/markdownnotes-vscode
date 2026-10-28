@@ -76,6 +76,7 @@ export type Message =
   | { type: 'ready' }
   | { type: 'signIn' }
   | { type: 'reveal'; id: string; focus?: boolean }
+  | { type: 'deselect' }
   | { type: 'save'; request: number; id: string; index: number; text: string }
   | { type: 'answer'; request: number; id: string; text: string; parent?: number }
   | { type: 'add'; request: number; text: string }
@@ -266,6 +267,20 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
+   * deselect deselects the selected note of a document, for a click on the text of the preview outside the passage of
+   * the note.
+   * @param document - The URI of the document.
+   */
+  deselect(document: vscode.Uri): void {
+    if (document.toString() === this.document?.toString()) {
+      this.select(document, undefined);
+      void this.refresh();
+    } else {
+      this.chosen.select(document, undefined);
+    }
+  }
+
+  /**
    * hide closes the secondary side bar, which holds the view beside the chat of VS Code. VS Code has no command that
    * closes one view.
    */
@@ -306,7 +321,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /**
    * follow makes the document of a text editor the document of the view, and selects the note at its cursor. Another
    * editor, for example the preview, keeps the document of the view. A click with the mouse on a selection of a note
-   * opens the view when it is closed.
+   * opens the view when it is closed, and a click with the mouse outside the notes deselects the selected note (Hannes,
+   * 2026-10-28: "clicking somewhere in the text shall deselect the selected note"); a move of the cursor with the keys
+   * keeps it.
    * @param editor - The text editor, or undefined.
    * @param click - Whether a click with the mouse moved the cursor.
    */
@@ -324,7 +341,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const entry = this.threads.entryAt(document, active);
     const selected = entry?.id;
     this.document = document;
-    if (changed || (selected !== undefined && selected !== this.selected)) {
+    if (changed || (selected !== undefined && selected !== this.selected) || (click && selected === undefined && this.selected !== undefined)) {
       this.select(document, selected);
       void this.refresh();
     } else {
@@ -521,6 +538,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       case 'reveal':
         await this.reveal(message.id, message.focus ?? true);
+        return;
+      case 'deselect':
+        if (document) {
+          this.deselect(document);
+        }
         return;
       case 'openLink':
         await openLink(message.href, document, this.render, this.settingsOf(document).openLinksIn);

@@ -372,6 +372,25 @@ test('a mouse click into the selection of a note opens the hidden view, and the 
   expect(view.shows).toBe(1);
 });
 
+test('a mouse click outside the notes deselects the selected note, a move with the keys keeps it, and the script of the view deselects it for a click on its empty part or Escape (R-SIDE-007)', async () => {
+  const { editor, view } = await start();
+  const move = async (line: number, kind: number) => {
+    editor.selection = { active: new FakePosition(line, 0) };
+    fake.fire('selection', { textEditor: editor, kind });
+    await settle();
+  };
+  await move(5, 2);
+  expect(view.state().selected).toBe('1');
+  await move(12, 1);
+  expect(view.state().selected).toBe('1');
+  await move(12, 2);
+  expect(view.state().selected).toBeUndefined();
+  await move(5, 1);
+  expect(view.state().selected).toBe('1');
+  await send(view, { type: 'deselect' });
+  expect(view.state().selected).toBeUndefined();
+});
+
 test('the view sends the visible lines of the text editor, and the setting showFunnels (R-SIDE-007)', async () => {
   const { editor, view } = await start();
   editor.visibleRanges = [new FakeRange(3, 0, 8, 0)];

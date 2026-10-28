@@ -84,6 +84,11 @@ export interface PreviewSettings {
    * callout. A missing value shows it.
    */
   showCalloutOnHover?: boolean;
+  /**
+   * showIconsInPreview shows the icons of the notes ([R-PREV-007](../../docs/requirements.md#r-prev-007)); without it,
+   * the icons are hidden, and the passages still show and open their notes. A missing value shows them.
+   */
+  showIconsInPreview?: boolean;
 }
 
 /** PreviewOptions give the plugin the settings and the links of the document that the preview renders. */
@@ -113,6 +118,12 @@ export interface PreviewOptions {
    * @param env - The environment of the rendering.
    */
   selectedOf?(env: unknown): { label: string | undefined; reveal: number | undefined } | undefined;
+  /**
+   * deselectLinkOf returns the link that deselects the selected note of the rendered document, for a click on the text
+   * outside its passage ([R-PREV-003](../../docs/requirements.md#r-prev-003)), or undefined without a document.
+   * @param env - The environment of the rendering.
+   */
+  deselectLinkOf?(env: unknown): string | undefined;
 }
 
 /** PreviewNote is the meta of the token that opens a note, after the core rule, and of the tokens of its icons. */
@@ -127,6 +138,18 @@ interface PreviewNote extends NoteMeta {
   bodies: Token[][];
   /** referenced tells whether the text holds a reference of the note, where its icon shows. */
   referenced: boolean;
+}
+
+/** IconLook is how the icons of a rendering show. */
+interface IconLook {
+  /** hover tells whether the pointer on an icon shows its callout. */
+  hover: boolean;
+  /** shown tells whether the icons show. */
+  shown: boolean;
+  /** selected is the selected note of the document and the number of a request to scroll to it, or undefined. */
+  selected: { label: string | undefined; reveal: number | undefined } | undefined;
+  /** deselect is the link that deselects the selected note, or undefined. */
+  deselect: string | undefined;
 }
 
 /** IconMeta is the meta of the token of an icon at a reference. */
@@ -355,19 +378,24 @@ const colorClassOf = (number: number): string => `${noteClass}-color-${colorInde
 
 /**
  * iconHtml returns the HTML of the icon of a note: a link that opens the note in the side view, or without a link an
- * element that takes the focus, which shows the callout too.
+ * element that takes the focus, which shows the callout too. The attribute `data-note` holds the label of the note. The
+ * script of the preview reads the attributes `data-hover="off"` of an icon whose callout the pointer does not show,
+ * `data-icon="hidden"` of an icon that does not show, and of the icon of the selected note `data-selected`, with a
+ * request to scroll to it `data-reveal` with its number, and `data-deselect` with the link that deselects it.
  * @param md - The markdown-it instance.
  * @param note - The note.
  * @param link - The link, or undefined.
- * @param hover - Whether the pointer on the icon shows the callout; without it, the icon has the attribute
- * `data-hover="off"`, which the script of the preview reads.
- * @param selected - The selected note of the document and the number of a request to scroll to it, or undefined: the
- * icon of the selected note has the attribute `data-selected`, and with a request `data-reveal` with its number.
+ * @param look - How the icons show.
  */
-function iconHtml(md: MarkdownIt, note: PreviewNote, link: string | undefined, hover: boolean, selected?: { label: string | undefined; reveal: number | undefined }): string {
+function iconHtml(md: MarkdownIt, note: PreviewNote, link: string | undefined, look: IconLook): string {
+  const escape = md.utils.escapeHtml;
   const count = note.answers.length > 1 ? `<span class="${noteClass}-count">${note.answers.length}</span>` : '';
-  const chosen = selected?.label === note.label ? ` data-selected="true"${selected.reveal === undefined ? '' : ` data-reveal="${selected.reveal}"`}` : '';
-  const attributes = `class="${noteClass}-icon ${colorClassOf(note.number)}" aria-label="${md.utils.escapeHtml(labelOf(note))}" aria-describedby="${note.id}"${hover ? '' : ' data-hover="off"'}${chosen}`;
+  const { selected, deselect } = look;
+  const chosen =
+    selected?.label === note.label
+      ? ` data-selected="true"${selected.reveal === undefined ? '' : ` data-reveal="${selected.reveal}"`}${deselect === undefined ? '' : ` data-deselect="${escape(deselect)}"`}`
+      : '';
+  const attributes = `class="${noteClass}-icon ${colorClassOf(note.number)}" aria-label="${escape(labelOf(note))}" aria-describedby="${note.id}" data-note="${escape(note.label)}"${look.hover ? '' : ' data-hover="off"'}${look.shown ? '' : ' data-icon="hidden"'}${chosen}`;
   return link === undefined
     ? `<span ${attributes} role="img" tabindex="0">${glyph}${count}</span>`
     : `<a ${attributes} href="${md.utils.escapeHtml(link)}">${glyph}${count}</a>`;
@@ -464,20 +492,23 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
   addNoteRules(md);
   md.core.ruler.push('nimblescape_notes', transform);
   const shows = (env: unknown): boolean => options.settingsOf(env).showInPreview;
-  const hovers = (env: unknown): boolean => options.settingsOf(env).showCalloutOnHover ?? true;
+  const lookOf = (env: unknown): IconLook => {
+    const settings = options.settingsOf(env);
+    return { hover: settings.showCalloutOnHover ?? true, shown: settings.showIconsInPreview ?? true, selected: options.selectedOf?.(env), deselect: options.deselectLinkOf?.(env) };
+  };
   md.renderer.rules[noteOpenType] = (tokens, index, rendererOptions, env, self) => {
     const note = tokens[index].meta as PreviewNote;
     if (!shows(env)) {
       return '';
     }
     // A note without a reference shows its icon in the margin.
-    const anchor = note.referenced ? '' : `<div class="${noteClass}-anchor">${iconHtml(md, note, options.linkOf(env, note.line), hovers(env), options.selectedOf?.(env))}</div>\n`;
+    const anchor = note.referenced ? '' : `<div class="${noteClass}-anchor">${iconHtml(md, note, options.linkOf(env, note.line), lookOf(env))}</div>\n`;
     const render = (body: Token[]) => withFileLinks(body, (href) => options.fileLinkOf(env, href), () => renderBody(self, body, rendererOptions, env));
     return `${anchor}${calloutHtml(md, note, render)}`;
   };
   md.renderer.rules[iconTokenType] = (tokens, index, _options, env) => {
     const { note, ends } = tokens[index].meta as IconMeta;
-    return shows(env) ? `${ends ? edgeHtml(note, 'end') : ''}${iconHtml(md, note, options.linkOf(env, note.line), hovers(env), options.selectedOf?.(env))}` : '';
+    return shows(env) ? `${ends ? edgeHtml(note, 'end') : ''}${iconHtml(md, note, options.linkOf(env, note.line), lookOf(env))}` : '';
   };
   md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => (shows(env) ? edgeHtml(tokens[index].meta as PreviewNote, 'start') : '');
   // A reference that the core rule did not reach, such as one in a note, shows as written, and a start marker nothing.

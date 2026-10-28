@@ -8,8 +8,9 @@
  * The styles of the side view "Notes" (R-SIDE-001, R-SIDE-002). The view uses
  * the font, the colors and the buttons of the theme of VS Code. Each thread is
  * a box with the color of its note at its left side and the badge with its
- * number; the selected thread has a frame in this color (R-SIDE-007). The
- * replies to a reply are indented below it.
+ * number; the selected thread has a frame in this color, and the other
+ * threads are dimmed (R-SIDE-007). The replies to a reply are indented below
+ * it.
  *
  * With the funnels, the strip at the left edge stands for the whole file: a
  * mark in the color of each note, and a frame for the part of the file that
@@ -119,6 +120,22 @@ button.add {
 .thread.selected {
   border-color: var(--note-color, var(--vscode-focusBorder));
   box-shadow: inset 0 0 0 1px var(--note-color, var(--vscode-focusBorder));
+}
+
+/* The other threads while a thread is selected: dimmed, and clear again under the pointer or with the focus. */
+body.with-selection .thread:not(.selected, :hover, :focus-within) {
+  opacity: 0.5;
+}
+
+/* The selected thread scrolls to the top of the view, also the last one: an empty part follows the threads. */
+.thread {
+  scroll-margin-top: 8px;
+}
+
+#notes:has(.thread)::after {
+  content: '';
+  display: block;
+  height: 80vh;
 }
 
 .badge {

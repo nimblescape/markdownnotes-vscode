@@ -13,16 +13,19 @@
  * ([src/noteThreads.ts](noteThreads.ts)), their overlay of the text editor
  * ([src/noteEditor.ts](noteEditor.ts)), and the side view
  * ([src/notesView.ts](notesView.ts)), with the GitHub login of the user as the
- * author of new notes ([src/github.ts](github.ts)). It handles the links of
+ * author of new notes ([src/github.ts](github.ts)), and the formatter of
+ * Markdown documents ([src/formatter.ts](formatter.ts)). It handles the links of
  * the icons of the preview, which open a note in the side view, or in its box
  * while the side view does not show, the links to files of the callouts of the
- * preview and of the boxes ([src/links.ts](links.ts)), and the buttons of the
- * preview, which show and hide its notes, and refreshes the previews and the
+ * preview and of the boxes ([src/links.ts](links.ts)), the links of the preview
+ * that deselect the selected note, and the buttons of the preview, which show
+ * and hide its notes and its icons, and refreshes the previews and the
  * threads when a setting of the extension changes.
  */
 
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
+import { registerFormatter } from './formatter';
 import { githubLogin } from './github';
 import { extendMarkdownIt, type PreviewSettings } from './markdown/markdownIt';
 import { isFileLink, openLink, openLinkCommand } from './links';
@@ -41,13 +44,19 @@ export const openPath = '/open';
 /** linkPath is the path of the links of the callouts of the preview that open a file that a link of a note names. */
 export const linkPath = '/link';
 
+/** deselectPath is the path of the links of the preview that deselect the selected note, for a click outside its passage. */
+export const deselectPath = '/deselect';
+
 /**
  * previewCommands are the commands of the buttons in the title of the Markdown preview, which show and hide its notes
- * ([R-PREV-005](../docs/requirements.md#r-prev-005)).
+ * ([R-PREV-005](../docs/requirements.md#r-prev-005)), and its icons of the notes
+ * ([R-PREV-007](../docs/requirements.md#r-prev-007)).
  */
 export const previewCommands = {
   show: 'nimblescape.markdownNotes.showInPreview',
   hide: 'nimblescape.markdownNotes.hideInPreview',
+  showIcons: 'nimblescape.markdownNotes.showIconsInPreview',
+  hideIcons: 'nimblescape.markdownNotes.hideIconsInPreview',
 };
 
 /** Api is the export of the extension. */
@@ -83,8 +92,8 @@ function documentOf(env: unknown): vscode.Uri | undefined {
  * @param env - The environment of the rendering.
  */
 function previewSettingsOf(env: unknown): PreviewSettings {
-  const { showInPreview, showCalloutOnHover } = readSettings(documentOf(env));
-  return { showInPreview, showCalloutOnHover };
+  const { showInPreview, showCalloutOnHover, showIconsInPreview } = readSettings(documentOf(env));
+  return { showInPreview, showCalloutOnHover, showIconsInPreview };
 }
 
 /**
@@ -100,6 +109,17 @@ function noteLink(env: unknown, line: number): string | undefined {
   }
   const query = new URLSearchParams({ document: document.toString(), line: String(line) }).toString();
   return `${vscode.env.uriScheme}://${extensionId}${openPath}?${query}`;
+}
+
+/**
+ * deselectLink returns the link of the preview that deselects the selected note of its document in the side view, for a
+ * click on the text outside the passage of the note ([R-PREV-003](../docs/requirements.md#r-prev-003)). A rendering
+ * without a document has none.
+ * @param env - The environment of the rendering.
+ */
+function deselectLink(env: unknown): string | undefined {
+  const document = documentOf(env);
+  return document && `${vscode.env.uriScheme}://${extensionId}${deselectPath}?${new URLSearchParams({ document: document.toString() }).toString()}`;
 }
 
 /**
@@ -157,7 +177,8 @@ async function showBox(threads: NoteThreads, document: vscode.TextDocument, line
 /**
  * openFromLink opens the note of a link of the preview in the side view, or in its box while the side view does not
  * show. The link names a document and a line. A link can also come from outside VS Code, so the extension opens only a
- * Markdown document that is open or that belongs to the workspace, and only shows its notes.
+ * Markdown document that is open or that belongs to the workspace, and only shows its notes. A link that deselects the
+ * selected note of an open document deselects it.
  * @param uri - The URI that VS Code passes to the extension.
  * @param view - The side view.
  * @param threads - The threads of the notes.
@@ -168,6 +189,14 @@ async function openFromLink(uri: vscode.Uri, view: NotesView, threads: NoteThrea
     return;
   }
   const query = new URLSearchParams(uri.query);
+  if (uri.path === deselectPath) {
+    const target = query.get('document');
+    const document = target && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === vscode.Uri.parse(target).toString());
+    if (document) {
+      view.deselect(document.uri);
+    }
+    return;
+  }
   const target = query.get('document');
   const line = Number(query.get('line'));
   if (uri.path !== openPath || !target || !Number.isInteger(line) || line < 0) {
@@ -197,12 +226,13 @@ async function renderMarkdown(text: string): Promise<string> {
 
 /**
  * setSetting turns a setting of the extension on or off, in the settings that decide the value for the window: the
- * settings of the workspace when they hold a value, else the settings of the user. The change of the setting
- * showInPreview renders the previews again, and the change of showFunnels shows the side view again.
- * @param key - The setting: showInPreview or showFunnels.
+ * settings of the workspace when they hold a value, else the settings of the user. The change of the settings
+ * showInPreview and showIconsInPreview renders the previews again, and the change of showFunnels shows the side view
+ * again.
+ * @param key - The setting: showInPreview, showIconsInPreview or showFunnels.
  * @param value - The new value.
  */
-async function setSetting(key: 'showInPreview' | 'showFunnels', value: boolean): Promise<void> {
+async function setSetting(key: 'showInPreview' | 'showIconsInPreview' | 'showFunnels', value: boolean): Promise<void> {
   const configuration = vscode.workspace.getConfiguration(settingsSection);
   const inWorkspace = configuration.inspect(key)?.workspaceValue !== undefined;
   await configuration.update(key, value, inWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
@@ -238,12 +268,15 @@ export function activate(context: vscode.ExtensionContext): Api {
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view, threads) }),
+    registerFormatter(),
     vscode.commands.registerCommand(openLinkCommand, (href: string, document: string) => {
       const uri = vscode.Uri.parse(document);
       return openLink(href, uri, renderMarkdown, readSettings(uri).openLinksIn);
     }),
     vscode.commands.registerCommand(previewCommands.show, () => setSetting('showInPreview', true)),
     vscode.commands.registerCommand(previewCommands.hide, () => setSetting('showInPreview', false)),
+    vscode.commands.registerCommand(previewCommands.showIcons, () => setSetting('showIconsInPreview', true)),
+    vscode.commands.registerCommand(previewCommands.hideIcons, () => setSetting('showIconsInPreview', false)),
     vscode.commands.registerCommand(viewCommands.showFunnels, () => setSetting('showFunnels', true)),
     vscode.commands.registerCommand(viewCommands.hideFunnels, () => setSetting('showFunnels', false)),
     // The preview shows the selected note with a strong highlight, and scrolls to it on a request.
@@ -267,6 +300,7 @@ export function activate(context: vscode.ExtensionContext): Api {
           const document = documentOf(env);
           return document && { label: selected.labelOf(document), reveal: selected.revealOf(document) };
         },
+        deselectLinkOf: deselectLink,
       }),
     threadsOf: (document) => threads.threadsOf(document),
   };

@@ -187,8 +187,9 @@ test('the manifest contributes the buttons of the boxes, for the comment control
   );
 });
 
-test('the title of the Markdown preview has the button that shows or hides its notes, after the setting showInPreview (R-PREV-005)', () => {
+test('the title of the Markdown preview has the buttons that show or hide its notes, after the setting showInPreview, and its icons, after the setting showIconsInPreview (R-PREV-005, R-PREV-007)', () => {
   const setting = `config.${settingsSection}.showInPreview`;
+  const icons = `config.${settingsSection}.showIconsInPreview`;
   // VS Code shows a Markdown file in the preview to the side, or in the modes "Markdown Preview" and "Markdown Editor"
   // of its editor, which are custom editors; the mode "Markdown Editor" does not render the notes (R-PREV-005).
   const preview = "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'";
@@ -197,16 +198,21 @@ test('the title of the Markdown preview has the button that shows or hides its n
     { command: viewCommands.toggle, group: 'navigation', when: `(${markdown}) && config.${settingsSection}.showNotesIn != inline` },
     { command: previewCommands.show, group: 'navigation', when: `(${preview}) && !${setting}` },
     { command: previewCommands.hide, group: 'navigation', when: `(${preview}) && ${setting}` },
+    // The buttons of the icons show only while the preview shows the notes.
+    { command: previewCommands.showIcons, group: 'navigation', when: `(${preview}) && ${setting} && !${icons}` },
+    { command: previewCommands.hideIcons, group: 'navigation', when: `(${preview}) && ${setting} && ${icons}` },
   ]);
   expect(manifest.contributes.menus.commandPalette).toEqual(
     expect.arrayContaining([
       { command: previewCommands.show, when: `!${setting}` },
       { command: previewCommands.hide, when: setting },
+      { command: previewCommands.showIcons, when: `${setting} && !${icons}` },
+      { command: previewCommands.hideIcons, when: `${setting} && ${icons}` },
     ]),
   );
-  for (const command of Object.values(previewCommands)) {
-    expect(manifest.contributes.commands.find((item: { command: string }) => item.command === command).icon, command).toMatch(/^\$\(eye(-closed)?\)$/);
-  }
+  const iconOf = (command: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === command).icon;
+  expect([previewCommands.show, previewCommands.hide].map(iconOf)).toEqual(['$(eye)', '$(eye-closed)']);
+  expect([previewCommands.showIcons, previewCommands.hideIcons].map(iconOf)).toEqual(['$(comment-draft)', '$(comment)']);
 });
 
 test('the title of the side view has the button "Hide Notes" where VS Code shows none, and the Markdown editors the button "Show or Hide Notes" (R-SIDE-006)', () => {
@@ -235,6 +241,10 @@ test('the title of the side view has the button "Show Funnels" or "Hide Funnels"
       { command: viewCommands.hideFunnels, when: `config.${settingsSection}.showFunnels` },
     ]),
   );
+});
+
+test('the extension is the default formatter of Markdown files, which VS Code runs on each save, and the user can change both (R-FMT-001)', () => {
+  expect(manifest.contributes.configurationDefaults['[markdown]']).toEqual({ 'editor.defaultFormatter': extensionId, 'editor.formatOnSave': true });
 });
 
 test('the extension uses no proposed API, and the API of the oldest VS Code version that it supports (R-GEN-002)', () => {

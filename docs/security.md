@@ -28,8 +28,10 @@ links to its details.
   reference, its start marker and the comment of the format at the top of the
   file. An editor that shows a file with notes without that comment gets it
   (setting `nimblescape.markdownNotes.addFormatComment`). The file then has unsaved
-  changes, which you save as usual. See
-  [Changes of a file](#changes-of-a-file).
+  changes, which you save as usual. The formatter of the extension formats a
+  Markdown file when you save it or run "Format Document", because the
+  manifest makes it the default formatter of Markdown with format on save.
+  See [Changes of a file](#changes-of-a-file).
 - **GitHub sign-in.** New notes and answers need a GitHub session of VS Code
   with the scope `read:user`. The extension reads only the name of the
   account, the GitHub login, and sends no request to GitHub. See
@@ -190,6 +192,14 @@ web page, so the extension:
   in the code; it holds the address of the specification, which the
   extension never opens. A file whose comment names a newer version of the
   format gets no change of a note and no comment.
+  The formatter (`src/format/format.ts`, `src/formatter.ts`) gives VS Code
+  one edit of the lines that it formats, on "Format Document" and, with the
+  default `editor.formatOnSave` of the manifest for `[markdown]`, on each
+  save of a Markdown file. It keeps code blocks, blocks of HTML, a front
+  matter and the notes as they are, and returns the text unchanged when the
+  formatted text would show other blocks or another text in the Markdown
+  preview. The settings `editor.formatOnSave` and `editor.defaultFormatter`
+  of VS Code for `[markdown]` turn it off.
   Undo in the text editor takes the edit back. The extension saves no file:
   the document has unsaved changes, unless you use the automatic save of
   VS Code.

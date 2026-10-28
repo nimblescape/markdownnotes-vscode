@@ -27,7 +27,7 @@ import { deleteCommands, editorCommands } from './noteEditor';
 import { commands as noteCommands, controllerId, draftContext, noteContext } from './noteThreads';
 import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
-import { bodyOf, Fake, FakeDocument, FakeEditor, FakeFoldingRange, FakeMarkdownString, FakeRange, FakeThread, FakeUri, marked, settle } from './testing/fakeVscode';
+import { bodyOf, Fake, FakeDocument, FakeEditor, FakeFoldingRange, FakeMarkdownString, FakeRange, FakeTextEdit, FakeThread, FakeUri, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -136,6 +136,58 @@ test('the buttons of the preview show and hide its notes in the settings that de
   expect(fake.updates[1]).toEqual({ key: 'showInPreview', value: true, target: 2 });
   expect(fake.settings.get('')).toEqual({ showInPreview: false });
   expect(fake.settings.get('workspace')).toEqual({ showInPreview: true });
+});
+
+test('the buttons of the icons of the preview hide and show the icons, and the preview renders them hidden with the setting showIconsInPreview off (R-PREV-007)', async () => {
+  const { api } = await fake.activate();
+  await fake.run(previewCommands.hideIcons);
+  await fake.run(previewCommands.showIcons);
+  expect(fake.updates).toEqual([
+    { key: 'showIconsInPreview', value: false, target: 1 },
+    { key: 'showIconsInPreview', value: true, target: 1 },
+  ]);
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  const document = new FakeUri('file', '/folder/a.md');
+  expect(md.render(note, { currentDocument: document })).not.toContain('data-icon="hidden"');
+  fake.settings.set(document.path, { showIconsInPreview: false });
+  expect(md.render(note, { currentDocument: document })).toContain('data-icon="hidden"');
+});
+
+test('the selected icon of the preview has the link that deselects its note, and the link deselects the note in the side view, for an open document only (R-PREV-003)', async () => {
+  const document = fake.open(note);
+  const { api, extension } = await fake.activate();
+  const view = fake.resolveView(notesViewId);
+  const handle = async (uri: string) => {
+    await fake.uriHandler!.handleUri(FakeUri.parse(uri));
+    await settle();
+  };
+  await handle(`vscode://${extension.extensionId}${extension.openPath}?${new URLSearchParams({ document: document.uri.toString(), line: '5' }).toString()}`);
+  expect(view.state().selected).toBe(view.state().threads[0].id);
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  const deselect = `vscode://${extension.extensionId}${extension.deselectPath}?${new URLSearchParams({ document: document.uri.toString() }).toString()}`;
+  expect(md.render(note, { currentDocument: document.uri })).toContain(` data-selected="true" data-deselect="${deselect.replace(/&/g, '&amp;')}"`);
+  // A link of a document that is not open changes nothing.
+  await handle(`vscode://${extension.extensionId}${extension.deselectPath}?${new URLSearchParams({ document: 'file:///folder/b.md' }).toString()}`);
+  expect(view.state().selected).toBe(view.state().threads[0].id);
+  await handle(deselect);
+  expect(view.state().selected).toBeUndefined();
+  expect(md.render(note, { currentDocument: document.uri })).not.toContain('data-selected');
+});
+
+test('the formatter of Markdown documents gives one edit of the changed lines with the line breaks of the document, and none for a formatted document (R-FMT-001)', async () => {
+  await fake.activate();
+  const formatter = fake.formatters.get('markdown')!;
+  const format = (document: FakeDocument): string => {
+    const edits = formatter.provideDocumentFormattingEdits(document);
+    expect(edits.length).toBeLessThanOrEqual(1);
+    const [edit] = edits as FakeTextEdit[];
+    return edit ? document.text.slice(0, document.offsetAt(edit.range.start)) + edit.newText + document.text.slice(document.offsetAt(edit.range.end)) : document.text;
+  };
+  const document = fake.open('# Title\nOne\ntwo  \n\n\n|a|b|\n|-|-|\n|long|c|\n');
+  expect(format(document)).toBe('# Title\n\nOne two\n\n| a    | b   |\n| ---- | --- |\n| long | c   |\n');
+  expect(formatter.provideDocumentFormattingEdits(fake.open('# Title\n\nText\n', '/folder/b.md'))).toEqual([]);
+  const crlf = new FakeDocument(new FakeUri('file', '/folder/crlf.md'), 'One\r\ntwo\r\n\r\n\r\nThree\r\n', 'markdown', 2);
+  expect(format(crlf)).toBe('One two\r\n\r\nThree\r\n');
 });
 
 test('the button of the side view closes the secondary side bar, and the button of the editors shows or hides the view (R-SIDE-006)', async () => {

@@ -10,11 +10,12 @@
 import { expect, test } from 'vitest';
 import { checkedSettings, defaultSettings, notePlaces, type Settings, showsInline, showsInSideView } from './settings';
 
-test('the defaults show the notes in the preview with their callouts on hover and in the side view, collapse the notes and their boxes in the text editor without keeping them collapsed, show the funnel, open links in a new window, and add the comment of the format', () => {
+test('the defaults show the notes in the preview with their icons and their callouts on hover and in the side view, collapse the notes and their boxes in the text editor without keeping them collapsed, show the funnel, open links in a new window, and add the comment of the format', () => {
   expect(defaultSettings).toEqual({
     expandInEditor: false,
     showInPreview: true,
     showCalloutOnHover: true,
+    showIconsInPreview: true,
     collapseInEditor: true,
     keepNotesCollapsed: false,
     showFunnels: true,
@@ -29,6 +30,7 @@ test('checkedSettings keeps the values that the settings take', () => {
     expandInEditor: true,
     showInPreview: false,
     showCalloutOnHover: false,
+    showIconsInPreview: false,
     collapseInEditor: false,
     keepNotesCollapsed: true,
     showFunnels: false,
@@ -46,6 +48,7 @@ test('checkedSettings gives a missing value or a value that the setting does not
     expandInEditor: 'yes',
     showInPreview: null,
     showCalloutOnHover: 0,
+    showIconsInPreview: 'hidden',
     collapseInEditor: 1,
     keepNotesCollapsed: 'on',
     showFunnels: 'no',

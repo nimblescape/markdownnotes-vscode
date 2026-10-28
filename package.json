@@ -86,6 +86,12 @@
     "bierner.markdown-footnotes"
   ],
   "contributes": {
+    "configurationDefaults": {
+      "[markdown]": {
+        "editor.defaultFormatter": "nimblescape.nimblescape-markdown-notes",
+        "editor.formatOnSave": true
+      }
+    },
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
       "./media/markdownPreview.css"
@@ -173,6 +179,18 @@
         "title": "Hide Notes in Preview",
         "category": "Markdown Notes",
         "icon": "$(eye-closed)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showIconsInPreview",
+        "title": "Show Note Icons in Preview",
+        "category": "Markdown Notes",
+        "icon": "$(comment-draft)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideIconsInPreview",
+        "title": "Hide Note Icons in Preview",
+        "category": "Markdown Notes",
+        "icon": "$(comment)"
       },
       {
         "command": "nimblescape.markdownNotes.hideNotes",
@@ -320,6 +338,16 @@
           "command": "nimblescape.markdownNotes.hideInPreview",
           "group": "navigation",
           "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showIconsInPreview",
+          "group": "navigation",
+          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview && !config.nimblescape.markdownNotes.showIconsInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideIconsInPreview",
+          "group": "navigation",
+          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview && config.nimblescape.markdownNotes.showIconsInPreview"
         }
       ],
       "view/title": [
@@ -383,6 +411,14 @@
         {
           "command": "nimblescape.markdownNotes.hideInPreview",
           "when": "config.nimblescape.markdownNotes.showInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showIconsInPreview",
+          "when": "config.nimblescape.markdownNotes.showInPreview && !config.nimblescape.markdownNotes.showIconsInPreview"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideIconsInPreview",
+          "when": "config.nimblescape.markdownNotes.showInPreview && config.nimblescape.markdownNotes.showIconsInPreview"
         },
         {
           "command": "nimblescape.markdownNotes.hideNotes",
@@ -469,7 +505,13 @@
           "type": "boolean",
           "default": true,
           "scope": "resource",
-          "markdownDescription": "Show the callout of a note in the Markdown preview while the pointer rests on its icon. The value `false` shows the callout only while the icon has the keyboard focus; a click on the icon or on the highlighted passage still selects the note in the side view."
+          "markdownDescription": "Show the callout of a note in the Markdown preview while the pointer rests on its icon. The value `false` shows the callout only while the icon has the keyboard focus. A click on the icon or on the highlighted passage never shows the callout: it selects the note in the side view."
+        },
+        "nimblescape.markdownNotes.showIconsInPreview": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Show the icons of the notes in the Markdown preview. The value `false` hides the icons: the passages of the notes still show with their highlight, and a click on a passage still selects its note in the side view. The buttons \"Hide Note Icons in Preview\" and \"Show Note Icons in Preview\" in the title of the preview change this setting."
         },
         "nimblescape.markdownNotes.collapseInEditor": {
           "type": "boolean",
