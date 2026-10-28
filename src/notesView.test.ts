@@ -224,14 +224,14 @@ test('a click on a thread whose selection starts on the line where the selection
 
 test('Save writes an answer and a refused text returns its message (R-SIDE-003, R-EDIT-002)', async () => {
   const { document, view } = await start();
-  await send(view, { type: 'save', request: 1, id: '1', answer: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00' }, text: 'A **changed** answer.' });
+  await send(view, { type: 'save', request: 1, id: '1', answer: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00', body: 'An answer.' }, text: 'A **changed** answer.' });
   // The changed answer has the date of the save.
   expect(document.text).toContain('    > **bob** · 2026-10-28 10:15+01:00\n    >\n    > A **changed** answer.\n\nMore.');
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
   expect(view.state().threads[0].answers[1].body).toBe('A **changed** answer.');
-  await send(view, { type: 'save', request: 2, id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' }, text: '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.' });
+  await send(view, { type: 'save', request: 2, id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00', body: 'The **text**.' }, text: '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('starts a new answer') });
-  await send(view, { type: 'save', request: 3, id: '9', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' }, text: 'Text' });
+  await send(view, { type: 'save', request: 3, id: '9', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00', body: 'The **text**.' }, text: 'Text' });
   expect(results(view)[2]).toEqual({ type: 'result', request: 3, message: 'The change was not saved: the file no longer holds the note.' });
 });
 
@@ -264,7 +264,7 @@ test('Answer, Reply and Add Note need the GitHub sign-in, and write the login an
   expect(results(view)[3]).toEqual({ type: 'result', request: 4, message: undefined });
   expect(document.text).toContain('    > An answer.\n\n    > **carl** · 2026-10-28 10:15+01:00\n    >\n    > A third answer.\n\n<wbr><!--[note-');
   // Reply replies to an answer, in its block quote after its body and its replies.
-  await send(view, { type: 'answer', request: 5, id: '1', text: 'Thanks.', parent: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00' } });
+  await send(view, { type: 'answer', request: 5, id: '1', text: 'Thanks.', parent: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00', body: 'An answer.' } });
   expect(results(view)[4]).toEqual({ type: 'result', request: 5, message: undefined });
   expect(document.text).toContain('    > An answer.\n    >\n    > > **carl** · 2026-10-28 10:15+01:00\n    > >\n    > > Thanks.\n\n    > **carl** · ');
   state = view.state();
@@ -278,7 +278,7 @@ test('Answer, Reply and Add Note need the GitHub sign-in, and write the login an
 
 test('Delete and Delete Thread remove an answer and a note, and a missing note shows a message (R-EDIT-004)', async () => {
   const { document, view } = await start();
-  await send(view, { type: 'deleteAnswer', id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00' } });
+  await send(view, { type: 'deleteAnswer', id: '1', answer: { index: 0, author: 'ann', date: '2026-10-28 10:15+01:00', body: 'The **text**.' } });
   expect(document.text).toBe(marked('# Title\n\nThe text[^note-aaaa] of the page.\n\n[^note-aaaa]: **bob** · 2026-10-28 11:00+01:00\n\n    An answer.\n\nMore.\n'));
   expect(view.state().threads[0].answers).toHaveLength(1);
   await send(view, { type: 'deleteNote', id: '1' });
@@ -292,12 +292,21 @@ test('Delete and Delete Thread remove an answer and a note, and a missing note s
 const three = note.replace('    > An answer.\n', '    > Answer of bob.\n\n    > **cid** · 2026-10-28 11:30+01:00\n    >\n    > Answer of cid.\n');
 
 /** bobRef and cidRef name the answers of bob and of cid of three as the side view shows them. */
-const bobRef = { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00' };
-const cidRef = { index: 2, author: 'cid', date: '2026-10-28 11:30+01:00' };
+const bobRef = { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00', body: 'Answer of bob.' };
+const cidRef = { index: 2, author: 'cid', date: '2026-10-28 11:30+01:00', body: 'Answer of cid.' };
 
 test('a second Delete of an answer from a view that shows an older state keeps the next answer (R-EDIT-004)', async () => {
   const { document, view } = await start(three);
   // A double click on "Delete" at the answer of bob sends the message twice, before the view shows the new state.
+  await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
+  await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
+  expect(document.text).not.toContain('Answer of bob.');
+  expect(document.text).toContain('Answer of cid.');
+  expect(fake.errors).toEqual(['The change was not saved: the note changed in the meantime. Look at the note again, and repeat the change if it is still needed.']);
+});
+
+test('a second Delete keeps the next answer also when it has the same author and the same minute (R-EDIT-004)', async () => {
+  const { document, view } = await start(three.replace('**cid** · 2026-10-28 11:30+01:00', '**bob** · 2026-10-28 11:00+01:00'));
   await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
   await send(view, { type: 'deleteAnswer', id: '1', answer: bobRef });
   expect(document.text).not.toContain('Answer of bob.');

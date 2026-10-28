@@ -74,22 +74,27 @@ function ownText(raw: string, prefix: string): string {
 }
 
 /**
- * AnswerRef names an answer of a note as the side view showed it: its index in the tree, and the author and the date
- * as the file holds them. A write to the answer goes ahead only when the note still has this answer at this index, so
- * that a side view that shows an older state never changes another answer (for example a second click on "Delete").
+ * AnswerRef names an answer of a note as the side view showed it: its index in the tree, and the author, the date and
+ * the body as the file holds them. A write to the answer goes ahead only when the note still has this answer at this
+ * index, so that a side view that shows an older state never changes another answer (for example a second click on
+ * "Delete"), also not an answer of the same author in the same minute.
  */
 export interface AnswerRef {
   index: number;
   author: string;
   date: string;
+  body: string;
 }
 
 /**
- * isAnswer tells whether a note has an answer at the index of a reference, with its author and its date.
+ * isAnswer tells whether a note has an answer at the index of a reference, with its author, its date and its body.
  * @param note - The note.
  * @param answer - The reference of the answer.
  */
-const isAnswer = (note: Note, answer: AnswerRef): boolean => note.answers[answer.index]?.author === answer.author && note.answers[answer.index]?.date === answer.date;
+const isAnswer = (note: Note, answer: AnswerRef): boolean => {
+  const found = note.answers[answer.index];
+  return found?.author === answer.author && found.date === answer.date && found.body === answer.body;
+};
 
 /**
  * problemMessage returns the message of a refused text.

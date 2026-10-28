@@ -144,9 +144,10 @@ connection of VS Code, as the text of an open file does.
   extension checks each text before it writes it
   ([Changes of a file](#changes-of-a-file)), and gives a color to a note
   only when its name is one of the six colors of the notes. A message names
-  an answer by its index, its author and its date, and the extension changes
-  nothing when the answer at that index is another one, for example after a
-  second click on "Delete" or after a change of the file by a collaborator.
+  an answer by its index, its author, its date and its text, and the
+  extension changes nothing when the answer at that index is another one,
+  for example after a second click on "Delete" or after a change of the file
+  by a collaborator.
 - A click on a link of a rendered text does not load the address in the page
   of the view: the script stops the click and sends the address to the
   extension ([Links of the notes](#links-of-the-notes)).

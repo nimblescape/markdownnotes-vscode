@@ -361,10 +361,10 @@ The operations `saveAnswer`, `answer` (with the parent of a reply),
 `NoteThreads` write the changes of the side view. Each one reads the notes of
 the document first, so that the edit fits the current text, and returns the
 problem of a refused text, whose message `problemMessage` gives. The side view
-names an answer with an `AnswerRef`: its index, its author and its date as the
-file holds it. `saveAnswer`, `answer` and `deleteAnswer` write nothing and
-return the problem `changed` when the answer at that index has another author
-or date, for example after a second click on "Delete" before the view showed
+names an answer with an `AnswerRef`: its index, and its author, its date and
+its body as the file holds them. `saveAnswer`, `answer` and `deleteAnswer`
+write nothing and return the problem `changed` when the answer at that index
+has another author, date or body, for example after a second click on "Delete" before the view showed
 the new state, or after a change of the file by a collaborator; `saveNoteText`
 does the same when the text of the note is not the text that the text view
 started with. A change of a setting calls `markAll` and keeps the threads and

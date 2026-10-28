@@ -424,12 +424,16 @@
   };
 
   /**
-   * answerRefOf returns the answer of a thread for a message of a change: its index, its author and its date as the
-   * file holds it, so that the extension changes it only while the file still has this answer at this index.
+   * answerRefOf returns the answer of a thread for a message of a change: its index, and its author, its date and its
+   * body as the file holds them, so that the extension changes it only while the file still has this answer at this
+   * index.
    * @param {ThreadState} thread
    * @param {number} index
    */
-  const answerRefOf = (thread, index) => ({ index, author: thread.answers[index].author, date: thread.answers[index].written });
+  const answerRefOf = (thread, index) => {
+    const answer = thread.answers[index];
+    return { index, author: answer.author, date: answer.written, body: answer.body };
+  };
 
   /**
    * answerOf creates the elements of an answer of a thread.

@@ -875,9 +875,9 @@ Note" with the name of the color.
 
 **No change from an outdated view.** A change from the side view writes only
 into the answer or the note that the user saw. "Save", "Reply" and "Delete"
-of an answer name the answer by its place in the note, its author and its
-date; "Save" of the text view names the whole text of the note that the view
-showed. When the file holds another answer at that place, or another text,
+of an answer name the answer by its place in the note, its author, its date
+and its text; "Save" of the text view names the whole text of the note that
+the view showed. When the file holds another answer at that place, or another text,
 for example after a second click on "Delete" before the view showed the new
 state, or after a change of the file by a collaborator, the extension writes
 nothing and shows a message that asks the user to look at the note again.
