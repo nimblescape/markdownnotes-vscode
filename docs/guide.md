@@ -220,9 +220,16 @@ AI agents: read the spec above before you read, change or add a note, and keep t
 - The comment stands at the top of the file with a blank line after it. A
   front matter stays the first block of the file: the comment follows the
   line `---` or `+++` that ends it.
-- The extension writes the comment only together with a change of a note:
-  the first note of a file brings it, and the last note takes it away. Undo
-  removes the comment with the note. Opening a file never changes it.
+- The extension adds the comment as soon as it finds a note in a file that an
+  editor shows, also in the modes "Markdown Preview" and "Markdown Editor":
+  when the file opens, or when you write a note into it. The file then has an
+  unsaved change, which you save as usual. Undo removes the comment, and the
+  extension adds it again only after the file opens again. The setting
+  `nimblescape.markdownNotes.addFormatComment` set to `false` keeps the files as they
+  are when they open.
+- A change of a note brings the comment too: the first note of a file brings
+  it, and the last note takes it away. Undo removes the comment with the
+  note.
 - A file without the comment, for example an older file, has notes too.
 - When the comment names a newer version of the format than the extension
   knows, the extension changes no note of the file and says that you update
@@ -616,6 +623,7 @@ the mode "Markdown Preview" to read the notes in the text.
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens, with `showNotesIn` set to `inline`. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes, icons and callouts. The buttons of the preview change it. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showCalloutOnHover` | `true` | Shows the callout of a note in the preview while the pointer rests on its icon. The value `false` shows it only for the keyboard focus; a click on the icon or the passage still selects the note in the side view. |
+| `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes as soon as an editor shows it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. |
 
 ## Limits

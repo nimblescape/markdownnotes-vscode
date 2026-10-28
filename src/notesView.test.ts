@@ -30,6 +30,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   fake = new Fake();
+  // The tests of the side view keep their lines: the comment of the format, which an editor of a file with notes gets,
+  // has tests of its own in src/extension.test.ts.
+  fake.settings.set('workspace', { addFormatComment: false });
   fake.rendered = (text) => `<p>${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>\n`;
   vi.resetModules();
   vi.doMock('vscode', () => fake.api);

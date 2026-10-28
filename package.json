@@ -477,6 +477,12 @@
           "scope": "resource",
           "markdownDescription": "Collapse the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open."
         },
+        "nimblescape.markdownNotes.addFormatComment": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Add the comment of the format of the notes, their \"DOCTYPE\" with the link to the specification for AI agents, at the top of a file with notes as soon as an editor shows the file. The file then has an unsaved change. When off, the comment comes only with a change of a note that the extension writes."
+        },
         "nimblescape.markdownNotes.keepNotesCollapsed": {
           "type": "boolean",
           "default": false,

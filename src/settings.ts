@@ -47,6 +47,8 @@ export interface Settings {
   showNotesIn: NotePlace;
   /** openLinksIn is the place where a link of a note to a file opens ([R-GEN-010](../docs/requirements.md#r-gen-010)). */
   openLinksIn: LinkTarget;
+  /** addFormatComment writes the comment of the format into a file with notes as soon as an editor shows it ([R-NOTE-007](../docs/requirements.md#r-note-007)). */
+  addFormatComment: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
@@ -59,6 +61,7 @@ export const defaultSettings: Readonly<Settings> = {
   showFunnels: true,
   showNotesIn: 'sideView',
   openLinksIn: 'newWindow',
+  addFormatComment: true,
 };
 
 /**
@@ -66,7 +69,7 @@ export const defaultSettings: Readonly<Settings> = {
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const flag = (key: 'expandInEditor' | 'showInPreview' | 'showCalloutOnHover' | 'collapseInEditor' | 'keepNotesCollapsed' | 'showFunnels'): boolean => {
+  const flag = (key: 'expandInEditor' | 'showInPreview' | 'showCalloutOnHover' | 'collapseInEditor' | 'keepNotesCollapsed' | 'showFunnels' | 'addFormatComment'): boolean => {
     const raw = read(key);
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
@@ -83,6 +86,7 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     showFunnels: flag('showFunnels'),
     showNotesIn: choice('showNotesIn', notePlaces),
     openLinksIn: choice('openLinksIn', linkTargets),
+    addFormatComment: flag('addFormatComment'),
   };
 }
 

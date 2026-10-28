@@ -234,6 +234,7 @@ test('Reply opens an editor of a reply to an answer, which Save writes into its 
 
 test('the text editor dims the source of each note (R-TEXT-003)', async () => {
   inline();
+  fake.settings.set('workspace', { addFormatComment: false });
   const document = fake.open(note);
   const editor = new FakeEditor(document);
   fake.editors.push(editor);
@@ -250,6 +251,40 @@ test('the text editor dims the source of each note (R-TEXT-003)', async () => {
   expect(old.decorations.get(type)).toEqual([]);
   await run(noteCommands.deleteNote, fake.live()[0]);
   expect(editor.decorations.get(type)).toEqual([]);
+});
+
+test('a file with notes gets the comment of the format as soon as an editor shows it, once after it opens, and not with the setting addFormatComment off, nor a file without notes or with a newer format (R-NOTE-007)', async () => {
+  const document = fake.open(note);
+  const plain = fake.open('# Title\n\nText.\n', '/folder/plain.md');
+  const hidden = fake.open(note, '/folder/hidden.md');
+  const newer = fake.open(`<!-- nimblescape-markdown-notes format=2 -->\n\n${note}`, '/folder/newer.md');
+  const off = fake.open(note, '/folder/off.md');
+  fake.settings.set('/folder/off.md', { addFormatComment: false });
+  fake.editors.push(...[document, plain, newer, off].map((shown) => new FakeEditor(shown)));
+  await fake.activate();
+  await vi.advanceTimersByTimeAsync(0);
+  expect([document, plain, hidden, newer, off].map((each) => each.text)).toEqual([marked(note), '# Title\n\nText.\n', note, newer.text, note]);
+  // The tab of the mode "Markdown Preview" shows a document too.
+  fake.tabGroups = [{ viewColumn: 1, tabs: [{ input: { uri: hidden.uri } }] }];
+  fake.fire('tabs', {});
+  await vi.advanceTimersByTimeAsync(0);
+  expect(hidden.text).toBe(marked(note));
+  // Undo removes the comment for good, until the document opens again.
+  document.text = note;
+  document.version++;
+  fake.fire('change', { document });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(document.text).toBe(note);
+  fake.fire('close', document);
+  fake.fire('open', document);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.text).toBe(marked(note));
+  // A note that the user writes into a file without notes brings the comment too.
+  plain.text = `Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n`;
+  plain.version++;
+  fake.fire('change', { document: plain });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(plain.text).toBe(marked('Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n'));
 });
 
 test('the setting expandInEditor opens the boxes, and a change of a setting builds the threads anew and refreshes the previews', async () => {
@@ -573,6 +608,7 @@ test('a link to a file in a callout of the preview opens through the handler of 
 });
 
 test('the default setting showNotesIn "sideView" shows no boxes and no + in the text editor, and the side view shows the notes (R-GEN-009)', async () => {
+  fake.settings.set('workspace', { addFormatComment: false });
   const document = fake.open(note);
   fake.activeEditor = new FakeEditor(document);
   fake.editors.push(fake.activeEditor);

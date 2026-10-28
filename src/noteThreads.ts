@@ -47,7 +47,7 @@ import * as vscode from 'vscode';
 import { appendAnswer, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, type Result, withDoctype } from './notes/edits';
 import { commandAddress, commandLinks, openLinkCommand } from './links';
 import { checksOf } from './notes/checks';
-import { formatVersion, newerFormat } from './notes/doctype';
+import { doctypeEdit, formatVersion, newerFormat } from './notes/doctype';
 import { findNotes, type Note, noteAt, type Position, type Reading, readNotes } from './notes/notes';
 import { type Answer, formatDate, normalizeBody, parseDate } from './notes/syntax';
 import { type Settings, showsInline } from './settings';
@@ -203,6 +203,19 @@ export function problemMessage(problem: Problem): string {
 }
 
 /**
+ * isShown tells whether an editor shows a document: a text editor, also a side of a diff, or the tab of a custom
+ * editor such as the modes "Markdown Preview" and "Markdown Editor".
+ * @param document - The document.
+ */
+function isShown(document: vscode.TextDocument): boolean {
+  const key = document.uri.toString();
+  return (
+    vscode.window.visibleTextEditors.some((editor) => editor.document === document) ||
+    vscode.window.tabGroups.all.some((group) => group.tabs.some((tab) => (tab.input as { uri?: unknown } | undefined)?.uri?.toString() === key))
+  );
+}
+
+/**
  * showProblem shows the message of a problem of a change, if there is one.
  * @param problem - The problem, or undefined.
  */
@@ -265,6 +278,8 @@ export class NoteThreads implements vscode.Disposable {
   private readonly readings = new WeakMap<vscode.TextDocument, { version: number; reading: Reading }>();
   /** listeners are the listeners of the changes of the notes of a document. */
   private readonly listeners = new Set<(document: vscode.Uri) => void>();
+  /** marked holds the documents with notes whose comment of the format the extension checked since they opened, by their URIs. */
+  private readonly marked = new Set<string>();
   /** count is the number of threads that the extension created, for their identifiers. */
   private count = 0;
 
@@ -296,7 +311,13 @@ export class NoteThreads implements vscode.Disposable {
       vscode.commands.registerCommand(commands.deleteNote, (thread: vscode.CommentThread) => this.deleteThread(thread)),
       vscode.workspace.onDidOpenTextDocument((document) => this.sync(document)),
       vscode.workspace.onDidChangeTextDocument((event) => this.syncLater(event.document)),
-      vscode.workspace.onDidCloseTextDocument((document) => this.forget(document.uri)),
+      vscode.workspace.onDidCloseTextDocument((document) => {
+        this.marked.delete(document.uri.toString());
+        this.forget(document.uri);
+      }),
+      // A document that an editor shows gets the comment of the format.
+      vscode.window.onDidChangeVisibleTextEditors(() => this.markAll()),
+      vscode.window.tabGroups.onDidChangeTabs(() => this.markAll()),
     ];
     this.syncAll();
     return registrations;
@@ -480,6 +501,35 @@ export class NoteThreads implements vscode.Disposable {
     );
     for (const listener of this.listeners) {
       listener(document.uri);
+    }
+    this.mark(document);
+  }
+
+  /** markAll writes the comment of the format into each open document that needs it. */
+  private markAll(): void {
+    for (const document of vscode.workspace.textDocuments) {
+      this.mark(document);
+    }
+  }
+
+  /**
+   * mark writes the comment of the format into a document with notes that an editor shows, when the document has no
+   * comment or one of an older text ([R-NOTE-007](../docs/requirements.md#r-note-007); Hannes, 2026-10-28: "as soon as
+   * a note is detected, the "DOCTYPE" is written"). The document then has an unsaved change. The extension checks each
+   * document once after it opens, so that Undo removes the comment for good; a later change of a note writes it again.
+   * A document whose comment names a newer version of the format stays as it is.
+   * @param document - The document.
+   */
+  private mark(document: vscode.TextDocument): void {
+    const key = document.uri.toString();
+    if (this.marked.has(key) || document.isClosed || !this.entries.get(key)?.length || !this.settingsOf(document.uri).addFormatComment || !isShown(document)) {
+      return;
+    }
+    this.marked.add(key);
+    const lines = linesOf(document);
+    const edit = newerFormat(lines) === undefined ? doctypeEdit(lines, true) : undefined;
+    if (edit) {
+      void this.apply(document, [edit]);
     }
   }
 

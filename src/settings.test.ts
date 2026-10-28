@@ -10,7 +10,7 @@
 import { expect, test } from 'vitest';
 import { checkedSettings, defaultSettings, notePlaces, type Settings, showsInline, showsInSideView } from './settings';
 
-test('the defaults show the notes in the preview with their callouts on hover and in the side view, collapse the notes and their boxes in the text editor without keeping them collapsed, show the funnel, and open links in a new window', () => {
+test('the defaults show the notes in the preview with their callouts on hover and in the side view, collapse the notes and their boxes in the text editor without keeping them collapsed, show the funnel, open links in a new window, and add the comment of the format', () => {
   expect(defaultSettings).toEqual({
     expandInEditor: false,
     showInPreview: true,
@@ -20,6 +20,7 @@ test('the defaults show the notes in the preview with their callouts on hover an
     showFunnels: true,
     showNotesIn: 'sideView',
     openLinksIn: 'newWindow',
+    addFormatComment: true,
   });
 });
 
@@ -33,6 +34,7 @@ test('checkedSettings keeps the values that the settings take', () => {
     showFunnels: false,
     showNotesIn: 'inline',
     openLinksIn: 'system',
+    addFormatComment: false,
   };
   expect(checkedSettings((key) => values[key])).toEqual(values);
   expect(checkedSettings((key) => ({ showNotesIn: 'sideView', openLinksIn: 'editor' })[key as string])).toMatchObject({ showNotesIn: 'sideView', openLinksIn: 'editor' });
@@ -49,6 +51,7 @@ test('checkedSettings gives a missing value or a value that the setting does not
     showFunnels: 'no',
     showNotesIn: 'Inline',
     openLinksIn: true,
+    addFormatComment: 'off',
   };
   expect(checkedSettings((key) => values[key])).toEqual(defaultSettings);
   // The value "both" of an earlier version of the setting is no longer a value (Hannes, 2026-10-28 15:19).

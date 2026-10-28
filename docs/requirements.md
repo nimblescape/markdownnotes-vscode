@@ -41,7 +41,7 @@ Markdown preview.
 | 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
 | 18 | The collapse at the start of VS Code, the buttons "Hide Note Text" and "Show Note Text", the marker beside the comment mark, the settings `showNotesIn` and `openLinksIn`, the funnel of the selected thread | [R-GEN-009](#r-gen-009), [R-GEN-010](#r-gen-010), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done |
 | 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a passage that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done |
-| 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents | [R-NOTE-007](#r-note-007) | done |
+| 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done |
 
 ## General
 
@@ -76,8 +76,9 @@ not accept extensions that use one. It supports VS Code 1.125 and later.
 virtual workspaces. It runs no program and collects no telemetry. Its own code
 connects to no address; the sign-in of [R-GEN-006](#r-gen-006) goes through the
 GitHub authentication of VS Code. It changes a file only when the user saves,
-adds, answers or deletes a note; the comment of the format comes with such a
-change ([R-NOTE-007](#r-note-007)).
+adds, answers or deletes a note, and when an editor shows a file with notes
+without the comment of the format, which it then adds
+([R-NOTE-007](#r-note-007)).
 
 ### R-GEN-004
 
@@ -367,10 +368,18 @@ always knows it is a notes md document"). The
   does not interfere with a front matter (Hannes: "it shall not interfere with
   frontmatter"): a YAML (`---`) or TOML (`+++`) front matter stays the first
   block of the file, and the comment follows it.
-- The extension writes the comment only together with a change of a note that
-  it writes, never when it opens a file: the first note brings it, a comment
-  of another text or version is written anew, and the last note takes it
-  away with the blank line after it. Undo removes the comment with the note.
+- The extension writes the comment as soon as it finds a note in a file that
+  an editor shows, also in the modes "Markdown Preview" and "Markdown Editor"
+  (Hannes, 2026-10-28: "as soon as a note is detected, the "DOCTYPE" is
+  written"): when the file opens, and when a note appears in it. The file
+  then has an unsaved change. Undo removes the comment for good until the
+  file opens again. The setting `nimblescape.markdownNotes.addFormatComment` (on by
+  default) turns this off; the comment then comes only with a change of a
+  note.
+- Each change of a note that the extension writes brings the comment too: the
+  first note brings it, a comment of another text or version is written anew,
+  and the last note takes it away with the blank line after it. Undo removes
+  the comment with the note.
 - A file without the comment has notes too, for example a file from before
   this version: the extension reads its notes as always
   ([decision 11](#decisions)).
@@ -865,12 +874,11 @@ them.
     estimated height, which is wrong where lines wrap, and the strong
     highlight without the strip and the funnel.
 11. **Place of the comment of the format** ([R-NOTE-007](#r-note-007),
-    Hannes, 2026-10-28): the comment stands at the top of the file, after a
+    Hannes, 2026-10-28, 16:32): the comment stands at the top of the file, after a
     front matter, and the notes of a file without it work as before. The
     other choices were the top with notes only in files that hold the
     comment, which hides the notes of older files, and the end of the file,
-    where a program finds it only after it read the whole file. This choice
-    is the recommendation; Hannes has not answered yet.
+    where a program finds it only after it read the whole file.
 
 ---
 

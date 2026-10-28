@@ -30,6 +30,9 @@ let fake: Fake;
 beforeEach(() => {
   vi.useFakeTimers();
   fake = new Fake();
+  // The tests of the overlay keep their lines: the comment of the format, which an editor of a file with notes gets,
+  // has tests of its own in src/extension.test.ts.
+  fake.settings.set('workspace', { addFormatComment: false });
   vi.resetModules();
   vi.doMock('vscode', () => fake.api);
 });

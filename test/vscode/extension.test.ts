@@ -93,11 +93,17 @@ describe('nimblescape Markdown Notes', () => {
   let folder: string;
   let count = 0;
 
-  before(() => {
+  /** settings are the settings of the extension. */
+  const settings = () => vscode.workspace.getConfiguration('nimblescape.markdownNotes');
+
+  before(async () => {
     folder = fs.mkdtempSync(path.join(os.tmpdir(), 'markdown-notes-'));
+    // The files of the tests keep their lines; one test turns the comment of the format on.
+    await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
   });
 
-  after(() => {
+  after(async () => {
+    await settings().update('addFormatComment', undefined, vscode.ConfigurationTarget.Global);
     fs.rmSync(folder, { recursive: true, force: true });
   });
 
@@ -164,6 +170,17 @@ describe('nimblescape Markdown Notes', () => {
     const extension = await api();
     await waitFor(() => (bodyOf(extension.threadsOf(document.uri)[0].comments[1]) === 'A new *answer*.\n\nA second paragraph.' ? true : undefined), 'the saved body');
     assert.equal(extension.threadsOf(document.uri)[0], threads[0]);
+  });
+
+  it('adds the comment of the format at the top of a file with notes as soon as the editor shows it (R-NOTE-007)', async () => {
+    await settings().update('addFormatComment', true, vscode.ConfigurationTarget.Global);
+    try {
+      const { document } = await open(note, 2);
+      await waitFor(() => (document.getText() === marked(note) ? true : undefined), 'the comment of the format');
+      assert.ok(document.isDirty);
+    } finally {
+      await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
+    }
   });
 
   it('refuses a text that would start another answer', async () => {

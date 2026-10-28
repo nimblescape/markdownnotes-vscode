@@ -145,11 +145,11 @@ addNoteRules(parser);
 parser.core.ruler.disable(['linkify', 'replacements', 'smartquotes', 'text_join']);
 
 /**
- * parse returns the tokens of a Markdown text. The parsing takes every reference of the form of a note, also without
- * a note, for the warnings.
+ * parse returns the tokens of a Markdown text, as the Markdown preview reads it. The parsing takes every reference of
+ * the form of a note, also without a note, for the warnings. The formatter uses the tokens too.
  * @param lines - The lines of the Markdown text.
  */
-const parse = (lines: readonly string[]): Token[] => parser.parse(lines.join('\n'), { [allReferences]: true });
+export const parse = (lines: readonly string[]): Token[] => parser.parse(lines.join('\n'), { [allReferences]: true });
 
 /** textParents are the tokens before an inline token whose text can hold the reference of a note. */
 export const textParents = new Set(['paragraph_open', 'heading_open', 'th_open', 'td_open']);
