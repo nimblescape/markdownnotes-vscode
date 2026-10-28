@@ -29,7 +29,7 @@ describes its security model.
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, which VS Code also runs on save: one edit of the changed lines with the line breaks of the document. |
-| `src/cli/cli.ts`, `src/cli/main.ts` | The formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
+| `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdown-notes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
 | `src/editorLayout.ts` | The rows of a passage in the text editor, where the funnel of the side view starts: the rows of the visible ranges, the lines wrapped by words, and the estimate of the number of columns of a row. It uses no API of VS Code. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes the reference of each note as an icon with a hidden callout, the start marker as the start of its selection, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code and of the notes, and the script that shows the callout of an icon on hover and focus, highlights the selections, selects and deselects a note on a click, and draws the band of the selected note to the right edge of the preview. |
@@ -37,8 +37,10 @@ describes its security model.
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
 | `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
+| `test/cli/` | The tests of the built command `markdown-notes` (`cli/dist/markdown-notes.js`), with the Node.js of the tests in the temporary folder of the system. |
 | `test/vscode/` | The tests in a real VS Code: the threads of the notes with their answers, the save, the refused text, the delete, the side view, and the icons and callouts of the Markdown preview of VS Code (`markdown.api.render`). |
-| `dist/` | The bundle `dist/extension.js` and the command line tool `dist/cli.js`, built by `esbuild.mjs` and kept out of Git. The package of the extension holds only `dist/extension.js`. |
+| `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
+| `cli/package.json`, `cli/package-lock.json`, `cli/README.md` | The npm package `@nimblescape/markdown-notes`: its manifest, its lock file without dependencies and its page on npmjs.com. The build writes `cli/dist/markdown-notes.js` and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`, all kept out of Git. The section [npm package](#npm-package) explains it. |
 | `out/`, `.vscode-test/` | The bundled tests in VS Code (`scripts/build-vscode-tests.mjs`) and the VS Code that `@vscode/test-cli` downloads for them, kept out of Git. |
 | `docs/guide.md` | The user guide: every feature, how to use it, and its state. |
 | `docs/format.md` | The specification of the format of the notes, for people and programs such as AI agents. The comment of the format links to it on the branch `main`, so the file keeps its path. |
@@ -48,26 +50,25 @@ describes its security model.
 | `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with a note and its open box with a tree of three answers, the Markdown preview with the callout of an icon on hover, and the side view "Notes" in the secondary side bar. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
 | `THIRD-PARTY-NOTICES.md` | The packages that the bundle contains, their licenses and the places of their source code. |
 | `SUPPORT.md` | Where to ask questions and report problems, and what a report contains. |
-| `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for the Node.js of VS Code, and `src/cli/main.ts` with markdown-it into `dist/cli.js`, a script for Node.js 20 or later. The editor API stays outside the bundle. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
+| `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for the Node.js of VS Code, and `src/cli/main.ts` with markdown-it into `cli/dist/markdown-notes.js` for Node.js 22 or later, and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`. The editor API stays outside the bundles. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
 | `tsconfig.json` | The settings of the type check: strict, and no output, because esbuild builds the bundle. It covers `src/` and `test/`. |
 | `vitest.config.mts` | The settings of the unit tests: the files `src/**/*.test.ts` and `scripts/**/*.test.mjs` on Node. |
+| `vitest.cli.config.mts` | The settings of the tests of the built command `markdown-notes`: the files `test/cli/**/*.test.ts`. |
 | `.vscode-test.mjs` | The settings of the tests in VS Code: the VS Code version (`VSCODE_TEST_VERSION`, stable by default), the files of `out/test/vscode/`, and mocha. |
 | `package.json` | The extension manifest. The section [Manifest](#manifest) explains it. |
 | `package-lock.json` | The locked development tools. npm writes this file, and nobody edits it by hand. |
 | `.node-version` | The Node release of the development tools. `actions/setup-node` in the workflows and local Node version managers read it. |
 | `.vscodeignore` | Lists the files of the package: `dist/extension.js`, `media/markdownPreview.css`, `media/markdownPreview.js`, `media/notesView.css`, `media/notesView.js`, `resources/icon.png`, `resources/notes-view.svg`, `package.json`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`. |
-| `.github/workflows/ci.yml` | Checks the types, runs the unit tests and the tests in VS Code, and packages every push to `main`, every pull request and the commit of every release: the VSIX, and the npm package of the command line tool, which it also runs on Node.js 20. The release publishes the VSIX and the npm package of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
+| `.github/workflows/ci.yml` | Checks the types, runs all tests, packages the VSIX and the npm package for every push to `main`, every pull request and the commit of every release, and runs the tests of `markdown-notes` on Ubuntu and macOS with Node.js 22 and 26. The release publishes the packages of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/vscode-versions.yml` | Runs `ci.yml` once per week with VS Code Insiders and with the lowest supported VS Code version. |
-| `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace. A dry run tests without a change. The section [Release](#release) explains it. |
-| `.github/workflows/npm-package.yml` | Publishes the npm package of the command line tool after each successful run of the workflow "Release", or tests the publish after a dry run. The section [npm package](#npm-package) explains it. |
+| `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace and to npmjs.com. A dry run tests without a change. The section [Release](#release) explains it. |
 | `.github/workflows/release-dry-run.yml` | Fails on a pull request that changes the release process (`release.yml`, `ci.yml` or `scripts/release-checks.mjs`) until a dry run on its branch tested the change (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/marketplace-identity.yml` | Prints the Marketplace member ID of the publishing identity, to check the setup of the repository. |
 | `.github/dependabot.yml` | Proposes weekly updates of the development tools and of the pinned actions. |
 | `scripts/build-vscode-tests.mjs` | Bundles each test of `test/vscode/` into `out/test/vscode/` for the tests in VS Code. |
 | `scripts/install-local.mjs`, `scripts/uninstall-local.mjs` | Install the built package into every profile of the VS Code of this computer, and remove it again. |
 | `scripts/marketplace-setup.sh` | Sets up the Marketplace publishing of the repository. The section [Setup of a repository](#setup-of-a-repository) explains it. |
-| `scripts/npm-package.mjs`, `scripts/npm-package.test.mjs` | Builds the npm package of the command line tool from `dist/cli.js` into `out/npm/` and packs it into `nimblescape-markdown-notes-<version>.tgz`, and the test of its manifest. |
-| `npm/README.md` | The README of the npm package, which npm shows on the page of the package. |
+| `scripts/npm-setup.sh` | Sets up the npm publishing of the package: the environment `npm`, the first version and the trusted publisher. The section [npmjs.com setup](#npmjscom-setup) explains it. |
 | `scripts/release-checks.mjs`, `scripts/release-checks.test.mjs` | The check of rule 4 of the [release rules](#release-rules), which the workflows run, and its test. |
 | `.vscode/launch.json`, `.vscode/tasks.json` | Build the bundle and start a VS Code window that loads the extension from this folder. |
 
@@ -79,18 +80,19 @@ tests in VS Code, and [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce)
 the Microsoft tool that packages and publishes extensions. Everything runs on
 Node.js 24: the release in `.node-version` for the tools and CI, and the
 runtime of VS Code 1.125 and later (`engines.vscode`) for the extension. The
-command line tool of the formatter, `dist/cli.js`, also runs on Node.js 20
-and later outside VS Code.
+command `markdown-notes` of the npm package runs on the Node.js of the
+`PATH`, Node.js 22 or later (`engines` of `cli/package.json`).
 
 | Command | Effect |
 | --- | --- |
 | `npm ci --ignore-scripts` | Installs the locked development tools and runs no install script of a dependency. |
 | `npm run typecheck` | Checks the types with `tsc`. esbuild does not check them. |
 | `npm test` | Runs the unit tests with vitest. The tests touch no installed editor. |
+| `npm run test:cli` | Builds the bundles and runs the tests of the built `markdown-notes` in the temporary folder of the system. |
 | `npm run test:vscode` | Builds the bundle and the tests in VS Code, downloads VS Code to `.vscode-test/` and runs the tests in it. On Linux without a display, run it as `xvfb-run -a npm run test:vscode`. `VSCODE_TEST_VERSION=insiders` or a version such as `1.125.0` selects another VS Code. |
-| `npm run build` | Bundles `dist/extension.js` and the command line tool `dist/cli.js` with source maps. `node dist/cli.js format <file>` runs the tool. |
+| `npm run build` | Bundles `dist/extension.js` and `cli/dist/markdown-notes.js` with source maps. `node cli/dist/markdown-notes.js format <file>` then runs the built `markdown-notes`. |
 | `npm run package` | Builds `nimblescape-markdown-notes-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
-| `npm run package:npm` | Builds the production bundles and packs the npm package of the command line tool, `nimblescape-markdown-notes-<version>.tgz`, with `scripts/npm-package.mjs`. `npx -y ./nimblescape-markdown-notes-<version>.tgz format <file>` runs it. |
+| `npm pack ./cli` | Builds the npm package `nimblescape-markdown-notes-<version>.tgz` from `cli/`, after a production build (`node esbuild.mjs --production`). `npx -y ./nimblescape-markdown-notes-<version>.tgz format <file>` runs it. |
 | `npm run install-local` | Builds the package and installs it into every profile of the VS Code of this computer; `-- --profile <name>` installs into one profile. Reload the window after an update of an active extension. |
 | `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdown-notes` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
 
@@ -107,6 +109,12 @@ file), run `npm ci --ignore-scripts` and `npm run vscode:prepublish` at the
 tag of its version, and compare `extension/dist/` of the VSIX with `dist/`.
 With the same sources and the locked versions of the tools, the build gives
 the same file.
+
+The npm package holds the bundle `cli/dist/markdown-notes.js` in
+`package/dist/`; unpack it with `tar -xzf` and compare it with
+`cli/dist/` in the same way. npmjs.com shows the provenance of each version
+that the release workflow published: the repository, the workflow and the
+commit of the build.
 
 ## Manifest
 
@@ -138,6 +146,25 @@ address and must not be an SVG. Both files and `SUPPORT.md` use full
 `https://github.com/…` links outside code, so that every link works in the
 repository, in the package and on the Marketplace. A test checks it, and a
 test checks that the package script keeps the checks of vsce.
+
+## npm package
+
+`cli/` is the npm package `@nimblescape/markdown-notes`, in the scope of the
+organization `nimblescape` on npmjs.com, with the command `markdown-notes`,
+the formatter on the command line for programs and AI agents
+([R-FMT-004](docs/requirements.md#r-fmt-004)). The npm package
+`@nimblescape/typescript` of the extension nimblescape TypeScript has the
+same form. Its manifest `cli/package.json` has these parts:
+
+- The name `@nimblescape/markdown-notes` and the command `markdown-notes` (`bin`). The Marketplace has no scopes, so the extension keeps the form of [Naming](#naming).
+- The version, which the release sets to the version of the extension. A test checks that both manifests and `cli/package-lock.json` have one version.
+- `files` keeps the bundle of `dist/` and `THIRD-PARTY-NOTICES.md`, which the build copies into `cli/`, because the bundle holds markdown-it; npm adds `package.json`, `README.md` and `LICENSE`. A test checks the list with `npm pack --dry-run`.
+- `engines.node` is `>=22`, and the package has no dependency: the bundle imports only modules of Node.js, which a test checks.
+- `repository.directory` is `cli`, and `publishConfig.access` is `public`, which a scoped package needs for its first version.
+
+`cli/README.md` is the page of the package on npmjs.com, with full
+`https://…` links only. The package of the extension holds no file of
+`cli/`: the extension formats with its own copy of the formatter.
 
 ## Notes
 
@@ -583,19 +610,21 @@ publisher.
 ## Release
 
 A released version is a tag `v<version>` whose `<version>` equals the version
-in `package.json`. The workflow "Release" creates the version, its tag, its
-GitHub release and its Marketplace version in one run. To release a version,
+in `package.json` and in `cli/package.json`. The workflow "Release" creates
+the version, its tag, its GitHub release, its Marketplace version and its
+version on npmjs.com in one run. To release a version,
 follow these steps:
 
 1. Optional: add a section `## <version>` to `CHANGELOG.md` on `main`. The section describes the changes for the users (see [Release rules](#release-rules)).
 2. In the tab "Actions", choose the workflow "Release", then "Run workflow" on the branch `main`. Enter the version, for example `0.1.7`. When `CHANGELOG.md` has no section for the version, enter its notes too: they become the section. The GitHub website starts a workflow also in the browser of a phone.
 
-The run has four jobs:
+The run has five jobs:
 
-1. "Version commit" checks that the run starts from `main`, that the version has the form `<major>.<minor>.<patch>`, that it is not lower than the version in `package.json` and that its tag does not exist, and, in a release, that a dry run tested the files of the release process with `scripts/release-checks.mjs dry-run` (rule 4 of the [release rules](#release-rules)). It sets the version in `package.json` and `package-lock.json`, adds the section of the notes to `CHANGELOG.md` when the file has none, commits the change as "Release `<version>`" and pushes it to the temporary branch `release/run-<run ID>`, not to `main`. When `main` holds the version and its section already, it commits nothing. It also deletes the temporary branches of earlier runs that failed.
-2. "CI" runs the workflow `ci.yml` for the commit of the version, because a push with the token of a workflow starts no other workflow. The VSIX that this job tests and builds is the VSIX of the release, so the release repeats no test and no build.
-3. "Main, tag and GitHub release" runs only when CI passed. It moves `main` to the commit of the version as a fast-forward and deletes the temporary branch. When `main` changed during the run, it stops before the tag. Then it creates the tag `v<version>` on the commit and the release of the tag with the GitHub CLI `gh`. The section of the version in `CHANGELOG.md` becomes the notes, and the VSIX becomes the file of the release. A release that exists keeps its notes and receives the VSIX only when it holds none.
+1. "Version commit" checks that the run starts from `main`, that the version has the form `<major>.<minor>.<patch>`, that it is not lower than the version in `package.json` and that its tag does not exist, and, in a release, that a dry run tested the files of the release process with `scripts/release-checks.mjs dry-run` (rule 4 of the [release rules](#release-rules)). It sets the version in `package.json`, `package-lock.json`, `cli/package.json` and `cli/package-lock.json`, adds the section of the notes to `CHANGELOG.md` when the file has none, commits the change as "Release `<version>`" and pushes it to the temporary branch `release/run-<run ID>`, not to `main`. When `main` holds the version and its section already, it commits nothing. It also deletes the temporary branches of earlier runs that failed.
+2. "CI" runs the workflow `ci.yml` for the commit of the version, because a push with the token of a workflow starts no other workflow. The VSIX and the npm package that this job tests and builds are the files of the release, so the release repeats no test and no build.
+3. "Main, tag and GitHub release" runs only when CI passed. It moves `main` to the commit of the version as a fast-forward and deletes the temporary branch. When `main` changed during the run, it stops before the tag. Then it creates the tag `v<version>` on the commit and the release of the tag with the GitHub CLI `gh`. The section of the version in `CHANGELOG.md` becomes the notes, and the VSIX and the npm package (`nimblescape-markdown-notes-<version>.tgz`) become the files of the release. A release that exists keeps its notes and receives only a file that it does not hold.
 4. "Publish to the Visual Studio Marketplace" downloads the VSIX of the GitHub release, signs in to Microsoft Entra ID with the official [`azure/login`](https://github.com/Azure/login) action and publishes the VSIX with `vsce publish --azure-credential`.
+5. "Publish to npmjs.com" downloads the npm package of the GitHub release and publishes it with `npm publish --access public`, with [trusted publishing](https://docs.npmjs.com/trusted-publishers): npm exchanges the OpenID Connect token of the job for a token of npmjs.com that can publish only this package, and adds the provenance of the build. It skips a version that npmjs.com holds already, and it stops with a message when the package does not exist yet (see [npmjs.com setup](#npmjscom-setup)). This job is the only part of this section that the other extension repositories of nimblescape do not have.
 
 `main` receives the version commit only after CI passed. When CI fails,
 `main`, the tags, the releases and the Marketplace stay unchanged, and the
@@ -611,9 +640,9 @@ from another branch than `main`, so it also tests a change of `release.yml` on
 that branch before the change reaches `main`.
 
 When a job fails, remove the cause and choose "Re-run failed jobs" on the
-run. A re-run keeps the tag and the VSIX that the GitHub release already
-holds, and the Marketplace skips a version that it already holds, so a re-run
-never publishes a version twice. When the publish job fails, for example
+run. A re-run keeps the tag and the files that the GitHub release already
+holds, and the Marketplace and the publish job of npm skip a version that
+they already hold, so a re-run never publishes a version twice. When the publish job fails, for example
 because the Marketplace refuses the package, the tag and the GitHub release
 stay, and the re-run publishes the VSIX of the GitHub release. GitHub allows a
 re-run only within 30 days of the run; after that, only a new version can
@@ -640,10 +669,10 @@ in the workflows, `scripts/release-checks.mjs dry-run`; everyone follows the
 other rules without a check.
 
 1. **The ID never changes.** An extension keeps its ID `nimblescape.nimblescape-<name>` (see [Naming](#naming)), and nimblescape never publishes an extension under a new ID.
-2. **No deletion.** nimblescape never deletes an extension. No workflow, npm script or file of `scripts/` runs `vsce unpublish`, which deletes the extension on the Marketplace, or `vsce delete-publisher`, which deletes the publisher with all its extensions. On the publisher management page, nobody uses More Actions > Remove, which deletes the extension and keeps its name reserved permanently, or "Delete this version" (More Actions > Reports, tab Manage), after which the number of the version can never be used again. An extension that is no longer wanted is unpublished on the publisher management page, as [Naming](#naming) describes.
+2. **No deletion.** nimblescape never deletes an extension or a version of the npm package. No workflow, npm script or file of `scripts/` runs `npm unpublish`, after which npmjs.com never accepts the number of that version again, or `vsce unpublish`, which deletes the extension on the Marketplace, or `vsce delete-publisher`, which deletes the publisher with all its extensions. On the publisher management page, nobody uses More Actions > Remove, which deletes the extension and keeps its name reserved permanently, or "Delete this version" (More Actions > Reports, tab Manage), after which the number of the version can never be used again. An extension that is no longer wanted is unpublished on the publisher management page, as [Naming](#naming) describes.
 3. **Only changes for the users, at most one version in 7 days.** A version is published only when it changes something for the users, its section in `CHANGELOG.md` describes that change, and at least 7 days passed since the newest release; an urgent fix may come earlier. A change for the users changes the extension that VS Code runs: its code (`src/`, which the build bundles into `dist/`), another file of the package that is not a document, for example the icon of a view, or a field of `package.json` that changes how the extension works, for example `contributes`. A change only of the documents (for example the README), the Marketplace icon, the tests or the build tools (for example `esbuild.mjs`, `tsconfig.json` or a file of `scripts/`) does not count: it reaches the users with the next version that changes the extension. Images that only the README shows do not belong in the package: the README links them with full `https://github.com/…` links (see [Manifest](#manifest)). The section of the version in `CHANGELOG.md` does not say "maintenance release", "behaves as in" followed by a version, or a phrase of that kind.
 4. **Dry run first.** A change of the release process is tested with a dry run before it reaches `main`. The files of the release process are `release.yml`, `ci.yml`, whose VSIX the release publishes, and `scripts/release-checks.mjs`. The workflow "Release dry run" runs on every pull request. When the pull request changes one of these files, also in an update by Dependabot, the check `dry-run` fails until a successful dry run, or the newest release, had these files as they are at the head of the pull request. Start the workflow "Release" on the branch of the pull request with "Dry run" and a version without a tag (with notes when `CHANGELOG.md` has no section for the version), then re-run the job "release dry run" of the pull request. A pull request from a fork cannot meet the rule, because the dry run needs a branch of this repository. The job "Version commit" of a release runs the check `dry-run` again, so a change that reached `main` without a dry run stops the release until a dry run tested it. Do not make "release dry run" a required check of `main`: the release moves `main` to its version commit, which has no result of the check.
-5. **Only GitHub Actions with Microsoft Entra ID.** Only the job "Publish to the Visual Studio Marketplace" publishes, signed in with the app registration of [Marketplace setup](#marketplace-setup). No personal access token exists for the publisher. No other workflow, npm script or file of `scripts/` runs `vsce publish` or `vsce login`. Nobody uploads a VSIX on the publisher management page or runs `vsce publish`, `unpublish`, `delete-publisher` or `login` on a computer.
+5. **Only GitHub Actions with Microsoft Entra ID.** Only the job "Publish to the Visual Studio Marketplace" publishes, signed in with the app registration of [Marketplace setup](#marketplace-setup). No personal access token exists for the publisher. No other workflow, npm script or file of `scripts/` runs `vsce publish` or `vsce login`. Nobody uploads a VSIX on the publisher management page or runs `vsce publish`, `unpublish`, `delete-publisher` or `login` on a computer. In this repository, the job "Publish to npmjs.com" publishes the npm package in the same way, with trusted publishing and no token; only the first version of the package is published once by hand, with `scripts/npm-setup.sh`, because npmjs.com sets up a trusted publisher only for a package that exists.
 
 ## Marketplace setup
 
@@ -713,40 +742,55 @@ Only when the publisher, the app or the variables are lost:
 4. Set up a repository with the script, and run its workflow "Marketplace identity".
 5. On the publisher management page, open the publisher `nimblescape`, then "Members", and add the member ID that the workflow printed with the role "Contributor".
 
-## npm package
+## npmjs.com setup
 
-The formatter on the command line ([R-FMT-004](docs/requirements.md#r-fmt-004))
-is the npm package `nimblescape-markdown-notes`, with the version of the
-extension, so that programs and AI agents run it with
-`npx -y nimblescape-markdown-notes format <file>`. The job "Test and package"
-of `ci.yml` packs it with `npm run package:npm`, installs the packed file on
-Node.js 20, the oldest release that it supports, and runs it. The workflow
-`npm-package.yml` publishes it after each successful run of the workflow
-"Release", from the artifact "npm" of the CI job of that run, so the package
-holds the code of the released version. It is a workflow of its own, because
-`release.yml` is the same in every extension repository of nimblescape. After
-a dry run of "Release", its job "npm dry run" runs `npm publish --dry-run`.
-After a release, its job "Publish to npm" adds the package to the files of the
-GitHub release and publishes it with
-[trusted publishing](https://docs.npmjs.com/trusted-publishers): npm
-exchanges the OpenID Connect token of the job, so no npm token is stored. It
-skips a version that npm holds already. GitHub starts the workflow only in its
-version on the default branch.
+The job "Publish to npmjs.com" publishes with
+[trusted publishing](https://docs.npmjs.com/trusted-publishers): npmjs.com
+trusts the workflow `release.yml` of this repository in the environment
+`npm`, and accepts the OpenID Connect token of its job instead of a token.
+No npm token is stored in GitHub.
 
-Trusted publishing needs a package that exists on npm. Until it exists, the
-job "Publish to npm" publishes nothing and reports it. Set up the package
-once, after the first release:
+### What exists
 
-1. Sign in to [npmjs.com](https://www.npmjs.com) with the npm account of nimblescape e.U., with two-factor authentication.
-2. Download `nimblescape-markdown-notes-<version>.tgz` from the GitHub release and publish it on a computer: `npm login`, then `npm publish nimblescape-markdown-notes-<version>.tgz --access public`.
-3. On npmjs.com, open the package, then "Settings", "Trusted Publisher", "GitHub Actions": the organization `nimblescape`, the repository `nimblescape-markdown-notes`, the workflow `npm-package.yml` and the environment `npm`.
-4. In the same settings, under "Publishing access", choose "Require two-factor authentication and disallow tokens", so that only the workflow publishes.
+| Part | Where | Value |
+| --- | --- | --- |
+| Organization | [npmjs.com](https://www.npmjs.com/org/nimblescape) | `nimblescape`, the scope of the package |
+| Package | npmjs.com | `@nimblescape/markdown-notes`, public |
+| Trusted publisher | the settings of the package on npmjs.com, "Trusted Publisher" | GitHub Actions, the repository `nimblescape/nimblescape-markdown-notes`, the workflow `release.yml`, the environment `npm` |
+| Environment | the settings of the repository, "Environments" | `npm`, reachable from the tags `v*` and the branch `main` only |
 
-From the next release on, the workflow publishes each version. The
-environment `npm` of the repository ("Settings", "Environments") can limit
-the publish to the branch `main`. No other workflow, npm script or file of
-`scripts/` runs `npm publish` without `--dry-run`, and nobody runs
-`npm unpublish`: npm never gives a version number again.
+### Setup
+
+npmjs.com sets up a trusted publisher only for a package that exists, so
+the first version is published once by hand, from the GitHub release of
+that version. The script `scripts/npm-setup.sh` does all steps. It needs the
+GitHub CLI and npm 11.15.0 or newer, both signed in: npm with an account
+that may publish in the organization `nimblescape` and has two-factor
+authentication, because `npm trust` and the first `npm publish` ask for the
+second factor. It shows what it sets up and asks before it changes
+anything. It changes nothing that already exists, so it can run again. It
+shows the trusted publishers of the package and asks whether to add the
+trusted publisher: npm lists them only after the second factor, in the
+terminal, so the script cannot check them itself:
+
+```sh
+gh auth login
+npm login
+scripts/npm-setup.sh          # before the first release: the environment npm
+scripts/npm-setup.sh 0.2.0    # after the release 0.2.0: its first version and the trusted publisher
+```
+
+The order for the first version of the package:
+
+1. Run `scripts/npm-setup.sh` without a version, so the environment `npm` exists.
+2. Release the version with the workflow "Release". The job "Publish to npmjs.com" fails, because the package does not exist yet; the Marketplace and the GitHub release are not affected.
+3. Run `scripts/npm-setup.sh <version>`. It downloads the npm package of the GitHub release, publishes it, and adds the trusted publisher.
+4. Re-run the failed job "Publish to npmjs.com". It finds the version on npmjs.com and ends without a change.
+
+From the next version on, the release publishes to npmjs.com without a step
+by hand. Optionally, set "Publishing access" of the package on npmjs.com to
+"Require two-factor authentication and disallow tokens" after the setup:
+trusted publishing still works, and no token can publish.
 
 ---
 

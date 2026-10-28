@@ -685,13 +685,18 @@ block, for example `"esbenp.prettier-vscode"`.
 ### Formatter on the command line
 
 Programs and AI agents that change a Markdown file outside VS Code run the
-same formatter on the command line, with Node.js 20 or later:
+same formatter on the command line: the command `markdown-notes` of the npm
+package [`@nimblescape/markdown-notes`](https://www.npmjs.com/package/@nimblescape/markdown-notes),
+with Node.js 22 or later. `npx` runs it without an installation:
 
 ```sh
-npx -y nimblescape-markdown-notes format paper.md notes/*.md
-npx -y nimblescape-markdown-notes format --check paper.md
-cat paper.md | npx -y nimblescape-markdown-notes format -
+npx -y @nimblescape/markdown-notes format paper.md notes/*.md
+npx -y @nimblescape/markdown-notes format --check paper.md
+cat paper.md | npx -y @nimblescape/markdown-notes format -
 ```
+
+After `npm install --global @nimblescape/markdown-notes`, the command is
+`markdown-notes format paper.md`.
 
 The first command formats the files and writes only those that change. With
 `--check` it changes no file, names each file that is not formatted, and

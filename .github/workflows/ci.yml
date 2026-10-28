@@ -2,21 +2,23 @@
 # © 2026 Hannes Stauss (scalarion@nimblescape.com)
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
-# Test the extension and build its package for every push to main and every
+# Test the extension and build its packages for every push to main and every
 # pull request, on the pinned Node.js 24 release (.node-version); VS Code 1.125
 # (engines.vscode) and later run extensions on Node.js 24 too. The job "test"
 # installs the locked development tools without install scripts, checks the
-# types, runs the unit tests and the tests in a real VS Code (stable), and
-# packages the VSIX with vsce, which first bundles the extension with esbuild
-# and also validates the manifest and the README. It then packs the npm package
-# of the formatter on the command line (scripts/npm-package.mjs) and runs the
-# packed tool on Node.js 20, the oldest release that it supports. The VSIX and
-# the npm package stay workflow artifacts for inspection.
-# This workflow publishes nothing: the release workflow calls it for the commit
-# of a version and publishes the VSIX and the npm package of that call. A change of this file
-# changes the release process: its pull request needs a dry run (rule 4). The
-# workflow "VS Code versions" calls it once per week with another VS Code
-# version.
+# types, runs the unit tests and the tests in a real VS Code (stable),
+# packages the VSIX with vsce, which first bundles the extension and the
+# command markdown-notes with esbuild and also validates the manifest and the
+# README, and packs the npm package @nimblescape/markdown-notes of cli/ with
+# npm pack. Both stay workflow artifacts for inspection. The job "command"
+# runs the tests of the built command markdown-notes on Linux and macOS, with
+# the oldest Node.js that the command supports (engines of cli/package.json)
+# and the newest LTS release. This workflow publishes nothing: the release
+# workflow calls it for the commit of a version and publishes the VSIX and the
+# npm package of that call. A change of this file changes the release process:
+# its pull request needs a dry run (rule 4). The workflow "VS Code versions"
+# calls it once per week with another VS Code version; such a call runs only
+# the job "test".
 
 name: CI
 
@@ -84,6 +86,10 @@ jobs:
       - name: Build the VSIX package
         run: npm run package
 
+      # The production build of the VSIX wrote cli/dist/, so the npm package holds the bundle of a production build.
+      - name: Build the npm package
+        run: npm pack ./cli
+
       - name: Keep the VSIX package
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -91,32 +97,39 @@ jobs:
           path: '*.vsix'
           if-no-files-found: error
 
-      - name: Build the npm package of the command line tool
-        run: npm run package:npm
-
-      # The last steps of the job: the Node release of the steps after this one is 20.
-      - name: Set up Node.js 20, the oldest release of the command line tool
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 20
-
-      # The installed program formats the standard input and checks a formatted file.
-      - name: Run the packed command line tool on Node.js 20
-        run: |
-          npm install --global --no-audit --no-fund ./*.tgz
-          nimblescape-markdown-notes --version
-          formatted=$(printf 'one\ntwo\n\n|a|b|\n|-|-|\n' | nimblescape-markdown-notes format -)
-          expected=$(printf 'one two\n\n| a   | b   |\n| --- | --- |\n')
-          if [ "$formatted" != "$expected" ]; then
-            echo "::error::The command line tool formatted the text as: $formatted"
-            exit 1
-          fi
-          printf '%s\n' "$formatted" > formatted.md
-          nimblescape-markdown-notes format --check formatted.md
-
       - name: Keep the npm package
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: npm${{ env.ARTIFACT_SUFFIX }}
           path: '*.tgz'
           if-no-files-found: error
+
+  command:
+    name: Command markdown-notes on ${{ matrix.os }} with Node.js ${{ matrix.node }}
+    # The workflow "VS Code versions" tests only the parts that depend on VS Code.
+    if: ${{ !inputs.vscode-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['22', '26']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Set up Node.js ${{ matrix.node }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install the locked development tools without install scripts
+        run: npm ci --ignore-scripts
+
+      # The tests run the built cli/dist/markdown-notes.js with this Node.js.
+      - name: Run the tests of the command markdown-notes
+        run: npm run test:cli

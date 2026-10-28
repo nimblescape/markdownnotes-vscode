@@ -44,7 +44,7 @@ Markdown preview.
 | 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done |
 | 21 | A click on a passage of the preview that keeps the page, no callout on a click, a click outside a passage that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint passages of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done |
 | 22 | The funnel that follows the passage of the selected note: the band of the preview from the passage to its right edge, and the start of the funnel at the rows of the passage in the text editor | [R-SIDE-007](#r-side-007) | done |
-| 23 | The formatter on the command line for programs and AI agents, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | in progress |
+| 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
 
 ## General
 
@@ -917,13 +917,13 @@ text would show other blocks or another text in the preview.
 
 **The formatter on the command line.** Programs and AI agents that change a
 Markdown file outside VS Code run the same formatter on the command line
-(Hannes, 2026-10-28: "make the formatter accessible for agents"). The tool
-`nimblescape-markdown-notes` is a script of Node.js 20 or later without
-dependencies, built from the code of the formatter of
+(Hannes, 2026-10-28: "make the formatter accessible for agents"). The command
+`markdown-notes` is a script of Node.js 22 or later without dependencies,
+built from the code of the formatter of
 [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003), so that it formats a file
 as the extension does on save.
 
-- `nimblescape-markdown-notes format <file>...` formats each file and
+- `markdown-notes format <file>...` formats each file and
   writes only the files that change, with the line breaks and the byte order
   mark of the file.
 - `--check` changes no file, writes `<file>: not formatted` to the standard
@@ -936,9 +936,13 @@ as the extension does on save.
 - `--help` shows the help, and `--version` the version of the tool and of the
   format of the notes ([R-NOTE-007](#r-note-007)).
 
-The tool is the npm package `nimblescape-markdown-notes`, with the version of
-the extension and published with each release, so that
-`npx -y nimblescape-markdown-notes format <file>` runs it without an
+The command is the npm package `@nimblescape/markdown-notes` in the folder
+`cli/` of this repository, as the npm package `@nimblescape/typescript` of
+the extension nimblescape TypeScript (Hannes, 2026-10-28: "same as with the
+typescript extension, we have the extension and the npm package in the same
+repo and publish it to npmjs"). It has the version of the extension, and the
+release publishes it to npmjs.com, so that
+`npx -y @nimblescape/markdown-notes format <file>` runs it without an
 installation. The specification of the format of the notes for AI agents
 ([docs/format.md](format.md)) tells agents to run the tool after a change of
 a file with notes.
@@ -1024,6 +1028,12 @@ them.
     replaces the part of decision 10 that keeps the funnel at the strip. The
     other choices were the start at the computed rows in the text editor
     only, with the strip in the preview, and the strip in both.
+13. **The formatter for agents** ([R-FMT-004](#r-fmt-004), Hannes,
+    2026-10-28, 19:05): an npm package in the folder `cli/` of this
+    repository, which the release publishes to npmjs.com with the version of
+    the extension, as the extension nimblescape TypeScript does. The other
+    choices were a run with npx from the GitHub repository, without npmjs.com,
+    and a tool for the agents in VS Code only.
 
 ---
 

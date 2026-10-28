@@ -116,8 +116,9 @@ describes each step and where its protection ends.
   each paragraph on one line with its hard line breaks, aligned tables,
   no spaces at the end of a line, one blank line between blocks. Code, HTML,
   a front matter and the notes stay as they are. Programs and AI agents run
-  the same formatter on the command line with Node.js 20 or later:
-  `npx -y nimblescape-markdown-notes format paper.md`, or with `--check`,
+  the same formatter on the command line with Node.js 22 or later, from the
+  npm package `@nimblescape/markdown-notes`:
+  `npx -y @nimblescape/markdown-notes format paper.md`, or with `--check`,
   which changes nothing and exits with 1 when a file is not formatted.
 - **For AI agents.** A comment at the top of each file with notes names the
   format of the notes, like a DOCTYPE, as soon as an editor shows the file,

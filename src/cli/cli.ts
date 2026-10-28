@@ -3,8 +3,9 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The command line tool of the formatter ([R-FMT-004](../../docs/requirements.md#r-fmt-004)), for programs and AI
- * agents that change a Markdown file outside VS Code (Hannes, 2026-10-28: "make the formatter accessible for agents").
+ * The command markdown-notes, the formatter on the command line ([R-FMT-004](../../docs/requirements.md#r-fmt-004)),
+ * for programs and AI agents that change a Markdown file outside VS Code (Hannes, 2026-10-28: "make the formatter
+ * accessible for agents"). It is the npm package @nimblescape/markdown-notes of cli/.
  * The command `format` formats each file as the formatter of the extension does on save
  * ([src/format/format.ts](../format/format.ts)), with the line breaks of the file; `-` formats the standard input to
  * the standard output. With `--check` it changes no file and lists the files that are not formatted. The exit code is
@@ -16,8 +17,8 @@ import { version } from '../../package.json';
 import { formatMarkdown } from '../format/format';
 import { formatVersion } from '../notes/doctype';
 
-/** command is the name of the tool, as npx and the shell call it. */
-export const command = 'nimblescape-markdown-notes';
+/** command is the name of the command, the `bin` of cli/package.json, as the shell calls it. */
+export const command = 'markdown-notes';
 
 /** usage is the help of the tool. */
 export const usage = [

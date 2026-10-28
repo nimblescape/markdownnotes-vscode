@@ -174,9 +174,9 @@ A program, for example an AI agent, follows these steps:
   put a definition into a block quote, and never write a note into a code
   block.
 - **Format the file** after a change, as the extension does on save: run
-  `npx -y nimblescape-markdown-notes format <file>` with Node.js 20 or later.
-  `npx -y nimblescape-markdown-notes format --check <file>` changes nothing
-  and exits with 1 when the file is not formatted. The formatter puts each
+  `npx -y @nimblescape/markdown-notes format <file>` with Node.js 22 or
+  later. `npx -y @nimblescape/markdown-notes format --check <file>` changes
+  nothing and exits with 1 when the file is not formatted. The formatter puts each
   paragraph on one line, aligns the tables, and keeps the notes, code blocks
   and HTML as they are.
 

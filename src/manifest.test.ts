@@ -11,6 +11,7 @@
  * touched.
  */
 
+import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
@@ -314,6 +315,48 @@ test('the package needs no dependency at run time, because the bundle holds mark
   expect(manifest.scripts.package).toBe('vsce package --no-dependencies');
 });
 
+/** cli is the manifest of the npm package of the command markdown-notes (R-FMT-004). */
+const cli = JSON.parse(read('cli/package.json'));
+
+test('the npm package has the version of the extension, the command markdown-notes and a public scope (R-FMT-004)', () => {
+  expect(cli.name).toBe('@nimblescape/markdown-notes');
+  expect(cli.version, 'the release sets one version in both manifests').toBe(manifest.version);
+  const lock = JSON.parse(read('cli/package-lock.json'));
+  expect([lock.version, lock.packages[''].version]).toEqual([cli.version, cli.version]);
+  expect(cli.bin).toEqual({ 'markdown-notes': 'dist/markdown-notes.js' });
+  expect(cli.publishConfig).toEqual({ access: 'public' });
+  expect(cli.license).toBe(manifest.license);
+  expect(cli.repository).toEqual({ type: 'git', url: `git+${manifest.repository.url}`, directory: 'cli' });
+  expect(cli.engines).toEqual({ node: '>=22' });
+  expect(read('esbuild.mjs')).toContain(`outfile: 'cli/${cli.bin['markdown-notes']}', target: 'node22'`);
+  expect(cli).not.toHaveProperty('dependencies');
+});
+
+test('the npm package holds exactly the bundle, the notices, the README and the license (npm pack --dry-run)', () => {
+  const listed = execFileSync('npm', ['pack', './cli', '--dry-run', '--json'], { cwd: repository, encoding: 'utf8' });
+  const files = (JSON.parse(listed) as { files: { path: string }[] }[])[0].files.map((file) => file.path);
+  // The build writes dist/, LICENSE and THIRD-PARTY-NOTICES.md (esbuild.mjs).
+  const built = (file: string) => file === 'LICENSE' || file === 'THIRD-PARTY-NOTICES.md' || file.startsWith('dist/');
+  const expected = ['LICENSE', 'README.md', 'THIRD-PARTY-NOTICES.md', 'package.json', 'dist/markdown-notes.js'].filter(
+    (file) => !built(file) || fs.existsSync(path.join(repository, 'cli', file)),
+  );
+  expect(files.sort()).toEqual(expected.sort());
+}, 60_000);
+
+test('the bundle of the command markdown-notes imports only modules of Node.js (R-FMT-004)', async () => {
+  const result = await esbuild.build({
+    entryPoints: [path.join(repository, 'src/cli/main.ts')],
+    bundle: true,
+    platform: 'node',
+    write: false,
+    outdir: path.join(repository, 'out/manifest-test'),
+    metafile: true,
+    logLevel: 'silent',
+  });
+  const imports = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((imported) => imported.path));
+  expect(imports).toEqual(['node:fs']);
+});
+
 test('the extension pack installs the footnotes of the Markdown preview, which the user can disable, and the extension depends on no extension (R-GEN-008)', () => {
   expect(manifest.extensionPack).toEqual(['bierner.markdown-footnotes']);
   expect(manifest).not.toHaveProperty('extensionDependencies');
@@ -321,12 +364,14 @@ test('the extension pack installs the footnotes of the Markdown preview, which t
 
 test('the third-party notices name every package that the build bundles, with its version and license (R-GEN-004)', async () => {
   const notices = read('THIRD-PARTY-NOTICES.md');
+  // The command markdown-notes of the npm package bundles markdown-it too, and the package holds the notices.
   const result = await esbuild.build({
-    entryPoints: [path.join(repository, 'src/extension.ts')],
+    entryPoints: [path.join(repository, 'src/extension.ts'), path.join(repository, 'src/cli/main.ts')],
     bundle: true,
     platform: 'node',
     external: ['vscode'],
     write: false,
+    outdir: path.join(repository, 'out/manifest-test'),
     metafile: true,
     logLevel: 'silent',
   });
@@ -351,7 +396,7 @@ test('the third-party notices name every package that the build bundles, with it
 });
 
 test('the documents of the package use full links, so that each link works in the repository, in the package and on the Marketplace', () => {
-  for (const file of ['README.md', 'CHANGELOG.md', 'SUPPORT.md']) {
+  for (const file of ['README.md', 'CHANGELOG.md', 'SUPPORT.md', 'cli/README.md']) {
     for (const target of markdownLinks(read(file))) {
       expect(target, `${file}: ${target}`).toMatch(/^https:\/\//);
     }
