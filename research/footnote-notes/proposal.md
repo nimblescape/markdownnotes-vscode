@@ -1,7 +1,7 @@
 # Results
 
 The measurements show <!--[a3-->a clear increase in the second half of the
-year[^a3], which matches the earlier study.[^1] The winter values stay low[^a4].
+year[^a3], which matches the earlier study.[^1] The winter values stay low<!--[a4-->[^a4].
 
 [^a3]: **hannes** · 2026-10-28 10:15
 
