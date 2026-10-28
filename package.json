@@ -107,7 +107,8 @@
         {
           "type": "webview",
           "id": "nimblescape.markdownNotes.notes",
-          "name": "Notes"
+          "name": "Notes",
+          "when": "config.nimblescape.markdownNotes.showNotesIn != inline"
         }
       ]
     },
@@ -199,9 +200,15 @@
       },
       {
         "command": "nimblescape.markdownNotes.collapseNote",
-        "title": "Collapse Note",
+        "title": "Hide Note Text",
         "category": "Markdown Notes",
         "icon": "$(fold)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.expandNote",
+        "title": "Show Note Text",
+        "category": "Markdown Notes",
+        "icon": "$(unfold)"
       },
       {
         "command": "nimblescape.markdownNotes.collapseAllNotes",
@@ -211,6 +218,26 @@
       {
         "command": "nimblescape.markdownNotes.expandAllNotes",
         "title": "Expand All Notes",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteLeft",
+        "title": "Delete Left of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteRight",
+        "title": "Delete Right of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordLeft",
+        "title": "Delete Word Left of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordRight",
+        "title": "Delete Word Right of a Hidden Marker",
         "category": "Markdown Notes"
       }
     ],
@@ -236,12 +263,17 @@
         {
           "command": "nimblescape.markdownNotes.collapseNote",
           "group": "inline@1",
-          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note"
+          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note && !config.nimblescape.markdownNotes.keepNotesCollapsed"
+        },
+        {
+          "command": "nimblescape.markdownNotes.expandNote",
+          "group": "inline@1",
+          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note.folded && !config.nimblescape.markdownNotes.keepNotesCollapsed"
         },
         {
           "command": "nimblescape.markdownNotes.deleteNote",
           "group": "inline@2",
-          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note"
+          "when": "commentController == nimblescape.markdownNotes && commentThread =~ /^nimblescape\\.markdownNotes\\.note(\\.folded)?$/"
         }
       ],
       "comments/comment/title": [
@@ -277,17 +309,17 @@
         {
           "command": "nimblescape.markdownNotes.toggleNotes",
           "group": "navigation",
-          "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview'"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && config.nimblescape.markdownNotes.showNotesIn != inline"
         },
         {
           "command": "nimblescape.markdownNotes.showInPreview",
           "group": "navigation",
-          "when": "activeWebviewPanelId == 'markdown.preview' && !config.nimblescape.markdownNotes.showInPreview"
+          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && !config.nimblescape.markdownNotes.showInPreview"
         },
         {
           "command": "nimblescape.markdownNotes.hideInPreview",
           "group": "navigation",
-          "when": "activeWebviewPanelId == 'markdown.preview' && config.nimblescape.markdownNotes.showInPreview"
+          "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && config.nimblescape.markdownNotes.showInPreview"
         }
       ],
       "view/title": [
@@ -366,7 +398,7 @@
         },
         {
           "command": "nimblescape.markdownNotes.collapseNote",
-          "when": "editorLangId == markdown"
+          "when": "editorLangId == markdown && !config.nimblescape.markdownNotes.keepNotesCollapsed"
         },
         {
           "command": "nimblescape.markdownNotes.collapseAllNotes",
@@ -374,10 +406,50 @@
         },
         {
           "command": "nimblescape.markdownNotes.expandAllNotes",
-          "when": "editorLangId == markdown"
+          "when": "editorLangId == markdown && !config.nimblescape.markdownNotes.keepNotesCollapsed"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteLeft",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteRight",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteWordLeft",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteWordRight",
+          "when": "false"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "nimblescape.markdownNotes.deleteLeft",
+        "key": "backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteRight",
+        "key": "delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerRight"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordLeft",
+        "key": "ctrl+backspace",
+        "mac": "alt+backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordRight",
+        "key": "ctrl+delete",
+        "mac": "alt+delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerRight"
+      }
+    ],
     "configuration": {
       "title": "nimblescape Markdown Notes",
       "properties": {
@@ -393,17 +465,59 @@
           "scope": "resource",
           "markdownDescription": "Show the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes, icons and callouts."
         },
+        "nimblescape.markdownNotes.showCalloutOnHover": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Show the callout of a note in the Markdown preview while the pointer rests on its icon. The value `false` shows the callout only while the icon has the keyboard focus; a click on the icon or on the highlighted passage still selects the note in the side view."
+        },
         "nimblescape.markdownNotes.collapseInEditor": {
           "type": "boolean",
           "default": true,
           "scope": "resource",
           "markdownDescription": "Collapse the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open."
         },
+        "nimblescape.markdownNotes.keepNotesCollapsed": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Keep the notes collapsed in the text editor: they collapse when a file opens, and nothing expands them, neither a click on a fold arrow nor a command; the buttons \"Hide Note Text\" and \"Show Note Text\" and the command \"Expand All Notes\" do not show. The text of the notes shows in the side view Notes, or in the boxes with `showNotesIn` set to `inline`."
+        },
         "nimblescape.markdownNotes.showFunnels": {
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "markdownDescription": "Show the funnels in the side view Notes: the strip at its left edge with a mark for each note of the file, and a funnel from each thread to the mark of its note. The buttons \"Show Funnels\" and \"Hide Funnels\" in the title of the view change this setting."
+          "markdownDescription": "Show the funnel in the side view Notes: the strip at its left edge with a mark for each note of the file, and a funnel from the selected thread to the mark of its note. The buttons \"Show Funnels\" and \"Hide Funnels\" in the title of the view change this setting."
+        },
+        "nimblescape.markdownNotes.showNotesIn": {
+          "type": "string",
+          "enum": [
+            "sideView",
+            "inline"
+          ],
+          "enumDescriptions": [
+            "Show the text of the notes in the side view Notes. The text editor shows no boxes and no `+` for a new note; you add a note in the side view.",
+            "Show the text of the notes in the boxes of the text editor. The side view Notes does not show, and a click on the icon of a note in the Markdown preview opens its box."
+          ],
+          "default": "sideView",
+          "scope": "window",
+          "markdownDescription": "Where VS Code shows the text of the notes: in the side view Notes (`sideView`, the default) or in the boxes of the text editor (`inline`), never in both. The markers in the left margin, the folds and the Markdown preview stay in each case."
+        },
+        "nimblescape.markdownNotes.openLinksIn": {
+          "type": "string",
+          "enum": [
+            "newWindow",
+            "editor",
+            "system"
+          ],
+          "enumDescriptions": [
+            "Open the file in a new window of VS Code, so that the Markdown file and its preview stay as they are.",
+            "Open the file in the editor of VS Code.",
+            "Open the file with the program of your system for it, for example the PDF viewer."
+          ],
+          "default": "newWindow",
+          "scope": "resource",
+          "markdownDescription": "Where a link in the text of a note to a file opens, from the Markdown preview, a box or the side view Notes. A link to a web page or an e-mail address opens with the program of your system in each case."
         }
       }
     }

@@ -21,8 +21,9 @@ import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider, githubScopes } from './github';
 import { previewCommands } from './extension';
+import { openLinkCommand } from './links';
 import { noteClass } from './markdown/markdownIt';
-import { editorCommands } from './noteEditor';
+import { deleteCommands, editorCommands } from './noteEditor';
 import { commands as noteCommands, controllerId, draftContext, noteContext } from './noteThreads';
 import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
@@ -56,6 +57,11 @@ const run = async (command: string, ...args: unknown[]): Promise<void> => {
   await vi.advanceTimersByTimeAsync(0);
 };
 
+/** inline sets the setting showNotesIn to "inline", which shows the text of the notes in the boxes of the text editor. */
+const inline = (): void => {
+  fake.settings.set('', { ...fake.settings.get(''), showNotesIn: 'inline' });
+};
+
 /** note is a Markdown text with a note of two answers: the note of ann on lines 4 to 10 and the reply of bob. */
 const note = [
   '# Title',
@@ -87,7 +93,7 @@ const focus = `${notesViewId}.focus`;
 test('the activation registers the commands, the side view and the handler of links, and the disposal of the context removes every registration', async () => {
   const { context, extension } = await fake.activate();
   expect([...fake.commands.keys()].sort()).toEqual(
-    [...Object.values(noteCommands), ...Object.values(editorCommands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort(),
+    [...Object.values(noteCommands), ...Object.values(editorCommands), ...Object.values(deleteCommands), ...Object.values(viewCommands), ...Object.values(previewCommands), openLinkCommand].sort(),
   );
   expect(fake.controller?.id).toBe(controllerId);
   expect([...fake.views.keys()]).toEqual([notesViewId]);
@@ -170,6 +176,7 @@ test('a link of an icon opens the side view at its note, for an open Markdown do
 });
 
 test('a note of an open Markdown document gets a collapsed thread at its selection with one comment for each answer (R-TEXT-001, R-TEXT-002, R-VIEW-001)', async () => {
+  inline();
   const document = fake.open(note);
   fake.open(note, '/folder/a.txt', { languageId: 'plaintext' });
   const old = fake.open(note, '/folder/a.md', { scheme: 'git' });
@@ -191,6 +198,7 @@ test('a note of an open Markdown document gets a collapsed thread at its selecti
 });
 
 test('Reply opens an editor of a reply to an answer, which Save writes into its block quote, and the box labels a reply to a reply (R-NOTE-004, R-EDIT-005)', async () => {
+  inline();
   vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   const document = fake.open(note);
   fake.login = 'carl';
@@ -221,6 +229,7 @@ test('Reply opens an editor of a reply to an answer, which Save writes into its 
 });
 
 test('the text editor dims the source of each note (R-TEXT-003)', async () => {
+  inline();
   const document = fake.open(note);
   const editor = new FakeEditor(document);
   fake.editors.push(editor);
@@ -240,10 +249,11 @@ test('the text editor dims the source of each note (R-TEXT-003)', async () => {
 });
 
 test('the setting expandInEditor opens the boxes, and a change of a setting builds the threads anew and refreshes the previews', async () => {
+  inline();
   fake.open(note);
   await fake.activate();
   expect(fake.live()[0].collapsibleState).toBe(0);
-  fake.settings.set('', { expandInEditor: true });
+  fake.settings.set('', { ...fake.settings.get(''), expandInEditor: true });
   fake.fire('configuration', { affectsConfiguration: (section: string) => section === settingsSection });
   expect(fake.live()).toHaveLength(1);
   expect(fake.live()[0].collapsibleState).toBe(1);
@@ -253,7 +263,9 @@ test('the setting expandInEditor opens the boxes, and a change of a setting buil
   expect(fake.executed).toHaveLength(1);
 });
 
-test('Edit opens the editor of an answer, and Save writes the text into the answer in the note (R-EDIT-001, R-EDIT-002)', async () => {
+test('Edit opens the editor of an answer, and Save writes the text into the answer in the note with the date of the save (R-EDIT-001, R-EDIT-002)', async () => {
+  inline();
+  vi.setSystemTime(new Date(2026, 9, 28, 12, 30));
   const document = fake.open(note);
   await fake.activate();
   const [thread] = fake.live();
@@ -263,7 +275,10 @@ test('Edit opens the editor of an answer, and Save writes the text into the answ
   // VS Code sets the body to the text of the editor before the button runs.
   comment.body = new FakeMarkdownString('A new *answer*.\n\nWith a second paragraph.\n');
   await run(noteCommands.saveAnswer, comment);
-  expect(document.text).toBe(note.replace('    > An answer.\n', '    > A new *answer*.\n    >\n    > With a second paragraph.\n'));
+  // A changed text gets the date of the save; the author stays (Hannes, 2026-10-28).
+  expect(document.text).toBe(
+    note.replace('    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > An answer.\n', '    > **bob** · 2026-10-28 12:30+01:00\n    >\n    > A new *answer*.\n    >\n    > With a second paragraph.\n'),
+  );
   expect(fake.errors).toEqual([]);
   // The thread stays, with the saved text, in the preview mode.
   await vi.advanceTimersByTimeAsync(1000);
@@ -274,6 +289,8 @@ test('Edit opens the editor of an answer, and Save writes the text into the answ
 });
 
 test('Save keeps the line breaks of a document with CRLF', async () => {
+  inline();
+  vi.setSystemTime(new Date(2026, 9, 28, 12, 30));
   const header = '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00';
   const document = new FakeDocument(new FakeUri('file', '/folder/crlf.md'), `Text[^note-aaaa]\r\n\r\n${header}\r\n\r\n    Old\r\n`, 'markdown', 2);
   fake.documents.push(document);
@@ -281,10 +298,11 @@ test('Save keeps the line breaks of a document with CRLF', async () => {
   const comment = fake.live()[0].comments[0];
   comment.body = new FakeMarkdownString('One\n\nTwo');
   await run(noteCommands.saveAnswer, comment);
-  expect(document.text).toBe(`Text[^note-aaaa]\r\n\r\n${header}\r\n\r\n    One\r\n\r\n    Two\r\n`);
+  expect(document.text).toBe(`Text[^note-aaaa]\r\n\r\n${header.replace('10:15', '12:30')}\r\n\r\n    One\r\n\r\n    Two\r\n`);
 });
 
 test('Save refuses a text that would start another answer, shows why and opens the editor with the text again (R-EDIT-002)', async () => {
+  inline();
   const document = fake.open(note);
   await fake.activate();
   const comment = fake.live()[0].comments[0];
@@ -300,6 +318,7 @@ test('Save refuses a text that would start another answer, shows why and opens t
 });
 
 test('Cancel closes the editor and shows the answer as the document holds it', async () => {
+  inline();
   fake.open(note);
   await fake.activate();
   const comment = fake.live()[0].comments[0];
@@ -311,6 +330,7 @@ test('Cancel closes the editor and shows the answer as the document holds it', a
 });
 
 test('Add Note signs in with GitHub and writes a new note for the selection with the login and the date after the paragraph (R-EDIT-003, R-GEN-006, R-NOTE-006)', async () => {
+  inline();
   vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   const document = fake.open('# Title\n\nFirst line\nsecond line\n\nLast.\n');
   fake.signIn = 'hannes';
@@ -332,6 +352,7 @@ test('Add Note signs in with GitHub and writes a new note for the selection with
 });
 
 test('Add Note without a GitHub sign-in or with a refused text keeps the text in an editor of the box, which Save writes after a fix', async () => {
+  inline();
   const document = fake.open('Text\n');
   await fake.activate();
   const thread = new FakeThread(fake, document.uri, new FakeRange(0, 0, 0, 0), []);
@@ -359,6 +380,7 @@ test('Add Note without a GitHub sign-in or with a refused text keeps the text in
 });
 
 test('Cancel of a new note removes its box', async () => {
+  inline();
   const document = fake.open('Text\n');
   await fake.activate();
   const thread = new FakeThread(fake, document.uri, new FakeRange(0, 0, 0, 0), []);
@@ -367,6 +389,7 @@ test('Cancel of a new note removes its box', async () => {
 });
 
 test('Answer adds a reply of the signed-in user to the note, after the replies to the note (R-EDIT-005, R-GEN-006)', async () => {
+  inline();
   vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   const document = fake.open(note);
   fake.login = 'carl';
@@ -384,6 +407,7 @@ test('Answer adds a reply of the signed-in user to the note, after the replies t
 });
 
 test('a refused answer stays in an editor at the end of the thread, which Save writes after a fix and Cancel removes', async () => {
+  inline();
   const document = fake.open(note);
   fake.login = 'carl';
   await fake.activate();
@@ -414,6 +438,7 @@ test('a refused answer stays in an editor at the end of the thread, which Save w
 });
 
 test('Delete removes an answer, the last answer removes the note, and Delete Thread removes the note with its answers (R-EDIT-004)', async () => {
+  inline();
   const document = fake.open(note);
   await fake.activate();
   const [thread] = fake.live();
@@ -433,6 +458,7 @@ test('Delete removes an answer, the last answer removes the note, and Delete Thr
 });
 
 test('after a change of a document and a pause, the threads follow their notes', async () => {
+  inline();
   const document = fake.open(note);
   await fake.activate();
   const [thread] = fake.live();
@@ -465,4 +491,90 @@ test('the editor folds each note into the line of text before it (R-TEXT-005)', 
   const document = fake.open(note);
   await fake.activate();
   expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(2, 10, 1)]);
+});
+
+/** linked is a text with a note whose answer has a link to a file, a web link, and a link in a code span. */
+const linked = [
+  'The text[^note-aaaa] of the page.',
+  '',
+  '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00',
+  '',
+  '    See [the table (p. 3)](../literatur/a%20b.pdf), [web](https://example.com) and `[x](c.pdf)`.',
+  '',
+].join('\n');
+
+/** newWindow is the command that moves the active editor into a new window of VS Code. */
+const newWindow = 'workbench.action.moveEditorToNewWindow';
+
+test('a link to a file in a box runs the command that opens it after the setting openLinksIn, and the editor of the box shows the text as the document holds it (R-GEN-010)', async () => {
+  inline();
+  const document = fake.open(linked);
+  fake.files.set('/literatur/a b.pdf', '%PDF');
+  await fake.activate();
+  const comment = fake.live()[0].comments[0];
+  const args = encodeURIComponent(JSON.stringify(['../literatur/a%20b.pdf', document.uri.toString()])).replace(/\(/g, '%28').replace(/\)/g, '%29');
+  expect(bodyOf(comment)).toBe(`See [the table (p. 3)](command:${openLinkCommand}?${args}), [web](https://example.com) and \`[x](c.pdf)\`.`);
+  expect((comment.body as FakeMarkdownString).isTrusted).toEqual({ enabledCommands: [openLinkCommand] });
+  // The editor of the box shows the text of the document, and the box shows the links again after Cancel.
+  await run(noteCommands.editAnswer, comment);
+  expect(bodyOf(comment)).toBe('See [the table (p. 3)](../literatur/a%20b.pdf), [web](https://example.com) and `[x](c.pdf)`.');
+  await run(noteCommands.cancelEdit, comment);
+  expect(bodyOf(fake.live()[0].comments[0])).toContain(`(command:${openLinkCommand}?`);
+  // The command opens the file in a new window of VS Code.
+  fake.calls.length = 0;
+  await run(openLinkCommand, ...JSON.parse(decodeURIComponent(args)));
+  expect(fake.calls.map(({ command, args: [uri] }) => [command, (uri as FakeUri | undefined)?.path])).toEqual([
+    ['vscode.open', '/literatur/a b.pdf'],
+    [newWindow, undefined],
+  ]);
+});
+
+test('a link to a file in a callout of the preview opens through the handler of links of the extension, for an open Markdown document only (R-GEN-010)', async () => {
+  const document = fake.open(linked);
+  fake.files.set('/literatur/a b.pdf', '%PDF');
+  const { api, extension } = await fake.activate();
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  const html = md.render(linked, { currentDocument: document.uri });
+  const query = new URLSearchParams({ document: document.uri.toString(), href: '../literatur/a%20b.pdf' }).toString();
+  expect(html).toContain(`href="vscode://${extension.extensionId}${extension.linkPath}?${query.replace(/&/g, '&amp;')}"`);
+  expect(html).toContain('href="https://example.com"');
+  fake.calls.length = 0;
+  await fake.uriHandler!.handleUri(FakeUri.parse(`vscode://${extension.extensionId}${extension.linkPath}?${query}`));
+  await settle();
+  expect(fake.calls.map(({ command }) => command)).toEqual(['vscode.open', newWindow]);
+  // A link of a document that is not open opens nothing.
+  const other = new URLSearchParams({ document: 'file:///folder/b.md', href: '../literatur/a%20b.pdf' }).toString();
+  await fake.uriHandler!.handleUri(FakeUri.parse(`vscode://${extension.extensionId}${extension.linkPath}?${other}`));
+  await settle();
+  expect(fake.calls).toHaveLength(2);
+});
+
+test('the default setting showNotesIn "sideView" shows no boxes and no + in the text editor, and the side view shows the notes (R-GEN-009)', async () => {
+  const document = fake.open(note);
+  fake.activeEditor = new FakeEditor(document);
+  fake.editors.push(fake.activeEditor);
+  await fake.activate();
+  expect(fake.live()).toEqual([]);
+  expect(fake.controller?.commentingRangeProvider?.provideCommentingRanges(document)).toEqual([]);
+  const view = fake.resolveView(notesViewId);
+  await view.send({ type: 'ready' });
+  await settle();
+  expect(view.state().threads).toHaveLength(1);
+  // A change of the setting to "inline" shows the boxes and the +.
+  fake.settings.set('', { showNotesIn: 'inline' });
+  fake.fire('configuration', { affectsConfiguration: (name: string) => name.startsWith(settingsSection) });
+  expect(fake.live()).toHaveLength(1);
+  expect(fake.controller?.commentingRangeProvider?.provideCommentingRanges(document)).toEqual([new FakeRange(0, 0, 13, 0)]);
+});
+
+test('with the setting showNotesIn "inline", a link of an icon of the preview opens the box of its note in the text editor and not the side view (R-GEN-009)', async () => {
+  fake.settings.set('', { showNotesIn: 'inline' });
+  const document = fake.open(note);
+  const { extension } = await fake.activate();
+  const query = new URLSearchParams({ document: document.uri.toString(), line: '4' }).toString();
+  await fake.uriHandler!.handleUri(FakeUri.parse(`vscode://${extension.extensionId}${extension.openPath}?${query}`));
+  await settle();
+  expect(fake.executed).not.toContain(focus);
+  expect(fake.shown.map((shown) => shown.document)).toEqual([document]);
+  expect(fake.live()[0].collapsibleState).toBe(1);
 });

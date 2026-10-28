@@ -150,7 +150,12 @@ describe('nimblescape Markdown Notes', () => {
     // VS Code sets the body to the text of the editor before the button runs.
     comment.body = new vscode.MarkdownString('A new *answer*.\n\nA second paragraph.');
     await vscode.commands.executeCommand(commandOf('saveAnswer'), comment);
-    assert.equal(document.getText(), note.replace('    > An answer.', '    > A new *answer*.\n    >\n    > A second paragraph.'));
+    // The changed answer gets the date of the save and keeps its author.
+    const header = /^ {4}> \*\*bob\*\* · (\d{4}-\d\d-\d\d \d\d:\d\d(?:Z|[+-]\d\d:\d\d))$/m;
+    const saved = header.exec(document.getText())?.[1];
+    assert.ok(saved && saved !== '2026-10-28 11:00+01:00', `the date of the save, not ${saved}`);
+    const dated = (text: string) => text.replace(header, '    > **bob** · DATE');
+    assert.equal(dated(document.getText()), dated(note.replace('    > An answer.', '    > A new *answer*.\n    >\n    > A second paragraph.')));
     assert.equal(comment.mode, vscode.CommentMode.Preview);
     const extension = await api();
     await waitFor(() => (bodyOf(extension.threadsOf(document.uri)[0].comments[1]) === 'A new *answer*.\n\nA second paragraph.' ? true : undefined), 'the saved body');

@@ -89,10 +89,24 @@ export class FakeRange {
   }
 }
 
+/** FakeSelection stands for a vscode.Selection: a range from its anchor to its active end, the cursor. */
+export class FakeSelection extends FakeRange {
+  readonly anchor: FakePosition;
+  readonly active: FakePosition;
+
+  constructor(anchor: FakePosition, active: FakePosition) {
+    const forward = anchor.line < active.line || (anchor.line === active.line && anchor.character <= active.character);
+    super(forward ? anchor : active, forward ? active : anchor);
+    this.anchor = anchor;
+    this.active = active;
+  }
+}
+
 /** FakeMarkdownString stands for a vscode.MarkdownString. */
 export class FakeMarkdownString {
   supportHtml = false;
   baseUri: FakeUri | undefined;
+  isTrusted: boolean | { enabledCommands: string[] } | undefined;
 
   constructor(readonly value: string) {}
 }
@@ -167,6 +181,12 @@ export class FakeDocument {
     return range ? this.text.slice(this.offsetAt(range.start), this.offsetAt(range.end)) : this.text;
   }
 
+  /** positionAt returns the position of an offset of the text. */
+  positionAt(offset: number): FakePosition {
+    const before = this.text.slice(0, offset).split(/\r\n|\r|\n/);
+    return new FakePosition(before.length - 1, before.at(-1)!.length);
+  }
+
   lineAt(line: number): { text: string; range: FakeRange } {
     const text = this.text.split(/\r\n|\r|\n/)[line];
     return { text, range: new FakeRange(line, 0, line, text.length) };
@@ -177,7 +197,8 @@ export class FakeDocument {
 export class FakeEditor {
   /** decorations holds the ranges, or the options with their ranges, of each decoration type. */
   readonly decorations = new Map<object, (FakeRange | { range: FakeRange })[]>();
-  selection: { active: FakePosition };
+  /** current is the selection of the editor: the fake has one cursor. */
+  private current: FakeSelection;
   /** visibleRanges are the visible lines; VS Code splits them at a collapsed fold. */
   visibleRanges: FakeRange[];
 
@@ -186,8 +207,45 @@ export class FakeEditor {
     line = 0,
     readonly viewColumn = 1,
   ) {
-    this.selection = { active: new FakePosition(line, 0) };
+    this.current = new FakeSelection(new FakePosition(line, 0), new FakePosition(line, 0));
     this.visibleRanges = [new FakeRange(0, 0, Math.max(document.lineCount - 1, 0), 0)];
+  }
+
+  get selection(): FakeSelection {
+    return this.current;
+  }
+
+  /** A test can set only the cursor, which is then also the anchor. */
+  set selection(value: { active: FakePosition; anchor?: FakePosition }) {
+    this.current = value instanceof FakeSelection ? value : new FakeSelection(value.anchor ?? value.active, value.active);
+  }
+
+  get selections(): FakeSelection[] {
+    return [this.current];
+  }
+
+  set selections(values: FakeSelection[]) {
+    this.selection = values[0];
+  }
+
+  /**
+   * edit applies the deletions and replacements of a callback to the document, and moves the cursor as VS Code does: a
+   * cursor after a change moves with the text, and a cursor in a change goes to its start.
+   * @param callback - Adds the changes.
+   */
+  async edit(callback: (builder: { delete(range: FakeRange): void; replace(range: FakeRange, text: string): void }) => void): Promise<boolean> {
+    const changes: { range: FakeRange; text: string }[] = [];
+    callback({ delete: (range) => changes.push({ range, text: '' }), replace: (range, text) => changes.push({ range, text }) });
+    for (const { range, text } of changes.reverse()) {
+      const start = this.document.offsetAt(range.start);
+      const end = this.document.offsetAt(range.end);
+      const cursor = this.document.offsetAt(this.current.active);
+      this.document.text = this.document.text.slice(0, start) + text + this.document.text.slice(end);
+      this.document.version++;
+      const moved = cursor >= end ? cursor - (end - start) + text.length : cursor > start ? start : cursor;
+      this.selection = { active: this.document.positionAt(moved) };
+    }
+    return true;
   }
 
   /**
@@ -201,11 +259,20 @@ export class FakeEditor {
   setDecorations(type: object, ranges: (FakeRange | { range: FakeRange })[]): void {
     this.decorations.set(type, ranges);
   }
+
+  /** revealed records the ranges that the extension scrolled to. */
+  readonly revealed: FakeRange[] = [];
+
+  revealRange(range: FakeRange): void {
+    this.revealed.push(range);
+  }
 }
 
 /** FakeView stands for a vscode.WebviewView of the side view. */
 export class FakeView {
   visible = true;
+  /** shows counts the calls of show, which opens the view. */
+  shows = 0;
   /** messages are the messages that the extension sent to the script of the view. */
   readonly messages: { type: string; [key: string]: unknown }[] = [];
   /** listeners are the listeners of the messages of the script. */
@@ -226,6 +293,12 @@ export class FakeView {
       return { dispose() {} };
     },
   };
+
+  /** show opens the view, and keeps the focus where it is. */
+  show(): void {
+    this.shows += 1;
+    this.visible = true;
+  }
 
   onDidChangeVisibility(listener: () => void) {
     this.visibility.push(listener);
@@ -321,6 +394,11 @@ export class Fake {
   uriHandler: { handleUri(uri: FakeUri): unknown } | undefined;
   /** shown records the documents and the options of showTextDocument. */
   shown: { document: FakeDocument; options: unknown }[] = [];
+  /**
+   * tabGroups are the groups of tabs of the windows of VS Code, with the URIs of their tabs, and the active tab with
+   * the type of its webview or custom editor and its label.
+   */
+  tabGroups: { viewColumn: number; tabs: { input: { uri: FakeUri } }[]; activeTab?: { input: { viewType?: string; uri?: FakeUri }; label: string } }[] = [];
   /** workspaceFolder is the path of the folder of the workspace. */
   workspaceFolder = '/folder/';
   /** files holds the texts of the files that are not open, by their paths; openTextDocument opens them. */
@@ -340,6 +418,7 @@ export class Fake {
       Uri: FakeUri,
       Position: FakePosition,
       Range: FakeRange,
+      Selection: FakeSelection,
       MarkdownString: FakeMarkdownString,
       WorkspaceEdit: FakeWorkspaceEdit,
       Diagnostic: FakeDiagnostic,
@@ -349,6 +428,8 @@ export class Fake {
       CommentThreadCollapsibleState: { Collapsed: 0, Expanded: 1 },
       DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2 },
       FoldingRangeKind: { Comment: 1 },
+      TextEditorRevealType: { InCenterIfOutsideViewport: 2 },
+      TextEditorSelectionChangeKind: { Keyboard: 1, Mouse: 2, Command: 3 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },
       FileType: { File: 1, Directory: 2 },
@@ -408,6 +489,16 @@ export class Fake {
         get activeTextEditor() {
           return fake.activeEditor;
         },
+        tabGroups: {
+          get all() {
+            return fake.tabGroups;
+          },
+          get activeTabGroup() {
+            return fake.tabGroups[0];
+          },
+          onDidChangeTabs: on('tabs'),
+          onDidChangeTabGroups: on('tabGroups'),
+        },
         onDidChangeVisibleTextEditors: on('visibleEditors'),
         onDidChangeActiveTextEditor: on('activeEditor'),
         onDidChangeTextEditorSelection: on('selection'),
@@ -422,6 +513,7 @@ export class Fake {
         },
         showTextDocument: async (document: FakeDocument, options: unknown) => {
           this.shown.push({ document, options });
+          return this.editors.find((editor) => editor.document === document) ?? new FakeEditor(document);
         },
       },
       workspace: {

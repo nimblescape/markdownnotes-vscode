@@ -33,19 +33,29 @@
  * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The left edge of the
  * view, next to the text editor, has a strip that stands for the whole file,
  * with a mark for each note, or for the lines of its selection, and the part
- * of the file that the text editor shows. A funnel leads from each thread to
- * the mark of its note. The setting `showFunnels` and the buttons "Show
- * Funnels" and "Hide Funnels" in the title of the view show and hide them.
+ * of the file that the text editor shows. A funnel leads from the selected
+ * thread to the mark of its note. The setting `showFunnels` and the buttons
+ * "Show Funnels" and "Hide Funnels" in the title of the view show and hide
+ * them. The position of the cursor, not only its line, selects the thread,
+ * because the selections of several notes can share a line. The text editor
+ * and the Markdown preview show the selection of the note of the selected
+ * thread with a strong highlight and a frame ([src/selectedNotes.ts](selectedNotes.ts)).
+ *
+ * A click with the mouse on a selection in the text editor selects its thread
+ * and opens the view when it is closed. A click on a thread while the
+ * Markdown preview shows the file and no text editor does keeps the preview,
+ * which scrolls to the note (Hannes, 2026-10-28: the editor area stays in its
+ * mode).
  */
 
 import * as vscode from 'vscode';
 import { githubProvider } from './github';
 import { openLink } from './links';
 import { colorOf } from './notes/colors';
-import type { Position } from './notes/notes';
 import { authorDate, displayDate } from './notes/syntax';
-import { isNoteDocument, type NoteEntry, type NoteThreads, problemMessage } from './noteThreads';
-import type { Settings } from './settings';
+import { isNoteDocument, type NoteThreads, problemMessage } from './noteThreads';
+import type { SelectedNotes } from './selectedNotes';
+import { type Settings, showsInSideView } from './settings';
 
 /** notesViewId is the identifier of the side view, which the manifest contributes. */
 export const notesViewId = 'nimblescape.markdownNotes.notes';
@@ -131,6 +141,33 @@ const cacheSize = 200;
  */
 const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
 
+/** markdownModes are the types of the custom editors of VS Code for a Markdown file: its modes "Markdown Preview" and "Markdown Editor". */
+export const markdownModes = { preview: 'vscode.markdown.preview.editor', editor: 'vscode.markdown.editor' } as const;
+
+/**
+ * modeOf returns how the active tab of a group shows a document without a text editor, with the column of the group:
+ * in the Markdown preview, which is the preview to the side or the mode "Markdown Preview" of VS Code, or in the mode
+ * "Markdown Editor" of VS Code; undefined for no such tab. VS Code tells an extension the URI of the document of a custom
+ * editor, and of the preview to the side the type of its webview and its label, "Preview paper.md", only.
+ * @param document - The URI of the document.
+ */
+function modeOf(document: vscode.Uri): { mode: 'preview' | 'editor'; column: vscode.ViewColumn } | undefined {
+  const name = document.path.split('/').pop() ?? '';
+  for (const group of vscode.window.tabGroups.all) {
+    const tab = group.activeTab;
+    const input = tab?.input as { viewType?: unknown; uri?: vscode.Uri } | undefined;
+    const viewType = typeof input?.viewType === 'string' ? input.viewType : '';
+    const own = input?.uri?.toString() === document.toString();
+    if ((own && viewType === markdownModes.preview) || (viewType.includes('markdown.preview') && input?.uri === undefined && tab!.label.includes(name))) {
+      return { mode: 'preview', column: group.viewColumn };
+    }
+    if (own && viewType === markdownModes.editor) {
+      return { mode: 'editor', column: group.viewColumn };
+    }
+  }
+  return undefined;
+}
+
 /** NotesView is the provider of the side view. */
 export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable {
   private view: vscode.WebviewView | undefined;
@@ -154,6 +191,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param login - Returns the GitHub login of the user; with signIn true after asking for a sign-in.
    * @param render - Renders a Markdown text as the Markdown preview does.
    * @param settingsOf - Returns the settings of a document.
+   * @param chosen - The selected note of each document, which the view sets.
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -161,10 +199,13 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     private readonly login: (signIn: boolean) => Promise<string | undefined>,
     private readonly render: (text: string) => Promise<string>,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
+    private readonly chosen: SelectedNotes,
   ) {
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
-      vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor)),
+      vscode.window.tabGroups.onDidChangeTabs(() => this.followTab()),
+      vscode.window.tabGroups.onDidChangeTabGroups(() => this.followTab()),
+      vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor, event.kind === vscode.TextEditorSelectionChangeKind.Mouse)),
       vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
         if (event.textEditor.document.uri.toString() === this.document?.toString()) {
           void this.view?.webview.postMessage({ type: 'visible', visible: this.visible() });
@@ -184,6 +225,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
     ];
     this.follow(vscode.window.activeTextEditor);
+    this.followTab();
   }
 
   /**
@@ -196,8 +238,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     view.webview.options = { enableScripts: true, localResourceRoots: [media] };
     view.webview.html = this.html(view.webview, media);
     view.webview.onDidReceiveMessage((message: Message) => this.receive(message));
+    // The extension can start while VS Code opens a file in a mode of its own, after the change of the tabs.
+    this.followTab();
     view.onDidChangeVisibility(() => {
       if (view.visible) {
+        this.followTab();
         void this.refresh();
       }
     });
@@ -215,7 +260,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   async show(document: vscode.Uri, line: number): Promise<void> {
     this.document = document;
-    this.selected = this.noteAt(document, line)?.id ?? this.selected;
+    this.select(document, this.threads.entryAt(document, { line, character: 0 })?.id ?? this.selected);
     await vscode.commands.executeCommand(`${notesViewId}.focus`);
     await this.refresh();
   }
@@ -229,22 +274,43 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * noteAt returns the note of a document that holds a line, or whose selection holds it.
+   * select makes a thread the selected thread of the view, and its note the selected note of its document.
    * @param document - The URI of the document.
-   * @param line - The index of the line.
+   * @param id - The identifier of the thread, or undefined.
+   * @param reveal - Whether the preview scrolls to the note.
    */
-  private noteAt(document: vscode.Uri, line: number): NoteEntry | undefined {
-    const holds = (start: Position, end: Position) => start.line <= line && line <= end.line;
-    const entries = this.threads.entriesOf(document);
-    return entries.find(({ note }) => holds(note.start, note.end)) ?? entries.find(({ note }) => note.selection && holds(note.selection.start, note.selection.end));
+  private select(document: vscode.Uri, id: string | undefined, reveal = false): void {
+    this.selected = id;
+    const entry = id === undefined ? undefined : this.threads.entriesOf(document).find((candidate) => candidate.id === id);
+    this.chosen.select(document, entry?.note.label, reveal);
+  }
+
+  /**
+   * followTab makes the document of the active tab the document of the view, when the tab shows it in the mode
+   * "Markdown Preview" or "Markdown Editor" of VS Code, which are no text editors. The selected note of the document
+   * stays selected.
+   */
+  private followTab(): void {
+    const input = vscode.window.tabGroups.activeTabGroup?.activeTab?.input as { viewType?: unknown; uri?: vscode.Uri } | undefined;
+    const modes: readonly unknown[] = Object.values(markdownModes);
+    const document = input?.uri;
+    if (!document || !modes.includes(input.viewType) || document.toString() === this.document?.toString()) {
+      return;
+    }
+    this.document = document;
+    const label = this.chosen.labelOf(document);
+    this.select(document, this.threads.entriesOf(document).find((entry) => entry.note.label === label)?.id);
+    void this.refresh();
   }
 
   /**
    * follow makes the document of a text editor the document of the view, and selects the note at its cursor. Another
-   * editor, for example the preview, keeps the document of the view.
+   * editor, for example the preview, keeps the document of the view. A click with the mouse on a selection of a note
+   * opens the view when it is closed.
    * @param editor - The text editor, or undefined.
+   * @param click - Whether a click with the mouse moved the cursor.
    */
-  private follow(editor: vscode.TextEditor | undefined): void {
+  private follow(editor: vscode.TextEditor | undefined, click = false): void {
     if (!editor || !isNoteDocument(editor.document)) {
       return;
     }
@@ -254,14 +320,32 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const { active } = editor.selection;
     this.selections.set(document.toString(), new vscode.Range(editor.selection.start ?? active, editor.selection.end ?? active));
     const changed = document.toString() !== this.document?.toString();
-    const selected = this.noteAt(document, line)?.id;
+    // The position, not only the line, names the note, because the selections of several notes can share a line.
+    const entry = this.threads.entryAt(document, active);
+    const selected = entry?.id;
     this.document = document;
     if (changed || (selected !== undefined && selected !== this.selected)) {
-      this.selected = selected;
+      this.select(document, selected);
       void this.refresh();
     } else {
       void this.view?.webview.postMessage({ type: 'line', line });
     }
+    const inSelection = entry?.note.selection !== undefined && !(entry.note.start.line <= active.line && active.line <= entry.note.end.line);
+    if (click && inSelection && !this.view?.visible && showsInSideView(this.settingsOf(document))) {
+      void this.open();
+    }
+  }
+
+  /**
+   * open opens the view and gives the focus back to the text editor.
+   */
+  private async open(): Promise<void> {
+    if (this.view) {
+      this.view.show(true);
+      return;
+    }
+    await vscode.commands.executeCommand(`${notesViewId}.focus`);
+    await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
   }
 
   /**
@@ -396,10 +480,23 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     if (!uri || !entry) {
       return;
     }
-    this.selected = id;
+    const column = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString())?.viewColumn;
+    const shown = column === undefined ? modeOf(uri) : undefined;
+    if (shown?.mode === 'preview') {
+      // The preview keeps its place in the editor area and scrolls to the note.
+      this.select(uri, id, true);
+      await this.refresh();
+      return;
+    }
+    this.select(uri, id);
     const place = entry.note.selection?.start ?? entry.note.start;
     const start = new vscode.Position(place.line, place.character);
-    const column = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString())?.viewColumn;
+    if (shown?.mode === 'editor') {
+      // The mode "Markdown Editor" stays, and selects the passage of the note, because it shows no note.
+      const end = entry.note.selection ? new vscode.Position(entry.note.selection.end.line, entry.note.selection.end.character) : start;
+      await vscode.commands.executeCommand('vscode.openWith', uri, markdownModes.editor, { viewColumn: shown.column, selection: new vscode.Range(start, end), preserveFocus: !focus });
+      return;
+    }
     const document = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(document, { viewColumn: column, selection: new vscode.Range(start, start), preserveFocus: !focus });
     this.threads.expand(uri, id);
@@ -426,7 +523,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.reveal(message.id, message.focus ?? true);
         return;
       case 'openLink':
-        await openLink(message.href, document, this.render);
+        await openLink(message.href, document, this.render, this.settingsOf(document).openLinksIn);
         return;
     }
     if (!document) {
@@ -447,7 +544,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
         const result = await this.threads.addNote(document, range, message.text);
         if ('id' in result) {
-          this.selected = result.id;
+          this.select(document, result.id);
           await this.refresh();
         }
         await this.reply(message.request, 'problem' in result ? result.problem : undefined);

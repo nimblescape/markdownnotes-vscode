@@ -31,7 +31,8 @@
 // the text editor (R-SIDE-007). While the setting showFunnels is on, the left
 // edge of the view has a strip that stands for the whole file, with a mark
 // for each note and a frame for the part of the file that the text editor
-// shows, and a funnel leads from each visible thread to the mark of its note.
+// shows, and a funnel leads from the selected thread, while it is visible, to
+// the mark of its note.
 // The script draws them again on each change of the state, of the visible
 // part of the file, of the scrolling of the view and of its size.
 
@@ -417,6 +418,10 @@
       mark.style.height = `${bottom - top}px`;
       mark.style.backgroundColor = thread.color;
       strip.append(mark);
+      // Only the selected thread has a funnel, so that the funnel shows which note the user works on.
+      if (thread.id !== state.selected) {
+        continue;
+      }
       const section = root.querySelector(`.thread[data-id="${CSS.escape(thread.id)}"]`);
       const card = section?.getBoundingClientRect();
       if (!card || card.bottom <= 0 || card.top >= height) {
@@ -431,7 +436,7 @@
         'd',
         `M ${stripWidth} ${top} C ${middle} ${top} ${middle} ${cardTop} ${funnelEnd} ${cardTop} L ${funnelEnd} ${cardBottom} C ${middle} ${cardBottom} ${middle} ${bottom} ${stripWidth} ${bottom} Z`,
       );
-      path.setAttribute('class', thread.id === state.selected ? 'funnel selected' : 'funnel');
+      path.setAttribute('class', 'funnel selected');
       path.setAttribute('fill', thread.color);
       funnels.append(path);
     }

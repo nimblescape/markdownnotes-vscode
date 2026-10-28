@@ -78,6 +78,12 @@ const openCommentType = 'nimblescape_note_open_comment';
 export interface PreviewSettings {
   /** showInPreview shows the icons and the callouts of the notes ([R-PREV-005](../../docs/requirements.md#r-prev-005)). */
   showInPreview: boolean;
+  /**
+   * showCalloutOnHover shows the callout of a note while the pointer rests on its icon
+   * ([R-PREV-002](../../docs/requirements.md#r-prev-002)); without it, only the keyboard focus on the icon shows the
+   * callout. A missing value shows it.
+   */
+  showCalloutOnHover?: boolean;
 }
 
 /** PreviewOptions give the plugin the settings and the links of the document that the preview renders. */
@@ -94,6 +100,19 @@ export interface PreviewOptions {
    * @param line - The index of the first line of the note in the document.
    */
   linkOf(env: unknown, line: number): string | undefined;
+  /**
+   * fileLinkOf returns the address of a link of a callout that names a file, so that the extension opens the file
+   * ([R-GEN-010](../../docs/requirements.md#r-gen-010)), or undefined for any other link and without a document.
+   * @param env - The environment of the rendering.
+   * @param href - The address of the link.
+   */
+  fileLinkOf(env: unknown, href: string): string | undefined;
+  /**
+   * selectedOf returns the label of the selected note of the rendered document, whose selection the preview shows with
+   * a strong highlight and a frame, and the number of a request to scroll to it, or undefined without a document.
+   * @param env - The environment of the rendering.
+   */
+  selectedOf?(env: unknown): { label: string | undefined; reveal: number | undefined } | undefined;
 }
 
 /** PreviewNote is the meta of the token that opens a note, after the core rule, and of the tokens of its icons. */
@@ -340,10 +359,15 @@ const colorClassOf = (number: number): string => `${noteClass}-color-${colorInde
  * @param md - The markdown-it instance.
  * @param note - The note.
  * @param link - The link, or undefined.
+ * @param hover - Whether the pointer on the icon shows the callout; without it, the icon has the attribute
+ * `data-hover="off"`, which the script of the preview reads.
+ * @param selected - The selected note of the document and the number of a request to scroll to it, or undefined: the
+ * icon of the selected note has the attribute `data-selected`, and with a request `data-reveal` with its number.
  */
-function iconHtml(md: MarkdownIt, note: PreviewNote, link: string | undefined): string {
+function iconHtml(md: MarkdownIt, note: PreviewNote, link: string | undefined, hover: boolean, selected?: { label: string | undefined; reveal: number | undefined }): string {
   const count = note.answers.length > 1 ? `<span class="${noteClass}-count">${note.answers.length}</span>` : '';
-  const attributes = `class="${noteClass}-icon ${colorClassOf(note.number)}" aria-label="${md.utils.escapeHtml(labelOf(note))}" aria-describedby="${note.id}"`;
+  const chosen = selected?.label === note.label ? ` data-selected="true"${selected.reveal === undefined ? '' : ` data-reveal="${selected.reveal}"`}` : '';
+  const attributes = `class="${noteClass}-icon ${colorClassOf(note.number)}" aria-label="${md.utils.escapeHtml(labelOf(note))}" aria-describedby="${note.id}"${hover ? '' : ' data-hover="off"'}${chosen}`;
   return link === undefined
     ? `<span ${attributes} role="img" tabindex="0">${glyph}${count}</span>`
     : `<a ${attributes} href="${md.utils.escapeHtml(link)}">${glyph}${count}</a>`;
@@ -405,6 +429,32 @@ function renderBody(renderer: Renderer, tokens: Token[], options: Options, env: 
 }
 
 /**
+ * withFileLinks renders the tokens of a body with other addresses of the links that name files. The tokens keep their
+ * addresses, because the Markdown extension of VS Code keeps the tokens of a document for its next rendering.
+ * @param tokens - The tokens of the body.
+ * @param address - Returns the new address of a link, or undefined to keep it.
+ * @param render - Renders the tokens.
+ */
+function withFileLinks(tokens: Token[], address: (href: string) => string | undefined, render: () => string): string {
+  const changed: [Token, string][] = [];
+  for (const token of tokens.flatMap((block) => block.children ?? [])) {
+    const href = token.type === 'link_open' ? token.attrGet('href') : null;
+    const replaced = href === null ? undefined : address(href);
+    if (href !== null && replaced !== undefined) {
+      changed.push([token, href]);
+      token.attrSet('href', replaced);
+    }
+  }
+  try {
+    return render();
+  } finally {
+    for (const [token, href] of changed) {
+      token.attrSet('href', href);
+    }
+  }
+}
+
+/**
  * extendMarkdownIt adds the notes to a markdown-it instance of the Markdown preview.
  * @param md - The markdown-it instance.
  * @param options - The settings and the links of the rendered document.
@@ -414,18 +464,20 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
   addNoteRules(md);
   md.core.ruler.push('nimblescape_notes', transform);
   const shows = (env: unknown): boolean => options.settingsOf(env).showInPreview;
+  const hovers = (env: unknown): boolean => options.settingsOf(env).showCalloutOnHover ?? true;
   md.renderer.rules[noteOpenType] = (tokens, index, rendererOptions, env, self) => {
     const note = tokens[index].meta as PreviewNote;
     if (!shows(env)) {
       return '';
     }
     // A note without a reference shows its icon in the margin.
-    const anchor = note.referenced ? '' : `<div class="${noteClass}-anchor">${iconHtml(md, note, options.linkOf(env, note.line))}</div>\n`;
-    return `${anchor}${calloutHtml(md, note, (body) => renderBody(self, body, rendererOptions, env))}`;
+    const anchor = note.referenced ? '' : `<div class="${noteClass}-anchor">${iconHtml(md, note, options.linkOf(env, note.line), hovers(env), options.selectedOf?.(env))}</div>\n`;
+    const render = (body: Token[]) => withFileLinks(body, (href) => options.fileLinkOf(env, href), () => renderBody(self, body, rendererOptions, env));
+    return `${anchor}${calloutHtml(md, note, render)}`;
   };
   md.renderer.rules[iconTokenType] = (tokens, index, _options, env) => {
     const { note, ends } = tokens[index].meta as IconMeta;
-    return shows(env) ? `${ends ? edgeHtml(note, 'end') : ''}${iconHtml(md, note, options.linkOf(env, note.line))}` : '';
+    return shows(env) ? `${ends ? edgeHtml(note, 'end') : ''}${iconHtml(md, note, options.linkOf(env, note.line), hovers(env), options.selectedOf?.(env))}` : '';
   };
   md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => (shows(env) ? edgeHtml(tokens[index].meta as PreviewNote, 'start') : '');
   // A reference that the core rule did not reach, such as one in a note, shows as written, and a start marker nothing.

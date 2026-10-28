@@ -150,6 +150,15 @@ describe('answers', () => {
     );
   });
 
+  test('replaceAnswer gives a changed body the date of the save and keeps the author, and an unchanged body keeps its date (R-EDIT-002)', () => {
+    const source = lines(thread);
+    const [note] = findNotes(source);
+    const date = '2026-10-28 12:30+01:00';
+    const changed = after(source, replaceAnswer(source, note, 1, 'The teams of the new plan.', date)) as string;
+    expect(changed).toBe(thread.replace('    > **anna** · 2026-10-28 11:02+01:00', `    > **anna** · ${date}`).replace('of the plan.', 'of the new plan.'));
+    expect(after(source, replaceAnswer(source, note, 1, 'The teams of the plan.', date))).toBe(thread);
+  });
+
   test('appendAnswer adds a block quote with the header and the body', () => {
     const source = lines(thread);
     expect(after(source, appendAnswer(source, findNotes(source)[0], 'Thanks.', { author: 'hannes', date: '2026-10-28 11:30+01:00' }))).toBe(

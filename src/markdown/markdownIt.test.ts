@@ -47,7 +47,11 @@ const sourceMap = (md: MarkdownIt): void => {
  */
 const preview = (withPlugin: boolean, showInPreview = true): MarkdownIt => {
   const md = new MarkdownIt({ html: true, linkify: true });
-  const options = { settingsOf: () => ({ showInPreview }), linkOf: (_env: unknown, line: number) => `vscode://a.b/open?line=${line}` };
+  const options = {
+    settingsOf: () => ({ showInPreview }),
+    linkOf: (_env: unknown, line: number) => `vscode://a.b/open?line=${line}`,
+    fileLinkOf: (_env: unknown, href: string) => (/^[a-z]+:|^#/.test(href) ? undefined : `vscode://a.b/link?href=${href}`),
+  };
   return (withPlugin ? extendMarkdownIt(md, options) : md).use(sourceMap);
 };
 
@@ -276,10 +280,26 @@ describe('the plugin', () => {
   });
 
   test('escapes the link, and shows an icon without a link that takes the focus when the rendering has no document', () => {
-    const md = extendMarkdownIt(new MarkdownIt({ html: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: (env) => (env as { link?: string }).link });
+    const md = extendMarkdownIt(new MarkdownIt({ html: true }), { settingsOf: () => ({ showInPreview: true }), linkOf: (env) => (env as { link?: string }).link, fileLinkOf: () => undefined });
     const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n`;
     expect(md.render(text, { link: 'vscode://a.b/open?x="1"&y=2' })).toContain('href="vscode://a.b/open?x=&quot;1&quot;&amp;y=2"');
     expect(md.render(text, {})).toContain(`<span class="${noteClass}-icon ${noteClass}-color-1" aria-label="Note by hannes" aria-describedby="${noteClass}-1" role="img" tabindex="0">`);
+  });
+
+  test('gives the links of a callout that name files the address of the extension, and keeps the tokens of the document as they are (R-GEN-010)', () => {
+    const md = preview(true);
+    const text = `Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    [PDF](../literatur/a.pdf), [web](https://example.com), [here](#top)\n\n[Outside](b.pdf)\n`;
+    const tokens = md.parse(text, {});
+    const html = md.renderer.render(tokens, md.options, {});
+    expect(html).toContain('<a href="vscode://a.b/link?href=../literatur/a.pdf">PDF</a>');
+    expect(html).toContain('<a href="https://example.com">web</a>');
+    expect(html).toContain('<a href="#top">here</a>');
+    // A link of the text outside the notes stays as the Markdown preview of VS Code opens it.
+    expect(html).toContain('<a href="b.pdf">Outside</a>');
+    expect(md.renderer.render(tokens, md.options, {})).toBe(html);
+    // The tokens of a body are in the meta of the note and of its icon.
+    const hrefs = new Set(JSON.stringify(tokens).match(/"href","[^"]*"/g));
+    expect([...hrefs]).toEqual(['"href","../literatur/a.pdf"', '"href","https://example.com"', '"href","#top"', '"href","b.pdf"']);
   });
 
   test('gives each callout of a page its own ID', () => {
@@ -292,6 +312,27 @@ describe('the plugin', () => {
     expect(plain(preview(true, false).render(text))).toBe('<p>One two three.</p>\n<blockquote>\n<p><strong>anna</strong> · 2026-10-28 11:02+01:00</p>\n</blockquote>\n<p>Next.</p>\n');
   });
 
+  test('marks the icons for the script of the preview: without a callout on hover after the setting showCalloutOnHover, and the selected note with its request to scroll (R-PREV-002, R-SIDE-007)', () => {
+    const selections = new Map<unknown, { label: string | undefined; reveal: number | undefined }>();
+    const md = extendMarkdownIt(new MarkdownIt({ html: true }), {
+      settingsOf: (env) => ({ showInPreview: true, showCalloutOnHover: (env as { hover?: boolean }).hover }),
+      linkOf: () => 'vscode://a.b/open',
+      fileLinkOf: () => undefined,
+      selectedOf: (env) => selections.get((env as { id?: string }).id),
+    });
+    const text = `A[^note-aaaa] B[^note-bbbb]\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}\n`;
+    const attributes = (env: object) =>
+      [...md.render(text, env).matchAll(/<a class="[^"]*-icon[^>]*>/g)].map((match) => [...match[0].matchAll(/ data-(?:hover|selected|reveal)="[^"]*"/g)].join(''));
+    // A missing setting shows the callout, as the default of the setting does.
+    expect(attributes({})).toEqual(['', '']);
+    expect(attributes({ hover: true })).toEqual(['', '']);
+    expect(attributes({ hover: false })).toEqual([' data-hover="off"', ' data-hover="off"']);
+    selections.set('x', { label: 'note-bbbb', reveal: undefined });
+    selections.set('y', { label: 'note-aaaa', reveal: 4 });
+    expect(attributes({ id: 'x' })).toEqual(['', ' data-selected="true"']);
+    expect(attributes({ id: 'y' })).toEqual([' data-selected="true" data-reveal="4"', '']);
+  });
+
   test('reads the setting and the link for the environment of each rendering', () => {
     const environments: unknown[] = [];
     const md = extendMarkdownIt(new MarkdownIt({ html: true }), {
@@ -300,6 +341,7 @@ describe('the plugin', () => {
         return { showInPreview: (env as { show?: boolean }).show ?? true };
       },
       linkOf: () => undefined,
+      fileLinkOf: () => undefined,
     });
     const tokens = md.parse(`Text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n`, {});
     expect(md.renderer.render(tokens, md.options, { show: false })).not.toContain(noteClass);

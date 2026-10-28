@@ -60,7 +60,7 @@ const others = (md: MarkdownIt): MarkdownIt => githubStyles(mermaid(md.use(footn
  * notes adds the plugin of the extension.
  * @param md - The markdown-it instance.
  */
-const notes = (md: MarkdownIt): MarkdownIt => extendMarkdownIt(md, { settingsOf: () => ({ showInPreview: true }), linkOf: () => 'vscode://a.b/open' });
+const notes = (md: MarkdownIt): MarkdownIt => extendMarkdownIt(md, { settingsOf: () => ({ showInPreview: true }), linkOf: () => 'vscode://a.b/open', fileLinkOf: () => undefined });
 
 /** orders are the two orders of the plugins: the plugin of the extension after the others, and before them. */
 const orders = [

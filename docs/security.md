@@ -105,8 +105,11 @@ connection of VS Code, as the text of an open file does.
   open comment would hide the rest of the page. The extension does not change
   the security setting of the Markdown preview.
 - **The script of the preview.** `media/markdownPreview.js` only shows and
-  hides the callouts that the plugin wrote into the page, and places them
-  next to their icons. It reads no text of the page and sends no message.
+  hides the callouts that the plugin wrote into the page, places them next to
+  their icons, highlights the selections and draws the frame of the selected
+  note. A click on a highlighted passage clicks the link of the icon of its
+  note, which the plugin wrote ([Links to the extension](#links-to-the-extension)).
+  It reads no text of the page and sends no message.
 - **No network.** The extension has no network code and starts no program.
 
 ## Side view
@@ -169,6 +172,11 @@ web page, so the extension:
 - The extension changes a document only on a click on "Save", "Add Note",
   "Answer", "Delete" or "Delete Thread", in a box of the text editor or in the
   side view, with one edit of the document (`vscode.workspace.applyEdit`).
+  Backspace and Delete next to a hidden marker run a command of the
+  extension instead of the command of VS Code, which deletes the character
+  or the word on the other side of the marker in the active text editor
+  (`TextEditor.edit`); the keybindings apply only in a Markdown file, without
+  a selection, while the cursor is next to a hidden marker.
   Undo in the text editor takes the edit back. The extension saves no file:
   the document has unsaved changes, unless you use the automatic save of
   VS Code.

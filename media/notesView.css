@@ -13,7 +13,8 @@
  *
  * With the funnels, the strip at the left edge stands for the whole file: a
  * mark in the color of each note, and a frame for the part of the file that
- * the text editor shows. The funnels lie between the strip and the threads.
+ * the text editor shows. The funnel of the selected thread lies between the
+ * strip and the thread.
  */
 
 body {

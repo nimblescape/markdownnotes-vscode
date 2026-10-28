@@ -14,25 +14,32 @@
  * ([src/noteEditor.ts](noteEditor.ts)), and the side view
  * ([src/notesView.ts](notesView.ts)), with the GitHub login of the user as the
  * author of new notes ([src/github.ts](github.ts)). It handles the links of
- * the icons of the preview, which open a note in the side view, and the buttons
- * of the preview, which show and hide its notes, and refreshes the previews and
- * the threads when a setting of the extension changes.
+ * the icons of the preview, which open a note in the side view, or in its box
+ * while the side view does not show, the links to files of the callouts of the
+ * preview and of the boxes ([src/links.ts](links.ts)), and the buttons of the
+ * preview, which show and hide its notes, and refreshes the previews and the
+ * threads when a setting of the extension changes.
  */
 
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { githubLogin } from './github';
 import { extendMarkdownIt, type PreviewSettings } from './markdown/markdownIt';
+import { isFileLink, openLink, openLinkCommand } from './links';
 import { NoteEditor } from './noteEditor';
 import { isNoteDocument, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView, viewCommands } from './notesView';
-import { checkedSettings, type Settings, settingsSection } from './settings';
+import { SelectedNotes } from './selectedNotes';
+import { checkedSettings, type Settings, settingsSection, showsInSideView } from './settings';
 
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
 export const extensionId = 'nimblescape.nimblescape-markdown-notes';
 
 /** openPath is the path of the links that open a note in the side view. */
 export const openPath = '/open';
+
+/** linkPath is the path of the links of the callouts of the preview that open a file that a link of a note names. */
+export const linkPath = '/link';
 
 /**
  * previewCommands are the commands of the buttons in the title of the Markdown preview, which show and hide its notes
@@ -76,7 +83,8 @@ function documentOf(env: unknown): vscode.Uri | undefined {
  * @param env - The environment of the rendering.
  */
 function previewSettingsOf(env: unknown): PreviewSettings {
-  return { showInPreview: readSettings(documentOf(env)).showInPreview };
+  const { showInPreview, showCalloutOnHover } = readSettings(documentOf(env));
+  return { showInPreview, showCalloutOnHover };
 }
 
 /**
@@ -95,13 +103,70 @@ function noteLink(env: unknown, line: number): string | undefined {
 }
 
 /**
- * openFromLink opens the note of a link of the preview in the side view. The link names a document and a line. A link
- * can also come from outside VS Code, so the extension opens only a Markdown document that is open or that belongs to
- * the workspace, and only shows its notes.
+ * fileLink returns the address of a link of a callout of the preview that names a file: a URI of VS Code for the
+ * extension, which opens the file after the setting openLinksIn ([R-GEN-010](../docs/requirements.md#r-gen-010)). A
+ * rendering without a document has none, and any other link keeps its address.
+ * @param env - The environment of the rendering.
+ * @param href - The address of the link.
+ */
+function fileLink(env: unknown, href: string): string | undefined {
+  const document = documentOf(env);
+  if (!document || !isFileLink(href)) {
+    return undefined;
+  }
+  const query = new URLSearchParams({ document: document.toString(), href }).toString();
+  return `${vscode.env.uriScheme}://${extensionId}${linkPath}?${query}`;
+}
+
+/**
+ * openLinkFromPreview opens the file of a link of a callout of the preview. A link can also come from outside VS Code,
+ * so the extension opens only a link of a Markdown document that is open in VS Code, and asks before it opens a file
+ * that is no document with the program of the system.
+ * @param uri - The URI that VS Code passes to the extension.
+ */
+async function openLinkFromPreview(uri: vscode.Uri): Promise<void> {
+  const query = new URLSearchParams(uri.query);
+  const target = query.get('document');
+  const href = query.get('href');
+  const document = target && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === vscode.Uri.parse(target).toString());
+  if (document && href !== null && isNoteDocument(document)) {
+    await openLink(href, document.uri, renderMarkdown, readSettings(document.uri).openLinksIn);
+  }
+}
+
+/**
+ * showBox opens the box of the note of a document at a line, in its text editor, for a link of the preview while the
+ * side view does not show (setting showNotesIn "inline").
+ * @param threads - The threads of the notes.
+ * @param document - The document.
+ * @param line - The index of a line of the note or of its selection.
+ */
+async function showBox(threads: NoteThreads, document: vscode.TextDocument, line: number): Promise<void> {
+  const entry = threads.entryAt(document.uri, { line, character: 0 });
+  const visible = vscode.window.visibleTextEditors.find((editor) => editor.document === document);
+  const editor = await vscode.window.showTextDocument(document, { viewColumn: visible?.viewColumn });
+  if (entry) {
+    threads.expand(document.uri, entry.id);
+    const range = threads.threadsOf(document.uri).find((thread) => threads.noteOfThread(thread) === entry.note)?.range;
+    if (range) {
+      editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+    }
+  }
+}
+
+/**
+ * openFromLink opens the note of a link of the preview in the side view, or in its box while the side view does not
+ * show. The link names a document and a line. A link can also come from outside VS Code, so the extension opens only a
+ * Markdown document that is open or that belongs to the workspace, and only shows its notes.
  * @param uri - The URI that VS Code passes to the extension.
  * @param view - The side view.
+ * @param threads - The threads of the notes.
  */
-async function openFromLink(uri: vscode.Uri, view: NotesView): Promise<void> {
+async function openFromLink(uri: vscode.Uri, view: NotesView, threads: NoteThreads): Promise<void> {
+  if (uri.path === linkPath) {
+    await openLinkFromPreview(uri);
+    return;
+  }
   const query = new URLSearchParams(uri.query);
   const target = query.get('document');
   const line = Number(query.get('line'));
@@ -114,7 +179,7 @@ async function openFromLink(uri: vscode.Uri, view: NotesView): Promise<void> {
     document = await vscode.workspace.openTextDocument(parsed).then(undefined, () => undefined);
   }
   if (document && isNoteDocument(document)) {
-    await view.show(document.uri, line);
+    await (showsInSideView(readSettings(document.uri)) ? view.show(document.uri, line) : showBox(threads, document, line));
   }
 }
 
@@ -165,17 +230,24 @@ function refreshMarkdownPreviews(): void {
 export function activate(context: vscode.ExtensionContext): Api {
   const threads = new NoteThreads(readSettings, () => githubLogin(true));
   context.subscriptions.push(threads, ...threads.register());
-  const editor = new NoteEditor(threads, readSettings);
+  const selected = new SelectedNotes();
+  const editor = new NoteEditor(threads, readSettings, selected);
   context.subscriptions.push(editor, ...editor.register());
-  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings);
+  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected);
   context.subscriptions.push(
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
-    vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
+    vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view, threads) }),
+    vscode.commands.registerCommand(openLinkCommand, (href: string, document: string) => {
+      const uri = vscode.Uri.parse(document);
+      return openLink(href, uri, renderMarkdown, readSettings(uri).openLinksIn);
+    }),
     vscode.commands.registerCommand(previewCommands.show, () => setSetting('showInPreview', true)),
     vscode.commands.registerCommand(previewCommands.hide, () => setSetting('showInPreview', false)),
     vscode.commands.registerCommand(viewCommands.showFunnels, () => setSetting('showFunnels', true)),
     vscode.commands.registerCommand(viewCommands.hideFunnels, () => setSetting('showFunnels', false)),
+    // The preview shows the selected note with a strong highlight, and scrolls to it on a request.
+    selected.onDidChange(() => refreshMarkdownPreviews()),
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
@@ -186,7 +258,16 @@ export function activate(context: vscode.ExtensionContext): Api {
     }),
   );
   return {
-    extendMarkdownIt: (md) => extendMarkdownIt(md, { settingsOf: previewSettingsOf, linkOf: noteLink }),
+    extendMarkdownIt: (md) =>
+      extendMarkdownIt(md, {
+        settingsOf: previewSettingsOf,
+        linkOf: noteLink,
+        fileLinkOf: fileLink,
+        selectedOf: (env) => {
+          const document = documentOf(env);
+          return document && { label: selected.labelOf(document), reveal: selected.revealOf(document) };
+        },
+      }),
     threadsOf: (document) => threads.threadsOf(document),
   };
 }

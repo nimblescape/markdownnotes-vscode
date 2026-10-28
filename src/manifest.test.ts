@@ -17,10 +17,10 @@ import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
 import { extensionId, openPath, previewCommands } from './extension';
-import { editorCommands } from './noteEditor';
-import { commands, controllerId, noteContext } from './noteThreads';
+import { deleteCommands, editorCommands, markerContexts } from './noteEditor';
+import { commands, controllerId, draftContext, foldedContext, noteContext } from './noteThreads';
 import { notesViewId, viewCommands } from './notesView';
-import { defaultSettings, settingsSection } from './settings';
+import { defaultSettings, linkTargets, notePlaces, settingsSection } from './settings';
 
 // The module of the threads imports the editor API; these tests read only its constants.
 vi.mock('vscode', () => ({}));
@@ -109,7 +109,10 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   expect(manifest.contributes.viewsContainers.secondarySidebar).toHaveLength(1);
   expect(container).toMatchObject({ id: 'nimblescape-markdown-notes', title: 'Markdown Notes', icon: 'resources/notes-view.svg' });
   expect(read(container.icon)).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/m);
-  expect(manifest.contributes.views).toEqual({ [container.id]: [{ type: 'webview', id: notesViewId, name: 'Notes' }] });
+  // The setting showNotesIn "inline" shows the text of the notes only in the boxes, without the side view (R-GEN-009).
+  expect(manifest.contributes.views).toEqual({
+    [container.id]: [{ type: 'webview', id: notesViewId, name: 'Notes', when: `config.${settingsSection}.showNotesIn != inline` }],
+  });
   for (const file of ['media/notesView.js', 'media/notesView.css']) {
     expect(fs.existsSync(path.join(repository, file)), file).toBe(true);
   }
@@ -118,8 +121,25 @@ test('the manifest contributes the side view "Notes" in a container of its own i
 test('the manifest contributes the commands of the boxes, of the folds, of the side view and of the preview, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
   expect([...contributed].sort()).toEqual(
-    [...Object.values(commands), ...Object.values(editorCommands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort(),
+    [
+      ...Object.values(commands),
+      ...Object.values(editorCommands),
+      ...Object.values(deleteCommands),
+      ...Object.values(viewCommands),
+      ...Object.values(previewCommands),
+    ].sort(),
   );
+});
+
+test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
+  const base = 'editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections';
+  expect(manifest.contributes.keybindings).toEqual([
+    { command: deleteCommands.left, key: 'backspace', when: `${base} && ${markerContexts.left}` },
+    { command: deleteCommands.right, key: 'delete', when: `${base} && ${markerContexts.right}` },
+    { command: deleteCommands.wordLeft, key: 'ctrl+backspace', mac: 'alt+backspace', when: `${base} && ${markerContexts.left}` },
+    { command: deleteCommands.wordRight, key: 'ctrl+delete', mac: 'alt+delete', when: `${base} && ${markerContexts.right}` },
+  ]);
+  expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining(Object.values(deleteCommands).map((command) => ({ command, when: 'false' }))));
 });
 
 test('the manifest contributes the buttons of the boxes, for the comment controller of the notes only', () => {
@@ -127,19 +147,29 @@ test('the manifest contributes the buttons of the boxes, for the comment control
   const items = ['comments/commentThread/context', 'comments/commentThread/title', 'comments/comment/title', 'comments/comment/context'].flatMap(
     (menu) => menus[menu],
   );
-  // A box has the button "Collapse Note" of the folds besides the buttons of the threads.
-  expect(items.map((item: { command: string }) => item.command).sort()).toEqual([...Object.values(commands), editorCommands.collapseNote].sort());
+  // A box has the buttons "Hide Note Text" and "Show Note Text" of the folds besides the buttons of the threads.
+  expect(items.map((item: { command: string }) => item.command).sort()).toEqual([...Object.values(commands), editorCommands.collapseNote, editorCommands.expandNote].sort());
   for (const item of items) {
     expect(item.when, item.command).toMatch(new RegExp(`^commentController == ${controllerId.replace(/\./g, '\\.')}( |$)`));
   }
-  // Edit and Delete are buttons of a written answer only, and Delete Thread of a written note only, not of a text that
-  // was not written yet.
+  // Edit and Delete are buttons of a written answer only, and Delete Thread of a written note only, whose text shows or
+  // is folded, not of a text that was not written yet. "Hide Note Text" shows while the text of the note shows, and
+  // "Show Note Text" while it is folded.
   for (const item of menus['comments/comment/title']) {
     expect(item.when, item.command).toContain(`comment == ${noteContext}`);
   }
-  for (const item of menus['comments/commentThread/title']) {
-    expect(item.when, item.command).toContain(`commentThread == ${noteContext}`);
-  }
+  const titles = Object.fromEntries(
+    menus['comments/commentThread/title'].map((item: { command: string; when: string }) => [item.command, item.when.replace(/^commentController == \S+ && /, '')]),
+  );
+  // The setting keepNotesCollapsed hides both, because then the text of a note shows in the side view only (R-TEXT-005).
+  const kept = `!config.${settingsSection}.keepNotesCollapsed`;
+  expect(titles).toEqual({
+    [editorCommands.collapseNote]: `commentThread == ${noteContext} && ${kept}`,
+    [editorCommands.expandNote]: `commentThread == ${foldedContext} && ${kept}`,
+    [commands.deleteNote]: expect.stringMatching(/^commentThread =~ \/.*\/$/),
+  });
+  const written = new RegExp(/^commentThread =~ \/(.*)\/$/.exec(titles[commands.deleteNote])![1]);
+  expect([noteContext, foldedContext, draftContext].map((value) => written.test(value))).toEqual([true, true, false]);
   // The first button of a box is its primary button, which Ctrl+Enter in the editor of the box runs: Add Note in a new
   // thread, Answer in the thread of a note.
   const replies = menus['comments/commentThread/context'];
@@ -148,15 +178,25 @@ test('the manifest contributes the buttons of the boxes, for the comment control
   expect(menus['comments/comment/context'][0].command).toBe(commands.saveAnswer);
   // The buttons need the box of their note, so the Command Palette shows none of the commands.
   expect(menus.commandPalette).toEqual(expect.arrayContaining(Object.values(commands).map((command) => ({ command, when: 'false' }))));
+  expect(menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: editorCommands.collapseNote, when: `editorLangId == markdown && ${kept}` },
+      { command: editorCommands.collapseAll, when: 'editorLangId == markdown' },
+      { command: editorCommands.expandAll, when: `editorLangId == markdown && ${kept}` },
+    ]),
+  );
 });
 
 test('the title of the Markdown preview has the button that shows or hides its notes, after the setting showInPreview (R-PREV-005)', () => {
   const setting = `config.${settingsSection}.showInPreview`;
-  const preview = "activeWebviewPanelId == 'markdown.preview'";
+  // VS Code shows a Markdown file in the preview to the side, or in the modes "Markdown Preview" and "Markdown Editor"
+  // of its editor, which are custom editors; the mode "Markdown Editor" does not render the notes (R-PREV-005).
+  const preview = "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'";
+  const markdown = `editorLangId == markdown || ${preview} || activeCustomEditorId == 'vscode.markdown.editor'`;
   expect(manifest.contributes.menus['editor/title']).toEqual([
-    { command: viewCommands.toggle, group: 'navigation', when: `editorLangId == markdown || ${preview}` },
-    { command: previewCommands.show, group: 'navigation', when: `${preview} && !${setting}` },
-    { command: previewCommands.hide, group: 'navigation', when: `${preview} && ${setting}` },
+    { command: viewCommands.toggle, group: 'navigation', when: `(${markdown}) && config.${settingsSection}.showNotesIn != inline` },
+    { command: previewCommands.show, group: 'navigation', when: `(${preview}) && !${setting}` },
+    { command: previewCommands.hide, group: 'navigation', when: `(${preview}) && ${setting}` },
   ]);
   expect(manifest.contributes.menus.commandPalette).toEqual(
     expect.arrayContaining([
@@ -216,6 +256,15 @@ test('the manifest contributes the settings of src/settings.ts with their defaul
   const contributed = Object.fromEntries(Object.entries<any>(properties).map(([key, value]) => [key, value.default]));
   const expected = Object.fromEntries(Object.entries(defaultSettings).map(([key, value]) => [`${settingsSection}.${key}`, value]));
   expect(contributed).toEqual(expected);
+  // A setting of a choice offers the values that src/settings.ts takes, each with a description.
+  for (const [key, values] of [
+    ['showNotesIn', notePlaces],
+    ['openLinksIn', linkTargets],
+  ] as const) {
+    const property = properties[`${settingsSection}.${key}`];
+    expect(property.enum, key).toEqual([...values]);
+    expect(property.enumDescriptions, key).toHaveLength(values.length);
+  }
 });
 
 test('the README and the guide name every setting that the manifest contributes', () => {

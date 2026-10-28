@@ -20,9 +20,11 @@ describes its security model.
 | `src/notes/edits.ts` | The edits of the text when an answer is saved, added as a reply or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected tree of answers, and the place of the start marker, the reference and the definition of a new note. It uses no API of VS Code. |
 | `src/notes/checks.ts` | The warnings at the notes of a text: each form of a note that GitHub or another Markdown viewer shows differently from the extension. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the warnings of the notes as diagnostics, and the operations that the side view uses too. |
-| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", the numbered markers in the left margin and the overview ruler, the highlight and the hidden start markers and references of the selections, and the rendered header lines. |
+| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor and the setting `keepNotesCollapsed`, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes" and the buttons "Hide Note Text" and "Show Note Text", the numbered markers in the left margin and the overview ruler, the highlight, the strong highlight of the selected note and the hidden start markers and references of the selections, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
+| `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
+| `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
-| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, their numbers, colors and marks, the visible lines of the text editor, the actions of its script, and the commands "Hide Notes", "Show or Hide Notes", "Show Funnels" and "Hide Funnels". |
+| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their numbers, colors and marks, the visible lines of the text editor, the actions of its script, and the commands "Hide Notes", "Show or Hide Notes", "Show Funnels" and "Hide Funnels". |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes the reference of each note as an icon with a hidden callout, the start marker as the start of its selection, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code and of the notes, and the script that shows the callout of an icon on hover and focus and highlights the selections. |
@@ -110,7 +112,8 @@ the same file.
 - The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, and `onUri` when VS Code passes it a link of the icon of a note.
 - The contributions `markdown.markdownItPlugins`, `markdown.previewStyles` and `markdown.previewScripts` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
 - `viewsContainers.secondarySidebar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`, in the secondary side bar only, so that the primary side bar stays free for the Explorer ([R-SIDE-001](docs/requirements.md#r-side-001)). VS Code 1.125, the oldest supported version, already knows this place. The section [Side view](#side-view) explains it.
-- The commands "Collapse Note", "Collapse All Notes" and "Expand All Notes" fold the notes (`src/noteEditor.ts`); "Collapse Note" is also a button in the title of a box (`comments/commentThread/title`). The command "Show or Hide Notes" is a button in the title of the text editor and of the preview of a Markdown file (`editor/title`).
+- The commands "Collapse Note", "Collapse All Notes" and "Expand All Notes" fold the notes (`src/noteEditor.ts`); "Collapse Note" and "Expand Note" are also the buttons "Hide Note Text" and "Show Note Text" in the title of a box (`comments/commentThread/title`). With the setting `keepNotesCollapsed`, the buttons and the commands that expand a note do not show (`!config.nimblescape.markdownNotes.keepNotesCollapsed`). The command "Show or Hide Notes" is a button in the title of the text editor, of the preview of a Markdown file and of the modes "Markdown Preview" and "Markdown Editor" of VS Code (`editor/title`, `activeCustomEditorId`).
+- The four commands "Delete Left of a Hidden Marker", "Delete Right of a Hidden Marker" and their word forms are the keybindings of Backspace, Delete, Ctrl+Backspace and Ctrl+Delete (on macOS Alt+Backspace and Alt+Delete) while the cursor is next to a hidden marker. The editor sets the context keys `nimblescape.markdownNotes.markerLeft` and `nimblescape.markdownNotes.markerRight` for this, only when their value changes. The Command Palette does not show them.
 - The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of the reply box: "Add Note" and "Cancel" in a new thread, "Answer" in the thread of a note), `comments/commentThread/title` ("Delete Thread"), `comments/comment/title` ("Reply", "Edit" and "Delete" of an answer) and `comments/comment/context` (the buttons below the editor of an answer) show them, each only for the comment controller `nimblescape.markdownNotes`. The first button of a reply box or an editor is its primary button, which Ctrl+Enter runs: "Add Note", "Answer" and "Save". "Reply" opens a new comment in the editing mode below the answer, whose "Save" writes the reply. The Command Palette shows none of these commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts` and `src/noteEditor.ts`.
 - The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `collapseInEditor`, `expandInEditor` and `showInPreview` have the scope `resource`, so that a folder of a workspace can have its own value. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
@@ -288,17 +291,32 @@ extensions of Markdown stay as they are
   `textDecoration: 'none; display: none;'`, which hides their text, and one
   decoration type draws a thin bar or a dot in the color of the note with a
   `before` attachment of each range (`renderOptions`) at the place of the
-  marker. On the line of the cursor the markers are dimmed instead, so that
-  the cursor never moves through hidden text. The thread of a note with a
+  marker. The markers stay hidden also on the line of the cursor:
+  `src/notes/cursor.ts` moves a cursor inside a marker to its edge in the
+  direction of its move (`onDidChangeTextEditorSelection`), and the commands
+  of Backspace and Delete next to a marker delete the character or the word
+  on the other side of it. The selection of the selected note of
+  `src/selectedNotes.ts` gets a decoration type with a stronger background
+  and a border in the color of the note. The thread of a note with a
   selection has the selection as its range; VS Code gives the `+` on
   selected text the exact characters of the selection.
 - **Headers** ([R-TEXT-007](docs/requirements.md#r-text-007)): `headersOf` in
   `src/notes/folds.ts` gives the place of the header line of each answer:
   from the label `[^note-7k2q]:` of the first answer, or from the text after
-  the quote markers of a reply, to the end of the line. Except on the line of
-  the cursor, the header gets the hidden decoration and a `before` attachment
-  with the author and the date in the local time of the reader, and the date
-  in the local time of the author as its `hoverMessage`.
+  the quote markers of a reply, to the end of the line. The header gets the
+  hidden decoration and a `before` attachment with the author and the date in
+  the local time of the reader, and the date in the local time of the author
+  as its `hoverMessage`, also on the line of the cursor. A cursor on a header
+  line, or in the lines of a collapsed note, goes to the next free line in the
+  direction of its move, and Backspace or Delete that would join a line with a
+  header line does nothing.
+- **Kept folds** ([R-TEXT-005](docs/requirements.md#r-text-005)): with the
+  setting `keepNotesCollapsed`, the editor folds a note again when the
+  visible ranges show it open, and moves a cursor out of it. `editor.fold`
+  with `direction: 'down'` folds the innermost region at a line, which is the
+  fold of a heading while VS Code has not read the folds of the note yet; the
+  editor therefore folds again only for a version of the document whose
+  folding ranges VS Code read, `keepTime` (300 ms) after the reading.
 
 The operations `saveAnswer`, `answer` (with the index of the parent of a
 reply), `addNote`, `deleteAnswer` and `deleteNote` of `NoteThreads` write the
@@ -471,10 +489,18 @@ while the Markdown extension is active: no Markdown preview is open before,
 and the command would start that extension.
 
 The Markdown Editor of VS Code (`vscode.markdown.editor`) has no extension
-point for this: its comments come from the proposed API
-`agentEditorComments`, and its only contribution point is
-`markdown.codeBlockEditorProviders` for code blocks
-([R-GEN-001](docs/requirements.md#r-gen-001)).
+point for this: it renders with `@vscode/markdown-editor` and no markdown-it
+plugin, its comments come from the proposed API `agentEditorComments`, and
+its only contribution point is `markdown.codeBlockEditorProviders` for code
+blocks ([R-GEN-001](docs/requirements.md#r-gen-001)). The mode "Markdown
+Preview" (`vscode.markdown.preview.editor`) renders with the plugin, the
+styles and the script, as the preview to the side does, and
+`markdown.preview.refresh` renders it again
+([R-PREV-006](docs/requirements.md#r-prev-006)). The side view follows the
+active tab of both modes (`TabInputCustom` with the `viewType` and the
+`uri`), and a click on a thread keeps the mode: in the preview it selects the
+note with a request to scroll (`data-reveal`), and in the Markdown Editor it
+runs `vscode.openWith` with the selection, which that editor reveals.
 
 ## Unit tests with the editor API
 

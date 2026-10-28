@@ -45,16 +45,23 @@
 
 import * as vscode from 'vscode';
 import { appendAnswer, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, type Result } from './notes/edits';
+import { commandAddress, commandLinks, openLinkCommand } from './links';
 import { checksOf } from './notes/checks';
-import { findNotes, type Note, type Position, type Reading, readNotes } from './notes/notes';
+import { findNotes, type Note, noteAt, type Position, type Reading, readNotes } from './notes/notes';
 import { type Answer, formatDate, normalizeBody, parseDate } from './notes/syntax';
-import type { Settings } from './settings';
+import { type Settings, showsInline } from './settings';
 
 /** controllerId is the identifier of the comment controller, which the conditions of the menus name. */
 export const controllerId = 'nimblescape.markdownNotes';
 
 /** noteContext is the context value of a thread of a note and of the comment of an answer, which the menus name. */
 export const noteContext = 'nimblescape.markdownNotes.note';
+
+/**
+ * foldedContext is the context value of a thread of a note whose text is folded in the text editor, which the menus
+ * name: its box has the button "Show Note Text" in place of "Hide Note Text".
+ */
+export const foldedContext = 'nimblescape.markdownNotes.note.folded';
 
 /** draftContext is the context value of the comment of a new note or a new answer that was not written yet. */
 export const draftContext = 'nimblescape.markdownNotes.draft';
@@ -120,17 +127,33 @@ export class NoteComment implements vscode.Comment {
 
   /** text returns the text of the body, which VS Code sets to the text of the editor before a button runs. */
   text(): string {
-    return typeof this.body === 'string' ? this.body : this.body.value;
+    return typeof this.body === 'string' ? this.body : (sources.get(this.body) ?? this.body.value);
   }
 }
 
+/** sources holds the Markdown text of each body whose links to files run the command openLinkCommand. */
+const sources = new WeakMap<vscode.MarkdownString, string>();
+
 /**
  * markdown returns the body of a comment as a Markdown string whose relative links start at the folder of the
- * document.
+ * document. Its links to files run the command openLinkCommand, which opens them after the setting openLinksIn
+ * ([R-GEN-010](../docs/requirements.md#r-gen-010)); the editor of the box shows the text itself (editable).
  * @param text - The Markdown text.
  * @param document - The document.
  */
 function markdown(text: string, document: vscode.Uri): vscode.MarkdownString {
+  const body = editable(commandLinks(text, (href) => commandAddress(href, document)), document);
+  body.isTrusted = { enabledCommands: [openLinkCommand] };
+  sources.set(body, text);
+  return body;
+}
+
+/**
+ * editable returns the body of a comment in the editing mode: the Markdown text as the document holds it.
+ * @param text - The Markdown text.
+ * @param document - The document.
+ */
+function editable(text: string, document: vscode.Uri): vscode.MarkdownString {
   const body = new vscode.MarkdownString(text);
   body.supportHtml = true;
   body.baseUri = document;
@@ -193,6 +216,17 @@ export function isNoteDocument(document: vscode.TextDocument): boolean {
 const linesOf = (document: vscode.TextDocument): string[] => document.getText().split(/\r\n|\r|\n/);
 
 /**
+ * hiddenThread returns a thread of a note that VS Code does not show, for the setting showNotesIn "sideView"
+ * ([R-GEN-009](../docs/requirements.md#r-gen-009)): the text of the notes then shows only in the side view, which reads
+ * the notes from the threads as always.
+ * @param uri - The URI of the document.
+ * @param range - The range of the thread.
+ */
+function hiddenThread(uri: vscode.Uri, range: vscode.Range): vscode.CommentThread {
+  return { uri, range, comments: [], collapsibleState: vscode.CommentThreadCollapsibleState.Collapsed, canReply: true, dispose: () => undefined };
+}
+
+/**
  * rangeOf returns the range of a note in its document.
  * @param note - The note.
  */
@@ -231,9 +265,7 @@ export class NoteThreads implements vscode.Disposable {
   ) {
     this.controller = vscode.comments.createCommentController(controllerId, 'Markdown notes');
     this.controller.options = { prompt: 'Add a note…', placeHolder: 'The text, in Markdown' };
-    this.controller.commentingRangeProvider = {
-      provideCommentingRanges: (document) => (isNoteDocument(document) ? [new vscode.Range(0, 0, Math.max(document.lineCount - 1, 0), 0)] : []),
-    };
+    this.controller.commentingRangeProvider = this.commentingRanges();
     this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNotes');
   }
 
@@ -257,8 +289,21 @@ export class NoteThreads implements vscode.Disposable {
     return registrations;
   }
 
+  /**
+   * commentingRanges returns the provider of the ranges where the `+` of a new note shows: every line of a Markdown
+   * file, while the notes show in the boxes of the text editor.
+   */
+  private commentingRanges(): vscode.CommentingRangeProvider {
+    return {
+      provideCommentingRanges: (document) =>
+        isNoteDocument(document) && showsInline(this.settingsOf(document.uri)) ? [new vscode.Range(0, 0, Math.max(document.lineCount - 1, 0), 0)] : [],
+    };
+  }
+
   /** syncAll reads the notes of every open document again and builds every thread anew, for changed settings. */
   syncAll(): void {
+    // A new provider makes VS Code ask for the ranges of the `+` again.
+    this.controller.commentingRangeProvider = this.commentingRanges();
     for (const key of [...this.entries.keys()]) {
       this.forget(vscode.Uri.parse(key));
     }
@@ -290,6 +335,33 @@ export class NoteThreads implements vscode.Disposable {
    */
   entriesOf(document: vscode.Uri): NoteEntry[] {
     return (this.entries.get(document.toString()) ?? []).map(({ id, note }) => ({ id, note }));
+  }
+
+  /**
+   * showFolded gives each thread of a note of a document the context value of a note whose text is folded, or of a
+   * note whose text shows, which chooses the button "Show Note Text" or "Hide Note Text" of its box.
+   * @param document - The URI of the document.
+   * @param folded - Tells whether the text of a note is folded.
+   */
+  showFolded(document: vscode.Uri, folded: (note: Note) => boolean): void {
+    for (const { thread, note } of this.entries.get(document.toString()) ?? []) {
+      const value = folded(note) ? foldedContext : noteContext;
+      if ((thread.contextValue === noteContext || thread.contextValue === foldedContext) && thread.contextValue !== value) {
+        thread.contextValue = value;
+      }
+    }
+  }
+
+  /**
+   * entryAt returns the note of an open document at a position: the note whose definition holds its line, or else the
+   * note whose selection holds it and starts last.
+   * @param document - The URI of the document.
+   * @param position - The position.
+   */
+  entryAt(document: vscode.Uri, position: Position): NoteEntry | undefined {
+    const entries = this.entriesOf(document);
+    const note = noteAt(entries.map((entry) => entry.note), position);
+    return entries.find((entry) => entry.note === note);
   }
 
   /**
@@ -406,7 +478,9 @@ export class NoteThreads implements vscode.Disposable {
    * @param thread - The thread of the `+`, or undefined for a new thread.
    */
   private create(document: vscode.TextDocument, note: Note, raw: string, thread?: vscode.CommentThread): Entry {
-    const created = thread ?? this.controller.createCommentThread(document.uri, threadRangeOf(note), []);
+    const created =
+      thread ??
+      (showsInline(this.settingsOf(document.uri)) ? this.controller.createCommentThread(document.uri, threadRangeOf(note), []) : hiddenThread(document.uri, threadRangeOf(note)));
     created.canReply = true;
     created.label = threadLabel;
     created.contextValue = noteContext;
@@ -494,12 +568,14 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * show sets the mode of a comment and shows it in its thread.
+   * show sets the mode of a comment and shows it in its thread: in the editing mode with the text as the document
+   * holds it, else with the links to files that run the command openLinkCommand.
    * @param comment - The comment.
    * @param mode - The mode.
    */
   private show(comment: NoteComment, mode: vscode.CommentMode): void {
     comment.mode = mode;
+    comment.body = (mode === vscode.CommentMode.Editing ? editable : markdown)(comment.text(), comment.thread.uri);
     const entry = this.entryOfThread(comment.thread);
     comment.thread.comments = entry ? [...entry.comments] : [comment];
   }
@@ -588,7 +664,8 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * saveAnswer writes a text into an answer of a note ([R-EDIT-002](../docs/requirements.md#r-edit-002)).
+   * saveAnswer writes a text into an answer of a note ([R-EDIT-002](../docs/requirements.md#r-edit-002)), with the
+   * date of the save when the text changed.
    * @param document - The URI of the document.
    * @param id - The identifier of the thread of the note.
    * @param index - The index of the answer.
@@ -596,7 +673,8 @@ export class NoteThreads implements vscode.Disposable {
    * @param written - Runs after the edit and before the notes are read again.
    */
   saveAnswer(document: vscode.Uri, id: string, index: number, text: string, written?: () => void): Promise<Problem | undefined> {
-    return this.change(document, id, (lines, note) => (index < note.answers.length ? replaceAnswer(lines, note, index, normalizeBody(text)) : { problem: { kind: 'missing' } }), () => true, written);
+    const date = formatDate(new Date());
+    return this.change(document, id, (lines, note) => (index < note.answers.length ? replaceAnswer(lines, note, index, normalizeBody(text), date) : { problem: { kind: 'missing' } }), () => true, written);
   }
 
   /**

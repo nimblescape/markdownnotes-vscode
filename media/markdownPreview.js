@@ -10,14 +10,25 @@
 // it with Escape, on scrolling and when the preview gets new content. The
 // listeners are on the document, so they also work for the content of a
 // later update of the preview. A click on the icon follows its link, which
-// opens the note in the side view of the extension (R-PREV-003).
+// opens the note in the side view of the extension (R-PREV-003). An icon with
+// the attribute data-hover="off" (setting showCalloutOnHover off) shows its
+// callout only with the keyboard focus, not under the pointer.
 //
 // The plugin writes the start and the end of the selection of a note as two
 // empty elements with the ID of the selection (R-NOTE-006). The script
 // highlights the text between them in the color of the note, with the CSS
 // Custom Highlight API, which changes no element of the page. A selection
 // without a start begins at the start of the block of its end. While the
-// callout of a note shows, its selection has a stronger highlight.
+// callout of a note shows, its selection has a stronger highlight. A click on
+// the highlighted text of a selection follows the link of the icon of its
+// note, as a click on the icon does; a click on a link in the selection, or
+// the end of a drag that selects text, does not.
+//
+// The icon of the selected note of the side view has the attribute
+// data-selected: its selection has a strong highlight and a frame of thin
+// lines in the color of the note, one for each line of the text. An icon
+// with the attribute data-reveal asks the preview to scroll to the note; the
+// script scrolls once for each number of the attribute.
 
 (() => {
   'use strict';
@@ -44,6 +55,14 @@
 
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let timer;
+
+  /** @type {string | undefined} the number of the last request to scroll to a note, which the script did. */
+  let revealed;
+
+  /** frames holds the frame of the selection of the selected note: one element for each line of its text. */
+  const frames = document.createElement('div');
+  frames.className = 'nimblescape-note-frames';
+  frames.setAttribute('aria-hidden', 'true');
 
   /**
    * calloutOf returns the callout of an icon.
@@ -116,6 +135,65 @@
     for (const [name, ranges] of byColor) {
       highlights.set(name, new Highlight(...ranges));
     }
+    choose();
+  };
+
+  /**
+   * frame draws the frame of a range: one element for each line of its text, placed from the corner of the element of
+   * the frames, so that the frame scrolls with the page.
+   * @param {Range | undefined} range
+   * @param {string} color - The number of the color of the note.
+   */
+  const frame = (range, color) => {
+    frames.replaceChildren();
+    if (!range) {
+      frames.remove();
+      return;
+    }
+    document.body.append(frames);
+    const origin = frames.getBoundingClientRect();
+    /** @type {Map<number, { left: number, top: number, right: number, bottom: number }>} */
+    const lines = new Map();
+    for (const rect of range.getClientRects()) {
+      if (rect.width === 0 || rect.height === 0) {
+        continue;
+      }
+      const key = Math.round(rect.top + rect.height / 2);
+      const line = lines.get(key);
+      lines.set(key, line ? { left: Math.min(line.left, rect.left), top: Math.min(line.top, rect.top), right: Math.max(line.right, rect.right), bottom: Math.max(line.bottom, rect.bottom) } : { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom });
+    }
+    for (const line of lines.values()) {
+      const box = document.createElement('div');
+      box.className = `nimblescape-note-frame nimblescape-note-color-${color}`;
+      box.style.left = `${line.left - origin.left - 1}px`;
+      box.style.top = `${line.top - origin.top - 1}px`;
+      box.style.width = `${line.right - line.left + 2}px`;
+      box.style.height = `${line.bottom - line.top + 2}px`;
+      frames.append(box);
+    }
+  };
+
+  /** choose gives the selection of the selected note the strong highlight and the frame, and scrolls to it on a request. */
+  const choose = () => {
+    const highlights = highlightsOf();
+    for (const name of [...(highlights?.keys() ?? [])]) {
+      if (name.endsWith('-selected')) {
+        highlights?.delete(name);
+      }
+    }
+    const icon = document.querySelector(`${iconSelector}[data-selected]`);
+    const selection = icon ? selections.get(icon) : undefined;
+    if (highlights && selection) {
+      const strong = new Highlight(selection.range);
+      strong.priority = 2;
+      highlights.set(`${selection.name}-selected`, strong);
+    }
+    frame(selection?.range, selection ? selection.name.replace('nimblescape-note-', '') : '');
+    const request = icon?.getAttribute('data-reveal') ?? undefined;
+    if (icon && request !== undefined && request !== revealed) {
+      revealed = request;
+      icon.scrollIntoView({ block: 'center' });
+    }
   };
 
   /**
@@ -185,6 +263,34 @@
   };
 
   /**
+   * selectionAt returns the icon of the selection at a point of the window: the selection that starts last, so that a
+   * selection inside another one wins, or undefined.
+   * @param {number} x
+   * @param {number} y
+   * @returns {Element | undefined}
+   */
+  const selectionAt = (x, y) => {
+    /** @type {{ offsetNode: Node, offset: number } | null} */
+    const caret =
+      typeof document.caretPositionFromPoint === 'function'
+        ? document.caretPositionFromPoint(x, y)
+        : (() => {
+            const range = typeof document.caretRangeFromPoint === 'function' ? document.caretRangeFromPoint(x, y) : null;
+            return range ? { offsetNode: range.startContainer, offset: range.startOffset } : null;
+          })();
+    if (!caret) {
+      return undefined;
+    }
+    let found;
+    for (const [icon, { range }] of selections) {
+      if (range.isPointInRange(caret.offsetNode, caret.offset) && (!found || range.compareBoundaryPoints(Range.START_TO_START, found.range) > 0)) {
+        found = { icon, range };
+      }
+    }
+    return found?.icon;
+  };
+
+  /**
    * targetOf returns the element of an event.
    * @param {Event} event
    * @returns {Element | null}
@@ -194,8 +300,10 @@
   document.addEventListener('mouseover', (event) => {
     const target = targetOf(event);
     const icon = target?.closest(iconSelector);
-    if (icon) {
+    if (icon && icon.getAttribute('data-hover') !== 'off') {
       show(icon);
+    } else if (icon) {
+      // The callout of an icon without hover stays as it is.
     } else if (open && target && open.callout.contains(target)) {
       clearTimeout(timer);
     } else if (open) {
@@ -214,8 +322,18 @@
     }
   });
   document.addEventListener('click', (event) => {
-    if (targetOf(event)?.closest(iconSelector)) {
+    const target = targetOf(event);
+    if (target?.closest(iconSelector)) {
       hide();
+      return;
+    }
+    if (event.button !== 0 || target?.closest('a, button, input, textarea, select, summary') || !document.getSelection()?.isCollapsed) {
+      return;
+    }
+    const icon = selectionAt(event.clientX, event.clientY);
+    if (icon instanceof HTMLElement) {
+      // The click of the icon goes to the link handler of the preview, as a click of the user does.
+      icon.click();
     }
   });
   document.addEventListener('keydown', (event) => {
@@ -224,6 +342,7 @@
     }
   });
   window.addEventListener('scroll', hide, { passive: true });
+  window.addEventListener('resize', choose);
   window.addEventListener('vscode.markdown.updateContent', () => {
     hide();
     highlight();

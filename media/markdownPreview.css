@@ -20,7 +20,8 @@
  * Each note has the color of its number, as its marker in the text editor
  * (src/notes/colors.ts): the class nimblescape-note-color-N sets the variable
  * --nimblescape-note-color for the icon and the bar of the callout. The script
- * highlights the selection of a note in the same color (R-NOTE-006).
+ * highlights the selection of a note in the same color (R-NOTE-006), and the
+ * selection of the selected note of the side view stronger, with a frame.
  */
 
 .nimblescape-note-color-1 { --nimblescape-note-color: #1a7fe0; }
@@ -36,6 +37,30 @@
 ::highlight(nimblescape-note-4) { background-color: rgba(138, 79, 192, 0.2); }
 ::highlight(nimblescape-note-5) { background-color: rgba(211, 59, 59, 0.2); }
 ::highlight(nimblescape-note-6) { background-color: rgba(19, 138, 138, 0.2); }
+
+/* The selection of the selected note of the side view, which also has a frame. */
+::highlight(nimblescape-note-1-selected) { background-color: rgba(26, 127, 224, 0.4); }
+::highlight(nimblescape-note-2-selected) { background-color: rgba(46, 139, 62, 0.4); }
+::highlight(nimblescape-note-3-selected) { background-color: rgba(199, 115, 26, 0.4); }
+::highlight(nimblescape-note-4-selected) { background-color: rgba(138, 79, 192, 0.4); }
+::highlight(nimblescape-note-5-selected) { background-color: rgba(211, 59, 59, 0.4); }
+::highlight(nimblescape-note-6-selected) { background-color: rgba(19, 138, 138, 0.4); }
+
+.nimblescape-note-frames {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.nimblescape-note-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--nimblescape-note-color);
+  border-radius: 3px;
+  pointer-events: none;
+}
 
 /* The selection of the note whose callout shows. */
 ::highlight(nimblescape-note-1-active) { background-color: rgba(26, 127, 224, 0.4); }

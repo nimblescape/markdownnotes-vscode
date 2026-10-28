@@ -16,8 +16,8 @@
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
-import { notesViewId, viewCommands } from './notesView';
-import { Fake, FakeEditor, FakePosition, FakeRange, type FakeView, settle } from './testing/fakeVscode';
+import { markdownModes, notesViewId, viewCommands } from './notesView';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeUri, type FakeView, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -91,6 +91,15 @@ const results = (view: FakeView) => view.messages.filter((message) => message.ty
 
 /** linkCalls returns the commands that the links ran, without the folds that the overlay of the text editor runs. */
 const linkCalls = () => fake.calls.filter(({ command }) => !command.startsWith('editor.'));
+
+/** newWindow is the command that moves the active editor into a new window of VS Code. */
+const newWindow = 'workbench.action.moveEditorToNewWindow';
+
+/** openedLinks returns the commands that the links ran, with the path and the position of each opened file. */
+const openedLinks = () =>
+  linkCalls().map(({ command, args }) =>
+    command === newWindow ? [command] : [command, (args[0] as FakeUri).path, ...(command === 'vscode.open' ? [(args[1] as { selection?: FakeRange }).selection?.start] : [])],
+  );
 
 test('the view is a page whose policy runs only its own script from the folder media (R-SIDE-001)', async () => {
   const { view } = await start();
@@ -173,10 +182,31 @@ test('the view selects the thread at the cursor and follows the active Markdown 
   expect(view.state().file).toBe('b.md');
 });
 
+test('a click on a thread whose selection starts on the line where the selection of the note before it ends selects this thread and not the one before it (R-SIDE-002, R-SIDE-007)', async () => {
+  const header = '**ann** · 2026-10-28 10:15+01:00';
+  const text = `Work (<!--[note-aaaa-->Hong et al.,\n2024[^note-aaaa]; <!--[note-bbbb-->Shao et al., 2025[^note-bbbb]).\n\n[^note-aaaa]: ${header}\n\n    A\n\n[^note-bbbb]: ${header}\n\n    B\n`;
+  const { editor, view } = await start(text, 9);
+  const [, second] = view.state().threads;
+  await send(view, { type: 'reveal', id: second.id, focus: false });
+  // VS Code puts the cursor at the start of the selection of the second note, on the last line of the first selection.
+  const { selection } = fake.shown.at(-1)!.options as { selection: FakeRange };
+  expect(selection.start).toEqual(new FakePosition(1, 35));
+  editor.selection = { active: selection.start };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  expect(view.state().selected).toBe(second.id);
+  // The cursor in the first selection selects the first note.
+  editor.selection = { active: new FakePosition(1, 2) };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  expect(view.state().selected).toBe(view.state().threads[0].id);
+});
+
 test('Save writes an answer and a refused text returns its message (R-SIDE-003, R-EDIT-002)', async () => {
   const { document, view } = await start();
   await send(view, { type: 'save', request: 1, id: '1', index: 1, text: 'A **changed** answer.' });
-  expect(document.text).toContain('    > **bob** · 2026-10-28 11:00+01:00\n    >\n    > A **changed** answer.\n\nMore.');
+  // The changed answer has the date of the save.
+  expect(document.text).toContain('    > **bob** · 2026-10-28 10:15+01:00\n    >\n    > A **changed** answer.\n\nMore.');
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
   expect(view.state().threads[0].answers[1].body).toBe('A **changed** answer.');
   await send(view, { type: 'save', request: 2, id: '1', index: 0, text: '> **eve** · 2026-10-28 12:00+01:00\n>\n> Not an answer of eve.' });
@@ -251,6 +281,7 @@ test('Sign in asks VS Code for a GitHub session, and a change of the sessions sh
 });
 
 test('a click on the line of a thread shows its note in the text editor and opens its box, and a click on the thread keeps the focus in the view (R-SIDE-007)', async () => {
+  fake.settings.set('', { showNotesIn: 'inline' });
   const { document, editor, view } = await start();
   await send(view, { type: 'reveal', id: '1' });
   expect(fake.shown).toEqual([{ document, options: { viewColumn: editor.viewColumn, selection: expect.objectContaining({ start: new FakePosition(2, 0) }), preserveFocus: false } }]);
@@ -266,6 +297,76 @@ test('a note with a selection has the lines of its selection as its mark, and th
   expect(view.state().threads).toEqual([expect.objectContaining({ number: 1, mark: [0, 1], line: 3 })]);
   await send(view, { type: 'reveal', id: '1' });
   expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 28) }) });
+});
+
+test('a click on a thread keeps the mode of the file: the preview scrolls to the note, and the mode "Markdown Editor" selects its passage (R-SIDE-007)', async () => {
+  const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
+  const { document, view } = await start(text);
+  const states = () => view.messages.filter((message) => message.type === 'state').length;
+  // Only the preview to the side shows the file; VS Code tells its label and the type of its webview.
+  fake.editors = [];
+  fake.tabGroups = [{ viewColumn: 1, tabs: [], activeTab: { input: { viewType: 'mainThreadWebview-markdown.preview' }, label: 'Preview a.md' } }];
+  const before = states();
+  await send(view, { type: 'reveal', id: '1' });
+  expect(fake.shown).toEqual([]);
+  expect(states()).toBe(before + 1);
+  expect(fake.calls.map(({ command }) => command)).toContain('markdown.preview.refresh');
+  // The mode "Markdown Preview" of the text editor of VS Code is a custom editor of the document.
+  fake.tabGroups = [{ viewColumn: 2, tabs: [], activeTab: { input: { viewType: markdownModes.preview, uri: document.uri }, label: 'a.md' } }];
+  await send(view, { type: 'reveal', id: '1' });
+  expect(fake.shown).toEqual([]);
+  // The mode "Markdown Editor" opens the document in its own mode again, with the passage of the note selected.
+  fake.tabGroups = [{ viewColumn: 2, tabs: [], activeTab: { input: { viewType: markdownModes.editor, uri: document.uri }, label: 'a.md' } }];
+  await send(view, { type: 'reveal', id: '1', focus: false });
+  expect(fake.shown).toEqual([]);
+  const { args } = fake.calls.at(-1)!;
+  expect(fake.calls.at(-1)!.command).toBe('vscode.openWith');
+  expect(args.slice(0, 2)).toEqual([document.uri, markdownModes.editor]);
+  expect(args[2]).toMatchObject({ viewColumn: 2, preserveFocus: true, selection: { start: new FakePosition(0, 28), end: new FakePosition(1, 8) } });
+  // The preview of another file, and a text editor of the file, open the text editor.
+  fake.tabGroups = [{ viewColumn: 1, tabs: [], activeTab: { input: { viewType: 'mainThreadWebview-markdown.preview' }, label: 'Preview b.md' } }];
+  await send(view, { type: 'reveal', id: '1' });
+  expect(fake.shown).toHaveLength(1);
+});
+
+test('the view follows the active tab that shows a Markdown file in the mode "Markdown Preview" or "Markdown Editor", which is no text editor (R-SIDE-002)', async () => {
+  const { view } = await start();
+  const other = fake.open('Text[^note-bbbb].\n\n[^note-bbbb]: **bob** · 2026-10-28 11:00+01:00\n\n    B\n', '/folder/b.md');
+  for (const [viewType, file] of [
+    [markdownModes.preview, 'b.md'],
+    [markdownModes.editor, 'a.md'],
+    ['workbench.editor.browser', 'a.md'],
+  ] as const) {
+    const uri = viewType === markdownModes.preview ? other.uri : new FakeUri('file', '/folder/a.md');
+    fake.tabGroups = [{ viewColumn: 1, tabs: [], activeTab: { input: { viewType, uri }, label: file } }];
+    fake.fire('tabs', {});
+    await settle();
+    expect(view.state().file, viewType).toBe(file);
+  }
+  expect(view.state().threads).toHaveLength(1);
+});
+
+test('a mouse click into the selection of a note opens the hidden view, and the keyboard or a click on the note itself does not (R-SIDE-007)', async () => {
+  const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
+  const { editor, view } = await start(text);
+  view.visible = false;
+  const move = async (line: number, character: number, kind: number) => {
+    editor.selection = { active: new FakePosition(line, character) };
+    fake.fire('selection', { textEditor: editor, kind });
+    await settle();
+  };
+  await move(0, 30, 1);
+  expect(view.shows).toBe(0);
+  await move(6, 4, 2);
+  expect(view.shows).toBe(0);
+  await move(1, 2, 2);
+  expect(view.shows).toBe(1);
+  expect(view.state().selected).toBe('1');
+  // With the setting showNotesIn "inline" the side view does not show.
+  view.visible = false;
+  fake.settings.set('', { showNotesIn: 'inline' });
+  await move(0, 30, 2);
+  expect(view.shows).toBe(1);
 });
 
 test('the view sends the visible lines of the text editor, and the setting showFunnels (R-SIDE-007)', async () => {
@@ -292,7 +393,7 @@ test('without an active Markdown file the view shows no threads, and an action r
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: 'The change was not saved: the file no longer holds the note.' }]);
 });
 
-test('a click on a link of a rendered text opens it: a web link with the system, a file in VS Code at its heading or line (R-SIDE-005)', async () => {
+test('a click on a link of a rendered text opens it: a web link with the system, a file in a new window of VS Code at its heading or line, and a place of the file itself in its editor (R-SIDE-005, R-GEN-010)', async () => {
   fake.files.set('/folder/sources/hong.md', '# Hong et al.\n\n## Abstract\n\nText.\n');
   fake.files.set('/folder/data.txt', 'a\nb\nc\n');
   fake.files.set('/folder/paper.pdf', '%PDF');
@@ -302,33 +403,56 @@ test('a click on a link of a rendered text opens it: a web link with the system,
     text.startsWith('# Hong')
       ? '<h1 id="hong-et-al" data-line="0" class="code-line" dir="auto">Hong et al.</h1>\n<h2 data-line="2" class="code-line" id="abstract">Abstract</h2>\n'
       : '<h1 id="title" data-line="0">Title</h1>\n';
-  const { document, view } = await start();
-  const shownAt = () => {
-    const { document: shown, options } = fake.shown.at(-1)!;
-    return [shown.uri.path, (options as { selection: { start: FakePosition } }).selection.start];
-  };
+  const { view } = await start();
   await send(view, { type: 'openLink', href: 'https://example.com/a?b=1' });
   await send(view, { type: 'openLink', href: 'mailto:ann@example.com' });
   expect(fake.external).toEqual(['https://example.com/a?b=1', 'mailto:ann@example.com']);
   // A relative path starts at the folder of the Markdown file, a path with "/" at the folder of the workspace.
   await send(view, { type: 'openLink', href: 'sources/hong.md#Abstract' });
-  expect(shownAt()).toEqual(['/folder/sources/hong.md', new FakePosition(2, 0)]);
   await send(view, { type: 'openLink', href: '/data.txt#L2,3' });
-  expect(shownAt()).toEqual(['/folder/data.txt', new FakePosition(1, 2)]);
   await send(view, { type: 'openLink', href: '#title' });
-  expect(fake.shown.at(-1)?.document).toBe(document);
   // A file without a place, a file that is no text and a heading that the file does not hold open as files.
   await send(view, { type: 'openLink', href: '../folder/paper.pdf' });
   await send(view, { type: 'openLink', href: 'sources/hong.md#missing' });
   await send(view, { type: 'openLink', href: 'sources' });
-  expect(linkCalls().map(({ command, args }) => [command, (args[0] as { path: string }).path])).toEqual([
-    ['vscode.open', '/folder/paper.pdf'],
-    ['vscode.open', '/folder/sources/hong.md'],
+  expect(openedLinks()).toEqual([
+    ['vscode.open', '/folder/sources/hong.md', new FakePosition(2, 0)],
+    [newWindow],
+    ['vscode.open', '/folder/data.txt', new FakePosition(1, 2)],
+    [newWindow],
+    ['vscode.open', '/folder/a.md', new FakePosition(0, 0)],
+    ['vscode.open', '/folder/paper.pdf', undefined],
+    [newWindow],
+    ['vscode.open', '/folder/sources/hong.md', undefined],
+    [newWindow],
     ['revealInExplorer', '/folder/sources'],
   ]);
-  expect(fake.shown).toHaveLength(3);
   await send(view, { type: 'openLink', href: 'missing%20file.md' });
   expect(fake.errors).toEqual(['The link was not opened: the file /folder/missing file.md does not exist.']);
+});
+
+test('a file that a tab shows opens in that tab, and the setting openLinksIn opens a file in the editor or with the program of the system, which asks first for a file that is no document (R-GEN-010)', async () => {
+  fake.files.set('/folder/paper.pdf', '%PDF');
+  fake.files.set('/folder/tool.app', 'x');
+  const { view } = await start();
+  fake.tabGroups = [{ viewColumn: 3, tabs: [{ input: { uri: new FakeUri('file', '/folder/paper.pdf') } }] }];
+  await send(view, { type: 'openLink', href: 'paper.pdf' });
+  expect(openedLinks()).toEqual([['vscode.open', '/folder/paper.pdf', undefined]]);
+  expect((linkCalls()[0].args[1] as { viewColumn: number }).viewColumn).toBe(3);
+  fake.tabGroups = [];
+  fake.calls.length = 0;
+  fake.settings.set('', { openLinksIn: 'editor' });
+  await send(view, { type: 'openLink', href: 'paper.pdf' });
+  expect(openedLinks()).toEqual([['vscode.open', '/folder/paper.pdf', undefined]]);
+  fake.calls.length = 0;
+  fake.settings.set('', { openLinksIn: 'system' });
+  await send(view, { type: 'openLink', href: 'paper.pdf' });
+  await send(view, { type: 'openLink', href: 'tool.app' });
+  expect(fake.external).toEqual(['file:/folder/paper.pdf']);
+  expect(fake.warnings).toEqual(['Open the file "/folder/tool.app" with the program of your system?']);
+  // A place of the Markdown file itself opens in its editor.
+  await send(view, { type: 'openLink', href: '#title' });
+  expect(openedLinks()).toEqual([['vscode.open', '/folder/a.md', undefined]]);
 });
 
 test('a link of another scheme opens only after a question, and a link that runs a command never (R-SIDE-005)', async () => {
@@ -347,9 +471,9 @@ test('a link of another scheme opens only after a question, and a link that runs
     await send(view, { type: 'openLink', href });
   }
   expect(fake.errors).toEqual([
-    'The link was not opened: the side view opens no link of the scheme "command:".',
-    'The link was not opened: the side view opens no link of the scheme "data:".',
-    'The link was not opened: the side view opens no link of the scheme "javascript:".',
+    'The link was not opened: the extension opens no link of the scheme "command:".',
+    'The link was not opened: the extension opens no link of the scheme "data:".',
+    'The link was not opened: the extension opens no link of the scheme "javascript:".',
   ]);
   expect(linkCalls()).toEqual([]);
   expect(fake.external).toHaveLength(2);

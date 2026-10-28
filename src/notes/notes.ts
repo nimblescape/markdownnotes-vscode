@@ -460,6 +460,28 @@ export function findNotes(lines: readonly string[]): Note[] {
 }
 
 /**
+ * noteAt returns the note at a position: the note whose definition holds its line, or else the note whose selection
+ * holds it. Of several selections that hold the position, for example of notes on one line, it is the one that starts
+ * last, so that the start of a selection names its own note and not the one before it.
+ * @param notes - The notes of the text.
+ * @param position - The position.
+ */
+export function noteAt<T extends Pick<Note, 'start' | 'end' | 'selection'>>(notes: readonly T[], position: Position): T | undefined {
+  const inNote = notes.find((note) => note.start.line <= position.line && position.line <= note.end.line);
+  if (inNote) {
+    return inNote;
+  }
+  let found: T | undefined;
+  for (const note of notes) {
+    const selection = note.selection;
+    if (selection && before(selection.start, position) && before(position, selection.end) && (!found || before(found.selection!.start, selection.start))) {
+      found = note;
+    }
+  }
+  return found;
+}
+
+/**
  * readNotes returns the reading of a Markdown text, without the parsing for a text without the form of a note.
  * @param lines - The lines of the Markdown text.
  */

@@ -87,6 +87,10 @@ export function editBetween(old: readonly string[], next: readonly string[]): Ed
       ? { start: { line: first, character: 0 }, end: { line: oldEnd, character: 0 }, text: '' }
       : { start: { line: first - 1, character: old[first - 1].length }, end: { line: oldEnd - 1, character: old[oldEnd - 1].length }, text: '' };
   }
+  if (nextEnd === first) {
+    // The texts are the same.
+    return { start: { line: 0, character: 0 }, end: { line: 0, character: 0 }, text: '' };
+  }
   return first < old.length
     ? { start: { line: first, character: 0 }, end: { line: first, character: 0 }, text: `${text}\n` }
     : { start: { line: first - 1, character: old[first - 1].length }, end: { line: first - 1, character: old[first - 1].length }, text: `\n${text}` };
@@ -145,19 +149,22 @@ function rewrite(lines: readonly string[], note: Note, answers: readonly AnswerT
 
 /**
  * replaceAnswer returns the edit that gives an answer of a note a new body
- * ([R-EDIT-002](../../docs/requirements.md#r-edit-002)). The header of the answer stays as it is, with its author and
- * date, and the other answers keep their texts.
+ * ([R-EDIT-002](../../docs/requirements.md#r-edit-002)). The header of the answer keeps its author; a changed body
+ * gets the date of the save, when there is one, and an unchanged body keeps its date (Hannes, 2026-10-28: a change of
+ * the text changes the date). The other answers keep their texts.
  * @param lines - The lines of the Markdown text.
  * @param note - The note.
  * @param index - The index of the answer.
  * @param body - The new body, as normalizeBody returns it.
+ * @param date - The date of the save, as formatDate writes it, or undefined to keep the date.
  */
-export function replaceAnswer(lines: readonly string[], note: Note, index: number, body: string): Result {
+export function replaceAnswer(lines: readonly string[], note: Note, index: number, body: string, date?: string): Result {
   if (body === '') {
     return { problem: { kind: 'empty' } };
   }
   const answers = answersOf(note);
-  answers[index] = { ...answers[index], body };
+  const changed = answers[index].body !== body;
+  answers[index] = { ...answers[index], body, date: changed && date !== undefined ? date : answers[index].date };
   return rewrite(lines, note, answers);
 }
 
