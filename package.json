@@ -87,7 +87,7 @@
       "./media/markdownPreview.js"
     ],
     "viewsContainers": {
-      "activitybar": [
+      "secondarySidebar": [
         {
           "id": "nimblescape-markdown-notes",
           "title": "Markdown Notes",
@@ -169,6 +169,23 @@
       {
         "command": "nimblescape.markdownNotes.toggleNotes",
         "title": "Show or Hide Notes",
+        "category": "Markdown Notes",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.collapseNote",
+        "title": "Collapse Note",
+        "category": "Markdown Notes",
+        "icon": "$(fold)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.collapseAllNotes",
+        "title": "Collapse All Notes",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.expandAllNotes",
+        "title": "Expand All Notes",
         "category": "Markdown Notes"
       }
     ],
@@ -192,8 +209,13 @@
       ],
       "comments/commentThread/title": [
         {
+          "command": "nimblescape.markdownNotes.collapseNote",
+          "group": "inline@1",
+          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note"
+        },
+        {
           "command": "nimblescape.markdownNotes.deleteNote",
-          "group": "inline",
+          "group": "inline@2",
           "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note"
         }
       ],
@@ -223,6 +245,11 @@
       ],
       "editor/title": [
         {
+          "command": "nimblescape.markdownNotes.toggleNotes",
+          "group": "navigation",
+          "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview'"
+        },
+        {
           "command": "nimblescape.markdownNotes.showInPreview",
           "group": "navigation",
           "when": "activeWebviewPanelId == 'markdown.preview' && !config.nimblescape.markdownNotes.showInPreview"
@@ -237,7 +264,7 @@
         {
           "command": "nimblescape.markdownNotes.hideNotes",
           "group": "navigation",
-          "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary != 'workbench.view.extension.nimblescape-markdown-notes' && activePanel != 'workbench.view.extension.nimblescape-markdown-notes'"
+          "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdown-notes' && config.workbench.activityBar.location != 'default'"
         }
       ],
       "commandPalette": [
@@ -284,6 +311,18 @@
         {
           "command": "nimblescape.markdownNotes.hideNotes",
           "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.collapseNote",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.collapseAllNotes",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.expandAllNotes",
+          "when": "editorLangId == markdown"
         }
       ]
     },
@@ -301,6 +340,12 @@
           "default": true,
           "scope": "resource",
           "markdownDescription": "Show the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes; the text around an inline note stays one paragraph."
+        },
+        "nimblescape.markdownNotes.collapseInEditor": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Collapse the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open."
         }
       }
     }

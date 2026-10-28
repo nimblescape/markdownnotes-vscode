@@ -11,8 +11,8 @@
  * box of a thread shows each answer as Markdown, with the author and the date
  * of its front matter, as the extension GitHub Pull Requests shows the
  * comments of a pull request; it collapses and expands
- * ([R-TEXT-002](../docs/requirements.md#r-text-002)). The text editor shows the
- * source of each note dimmed ([R-TEXT-003](../docs/requirements.md#r-text-003)).
+ * ([R-TEXT-002](../docs/requirements.md#r-text-002)). The decorations and the
+ * folds of the notes are the overlay of [src/noteEditor.ts](noteEditor.ts).
  *
  * The button "Edit" of an answer turns it into an editor of Markdown, and
  * "Save" writes the text back into the answer in the comment of the note
@@ -32,8 +32,7 @@
  * The threads follow the text: after each change of a document, and a pause
  * of changeDelay, the extension reads the notes again and keeps the thread of
  * each note whose comment kept its text, so that an open box stays open. The
- * extension also warns at a note that holds the start of another comment, and
- * lets the editor fold the notes on lines of their own.
+ * extension also warns at a note that holds the start of another comment.
  */
 
 import * as vscode from 'vscode';
@@ -188,13 +187,11 @@ export const rangeOf = (note: Note): vscode.Range => new vscode.Range(note.start
 export class NoteThreads implements vscode.Disposable {
   private readonly controller: vscode.CommentController;
   private readonly diagnostics: vscode.DiagnosticCollection;
-  /** dimmed is the decoration of the source of the notes in the text editor. */
-  private readonly dimmed: vscode.TextEditorDecorationType;
   /** entries holds the threads of the notes of each document, by its URI. */
   private readonly entries = new Map<string, Entry[]>();
   /** timers holds the pending reading of each changed document, by its URI. */
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
-  /** notes holds the notes of each document for one version, which the folding shares. */
+  /** notes holds the notes of each document for one version, which the overlay of the text editor shares. */
   private readonly notes = new WeakMap<vscode.TextDocument, { version: number; notes: Note[] }>();
   /** listeners are the listeners of the changes of the notes of a document. */
   private readonly listeners = new Set<(document: vscode.Uri) => void>();
@@ -215,10 +212,9 @@ export class NoteThreads implements vscode.Disposable {
       provideCommentingRanges: (document) => (isNoteDocument(document) ? [new vscode.Range(0, 0, Math.max(document.lineCount - 1, 0), 0)] : []),
     };
     this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNotes');
-    this.dimmed = vscode.window.createTextEditorDecorationType({ opacity: '0.55' });
   }
 
-  /** register registers the commands, the listeners and the folding, and reads the notes of the open documents. */
+  /** register registers the commands and the listeners, and reads the notes of the open documents. */
   register(): vscode.Disposable[] {
     const registrations = [
       vscode.commands.registerCommand(commands.addNote, (reply: vscode.CommentReply) => this.writeNew(reply.thread, reply.text, undefined)),
@@ -232,14 +228,6 @@ export class NoteThreads implements vscode.Disposable {
       vscode.workspace.onDidOpenTextDocument((document) => this.sync(document)),
       vscode.workspace.onDidChangeTextDocument((event) => this.syncLater(event.document)),
       vscode.workspace.onDidCloseTextDocument((document) => this.forget(document.uri)),
-      vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => this.decorate(editor))),
-      vscode.languages.registerFoldingRangeProvider('markdown', {
-        /** provideFoldingRanges folds each note on lines of its own with more than one line, as a comment. */
-        provideFoldingRanges: (document) =>
-          this.notesOf(document)
-            .filter((note) => note.place === 'block' && note.end.line > note.start.line)
-            .map((note) => new vscode.FoldingRange(note.start.line, note.end.line, vscode.FoldingRangeKind.Comment)),
-      }),
     ];
     this.syncAll();
     return registrations;
@@ -296,22 +284,13 @@ export class NoteThreads implements vscode.Disposable {
    * notesOf returns the notes of a document, read once for each version.
    * @param document - The document.
    */
-  private notesOf(document: vscode.TextDocument): Note[] {
+  notesOf(document: vscode.TextDocument): Note[] {
     let known = this.notes.get(document);
     if (!known || known.version !== document.version) {
       known = { version: document.version, notes: findNotes(linesOf(document)) };
       this.notes.set(document, known);
     }
     return known.notes;
-  }
-
-  /**
-   * decorate dims the source of the notes of the document of a text editor.
-   * @param editor - The text editor.
-   */
-  private decorate(editor: vscode.TextEditor): void {
-    const notes = isNoteDocument(editor.document) && !editor.document.isClosed ? this.notesOf(editor.document) : [];
-    editor.setDecorations(this.dimmed, notes.map(rangeOf));
   }
 
   /**
@@ -378,11 +357,6 @@ export class NoteThreads implements vscode.Disposable {
           return diagnostic;
         }),
     );
-    for (const editor of vscode.window.visibleTextEditors) {
-      if (editor.document === document) {
-        this.decorate(editor);
-      }
-    }
     for (const listener of this.listeners) {
       listener(document.uri);
     }
@@ -752,7 +726,7 @@ export class NoteThreads implements vscode.Disposable {
     }
   }
 
-  /** dispose removes the threads, the warnings, the decoration and the comment controller. */
+  /** dispose removes the threads, the warnings and the comment controller. */
   dispose(): void {
     for (const timer of this.timers.values()) {
       clearTimeout(timer);
@@ -761,7 +735,6 @@ export class NoteThreads implements vscode.Disposable {
     this.entries.clear();
     this.listeners.clear();
     this.diagnostics.dispose();
-    this.dimmed.dispose();
     this.controller.dispose();
   }
 }

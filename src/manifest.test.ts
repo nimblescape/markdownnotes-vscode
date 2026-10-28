@@ -17,6 +17,7 @@ import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
 import { extensionId, openPath, previewCommands } from './extension';
+import { editorCommands } from './noteEditor';
 import { commands, controllerId, noteContext } from './noteThreads';
 import { notesViewId, viewCommands } from './notesView';
 import { defaultSettings, settingsSection } from './settings';
@@ -101,9 +102,11 @@ test('the extension starts with the Markdown files, and adds its plugin, its sty
   }
 });
 
-test('the manifest contributes the side view "Notes" in a container of its own in the activity bar (R-SIDE-001)', () => {
-  const [container] = manifest.contributes.viewsContainers.activitybar;
-  expect(manifest.contributes.viewsContainers.activitybar).toHaveLength(1);
+test('the manifest contributes the side view "Notes" in a container of its own in the secondary side bar only (R-SIDE-001)', () => {
+  // The secondary side bar holds the chat of VS Code; the primary side bar stays free for the Explorer.
+  expect(Object.keys(manifest.contributes.viewsContainers)).toEqual(['secondarySidebar']);
+  const [container] = manifest.contributes.viewsContainers.secondarySidebar;
+  expect(manifest.contributes.viewsContainers.secondarySidebar).toHaveLength(1);
   expect(container).toMatchObject({ id: 'nimblescape-markdown-notes', title: 'Markdown Notes', icon: 'resources/notes-view.svg' });
   expect(read(container.icon)).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/m);
   expect(manifest.contributes.views).toEqual({ [container.id]: [{ type: 'webview', id: notesViewId, name: 'Notes' }] });
@@ -112,9 +115,11 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the boxes, of the side view and of the preview, and no other', () => {
+test('the manifest contributes the commands of the boxes, of the folds, of the side view and of the preview, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
-  expect([...contributed].sort()).toEqual([...Object.values(commands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort());
+  expect([...contributed].sort()).toEqual(
+    [...Object.values(commands), ...Object.values(editorCommands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort(),
+  );
 });
 
 test('the manifest contributes the buttons of the boxes, for the comment controller of the notes only', () => {
@@ -122,7 +127,8 @@ test('the manifest contributes the buttons of the boxes, for the comment control
   const items = ['comments/commentThread/context', 'comments/commentThread/title', 'comments/comment/title', 'comments/comment/context'].flatMap(
     (menu) => menus[menu],
   );
-  expect(items.map((item: { command: string }) => item.command).sort()).toEqual(Object.values(commands).sort());
+  // A box has the button "Collapse Note" of the folds besides the buttons of the threads.
+  expect(items.map((item: { command: string }) => item.command).sort()).toEqual([...Object.values(commands), editorCommands.collapseNote].sort());
   for (const item of items) {
     expect(item.when, item.command).toMatch(new RegExp(`^commentController == ${controllerId.replace(/\./g, '\\.')}( |$)`));
   }
@@ -148,6 +154,7 @@ test('the title of the Markdown preview has the button that shows or hides its n
   const setting = `config.${settingsSection}.showInPreview`;
   const preview = "activeWebviewPanelId == 'markdown.preview'";
   expect(manifest.contributes.menus['editor/title']).toEqual([
+    { command: viewCommands.toggle, group: 'navigation', when: `editorLangId == markdown || ${preview}` },
     { command: previewCommands.show, group: 'navigation', when: `${preview} && !${setting}` },
     { command: previewCommands.hide, group: 'navigation', when: `${preview} && ${setting}` },
   ]);
@@ -162,15 +169,19 @@ test('the title of the Markdown preview has the button that shows or hides its n
   }
 });
 
-test('the title of the side view has the button "Hide Notes", which closes the side bar, also in Zen Mode (R-SIDE-006)', () => {
-  const [container] = manifest.contributes.viewsContainers.activitybar;
+test('the title of the side view has the button "Hide Notes" where VS Code shows none, and the Markdown editors the button "Show or Hide Notes" (R-SIDE-006)', () => {
+  const [container] = manifest.contributes.viewsContainers.secondarySidebar;
   const [item] = manifest.contributes.menus['view/title'];
   expect(manifest.contributes.menus['view/title']).toHaveLength(1);
   expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation' });
-  // The secondary side bar and the panel have a button of their own that closes them.
-  expect(item.when).toBe(`view == ${notesViewId} && activeAuxiliary != 'workbench.view.extension.${container.id}' && activePanel != 'workbench.view.extension.${container.id}'`);
+  // VS Code shows its own button "Hide Secondary Side Bar" in the title of the secondary side bar while the activity bar
+  // has its default place, so the button of the view shows only for another place, and only while the view is there.
+  expect(item.when).toBe(`view == ${notesViewId} && activeAuxiliary == 'workbench.view.extension.${container.id}' && config.workbench.activityBar.location != 'default'`);
   expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining([{ command: viewCommands.hide, when: 'false' }]));
   expect(manifest.contributes.menus.commandPalette.some((item: { command: string }) => item.command === viewCommands.toggle)).toBe(false);
+  // The button in the title of the text editor and of the preview of a Markdown file shows a codicon.
+  expect(manifest.contributes.menus['editor/title']).toEqual(expect.arrayContaining([expect.objectContaining({ command: viewCommands.toggle })]));
+  expect(manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.toggle).icon).toBe('$(comment-discussion)');
 });
 
 test('the extension uses no proposed API, and the API of the oldest VS Code version that it supports (R-GEN-002)', () => {

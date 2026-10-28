@@ -72,6 +72,9 @@ const send = async (view: FakeView, message: unknown): Promise<void> => {
  */
 const results = (view: FakeView) => view.messages.filter((message) => message.type === 'result');
 
+/** linkCalls returns the commands that the links ran, without the folds that the overlay of the text editor runs. */
+const linkCalls = () => fake.calls.filter(({ command }) => !command.startsWith('editor.'));
+
 test('the view is a page whose policy runs only its own script from the folder media (R-SIDE-001)', async () => {
   const { view } = await start();
   expect(view.webview.options).toEqual({ enableScripts: true, localResourceRoots: [expect.objectContaining({ path: '/extension/media' })] });
@@ -249,7 +252,7 @@ test('a click on a link of a rendered text opens it: a web link with the system,
   await send(view, { type: 'openLink', href: '../folder/paper.pdf' });
   await send(view, { type: 'openLink', href: 'sources/hong.md#missing' });
   await send(view, { type: 'openLink', href: 'sources' });
-  expect(fake.calls.map(({ command, args }) => [command, (args[0] as { path: string }).path])).toEqual([
+  expect(linkCalls().map(({ command, args }) => [command, (args[0] as { path: string }).path])).toEqual([
     ['vscode.open', '/folder/paper.pdf'],
     ['vscode.open', '/folder/sources/hong.md'],
     ['revealInExplorer', '/folder/sources'],
@@ -279,6 +282,6 @@ test('a link of another scheme opens only after a question, and a link that runs
     'The link was not opened: the side view opens no link of the scheme "data:".',
     'The link was not opened: the side view opens no link of the scheme "javascript:".',
   ]);
-  expect(fake.calls).toEqual([]);
+  expect(linkCalls()).toEqual([]);
   expect(fake.external).toHaveLength(2);
 });

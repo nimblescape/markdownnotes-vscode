@@ -6,7 +6,7 @@
  * The side view "Notes", the note editor of the extension
  * ([R-SIDE-001](../docs/requirements.md#r-side-001) to
  * [R-SIDE-003](../docs/requirements.md#r-side-003)). It is a webview view in
- * the side bar that lists the threads of the active Markdown file, each with
+ * the secondary side bar, beside the chat of VS Code, that lists the threads of the active Markdown file, each with
  * its answers rendered as Markdown, with author and date. It selects the
  * thread at the cursor of the text editor, or the thread whose icon the user
  * clicked in the preview ([R-PREV-003](../docs/requirements.md#r-prev-003)).
@@ -35,7 +35,7 @@ export const notesViewId = 'nimblescape.markdownNotes.notes';
 
 /**
  * viewCommands are the commands of the side view: the button "Hide Notes" in its title, and "Show or Hide Notes" of the
- * Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
+ * title of the Markdown editors and of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
  */
 export const viewCommands = {
   hide: 'nimblescape.markdownNotes.hideNotes',
@@ -175,12 +175,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * hide closes the side bar that holds the view. VS Code has no command that closes one view, and Zen Mode hides the
-   * activity bar, whose icon would close the side bar. The secondary side bar and the panel have a button of their own
-   * that closes them.
+   * hide closes the secondary side bar, which holds the view beside the chat of VS Code. VS Code has no command that
+   * closes one view.
    */
   private async hide(): Promise<void> {
-    await vscode.commands.executeCommand('workbench.action.closeSidebar');
+    await vscode.commands.executeCommand('workbench.action.closeAuxiliaryBar');
   }
 
   /**

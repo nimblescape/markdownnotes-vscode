@@ -17,15 +17,17 @@ describes its security model.
 | `src/notes/syntax.ts` | The syntax of one note: which comment is a note and its kind (`note` or `note inline`), its answers with their front matters and bodies, the texts that a note must not contain, the comments of a text as markdown-it 14 finds them, the inline rule and the block rule of markdown-it for the notes, and the dates of a front matter. It uses no API of VS Code, so the extension and the plugin share it. |
 | `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; and the place of a new note. It uses no API of VS Code. |
 | `src/notes/edits.ts` | The edits of the text when an answer is saved, added or deleted, and when a note is added or deleted, with the check that the changed text holds the same note with the expected answers. It uses no API of VS Code. |
-| `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the dimmed source, the warning at a nested note, the folding of the notes, and the operations that the side view uses too. |
-| `src/notesView.ts` | The side view "Notes": the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, the actions of its script, and the commands "Hide Notes" and "Show or Hide Notes". |
+| `src/noteThreads.ts` | The notes in the text editor and in the Comments view: the comment controller, one comment thread for each note of an open Markdown document with one comment for each answer, the commands of the buttons of the boxes, the warning at a nested note, and the operations that the side view uses too. |
+| `src/noteEditor.ts` | The overlay of the notes in the text editor: the dimming after the cursor, the folding ranges of the notes, their collapse when a file is first in the active editor, the commands "Collapse Note", "Collapse All Notes" and "Expand All Notes", and the numbered markers in the left margin and the overview ruler. |
+| `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes without a paragraph break. It uses no API of VS Code. |
+| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the state of the threads of the active Markdown file with the rendered answers, the actions of its script, and the commands "Hide Notes" and "Show or Hide Notes". |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: writes each note as an icon with a hidden callout, removes the inline notes with their blanks from the paragraphs, and leaves every other token as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the icons and the callouts in the Markdown preview, with the colors of the theme of VS Code, and the script that shows the callout of an icon on hover and focus. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads, the answers, the editors with the tabs "Write" and "Preview", and the messages to the extension. |
-| `resources/notes-view.svg` | The icon of the side view in the activity bar: a speech bubble, which VS Code draws in the color of the activity bar. |
+| `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
-| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes and the edits, the markdown-it plugin with the source map rule of the preview, the settings, the activation and the threads (`src/extension.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
+| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes and the edits, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
 | `test/vscode/` | The tests in a real VS Code: the threads of the notes with their answers, the save, the refused text, the delete, the side view, and the icons and callouts of the Markdown preview of VS Code (`markdown.api.render`). |
 | `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
 | `out/`, `.vscode-test/` | The bundled tests in VS Code (`scripts/build-vscode-tests.mjs`) and the VS Code that `@vscode/test-cli` downloads for them, kept out of Git. |
@@ -103,9 +105,10 @@ the same file.
 - `extensionKind` selects the workspace host, where the documents are.
 - The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, and `onUri` when VS Code passes it a link of the icon of a note.
 - The contributions `markdown.markdownItPlugins`, `markdown.previewStyles` and `markdown.previewScripts` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
-- `viewsContainers.activitybar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`. The section [Side view](#side-view) explains it.
-- The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of the reply box: "Add Note" and "Cancel" in a new thread, "Answer" in the thread of a note), `comments/commentThread/title` ("Delete Thread"), `comments/comment/title` ("Edit" and "Delete" of an answer) and `comments/comment/context` (the buttons below the editor of an answer) show them, each only for the comment controller `nimblescape.markdownNotes`. The first button of a reply box or an editor is its primary button, which Ctrl+Enter runs: "Add Note", "Answer" and "Save". The Command Palette shows none of the commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts`.
-- The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `expandInEditor` and `showInPreview` have the scope `resource`, so that a folder of a workspace can have its own value. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
+- `viewsContainers.secondarySidebar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`, in the secondary side bar only, so that the primary side bar stays free for the Explorer ([R-SIDE-001](docs/requirements.md#r-side-001)). VS Code 1.125, the oldest supported version, already knows this place. The section [Side view](#side-view) explains it.
+- The commands "Collapse Note", "Collapse All Notes" and "Expand All Notes" fold the notes (`src/noteEditor.ts`); "Collapse Note" is also a button in the title of a box (`comments/commentThread/title`). The command "Show or Hide Notes" is a button in the title of the text editor and of the preview of a Markdown file (`editor/title`).
+- The commands are the buttons of the boxes of the notes. The menus `comments/commentThread/context` (the buttons of the reply box: "Add Note" and "Cancel" in a new thread, "Answer" in the thread of a note), `comments/commentThread/title` ("Delete Thread"), `comments/comment/title` ("Edit" and "Delete" of an answer) and `comments/comment/context` (the buttons below the editor of an answer) show them, each only for the comment controller `nimblescape.markdownNotes`. The first button of a reply box or an editor is its primary button, which Ctrl+Enter runs: "Add Note", "Answer" and "Save". The Command Palette shows none of these commands, because each one needs its box. A test checks the commands and the menus against `src/noteThreads.ts` and `src/noteEditor.ts`.
+- The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `collapseInEditor`, `expandInEditor` and `showInPreview` have the scope `resource`, so that a folder of a workspace can have its own value. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
 - The package has no runtime dependency: the bundle contains markdown-it. The development dependencies are the build, test and packaging tools. `allowScripts` lists the install scripts of dependencies that npm 11.19 and later may run: those of esbuild and `@vscode/vsce-sign` in every version, because the build and the packaging (`npm run package`) run the code of both packages anyway and Dependabot updates them, and not the one of fsevents, an optional package for macOS that already contains its built binary.
 
@@ -184,9 +187,7 @@ which the menus read: `nimblescape.markdownNotes.note` for a written answer,
 and `nimblescape.markdownNotes.draft` for a new note or a new answer that was
 not written yet. The thread of a note has the context value
 `nimblescape.markdownNotes.note` too, for "Delete Thread", and a reply box
-(`canReply`) for "Answer". A decoration type with the opacity 0.55 dims the
-range of each note in the visible text editors
-([R-TEXT-003](docs/requirements.md#r-text-003)).
+(`canReply`) for "Answer".
 
 The comments API works with these rules of VS Code (checked in VS Code 1.143):
 
@@ -207,9 +208,34 @@ After each change of a document, and a pause of 300 ms, the extension reads
 the notes again. A thread keeps its note when the note is at the position
 where the extension just wrote it, or when the comment has the same text as
 before; so an open box stays open while the user types elsewhere. The
-extension also gives a warning (a diagnostic) at a note that contains `<!--`,
-and a folding range of the kind `Comment` for each note of several lines on
-lines of its own.
+extension also gives a warning (a diagnostic) at a note that contains `<!--`.
+
+`src/noteEditor.ts` adds the overlay of the notes to the text editor, with
+decorations and folding ranges only, so that the editor and the other
+extensions of Markdown stay as they are
+([R-GEN-007](docs/requirements.md#r-gen-007)):
+
+- **Dimming** ([R-TEXT-003](docs/requirements.md#r-text-003)): a decoration
+  type with the opacity 0.55 dims the notes while the cursor is outside them,
+  and the text before and after a note while the cursor is in it.
+- **Folds** ([R-TEXT-005](docs/requirements.md#r-text-005)):
+  `src/notes/folds.ts` computes a folding range of the kind `Comment` for each
+  note on lines of its own, which starts on the last line of text before the
+  note. VS Code keeps only one of two folding ranges that start on the same
+  line, and the Markdown extension of VS Code folds headings, lists, block
+  quotes, code blocks and HTML from their first line; a fold of a note
+  therefore starts on a line of the text of a paragraph only, else on the
+  first blank line before the note, else on the note itself. The extension
+  collapses the folds with the command `editor.fold` (`levels: 1`,
+  `direction: 'down'`, `selectionLines`) the first time a document is in the
+  active editor. VS Code tells no extension which folds are collapsed; the
+  extension reads it from `TextEditor.visibleRanges`, which split at a
+  collapsed fold.
+- **Markers** ([R-TEXT-006](docs/requirements.md#r-text-006)): one decoration
+  type for each number of a note, with a gutter icon, an SVG speech bubble
+  in the color of the number as a `data:` URI, and a mark in the overview
+  ruler. VS Code 1.143 shows the `data:` URI in the left margin. A note of a
+  collapsed fold has its marker at the line that stays of the fold.
 
 The operations `saveAnswer`, `answer`, `addNote`, `deleteAnswer` and
 `deleteNote` of `NoteThreads` write the changes for the boxes and for the side
@@ -258,11 +284,16 @@ the preview does, and keeps up to 200 rendered texts.
   `NotesView.show`, which runs the command `nimblescape.markdownNotes.notes.focus`.
 - `retainContextWhenHidden` keeps the page, and so the open editors, while
   the view is hidden.
-- The button "Hide Notes" in the title of the view (`view/title`) runs
-  `workbench.action.closeSidebar`, because VS Code has no command that closes
-  one view ([R-SIDE-006](docs/requirements.md#r-side-006)). Its `when` clause
-  leaves it out while the container of the view is in the secondary side bar
-  or the panel, which have a button of their own.
+- The button "Show or Hide Notes" in the title of the Markdown editors runs
+  `nimblescape.markdownNotes.notes.focus`, or
+  `workbench.action.closeAuxiliaryBar` while the view shows, because VS Code
+  has no command that closes one view
+  ([R-SIDE-006](docs/requirements.md#r-side-006)). The button "Hide Notes"
+  in the title of the view (`view/title`) runs the same close command. Its
+  `when` clause shows it only while the view is in the secondary side bar and
+  `workbench.activityBar.location` is not `default`: for the default place,
+  VS Code shows its own button "Hide Secondary Side Bar" in the title of the
+  secondary side bar.
 
 ## Markdown preview
 

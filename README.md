@@ -47,8 +47,12 @@ describes each step and where its protection ends.
   front matter with the GitHub login of its author and the date.
 - **Notes in the text editor.** A box below each note shows its answers as
   Markdown, with the author and the date, and can be collapsed and expanded.
-  The source of the comment is dimmed, so that the Markdown of the document
-  stands out. The editor can fold each note of several lines.
+  The editor dims the notes while the cursor is outside them, and everything
+  outside a note while the cursor is in it.
+- **Collapsed notes.** The text editor collapses the notes when a file opens,
+  so that each note vanishes and an inline note leaves no paragraph break. A
+  numbered marker in the color of the note stays in the left margin, where
+  VS Code shows its comment markers; its folding arrow opens the note.
 - **Edit, answer, delete.** "Edit" turns an answer into an editor of
   Markdown, and "Save" writes the text back into the comment. The reply field
   of a box adds an answer. "Delete" removes an answer, and "Delete Thread"
@@ -59,8 +63,10 @@ describes each step and where its protection ends.
   file and selects the thread at the cursor. Each answer has "Edit" and
   "Delete", each thread "Answer" and "Delete Thread". The editor has the tabs
   "Write" and "Preview". "Add Note" adds a note at the line of the cursor. The
-  links of the notes open, and the button "Hide Notes" (×) closes the side
-  bar with one click, also in Zen Mode.
+  links of the notes open. The view is in the secondary side bar, beside the
+  chat, so the Explorer stays usable; the button "Show or Hide Notes" in the
+  title of the Markdown editors opens and closes it with one click, also in
+  Zen Mode.
 - **Icons in the Markdown preview.** The preview shows each note as a small
   icon: an inline note in the text, a block note in the left margin. On hover
   or keyboard focus, the icon shows the rendered callout with all answers. A
@@ -134,6 +140,7 @@ describes every feature.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
+| `nimblescape.markdownNotes.collapseInEditor` | `true` | Collapses the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor. The value `false` shows only the mark at each note. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The eye in the title of the preview changes it. |
 

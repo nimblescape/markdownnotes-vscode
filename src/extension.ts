@@ -10,7 +10,8 @@
  * which the Markdown extension of VS Code reads from the export
  * `extendMarkdownIt` when it builds its preview. It starts the threads of the
  * notes in the text editor and in the Comments view
- * ([src/noteThreads.ts](noteThreads.ts)) and the side view
+ * ([src/noteThreads.ts](noteThreads.ts)), their overlay of the text editor
+ * ([src/noteEditor.ts](noteEditor.ts)), and the side view
  * ([src/notesView.ts](notesView.ts)), with the GitHub login of the user as the
  * author of new notes ([src/github.ts](github.ts)). It handles the links of
  * the icons of the preview, which open a note in the side view, and the buttons
@@ -22,6 +23,7 @@ import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { githubLogin } from './github';
 import { extendMarkdownIt, type PreviewSettings } from './markdown/markdownIt';
+import { NoteEditor } from './noteEditor';
 import { isNoteDocument, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView } from './notesView';
 import { checkedSettings, type Settings, settingsSection } from './settings';
@@ -162,6 +164,8 @@ function refreshMarkdownPreviews(): void {
 export function activate(context: vscode.ExtensionContext): Api {
   const threads = new NoteThreads(readSettings, () => githubLogin(true));
   context.subscriptions.push(threads, ...threads.register());
+  const editor = new NoteEditor(threads, readSettings);
+  context.subscriptions.push(editor, ...editor.register());
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown);
   context.subscriptions.push(
     view,

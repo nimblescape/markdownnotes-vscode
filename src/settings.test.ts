@@ -10,17 +10,17 @@
 import { expect, test } from 'vitest';
 import { checkedSettings, defaultSettings, type Settings } from './settings';
 
-test('the defaults show the notes in the preview, and collapsed in the text editor', () => {
-  expect(defaultSettings).toEqual({ expandInEditor: false, showInPreview: true });
+test('the defaults show the notes in the preview, and collapse the notes and their boxes in the text editor', () => {
+  expect(defaultSettings).toEqual({ expandInEditor: false, showInPreview: true, collapseInEditor: true });
 });
 
 test('checkedSettings keeps the values of the right type', () => {
-  const values: Record<keyof Settings, unknown> = { expandInEditor: true, showInPreview: false };
-  expect(checkedSettings((key) => values[key])).toEqual({ expandInEditor: true, showInPreview: false });
+  const values: Record<keyof Settings, unknown> = { expandInEditor: true, showInPreview: false, collapseInEditor: false };
+  expect(checkedSettings((key) => values[key])).toEqual({ expandInEditor: true, showInPreview: false, collapseInEditor: false });
 });
 
 test('checkedSettings gives a missing value or a value of another type its default', () => {
   expect(checkedSettings(() => undefined)).toEqual(defaultSettings);
-  const values: Record<keyof Settings, unknown> = { expandInEditor: 'yes', showInPreview: null };
+  const values: Record<keyof Settings, unknown> = { expandInEditor: 'yes', showInPreview: null, collapseInEditor: 1 };
   expect(checkedSettings((key) => values[key])).toEqual(defaultSettings);
 });

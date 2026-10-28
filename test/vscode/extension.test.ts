@@ -6,7 +6,7 @@
 // Tests in a real VS Code (npm run test:vscode, .vscode-test.mjs): mocha runs them in the extension host. They open
 // Markdown files of a temporary folder, and check the threads of the notes in the text editor with one comment for
 // each answer (R-TEXT-001, R-NOTE-004), the save of an edited answer (R-EDIT-002), the refused text (R-NOTE-003), the
-// delete (R-EDIT-004), the side view (R-SIDE-001), and the icons and callouts of the Markdown preview of VS Code
+// delete (R-EDIT-004), the collapsed notes (R-TEXT-005), the side view (R-SIDE-001), and the icons and callouts of the Markdown preview of VS Code
 // (R-PREV-001 to R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side
 // view in the HTML of the preview (R-SIDE-005). The tests add no note and no answer, because
 // these need a GitHub sign-in (R-GEN-006), which a test cannot give.
@@ -166,6 +166,22 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(document.getText(), note.replace('---\nauthor: ann\ndate: 2026-10-28T10:15+01:00\n---\nThe **text** of the note.\n', '').replace(' <!-- note inline\nInline\n-->', ''));
     const extension = await api();
     await waitFor(() => (extension.threadsOf(document.uri).length === 1 && extension.threadsOf(document.uri)[0].comments.length === 1 ? true : undefined), 'one thread with one answer');
+  });
+
+  it('collapses the notes the first time the file is in the active editor, so that an inline note leaves no paragraph break (R-TEXT-005)', async () => {
+    const { document } = await open('One line.\n\n<!-- note inline\nA\n-->\n\nTwo lines.\n', 1);
+    const editor = await waitFor(() => vscode.window.visibleTextEditors.find((candidate) => candidate.document === document), 'the editor');
+    // The visible ranges of the editor split at a collapsed fold: the fold of the note takes lines 1 to 5.
+    const ranges = await waitFor(() => (editor.visibleRanges.length === 2 ? editor.visibleRanges : undefined), 'the collapsed note');
+    assert.deepEqual(
+      ranges.map((range) => [range.start.line, range.end.line]),
+      [
+        [0, 0],
+        [6, 7],
+      ],
+    );
+    await vscode.commands.executeCommand(commandOf('expandAllNotes'));
+    await waitFor(() => (editor.visibleRanges.length === 1 ? true : undefined), 'the expanded note');
   });
 
   it('opens the side view "Notes" (R-SIDE-001)', async () => {

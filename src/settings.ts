@@ -17,20 +17,21 @@ export interface Settings {
   expandInEditor: boolean;
   /** showInPreview shows the icons of the notes in the Markdown preview ([R-PREV-005](../docs/requirements.md#r-prev-005)). */
   showInPreview: boolean;
+  /** collapseInEditor collapses the notes of a file in the text editor ([R-TEXT-005](../docs/requirements.md#r-text-005)). */
+  collapseInEditor: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
-export const defaultSettings: Readonly<Settings> = { expandInEditor: false, showInPreview: true };
+export const defaultSettings: Readonly<Settings> = { expandInEditor: false, showInPreview: true, collapseInEditor: true };
 
 /**
  * checkedSettings returns the settings with the default of each value that has another type than the setting takes.
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const expandInEditor = read('expandInEditor');
-  const showInPreview = read('showInPreview');
-  return {
-    expandInEditor: typeof expandInEditor === 'boolean' ? expandInEditor : defaultSettings.expandInEditor,
-    showInPreview: typeof showInPreview === 'boolean' ? showInPreview : defaultSettings.showInPreview,
+  const value = (key: keyof Settings): boolean => {
+    const raw = read(key);
+    return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
+  return { expandInEditor: value('expandInEditor'), showInPreview: value('showInPreview'), collapseInEditor: value('collapseInEditor') };
 }

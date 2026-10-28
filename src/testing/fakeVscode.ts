@@ -78,6 +78,11 @@ export class FakeRange {
   isEqual(other: FakeRange): boolean {
     return JSON.stringify([this.start, this.end]) === JSON.stringify([other.start, other.end]);
   }
+
+  contains(position: FakePosition): boolean {
+    const before = (a: FakePosition, b: FakePosition) => a.line < b.line || (a.line === b.line && a.character <= b.character);
+    return before(this.start, position) && before(position, this.end);
+  }
 }
 
 /** FakeMarkdownString stands for a vscode.MarkdownString. */
@@ -152,6 +157,11 @@ export class FakeDocument {
   getText(range?: FakeRange): string {
     return range ? this.text.slice(this.offsetAt(range.start), this.offsetAt(range.end)) : this.text;
   }
+
+  lineAt(line: number): { text: string; range: FakeRange } {
+    const text = this.text.split(/\r\n|\r|\n/)[line];
+    return { text, range: new FakeRange(line, 0, line, text.length) };
+  }
 }
 
 /** FakeEditor stands for a vscode.TextEditor. */
@@ -159,6 +169,8 @@ export class FakeEditor {
   /** decorations holds the ranges of each decoration type. */
   readonly decorations = new Map<object, FakeRange[]>();
   selection: { active: FakePosition };
+  /** visibleRanges are the visible lines; VS Code splits them at a collapsed fold. */
+  visibleRanges: FakeRange[];
 
   constructor(
     readonly document: FakeDocument,
@@ -166,6 +178,15 @@ export class FakeEditor {
     readonly viewColumn = 1,
   ) {
     this.selection = { active: new FakePosition(line, 0) };
+    this.visibleRanges = [new FakeRange(0, 0, Math.max(document.lineCount - 1, 0), 0)];
+  }
+
+  /**
+   * linesOf returns the first lines of the ranges of a decoration type.
+   * @param type - The decoration type.
+   */
+  linesOf(type: object): number[] {
+    return (this.decorations.get(type) ?? []).map((range) => range.start.line);
   }
 
   setDecorations(type: object, ranges: FakeRange[]): void {
@@ -318,6 +339,7 @@ export class Fake {
       CommentThreadCollapsibleState: { Collapsed: 0, Expanded: 1 },
       DiagnosticSeverity: { Error: 0, Warning: 1 },
       FoldingRangeKind: { Comment: 1 },
+      OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },
       FileType: { File: 1, Directory: 2 },
       ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
@@ -379,6 +401,7 @@ export class Fake {
         onDidChangeVisibleTextEditors: on('visibleEditors'),
         onDidChangeActiveTextEditor: on('activeEditor'),
         onDidChangeTextEditorSelection: on('selection'),
+        onDidChangeTextEditorVisibleRanges: on('visibleRanges'),
         registerWebviewViewProvider: (id: string, provider: { resolveWebviewView(view: FakeView): void }) => {
           this.views.set(id, provider);
           return this.registration();

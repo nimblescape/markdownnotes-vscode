@@ -26,9 +26,10 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Inline notes](#inline-notes) | the Markdown file | available | [R-NOTE-005](requirements.md#r-note-005) |
 | [GitHub sign-in](#github-sign-in) | VS Code | available | [R-GEN-006](requirements.md#r-gen-006) |
 | [Boxes of the notes](#notes-in-the-text-editor) | text editor | available | [R-TEXT-001](requirements.md#r-text-001), [R-TEXT-002](requirements.md#r-text-002) |
+| [Collapsed notes with markers](#collapsed-notes) | text editor | available | [R-TEXT-005](requirements.md#r-text-005), [R-TEXT-006](requirements.md#r-text-006) |
 | [Dimmed source](#dimmed-source) | text editor | available | [R-TEXT-003](requirements.md#r-text-003) |
 | [List of the notes](#comments-view) | Comments view | available | [R-VIEW-001](requirements.md#r-view-001) |
-| [Side view "Notes"](#side-view-notes) | side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-003](requirements.md#r-side-003) |
+| [Side view "Notes"](#side-view-notes) | secondary side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-003](requirements.md#r-side-003), [R-SIDE-005](requirements.md#r-side-005), [R-SIDE-006](requirements.md#r-side-006) |
 | [Edit and save an answer](#edit-an-answer) | text editor, side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-EDIT-003](requirements.md#r-edit-003) |
 | [Answer a note](#answer-a-note) | text editor, side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
@@ -233,9 +234,35 @@ click on the mark opens a box, and the arrow in the title of the box closes
 it. The setting `nimblescape.markdownNotes.expandInEditor` opens all boxes
 when a file opens.
 
-The editor can fold each note of several lines on lines of its own, with the
-arrow left of the line `<!-- note`, or with the command "Fold All Block
-Comments" (Ctrl+K Ctrl+/).
+### Collapsed notes
+
+The text editor collapses the notes of a file the first time the file is in
+the active editor, so that each note vanishes and the text reads as if the
+note were not there:
+
+- A note folds into the last line of text before it, together with the blank
+  lines before it. VS Code shows "⋯" at the end of this line.
+- An inline note also takes the blank lines after it, so that the two parts of
+  the paragraph show one below the other, without a blank line between them.
+- After a heading or a list, the fold starts on the blank line before the
+  note, and one blank line stays.
+
+A marker in the left margin, where VS Code shows its comment markers, shows
+where the note is: a speech bubble with the number of the note, in its color.
+The overview ruler at the right edge of the editor has a mark in the same
+color. The folding arrow next to the marker opens the note again.
+
+- The box of a note has the button "Collapse Note" (the arrows that point to
+  each other).
+- The Command Palette has "Markdown Notes: Collapse All Notes", "Markdown
+  Notes: Expand All Notes" and "Markdown Notes: Collapse Note" (the note at
+  the cursor).
+- A note that you add, and a note that you opened, stay open. The notes of a
+  file collapse again only after you close and open the file again.
+- The setting `nimblescape.markdownNotes.collapseInEditor` with the value
+  `false` keeps all notes open.
+- VS Code gives a folded line a background color. The setting
+  `editor.foldingHighlight` of VS Code with the value `false` turns it off.
 
 The boxes follow the text: when you type, each box moves with its note after a
 short pause, and an open box stays open. A box goes away when you remove its
@@ -243,8 +270,10 @@ note from the text.
 
 ### Dimmed source
 
-The text editor shows the source of the comment of each note dimmed, so that
-the Markdown of the document outside the notes stands out. The box below the
+The text editor dims the part of the file that you do not work on. While the
+cursor is outside the notes, it dims the source of each note, so that the
+Markdown of the document stands out. While the cursor is in a note, it dims
+everything outside this note, so that the note stands out. The box below the
 note shows the note rendered.
 
 ## Comments view
@@ -256,8 +285,13 @@ a note opens its file and its box.
 
 ## Side view "Notes"
 
-The icon "Markdown Notes" in the activity bar opens the side view "Notes".
-It is the editor of the notes:
+The side view "Notes" is in the secondary side bar, at the right of the
+window, where VS Code also shows the chat. The Explorer and the other views
+of the primary side bar stay usable while it is open. The button "Show or Hide
+Notes" (two speech bubbles) in the title of the text editor and of the preview
+of a Markdown file opens and closes it with one click, also in Zen Mode. A
+click on an icon of the preview opens it too. The view is the editor of the
+notes:
 
 - The view shows the name of the active Markdown file, the GitHub account,
   and the threads of the file, each with the line of the note, its kind and
@@ -277,10 +311,11 @@ It is the editor of the notes:
   editor that VS Code has for it. A link of another scheme, such as
   `zotero:`, opens with your system after you agree. A link of the schemes
   `command:`, `data:` or `javascript:` never opens.
-- The button "Hide Notes" (×) in the title of the view closes the side bar
-  with one click. This also works in Zen Mode, which hides the activity bar.
-  The command "Markdown Notes: Show or Hide Notes" of the Command Palette
-  shows or hides the view.
+- The button "Hide Secondary Side Bar" (×) of VS Code in the title of the
+  secondary side bar closes it. When you move the activity bar to the top, to
+  the bottom, or hide it, VS Code shows no such button; the view then has its
+  own button "Hide Notes" (×). The command "Markdown Notes: Show or Hide
+  Notes" of the Command Palette shows or hides the view.
 
 The editor of a text in the side view has the tabs "Write" (the Markdown
 text) and "Preview" (the text rendered as the Markdown preview renders it).
@@ -402,6 +437,7 @@ preview for the notes.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
+| `nimblescape.markdownNotes.collapseInEditor` | `true` | Collapses the notes in the text editor the first time a file is in the active editor, so that each note vanishes and only its marker in the left margin shows. The value `false` keeps the notes open. A note that you add stays open. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. The buttons of the preview change it. A folder of a workspace can have its own value. |
 
@@ -414,8 +450,9 @@ preview for the notes.
   or in a block of other HTML is no note.
 - The text editor, the Comments view and the side view show the notes of the
   open Markdown files only.
-- The button "Hide Notes" closes the primary side bar. When you move the view
-  to the secondary side bar or to the panel, close it with their own button.
+- The buttons "Show or Hide Notes" and "Hide Notes" close the secondary side
+  bar. When you move the view to the primary side bar or to the panel, close
+  it there as any other view.
 - The buttons of the preview change the setting of the workspace or of the
   user, not the value of a folder of the workspace.
 - A file of a read-only file system, for example the older version of a file

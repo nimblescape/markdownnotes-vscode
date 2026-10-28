@@ -22,6 +22,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider, githubScopes } from './github';
 import { previewCommands } from './extension';
 import { noteClass } from './markdown/markdownIt';
+import { editorCommands } from './noteEditor';
 import { commands as noteCommands, controllerId, draftContext, noteContext } from './noteThreads';
 import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
@@ -64,7 +65,9 @@ const focus = `${notesViewId}.focus`;
 
 test('the activation registers the commands, the side view and the handler of links, and the disposal of the context removes every registration', async () => {
   const { context, extension } = await fake.activate();
-  expect([...fake.commands.keys()].sort()).toEqual([...Object.values(noteCommands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort());
+  expect([...fake.commands.keys()].sort()).toEqual(
+    [...Object.values(noteCommands), ...Object.values(editorCommands), ...Object.values(viewCommands), ...Object.values(previewCommands)].sort(),
+  );
   expect(fake.controller?.id).toBe(controllerId);
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
@@ -105,13 +108,13 @@ test('the buttons of the preview show and hide its notes in the settings that de
   expect(fake.settings.get('workspace')).toEqual({ showInPreview: true });
 });
 
-test('the button of the side view closes the side bar, and the command of the Command Palette shows or hides the view (R-SIDE-006)', async () => {
+test('the button of the side view closes the secondary side bar, and the button of the editors shows or hides the view (R-SIDE-006)', async () => {
   await fake.activate();
   const view = fake.resolveView(notesViewId);
   await fake.run(viewCommands.hide);
-  expect(fake.calls.at(-1)).toEqual({ command: 'workbench.action.closeSidebar', args: [] });
+  expect(fake.calls.at(-1)).toEqual({ command: 'workbench.action.closeAuxiliaryBar', args: [] });
   await fake.run(viewCommands.toggle);
-  expect(fake.calls.at(-1)).toEqual({ command: 'workbench.action.closeSidebar', args: [] });
+  expect(fake.calls.at(-1)).toEqual({ command: 'workbench.action.closeAuxiliaryBar', args: [] });
   view.visible = false;
   await fake.run(viewCommands.toggle);
   expect(fake.calls.at(-1)).toEqual({ command: `${notesViewId}.focus`, args: [] });
@@ -407,8 +410,10 @@ test('a note that holds the start of another comment gets a warning (R-NOTE-003)
   expect(fake.diagnostics.get(document.uri.toString())).toMatchObject([{ range: new FakeRange(0, 0, 2, 3), severity: 1, source: 'Markdown Notes' }]);
 });
 
-test('the editor folds each note of several lines on lines of its own', async () => {
+test('the editor folds each note on lines of its own into the line before it, and no note in the text of a line (R-TEXT-005)', async () => {
   const document = fake.open(`${note}\nA sentence <!-- note inline\nInline\n--> end.\n`);
   await fake.activate();
-  expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(2, 13, 1)]);
+  // The heading keeps the fold of the Markdown extension, so the fold of the note starts on the blank line after it,
+  // and takes the blank line after the note, so that one blank line stays between the heading and the text.
+  expect(fake.folding.get('markdown')?.provideFoldingRanges(document)).toEqual([new FakeFoldingRange(1, 14, 1)]);
 });
