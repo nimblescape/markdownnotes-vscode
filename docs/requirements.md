@@ -25,12 +25,12 @@ the extension and in the Markdown preview.
 | 2 | The note `<!-- note`, its front matter, no comment in a note | [R-NOTE-001](#r-note-001) to [R-NOTE-003](#r-note-003) | done |
 | 3 | The text editor and the Comments view: show, edit, save, add and delete notes | [R-TEXT-001](#r-text-001), [R-VIEW-001](#r-view-001), [R-EDIT-001](#r-edit-001) to [R-EDIT-004](#r-edit-004) | done, changes in step 7 |
 | 4 | The Markdown preview: callouts | [R-PREV-001](#r-prev-001) | done, changes in step 8 |
-| 5 | Name `nimblescape-markdown-notes`, GitHub sign-in for the author | [R-GEN-005](#r-gen-005), [R-GEN-006](#r-gen-006), [R-NOTE-002](#r-note-002) | in progress |
-| 6 | Inline notes `<!-- note inline`, threads of answers | [R-NOTE-004](#r-note-004), [R-NOTE-005](#r-note-005), [R-EDIT-005](#r-edit-005) | in progress |
-| 7 | Text editor: dimmed comment source, collapsible notes as in GitHub pull requests | [R-TEXT-001](#r-text-001) to [R-TEXT-003](#r-text-003) | in progress |
-| 8 | Preview: icon, callout on hover, click opens the editor, inline notes removed with their blanks | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | in progress |
-| 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | in progress |
-| 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | in progress |
+| 5 | Name `nimblescape-markdown-notes`, GitHub sign-in for the author | [R-GEN-005](#r-gen-005), [R-GEN-006](#r-gen-006), [R-NOTE-002](#r-note-002) | done |
+| 6 | Inline notes `<!-- note inline`, threads of answers | [R-NOTE-004](#r-note-004), [R-NOTE-005](#r-note-005), [R-EDIT-005](#r-edit-005) | done |
+| 7 | Text editor: dimmed comment source, collapsible notes as in GitHub pull requests | [R-TEXT-001](#r-text-001) to [R-TEXT-003](#r-text-003) | done |
+| 8 | Preview: icon, callout on hover, click opens the editor, inline notes removed with their blanks | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done |
+| 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | done |
+| 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
 
 ## General
 
@@ -169,8 +169,8 @@ Friday works.
 
 A line `---` that is followed by field lines and a closing `---` starts the
 next answer. The text editor, the side view and the preview show the answers
-of a thread one below the other, each with its author and date. (Open
-question 1 below.)
+of a thread one below the other, each with its author and date. One comment
+per thread is the decision of Hannes (2026-10-28).
 
 ### R-NOTE-005
 
@@ -341,16 +341,18 @@ change of the setting renders the open previews again.
 
 ## Open questions
 
-1. **Storage of answers** ([R-NOTE-004](#r-note-004)). This document assumes
-   that one comment holds the whole thread. The other choice is one comment
-   `<!-- note reply` for each answer, directly after the note.
+1. **Storage of answers** ([R-NOTE-004](#r-note-004)). Decided by Hannes on
+   2026-10-28: one comment holds the whole thread. The other choice was one
+   comment `<!-- note reply` for each answer, directly after the note.
 2. **Rights.** This document assumes that every user who can change the file
    can edit and delete every answer, also the answers of other authors, as in
    the file itself. The other choice is that the buttons "Edit" and "Delete"
    show only at the answers of the signed-in author.
 3. **Reading without sign-in.** This document assumes that the text editor,
    the side view and the preview show the notes also without a GitHub
-   sign-in, and that only writing needs it ([R-GEN-006](#r-gen-006)).
+   sign-in, and that only adding a note or an answer needs it, because only
+   these write an author ([R-GEN-006](#r-gen-006)). Editing and deleting an
+   answer keep or remove its front matter, so they need no sign-in.
 
 ---
 

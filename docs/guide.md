@@ -8,8 +8,9 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 
 This guide describes the features of nimblescape Markdown Notes and how to use
 them. The extension adds notes to Markdown files: HTML comments that start
-with `<!-- note`. VS Code shows them in the text editor, in the Comments view
-and in the Markdown preview.
+with `<!-- note` or `<!-- note inline`. Each note is a thread of answers of
+one or more authors. VS Code shows the notes in the text editor, in the
+Comments view, in the side view "Notes" and in the Markdown preview.
 
 The table shows each feature, where it works and its state, and
 [requirements.md](requirements.md) defines each feature exactly; the ID in
@@ -19,26 +20,32 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | Feature | Where | State | Requirements |
 | --- | --- | --- | --- |
 | [Syntax of a note](#write-a-note) | the Markdown file | available | [R-NOTE-001](requirements.md#r-note-001) |
-| [Author and date](#author-and-date) | the front matter of a note | available | [R-NOTE-002](requirements.md#r-note-002) |
+| [Author and date](#author-and-date) | the front matter of each answer | available | [R-NOTE-002](requirements.md#r-note-002) |
 | [No comment in a note](#no-comment-in-a-note) | everywhere | available | [R-NOTE-003](requirements.md#r-note-003) |
-| [Boxes of the notes](#notes-in-the-text-editor) | text editor | available | [R-TEXT-001](requirements.md#r-text-001) |
+| [Threads of answers](#threads) | the Markdown file | available | [R-NOTE-004](requirements.md#r-note-004) |
+| [Inline notes](#inline-notes) | the Markdown file | available | [R-NOTE-005](requirements.md#r-note-005) |
+| [GitHub sign-in](#github-sign-in) | VS Code | available | [R-GEN-006](requirements.md#r-gen-006) |
+| [Boxes of the notes](#notes-in-the-text-editor) | text editor | available | [R-TEXT-001](requirements.md#r-text-001), [R-TEXT-002](requirements.md#r-text-002) |
+| [Dimmed source](#dimmed-source) | text editor | available | [R-TEXT-003](requirements.md#r-text-003) |
 | [List of the notes](#comments-view) | Comments view | available | [R-VIEW-001](requirements.md#r-view-001) |
-| [Edit and save a note](#edit-a-note) | text editor | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
-| [Add a note](#add-a-note) | text editor | available | [R-EDIT-003](requirements.md#r-edit-003) |
-| [Delete a note](#delete-a-note) | text editor | available | [R-EDIT-004](requirements.md#r-edit-004) |
-| [Callouts](#callouts-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-002](requirements.md#r-prev-002), [R-PREV-003](requirements.md#r-prev-003) |
+| [Side view "Notes"](#side-view-notes) | side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-003](requirements.md#r-side-003) |
+| [Edit and save an answer](#edit-an-answer) | text editor, side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
+| [Add a note](#add-a-note) | text editor, side view | available | [R-EDIT-003](requirements.md#r-edit-003) |
+| [Answer a note](#answer-a-note) | text editor, side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
+| [Delete an answer or a note](#delete-an-answer-or-a-note) | text editor, side view | available | [R-EDIT-004](requirements.md#r-edit-004) |
+| [Icons and callouts](#icons-and-callouts-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001) to [R-PREV-005](requirements.md#r-prev-005) |
 | [Markdown Editor](#markdown-editor) | Markdown Editor of VS Code | not possible: no API for extensions | [R-GEN-001](requirements.md#r-gen-001) |
 
 ## Write a note
 
-A note is an HTML comment that starts with `<!-- note` on a line of its own.
-The text of the note starts on the next line: an optional front matter, then
-the body in normal Markdown syntax. The comment ends with `-->`.
+A note is an HTML comment that starts with `<!-- note` or `<!-- note inline`
+on a line of its own. The text of the note starts on the next line: a front
+matter, then the body in normal Markdown syntax. The comment ends with `-->`.
 
 ```markdown
 <!-- note
 ---
-author: Hannes Stauss
+author: hannes
 date: 2026-10-28T10:15+01:00
 ---
 Check the **dates** with the team before Friday:
@@ -48,7 +55,8 @@ Check the **dates** with the team before Friday:
 -->
 ```
 
-Without a front matter, the body starts right on the next line:
+A note that you write by hand can leave out the front matter. The body then
+starts right on the next line, and the note names no author:
 
 ```markdown
 <!-- note
@@ -56,10 +64,10 @@ A short note.
 -->
 ```
 
-The word `note` may be in small or capital letters, and spaces may follow
-it, but nothing else may stand on its line. Every other comment is no note:
-the extension shows it nowhere and never changes it. These comments are no
-notes:
+The words `note` and `inline` may be in small or capital letters, and spaces
+may follow them, but nothing else may stand on their line. Every other
+comment is no note: the extension shows it nowhere and never changes it.
+These comments are no notes:
 
 ```markdown
 <!-- note -->
@@ -71,6 +79,19 @@ note
 
 GitHub and other Markdown tools hide HTML comments, so they show the file
 without its notes.
+
+### Block notes and inline notes
+
+There are two kinds of notes:
+
+- A **block note** `<!-- note` stands between the blocks of the file, for
+  example between two paragraphs. In Markdown, a comment that starts a line
+  ends the paragraph before it, so a block note also ends a paragraph. The
+  preview shows its icon in the left margin.
+- An **inline note** `<!-- note inline` belongs to a place in the text of a
+  paragraph. The preview removes it with the blanks before and after it, so
+  that the paragraph stays one paragraph, and shows its icon in the text. See
+  [Inline notes](#inline-notes).
 
 ### Where a note can stand
 
@@ -86,12 +107,13 @@ the indentation of its list item:
 > -->
 ```
 
-A note can also stand inside the text of a paragraph. It then has no front
-matter and no blank line, because a line `---` below a line of text turns
-the text into a heading, and a blank line ends the paragraph:
+A note can also start after the text of a line. It then has no front matter
+and no blank line, because a line `---` below a line of text turns the text
+into a heading, and a blank line ends the paragraph. Such a note takes no
+answers:
 
 ```markdown
-Version 2.0 comes out in November. <!-- note
+Version 2.0 comes out in November. <!-- note inline
 Which day exactly?
 --> The beta starts one week before.
 ```
@@ -103,19 +125,65 @@ so the text editor and the preview always show the same notes.
 
 ### Author and date
 
-The front matter of a note starts with a line `---` right after the line
-`<!-- note` and ends with the next line `---`. Each line between holds a
-field, `name: value`, or nothing:
+Each answer of a note starts with a front matter: a line `---`, the fields,
+and a line `---`. Each line between holds a field, `name: value`, or nothing:
 
 | Field | Value |
 | --- | --- |
-| `author` | The name of the author. The box and the callout show it; without it, they show "Note". |
-| `date` | The date in a form of ISO 8601: `2026-10-28`, `2026-10-28T10:15`, `2026-10-28 10:15`, with or without seconds, and with or without a zone such as `Z` or `+01:00`. A date without a zone is local time. The box shows the time since the date, for example "2 hours ago"; the callout shows the date and time without seconds and zone. A date of another form shows as written. |
+| `author` | The GitHub login of the author. The extension writes it for each new note and answer ([GitHub sign-in](#github-sign-in)). Without it, the boxes and the callouts show "Note". |
+| `date` | The date in a form of ISO 8601: `2026-10-28`, `2026-10-28T10:15`, `2026-10-28 10:15`, with or without seconds, and with or without a zone such as `Z` or `+01:00`. A date without a zone is local time. The box shows the time since the date, for example "2 hours ago"; the callout and the side view show the date and time without seconds and zone. A date of another form shows as written. |
 
 Other fields may stand in the front matter too. The extension keeps the whole
-front matter as it is when it saves a note. A front matter with a line that is
-no field, or without its closing line `---`, is no front matter: its lines are
-part of the body.
+front matter as it is when it saves an answer.
+
+### Threads
+
+Different authors can answer a note, so a note is a thread: its first answer
+and the answers after it, in the order of the file. One comment holds the
+whole thread, and each answer starts with its own front matter:
+
+```markdown
+<!-- note
+---
+author: hannes
+date: 2026-10-28T10:15+01:00
+---
+Check the dates.
+---
+author: anna
+date: 2026-10-28T11:02+01:00
+---
+Friday works.
+-->
+```
+
+A line `---` that is followed by field lines and a closing `---` starts the
+next answer. A line `---` in the body of an answer that no field line follows
+stays part of the body, for example a thematic break.
+
+### Inline notes
+
+An inline note belongs to a place in the text of a paragraph. It can stand on
+lines of its own between two lines of the paragraph, with a front matter and
+blank lines in its body:
+
+```markdown
+Version 2.0 comes out in November.
+<!-- note inline
+---
+author: hannes
+date: 2026-10-28T10:15+01:00
+---
+Which day exactly?
+-->
+The beta starts one week before.
+```
+
+The preview removes the inline note together with the blanks before and
+after it (spaces, tabs and line breaks), so that "Version 2.0 comes out in
+November. The beta starts one week before." stays one paragraph, with one
+space between the two parts. The icon of the note stands after the word
+before the note.
 
 ### No comment in a note
 
@@ -124,21 +192,39 @@ comment `<!--`, not its end `-->`, and not `--!>`, at which a browser ends a
 comment too. A `-->` in the text would end the note early, and the rest of
 the text would show in the file as normal Markdown.
 
-The extension refuses to save or add a note with such a text. It shows why,
-and the box opens the editor again with your text, so that you can correct
-it. A note in a file that already contains `<!--` gets a warning in the text
-editor and in the Problems view. The preview shows the text of such a note as
-it is, with a message, so that the rest of the page stays visible.
+The extension refuses to save or add such a text. It shows why and keeps the
+text in the editor, so that you can correct it. A note in a file that already
+contains `<!--` gets a warning in the text editor and in the Problems view.
+The preview shows the text of such a note as it is, with a message, so that
+the rest of the page stays visible.
+
+## GitHub sign-in
+
+The extension requires a sign-in with GitHub, so that the author of every
+note and every answer is always known. The first time you add or answer a
+note, VS Code asks whether the extension may use your GitHub account; the
+side view also has the link "Sign in with GitHub". The extension uses the
+GitHub sign-in of VS Code (the accounts menu at the bottom of the activity
+bar), with the scope `read:user`, and reads only the login of the account.
+It sends no request to GitHub itself.
+
+The author of a new note or answer is the GitHub login of the signed-in
+account. You cannot type another author. Without a sign-in, the extension
+writes no new note and no answer, and keeps your text in the editor. You can
+still read, edit and delete the notes of a file without a sign-in.
 
 ## Notes in the text editor
 
 The text editor shows each note of an open Markdown file with the comments
-of VS Code. A mark in the gutter shows the lines of the note, and a box below
-the note shows its body as Markdown, with the author and the date. The boxes
-are collapsed when a file opens, so that the text stays readable; a click on
-the mark opens a box, and the arrow in the title of the box closes it. The
-setting `nimblescape.markdownNotes.expandInEditor` opens all boxes when a file
-opens.
+of VS Code, as the extension GitHub Pull Requests shows the comments of a
+pull request. A mark in the gutter shows the lines of the note, and a box
+below the note shows each answer of the thread as Markdown, with its author
+and date. The box has the title "Markdown note".
+
+The boxes are collapsed when a file opens, so that the text stays readable; a
+click on the mark opens a box, and the arrow in the title of the box closes
+it. The setting `nimblescape.markdownNotes.expandInEditor` opens all boxes
+when a file opens.
 
 The editor can fold each note of several lines on lines of its own, with the
 arrow left of the line `<!-- note`, or with the command "Fold All Block
@@ -148,76 +234,136 @@ The boxes follow the text: when you type, each box moves with its note after a
 short pause, and an open box stays open. A box goes away when you remove its
 note from the text.
 
+### Dimmed source
+
+The text editor shows the source of the comment of each note dimmed, so that
+the Markdown of the document outside the notes stands out. The box below the
+note shows the note rendered.
+
 ## Comments view
 
 The Comments view (in the panel, or with the command "View: Show Comments")
 lists the notes of the Markdown files that are open in VS Code, with the
-author, the date and the start of the text. A click on a note opens its file
-and its box.
+author, the date, the start of the text and the number of answers. A click on
+a note opens its file and its box.
 
-## Edit a note
+## Side view "Notes"
+
+The icon "Markdown Notes" in the activity bar opens the side view "Notes".
+It is the editor of the notes:
+
+- The view shows the name of the active Markdown file, the GitHub account,
+  and the threads of the file, each with the line of the note, its kind and
+  its answers rendered as Markdown with author and date.
+- The view selects the thread at the cursor of the text editor, and the
+  thread whose icon you clicked in the preview, and scrolls to it.
+- A click on "Line N" of a thread shows the note in the text editor and
+  opens its box.
+- Each answer has "Edit" and "Delete", each thread "Answer" and "Delete
+  Thread", and the view "Add Note".
+
+The editor of a text in the side view has the tabs "Write" (the Markdown
+text) and "Preview" (the text rendered as the Markdown preview renders it).
+"Save" or Ctrl+Enter writes the text; "Cancel" or Escape keeps the note as it
+is. When the extension refuses a text, the editor stays open and shows why.
+
+## Edit an answer
+
+In the text editor:
 
 1. Open the box of the note.
-2. Click "Edit Note" (pencil). The body turns into an editor of Markdown, with
-   the highlighting of Markdown.
+2. Click "Edit" (pencil) at the answer. The answer turns into an editor of
+   Markdown, with the highlighting of Markdown.
 3. Change the text. Click "Save", or press Ctrl+Enter. "Cancel" closes the
-   editor and keeps the note as it is.
+   editor and keeps the answer as it is.
 
-"Save" writes the text back into the comment of the note in the file. The
-front matter stays as it is, with its author and date. A note in a block quote
-or in a list item keeps the markers of its lines, and the text gets the line
-breaks of the file. The file then has unsaved changes: save it as usual. Undo
-in the text editor takes the change back.
+In the side view, click "Edit" at the answer, change the text, and click
+"Save".
+
+"Save" writes the text back into the answer in the comment of the note. The
+front matter of the answer stays as it is, with its author and date. A note
+in a block quote or in a list item keeps the markers of its lines, and the
+text gets the line breaks of the file. The file then has unsaved changes:
+save it as usual. Undo in the text editor takes the change back.
 
 The extension writes the text only when the Markdown preview reads the changed
-text as the same note. A blank line in a note inside a paragraph would end the
-paragraph, so the extension refuses it, as it refuses a text with a comment.
-Put such a note on lines of its own instead.
+text as the same note with the same answers. A blank line in a note that
+starts after the text of a line would end the paragraph, and a front matter in
+a text would start a new answer, so the extension refuses such a text, as it
+refuses a text with a comment.
 
 ## Add a note
+
+In the text editor:
 
 1. Move the mouse over the gutter of a line, left of the text, and click the
    `+`.
 2. Write the text of the note in the box, in Markdown.
 3. Click "Add Note", or press Ctrl+Enter. "Cancel" removes the box.
 
-The extension writes the note on lines of its own after the block of the
-line, for example after the whole paragraph, so that no paragraph splits. In
-a block quote or in a list item, the note stays in it. The new note has a
-front matter with the author and the date:
+In the side view, put the cursor of the text editor on the line, click "Add
+Note", write the text, and click "Add Note" below the text.
 
-- The author is the setting `nimblescape.markdownNotes.author`. When the setting
-  is empty, it is `user.name` of the Git configuration of the repository of
-  the file, which the extension reads through the Git extension of VS Code.
-  In Restricted Mode, VS Code turns the Git extension off. Without both,
-  the front matter names no author.
-- The date is the local date and time in minutes with the offset of the zone,
-  for example `2026-10-28T10:15+01:00`.
+The extension writes the new note on lines of its own:
 
-## Delete a note
+- On a line of a paragraph, it writes an inline note after that line, so that
+  the note keeps its exact place in the text and the paragraph does not
+  split.
+- On another line, it writes a block note after the block of the line, for
+  example after a heading, a list or a code block. In a block quote or in a
+  list item, the note stays in it.
 
-Click "Delete Note" (trash can) in the box of a note. The extension removes
-the comment of the note from the file. A note on lines of its own loses its
-lines; a note inside a paragraph loses its comment and one space before it.
-Undo in the text editor brings the note back.
+The new note has a front matter with the GitHub login of the author and the
+local date and time in minutes with the offset of the zone, for example
+`2026-10-28T10:15+01:00`.
 
-## Callouts in the Markdown preview
+## Answer a note
+
+In the text editor, write the text in the reply field at the end of the box
+of the note, and click "Answer" or press Ctrl+Enter. In the side view, click
+"Answer" in the thread, write the text, and click "Answer" below it.
+
+The extension adds the answer at the end of the comment of the note, with its
+own front matter: the GitHub login of the author and the date and time. A
+refused text stays in an editor at the end of the thread, so that you can
+correct it and save it, or cancel it.
+
+## Delete an answer or a note
+
+- "Delete" (trash can) at an answer removes that answer from the comment.
+  Deleting the only answer removes the whole note.
+- "Delete Thread" (trash can in the title of the box, or in the side view)
+  removes the comment of the note with all its answers.
+
+A note on lines of its own loses its lines; a note after the text of a line
+loses its comment and one space before it. Undo in the text editor brings the
+answer or the note back.
+
+## Icons and callouts in the Markdown preview
 
 The built-in Markdown preview (Ctrl+Shift+V, or Ctrl+K V to the side) shows
-each note on lines of its own as a callout at its place: a box with a colored
-bar at its left side, a header with the author (or "Note") and the date, and
-the body rendered as Markdown with the plugins of the preview. The callout
-uses the colors of the theme of VS Code. The scrolling of the preview follows
-the text editor also in the body of a note.
+each note as a small, unobtrusive icon at its place:
 
-A note inside a paragraph shows as a small number in the text, and its
-callout with the same number follows the paragraph. The notes of a file count
-from 1 in the order of the text.
+- the icon of an inline note in the text, after the word before the note;
+- the icon of a block note in the left margin of the preview, at the height
+  of its place.
+
+The icon shows the number of answers of a thread with more than one answer.
+When the pointer rests on the icon, or the icon has the keyboard focus (Tab),
+the preview shows the note as a callout next to the icon: a box with a
+colored bar at its left side, and each answer with its author, its date and
+its body rendered as Markdown with the plugins of the preview. The callout
+uses the colors of the theme of VS Code. Escape closes it.
+
+A click on the icon opens the note in the side view "Notes", where you can
+edit and answer it. The icon is a link of the scheme `vscode://` to the
+extension; VS Code may ask once whether the extension may open it.
 
 Outside the notes, the preview shows the file as without the extension. The
-setting `nimblescape.markdownNotes.showInPreview` turns the callouts off; the
-preview then shows the file without the notes, as GitHub does. A change of the
-setting renders the open previews again.
+setting `nimblescape.markdownNotes.showInPreview` turns the icons off; the
+preview then shows the file without the notes, as GitHub does, and the text
+around an inline note stays one paragraph. A change of the setting renders
+the open previews again.
 
 ## Markdown Editor
 
@@ -225,29 +371,29 @@ VS Code also has a visual Markdown Editor (Reopen Editor With… > Markdown
 Editor). It offers extensions no stable API to show or edit content: its
 comments come from an API that only the extensions of VS Code may use. The
 extension therefore shows no notes in the Markdown Editor; the notes stay in
-the file as they are. Use the text editor and the Markdown preview for the
-notes.
+the file as they are. Use the text editor, the side view and the Markdown
+preview for the notes.
 
 ## Settings
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.author` | `""` | The author that a new note names in its front matter (`author:`). When the value is empty, the extension takes `user.name` of the Git configuration of the file; without one, a new note names no author. A note that exists keeps its author. |
 | `nimblescape.markdownNotes.expandInEditor` | `false` | Opens the box of each note in the text editor when the file opens. The value `false` shows only a mark at each note; a click on the mark opens the box. A folder of a workspace can have its own value. |
-| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension, without the notes. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.showInPreview` | `true` | Shows the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes. A folder of a workspace can have its own value. |
 
 ## Limits
 
 - The extension shows no notes in the Markdown Editor of VS Code; the section
   [Markdown Editor](#markdown-editor) explains why.
-- A note inside a paragraph has no front matter and no blank line. A note in
-  a table cell, in a code block or in a block of other HTML is no note.
-- The text editor and the Comments view show the notes of the open Markdown
-  files only.
+- A note that starts after the text of a line has no front matter and no
+  blank line, and takes no answers. A note in a table cell, in a code block
+  or in a block of other HTML is no note.
+- The text editor, the Comments view and the side view show the notes of the
+  open Markdown files only.
 - A file of a read-only file system, for example the older version of a file
-  in a Git diff, shows no boxes; the preview shows its callouts.
+  in a Git diff, shows no boxes; the preview shows its icons.
 - The box of a note shows the HTML of its body only as far as the comments of
-  VS Code allow it; the preview shows all of it.
+  VS Code allow it; the preview and the side view show more of it.
 
 ---
 

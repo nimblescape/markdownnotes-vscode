@@ -4,25 +4,36 @@
 
 /**
  * The editor wiring of the extension. The manifest contributes the settings,
- * the commands of the boxes of the notes with their buttons, and the styles of
- * the Markdown preview without code. Activation returns the markdown-it plugin
- * ([src/markdown/markdownIt.ts](markdown/markdownIt.ts)), which the Markdown
- * extension of VS Code reads from the export `extendMarkdownIt` when it builds
- * its preview, and starts the threads of the notes in the text editor and in
- * the Comments view ([src/noteThreads.ts](noteThreads.ts)). It reads the
- * settings, finds the author of a new note, and refreshes the previews and the
- * threads when a setting of the extension changes.
+ * the commands of the boxes of the notes with their buttons, the side view,
+ * and the styles and the script of the Markdown preview. Activation returns
+ * the markdown-it plugin ([src/markdown/markdownIt.ts](markdown/markdownIt.ts)),
+ * which the Markdown extension of VS Code reads from the export
+ * `extendMarkdownIt` when it builds its preview. It starts the threads of the
+ * notes in the text editor and in the Comments view
+ * ([src/noteThreads.ts](noteThreads.ts)) and the side view
+ * ([src/notesView.ts](notesView.ts)), with the GitHub login of the user as the
+ * author of new notes ([src/github.ts](github.ts)). It handles the links of
+ * the icons of the preview, which open a note in the side view, and refreshes
+ * the previews and the threads when a setting of the extension changes.
  */
 
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
+import { githubLogin } from './github';
 import { extendMarkdownIt, type PreviewSettings } from './markdown/markdownIt';
-import { NoteThreads } from './noteThreads';
+import { isNoteDocument, NoteThreads } from './noteThreads';
+import { notesViewId, NotesView } from './notesView';
 import { checkedSettings, type Settings, settingsSection } from './settings';
+
+/** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
+export const extensionId = 'nimblescape.nimblescape-markdown-notes';
+
+/** openPath is the path of the links that open a note in the side view. */
+export const openPath = '/open';
 
 /** Api is the export of the extension. */
 export interface Api {
-  /** extendMarkdownIt adds the callouts of the notes to the markdown-it instance of the Markdown preview. */
+  /** extendMarkdownIt adds the notes to the markdown-it instance of the Markdown preview. */
   extendMarkdownIt(md: MarkdownIt): MarkdownIt;
   /** threadsOf returns the threads of the notes of an open document, for the tests in VS Code. */
   threadsOf(document: vscode.Uri): readonly vscode.CommentThread[];
@@ -38,57 +49,73 @@ export function readSettings(document: vscode.Uri | undefined): Settings {
 }
 
 /**
- * previewSettingsOf returns the settings of the document that the Markdown preview renders. The preview names it in
- * the environment of the rendering (`currentDocument`); a rendering without a document, such as a side of the
- * rendered diff, gets the settings of the window.
+ * documentOf returns the document that the Markdown preview renders. The preview names it in the environment of the
+ * rendering (`currentDocument`); a rendering without a document, such as a side of the rendered diff, has none.
+ * @param env - The environment of the rendering.
+ */
+function documentOf(env: unknown): vscode.Uri | undefined {
+  const document = (env as { currentDocument?: unknown } | undefined)?.currentDocument;
+  return typeof document === 'object' && document !== null && 'scheme' in document ? (document as vscode.Uri) : undefined;
+}
+
+/**
+ * previewSettingsOf returns the settings of the document that the Markdown preview renders, or the settings of the
+ * window for a rendering without a document.
  * @param env - The environment of the rendering.
  */
 function previewSettingsOf(env: unknown): PreviewSettings {
-  const document = (env as { currentDocument?: unknown } | undefined)?.currentDocument;
-  const uri = typeof document === 'object' && document !== null && 'scheme' in document ? (document as vscode.Uri) : undefined;
-  return { showInPreview: readSettings(uri).showInPreview };
+  return { showInPreview: readSettings(documentOf(env)).showInPreview };
 }
-
-/** GitRepository is the part of a repository of the Git extension of VS Code that the extension reads. */
-interface GitRepository {
-  getConfig(key: string): Promise<string>;
-  getGlobalConfig(key: string): Promise<string>;
-}
-
-/** GitApi is the part of the API of the Git extension of VS Code (version 1) that the extension reads. */
-interface GitApi {
-  getRepository(uri: vscode.Uri): GitRepository | null;
-}
-
-/** gitExtension is the identifier of the Git extension of VS Code. */
-const gitExtension = 'vscode.git';
 
 /**
- * authorOf returns the author of a new note in a document ([R-EDIT-003](../docs/requirements.md#r-edit-003)): the
- * setting `author`, or else `user.name` of the Git configuration of the repository of the document, or undefined. The
- * Git extension can be off, for example in Restricted Mode; the note then names the author of the setting only.
- * @param document - The URI of the document.
+ * noteLink returns the link of the icon of a note in the preview: a URI of VS Code for the extension, which opens the
+ * note in the side view ([R-PREV-003](../docs/requirements.md#r-prev-003)). A rendering without a document has none.
+ * @param env - The environment of the rendering.
+ * @param line - The index of the first line of the note.
  */
-async function authorOf(document: vscode.Uri): Promise<string | undefined> {
-  const setting = readSettings(document).author;
-  if (setting) {
-    return setting;
-  }
-  try {
-    const extension = vscode.extensions.getExtension<{ getAPI(version: 1): GitApi }>(gitExtension);
-    if (!extension) {
-      return undefined;
-    }
-    const exports = extension.isActive ? extension.exports : await extension.activate();
-    const repository = exports.getAPI(1).getRepository(document);
-    if (!repository) {
-      return undefined;
-    }
-    const name = (await repository.getConfig('user.name').catch(() => '')) || (await repository.getGlobalConfig('user.name').catch(() => ''));
-    return name.trim() || undefined;
-  } catch {
+function noteLink(env: unknown, line: number): string | undefined {
+  const document = documentOf(env);
+  if (!document) {
     return undefined;
   }
+  const query = new URLSearchParams({ document: document.toString(), line: String(line) }).toString();
+  return `${vscode.env.uriScheme}://${extensionId}${openPath}?${query}`;
+}
+
+/**
+ * openFromLink opens the note of a link of the preview in the side view. The link names a document and a line. A link
+ * can also come from outside VS Code, so the extension opens only a Markdown document that is open or that belongs to
+ * the workspace, and only shows its notes.
+ * @param uri - The URI that VS Code passes to the extension.
+ * @param view - The side view.
+ */
+async function openFromLink(uri: vscode.Uri, view: NotesView): Promise<void> {
+  const query = new URLSearchParams(uri.query);
+  const target = query.get('document');
+  const line = Number(query.get('line'));
+  if (uri.path !== openPath || !target || !Number.isInteger(line) || line < 0) {
+    return;
+  }
+  const parsed = vscode.Uri.parse(target);
+  let document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === parsed.toString());
+  if (!document && vscode.workspace.getWorkspaceFolder(parsed)) {
+    document = await vscode.workspace.openTextDocument(parsed).then(undefined, () => undefined);
+  }
+  if (document && isNoteDocument(document)) {
+    await view.show(document.uri, line);
+  }
+}
+
+/**
+ * renderMarkdown renders a Markdown text with the Markdown preview of VS Code and its plugins, for the side view.
+ * @param text - The Markdown text.
+ */
+async function renderMarkdown(text: string): Promise<string> {
+  const html = await vscode.commands.executeCommand<unknown>('markdown.api.render', text);
+  if (typeof html !== 'string') {
+    throw new Error('The Markdown preview rendered no HTML.');
+  }
+  return html;
 }
 
 /** markdownExtension is the identifier of the Markdown extension of VS Code, which owns the Markdown preview. */
@@ -111,10 +138,13 @@ function refreshMarkdownPreviews(): void {
  * @returns The export of the extension, which the Markdown extension of VS Code reads.
  */
 export function activate(context: vscode.ExtensionContext): Api {
-  const threads = new NoteThreads(readSettings, authorOf);
+  const threads = new NoteThreads(readSettings, () => githubLogin(true));
+  context.subscriptions.push(threads, ...threads.register());
+  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown);
   context.subscriptions.push(
-    threads,
-    ...threads.register(),
+    view,
+    vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
+    vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
@@ -124,7 +154,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     }),
   );
   return {
-    extendMarkdownIt: (md) => extendMarkdownIt(md, previewSettingsOf),
+    extendMarkdownIt: (md) => extendMarkdownIt(md, { settingsOf: previewSettingsOf, linkOf: noteLink }),
     threadsOf: (document) => threads.threadsOf(document),
   };
 }

@@ -2,12 +2,17 @@
 # © 2026 Hannes Stauss (scalarion@nimblescape.com)
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
-# The package holds the bundle, the styles of the Markdown preview, the icon
-# and the documents only: ignore everything, then keep the listed files.
+# The package holds the bundle, the styles and the scripts of the Markdown
+# preview and of the side view, the icons and the documents only: ignore
+# everything, then keep the listed files.
 **
 !dist/extension.js
 !media/markdownPreview.css
+!media/markdownPreview.js
+!media/notesView.css
+!media/notesView.js
 !resources/icon.png
+!resources/notes-view.svg
 !package.json
 !README.md
 !CHANGELOG.md

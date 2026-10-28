@@ -4,19 +4,27 @@
 
 /**
  * The syntax of a note ([R-NOTE-001](../../docs/requirements.md#r-note-001)):
- * an HTML comment of a Markdown text that starts with `<!-- note` on a line of
- * its own. The text of the note starts on the next line: an optional front
- * matter that names the author and the date
- * ([R-NOTE-002](../../docs/requirements.md#r-note-002)), then the body in
- * Markdown, then `-->`:
+ * an HTML comment of a Markdown text that starts with `<!-- note` (a block
+ * note) or `<!-- note inline` (an inline note,
+ * [R-NOTE-005](../../docs/requirements.md#r-note-005)) on a line of its own.
+ * The text of the note starts on the next line. It is a thread of answers
+ * ([R-NOTE-004](../../docs/requirements.md#r-note-004)): each answer starts
+ * with a front matter that names its author and its date
+ * ([R-NOTE-002](../../docs/requirements.md#r-note-002)), and its body in
+ * Markdown follows:
  *
  * ```markdown
  * <!-- note
  * ---
- * author: Hannes Stauss
+ * author: hannes
  * date: 2026-10-28T10:15+01:00
  * ---
- * The text of the note, in **Markdown**.
+ * Check the dates.
+ * ---
+ * author: anna
+ * date: 2026-10-28T11:02+01:00
+ * ---
+ * Friday works.
  * -->
  * ```
  *
@@ -28,7 +36,7 @@
  * API of VS Code, so that the extension and the markdown-it plugin share it.
  */
 
-import type { StateInline } from 'markdown-it';
+import type { StateBlock, StateInline } from 'markdown-it';
 
 /** commentStart is the text that starts an HTML comment. */
 export const commentStart = '<!--';
@@ -36,14 +44,18 @@ export const commentStart = '<!--';
 /** commentEnd is the text that ends an HTML comment. */
 export const commentEnd = '-->';
 
-/** noteStart is the first line of the comment of a note. */
-export const noteStart = '<!-- note';
+/** Kind tells how a note starts: `block` for `<!-- note`, `inline` for `<!-- note inline`. */
+export type Kind = 'block' | 'inline';
+
+/** keywords are the words after `<!--` on the first line of a note, by its kind. */
+export const keywords: Readonly<Record<Kind, string>> = { block: 'note', inline: 'note inline' };
 
 /**
- * noteKeyword matches the first line of the text of a comment that is a note: the word `note`, in small or capital
- * letters, alone on the line of `<!--`. The text of the note starts on the next line.
+ * keywordLine matches the first line of the text of a comment that is a note: the word `note`, or the words
+ * `note inline`, in small or capital letters, alone on the line of `<!--`. The text of the note starts on the next
+ * line.
  */
-const noteKeyword = /^[ \t]*note[ \t]*\n/i;
+const keywordLine = /^[ \t]*note(?:[ \t]+(inline))?[ \t]*$/i;
 
 /**
  * forbiddenTexts are the texts that the text of a note must not contain
@@ -121,9 +133,10 @@ export type InlineNoteMeta = Span;
 
 /**
  * inlineNoteRule is a markdown-it rule for the inline comments of a Markdown text. It runs before the rule
- * `html_inline` and reads a comment as that rule does, so the editor and the preview find the same comments. Its token keeps the span of the comment in the text of the inline token, by which the extension finds the
- * comment in the Markdown text. The markdown-it plugin turns each token into a note, or back into the token
- * `html_inline` that markdown-it writes without the rule.
+ * `html_inline` and reads a comment as that rule does, so the editor and the preview find the same comments. Its
+ * token keeps the span of the comment in the text of the inline token, by which the extension finds the comment in
+ * the Markdown text. The markdown-it plugin turns each token into a note, or back into the token `html_inline` that
+ * markdown-it writes without the rule.
  * @param state - The state of the inline parser.
  * @param silent - Whether the rule only tells whether it matches.
  */
@@ -149,7 +162,82 @@ export function inlineNoteRule(state: StateInline, silent: boolean): boolean {
   return true;
 }
 
-/** FrontMatter is the front matter of a note: the lines from the opening `---` to the closing `---`, and its fields. */
+/** noteLinesTokenType is the type of the markdown-it token of an inline note on lines of its own, which the block rule writes. */
+export const noteLinesTokenType = 'nimblescape_note_lines';
+
+/** NoteLinesMeta is the meta of a token of an inline note on lines of its own: the span of its comment in the source text. */
+export type NoteLinesMeta = Span;
+
+/** inlineNoteLine matches the first line of an inline note on lines of its own: `<!-- note inline` alone on the line. */
+const inlineNoteLine = /^<!--[ \t]*note[ \t]+inline[ \t]*$/i;
+
+/**
+ * noteLinesRule is a markdown-it block rule for an inline note that starts on a line of its own
+ * ([R-NOTE-005](../../docs/requirements.md#r-note-005)): a line `<!-- note inline` in a paragraph or between two
+ * blocks. Without the rule, the rule `html_block` reads the comment as an HTML block, which ends the paragraph before
+ * it. The rule runs before `html_block`, ends a paragraph as `html_block` does, and ends the comment at the first
+ * `-->`. Its token keeps the comment without the prefixes of its lines, and the span of the comment in the source
+ * text. A text after `-->` on the last line starts the next block, so that the plugin of the preview can join it to
+ * the paragraph before the note.
+ * @param state - The state of the block parser.
+ * @param startLine - The index of the line where the rule starts.
+ * @param endLine - The index of the line after the text.
+ * @param silent - Whether the rule only tells whether it matches.
+ */
+export function noteLinesRule(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
+  // The conditions of html_block: HTML is on, and the line is no line of an indented code block.
+  if (!state.md.options.html || state.sCount[startLine] - state.blkIndent >= 4) {
+    return false;
+  }
+  const start = state.bMarks[startLine] + state.tShift[startLine];
+  if (!inlineNoteLine.test(state.src.slice(start, state.eMarks[startLine]))) {
+    return false;
+  }
+  let line = startLine + 1;
+  let end = -1;
+  for (; line < endLine; line++) {
+    // A line with less indentation ends the block of the comment, as in html_block; an empty line does not.
+    if (state.sCount[line] < state.blkIndent && !state.isEmpty(line)) {
+      return false;
+    }
+    const lineStart = state.bMarks[line] + state.tShift[line];
+    const index = state.src.slice(lineStart, state.eMarks[line]).indexOf(commentEnd);
+    if (index >= 0) {
+      end = lineStart + index + commentEnd.length;
+      break;
+    }
+  }
+  if (end < 0) {
+    return false;
+  }
+  if (silent) {
+    return true;
+  }
+  const token = state.push(noteLinesTokenType, '', 0);
+  token.block = true;
+  token.map = [startLine, line + 1];
+  const text = state.getLines(startLine, line + 1, state.blkIndent, false);
+  const open = text.indexOf(commentStart);
+  token.content = text.slice(open, text.indexOf(commentEnd, open + commentStart.length) + commentEnd.length);
+  token.meta = { start, end } satisfies NoteLinesMeta;
+  let rest = end;
+  while (rest < state.eMarks[line] && (state.src[rest] === ' ' || state.src[rest] === '\t')) {
+    rest++;
+  }
+  if (rest < state.eMarks[line]) {
+    // The rest of the last line starts the next block.
+    state.bMarks[line] = rest;
+    state.tShift[line] = 0;
+    state.sCount[line] = state.blkIndent;
+    state.bsCount[line] = 0;
+    state.line = line;
+  } else {
+    state.line = line + 1;
+  }
+  return true;
+}
+
+/** FrontMatter is the front matter of an answer: the lines from the opening `---` to the closing `---`, and its fields. */
 export interface FrontMatter {
   /** lines are the lines of the front matter, with both fences, as the comment holds them. */
   lines: string[];
@@ -157,18 +245,35 @@ export interface FrontMatter {
   fields: Record<string, string>;
 }
 
-/** NoteText is the content of the text of the comment of a note. */
-export interface NoteText {
-  /** frontMatter is the front matter of the note, or undefined. */
+/**
+ * Answer is one answer of the thread of a note: its front matter with the author and the date, and its body. The
+ * lines are lines of the text of the comment, where the line of `<!-- note` is 0.
+ */
+export interface Answer {
+  /** frontMatter is the front matter of the answer, or undefined. */
   frontMatter: FrontMatter | undefined;
   /** author is the value of the field `author`, or undefined. */
   author: string | undefined;
   /** date is the value of the field `date` as written, or undefined. */
   date: string | undefined;
-  /** body is the Markdown text of the note, without its front matter and without blank lines around it. */
+  /** body is the Markdown text of the answer, without its front matter and without blank lines around it. */
   body: string;
-  /** bodyLine is the index of the line of the text of the comment where the body starts; the line of `<!-- note` is 0. */
+  /** start is the index of the first line of the answer: the line of its front matter, or of its body. */
+  start: number;
+  /** bodyLine is the index of the line where the body starts. */
   bodyLine: number;
+  /** end is the index of the line after the last line of the body, or of the front matter when the body is empty. */
+  end: number;
+}
+
+/** NoteText is the content of the text of the comment of a note. */
+export interface NoteText {
+  /** kind tells how the note starts. */
+  kind: Kind;
+  /** keyword is the text of the first line after `<!--`, without the spaces around it, for example `note inline`. */
+  keyword: string;
+  /** answers are the answers of the thread, in the order of the text; a note has at least one. */
+  answers: Answer[];
   /** nested tells whether the text holds the start of another comment, which a note must not contain. */
   nested: boolean;
 }
@@ -191,24 +296,25 @@ function fieldValue(raw: string): string {
 }
 
 /**
- * readFrontMatter returns the front matter of a note and the index of the line after it. The front matter starts with
- * a line `---` right after the line of `<!-- note`, and ends at the next line `---`; each line between holds a field
- * or nothing. Other lines are no front matter; the note then has none, and the lines are its body.
- * @param lines - The lines of the text of the comment; the first one is the line of `<!-- note`.
+ * frontMatterAt returns the front matter that starts at a line, and the index of the line after it. A front matter
+ * starts with a line `---`, holds at least one field and otherwise blank lines, and ends with the next line `---`.
+ * @param lines - The lines of the text of the comment.
+ * @param open - The index of the line.
  */
-function readFrontMatter(lines: readonly string[]): { frontMatter: FrontMatter; next: number } | undefined {
-  const open = 1;
+function frontMatterAt(lines: readonly string[], open: number): { frontMatter: FrontMatter; next: number } | undefined {
   if (open >= lines.length || !fence.test(lines[open])) {
     return undefined;
   }
   const fields: Record<string, string> = {};
+  let found = false;
   for (let index = open + 1; index < lines.length; index++) {
     if (fence.test(lines[index])) {
-      return { frontMatter: { lines: lines.slice(open, index + 1), fields }, next: index + 1 };
+      return found ? { frontMatter: { lines: lines.slice(open, index + 1), fields }, next: index + 1 } : undefined;
     }
     const match = field.exec(lines[index]);
     if (match) {
       fields[match[1].toLowerCase()] ??= fieldValue(match[2]);
+      found = true;
     } else if (lines[index].trim() !== '') {
       return undefined;
     }
@@ -217,19 +323,17 @@ function readFrontMatter(lines: readonly string[]): { frontMatter: FrontMatter; 
 }
 
 /**
- * readNote reads the text of a comment: its front matter, the author and the date of the front matter, and the body.
- * The body loses the blank lines before and after it, the spaces before its first line and after its last line. A
- * comment that does not start with `<!-- note` on a line of its own is no note, and the result is undefined.
- * @param text - The text of the comment between `<!--` and `-->`.
+ * answerOf builds an answer from its lines: the body loses the blank lines before and after it, the spaces before its
+ * first line and after its last line.
+ * @param lines - The lines of the text of the comment.
+ * @param start - The index of the first line of the answer.
+ * @param frontMatter - The front matter, or undefined.
+ * @param bodyStart - The index of the line after the front matter, or the first line without one.
+ * @param bodyEnd - The index of the line where the next answer starts, or the number of lines.
  */
-export function readNote(text: string): NoteText | undefined {
-  if (!noteKeyword.test(text)) {
-    return undefined;
-  }
-  const lines = text.split('\n');
-  const read = readFrontMatter(lines);
-  let first = read?.next ?? 1;
-  let last = lines.length - 1;
+function answerOf(lines: readonly string[], start: number, frontMatter: FrontMatter | undefined, bodyStart: number, bodyEnd: number): Answer {
+  let first = bodyStart;
+  let last = bodyEnd - 1;
   while (first <= last && lines[first].trim() === '') {
     first++;
   }
@@ -241,13 +345,65 @@ export function readNote(text: string): NoteText | undefined {
     body[0] = body[0].trimStart();
     body[body.length - 1] = body[body.length - 1].trimEnd();
   }
-  const fields = read?.frontMatter.fields ?? {};
+  const fields = frontMatter?.fields ?? {};
   return {
-    frontMatter: read?.frontMatter,
+    frontMatter,
     author: fields.author || undefined,
     date: fields.date || undefined,
     body: body.join('\n'),
-    bodyLine: first <= last ? first : lines.length - 1,
+    start,
+    bodyLine: first <= last ? first : bodyStart,
+    end: first <= last ? last + 1 : bodyStart,
+  };
+}
+
+/**
+ * readAnswers reads the answers of the text of a note ([R-NOTE-004](../../docs/requirements.md#r-note-004)). Each
+ * front matter starts an answer, and the first answer may have none. An empty first answer without a front matter
+ * before a front matter is no answer: the text of the note then starts with a blank line.
+ * @param lines - The lines of the text of the comment; the first one is the line of `<!-- note`.
+ */
+function readAnswers(lines: readonly string[]): Answer[] {
+  const answers: Answer[] = [];
+  let start = 1;
+  let read = frontMatterAt(lines, start);
+  for (;;) {
+    const bodyStart = read?.next ?? start;
+    let next: ReturnType<typeof frontMatterAt>;
+    let line = bodyStart;
+    for (; line < lines.length; line++) {
+      next = frontMatterAt(lines, line);
+      if (next) {
+        break;
+      }
+    }
+    const answer = answerOf(lines, start, read?.frontMatter, bodyStart, line);
+    if (!(answers.length === 0 && next && !answer.frontMatter && answer.body === '')) {
+      answers.push(answer);
+    }
+    if (!next) {
+      return answers;
+    }
+    start = line;
+    read = next;
+  }
+}
+
+/**
+ * readNote reads the text of a comment: its kind and the answers of its thread. A comment that does not start with
+ * `<!-- note` or `<!-- note inline` on a line of its own is no note, and the result is undefined.
+ * @param text - The text of the comment between `<!--` and `-->`.
+ */
+export function readNote(text: string): NoteText | undefined {
+  const lines = text.split('\n');
+  const match = lines.length > 1 ? keywordLine.exec(lines[0]) : null;
+  if (!match) {
+    return undefined;
+  }
+  return {
+    kind: match[1] ? 'inline' : 'block',
+    keyword: lines[0].trim(),
+    answers: readAnswers(lines),
     nested: text.includes(commentStart),
   };
 }
@@ -255,13 +411,13 @@ export function readNote(text: string): NoteText | undefined {
 /**
  * bodyProblem returns the first forbidden text that a body holds, or undefined
  * ([R-NOTE-003](../../docs/requirements.md#r-note-003)).
- * @param body - The Markdown text of a note.
+ * @param body - The Markdown text of an answer.
  */
 export const bodyProblem = (body: string): string | undefined => forbiddenTexts.find((text) => body.includes(text));
 
 /**
- * normalizeBody turns the text of the editor of a note into the body of the note: line breaks as `\n`, and no blank
- * lines and no white space before and after the text.
+ * normalizeBody turns the text of the editor of an answer into the body of the answer: line breaks as `\n`, and no
+ * blank lines and no white space before and after the text.
  * @param text - The text of the editor.
  */
 export function normalizeBody(text: string): string {
@@ -283,8 +439,8 @@ export function normalizeBody(text: string): string {
 }
 
 /**
- * Fields are the fields of the front matter of a new note
- * ([R-EDIT-003](../../docs/requirements.md#r-edit-003)).
+ * Fields are the fields of the front matter of a new answer
+ * ([R-EDIT-003](../../docs/requirements.md#r-edit-003), [R-EDIT-005](../../docs/requirements.md#r-edit-005)).
  */
 export interface Fields {
   author?: string;
@@ -292,7 +448,7 @@ export interface Fields {
 }
 
 /**
- * frontMatterLines returns the lines of the front matter of a new note. A field without a value has no line. The
+ * frontMatterLines returns the lines of the front matter of a new answer. A field without a value has no line. The
  * line breaks of a value become spaces, because a field has one line.
  * @param fields - The fields.
  */
@@ -305,14 +461,22 @@ export function frontMatterLines(fields: Fields): string[] | undefined {
 }
 
 /**
- * commentText returns the comment of a note, from `<!--` to `-->`, with `\n` as line breaks and without the prefixes
- * of the lines: `<!-- note` on a line of its own, the lines of the front matter, the body, and `-->` on a line of its
- * own.
+ * answerLines returns the lines of an answer: the lines of its front matter, then the lines of its body.
  * @param frontMatter - The lines of the front matter, or undefined.
  * @param body - The body.
  */
-export function commentText(frontMatter: readonly string[] | undefined, body: string): string {
-  return [noteStart, ...(frontMatter ?? []), ...(body === '' ? [] : [body]), commentEnd].join('\n');
+export const answerLines = (frontMatter: readonly string[] | undefined, body: string): string[] => [...(frontMatter ?? []), ...(body === '' ? [] : body.split('\n'))];
+
+/**
+ * commentText returns the comment of a new note, from `<!--` to `-->`, with `\n` as line breaks and without the
+ * prefixes of the lines: `<!-- note` or `<!-- note inline` on a line of its own, the lines of the front matter, the
+ * body, and `-->` on a line of its own.
+ * @param kind - The kind of the note.
+ * @param frontMatter - The lines of the front matter, or undefined.
+ * @param body - The body.
+ */
+export function commentText(kind: Kind, frontMatter: readonly string[] | undefined, body: string): string {
+  return [`${commentStart} ${keywords[kind]}`, ...answerLines(frontMatter, body), commentEnd].join('\n');
 }
 
 /**
@@ -360,8 +524,8 @@ export function displayDate(value: string): string {
 }
 
 /**
- * formatDate writes a point in time as the date of a new note: the local date and time in minutes with the offset of
- * the local zone, for example `2026-10-28T10:15+01:00`.
+ * formatDate writes a point in time as the date of a new answer: the local date and time in minutes with the offset
+ * of the local zone, for example `2026-10-28T10:15+01:00`.
  * @param date - The point in time.
  */
 export function formatDate(date: Date): string {

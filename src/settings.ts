@@ -13,30 +13,23 @@ export const settingsSection = 'nimblescape.markdownNotes';
 
 /** Settings are the values of the settings of the extension. */
 export interface Settings {
-  /**
-   * author is the author of a new note ([R-EDIT-003](../docs/requirements.md#r-edit-003)); empty for `user.name` of
-   * the Git configuration of the file.
-   */
-  author: string;
-  /** expandInEditor opens the box of each note in the text editor ([R-TEXT-001](../docs/requirements.md#r-text-001)). */
+  /** expandInEditor opens the box of each note in the text editor ([R-TEXT-002](../docs/requirements.md#r-text-002)). */
   expandInEditor: boolean;
-  /** showInPreview shows the notes as callouts in the Markdown preview ([R-PREV-003](../docs/requirements.md#r-prev-003)). */
+  /** showInPreview shows the icons of the notes in the Markdown preview ([R-PREV-005](../docs/requirements.md#r-prev-005)). */
   showInPreview: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
-export const defaultSettings: Readonly<Settings> = { author: '', expandInEditor: false, showInPreview: true };
+export const defaultSettings: Readonly<Settings> = { expandInEditor: false, showInPreview: true };
 
 /**
  * checkedSettings returns the settings with the default of each value that has another type than the setting takes.
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const author = read('author');
   const expandInEditor = read('expandInEditor');
   const showInPreview = read('showInPreview');
   return {
-    author: typeof author === 'string' ? author.trim() : defaultSettings.author,
     expandInEditor: typeof expandInEditor === 'boolean' ? expandInEditor : defaultSettings.expandInEditor,
     showInPreview: typeof showInPreview === 'boolean' ? showInPreview : defaultSettings.showInPreview,
   };

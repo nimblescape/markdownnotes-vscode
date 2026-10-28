@@ -5,8 +5,8 @@
 /**
  * These tests check the parts of the extension that are files, not code: the
  * name and the entry point of the manifest, the contributions to the Markdown
- * preview, the commands and the buttons of the boxes, the settings and their
- * documentation, the files of the package, the third-party notices, the links
+ * preview, the commands and the buttons of the boxes, the side view, the
+ * settings and their documentation, the files of the package, the third-party notices, the links
  * of the documents and the links to the requirements. No installed editor is
  * touched.
  */
@@ -16,7 +16,9 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
+import { extensionId, openPath } from './extension';
 import { commands, controllerId, noteContext } from './noteThreads';
+import { notesViewId } from './notesView';
 import { defaultSettings, settingsSection } from './settings';
 
 // The module of the threads imports the editor API; these tests read only its constants.
@@ -70,6 +72,13 @@ test('the manifest follows the naming scheme of the publisher nimblescape', () =
   expect(manifest.license).toBe('MIT');
 });
 
+test('the identifier of the extension in the links of the preview is the publisher and the name of the manifest (R-PREV-003)', () => {
+  expect(extensionId).toBe(`${manifest.publisher}.${manifest.name}`);
+  expect(openPath).toBe('/open');
+  // VS Code starts the extension for a link of the preview also before a Markdown file opens.
+  expect(manifest.activationEvents).toContain('onUri');
+});
+
 test('the entry point is the bundle that esbuild.mjs writes', () => {
   expect(manifest.main).toBe('./dist/extension.js');
   expect(read('esbuild.mjs')).toContain(`const outfile = '${manifest.main.slice(2)}';`);
@@ -82,29 +91,52 @@ test('the icon is a PNG of 256 × 256 pixels, because the Marketplace takes no S
   expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([256, 256]);
 });
 
-test('the extension starts with the Markdown files, and adds its plugin and its styles to the Markdown preview (R-PREV-001)', () => {
-  expect(manifest.activationEvents).toEqual(['onLanguage:markdown']);
+test('the extension starts with the Markdown files, and adds its plugin, its styles and its script to the Markdown preview (R-PREV-001, R-PREV-002)', () => {
+  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'onUri']);
   expect(manifest.contributes['markdown.markdownItPlugins']).toBe(true);
   expect(manifest.contributes['markdown.previewStyles']).toEqual(['./media/markdownPreview.css']);
-  expect(fs.existsSync(path.join(repository, 'media/markdownPreview.css'))).toBe(true);
+  expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js']);
+  for (const file of ['media/markdownPreview.css', 'media/markdownPreview.js']) {
+    expect(fs.existsSync(path.join(repository, file)), file).toBe(true);
+  }
+});
+
+test('the manifest contributes the side view "Notes" in a container of its own in the activity bar (R-SIDE-001)', () => {
+  const [container] = manifest.contributes.viewsContainers.activitybar;
+  expect(manifest.contributes.viewsContainers.activitybar).toHaveLength(1);
+  expect(container).toMatchObject({ id: 'nimblescape-markdown-notes', title: 'Markdown Notes', icon: 'resources/notes-view.svg' });
+  expect(read(container.icon)).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/m);
+  expect(manifest.contributes.views).toEqual({ [container.id]: [{ type: 'webview', id: notesViewId, name: 'Notes' }] });
+  for (const file of ['media/notesView.js', 'media/notesView.css']) {
+    expect(fs.existsSync(path.join(repository, file)), file).toBe(true);
+  }
 });
 
 test('the manifest contributes the commands of the buttons of the boxes, for the comment controller of the notes only', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
   expect([...contributed].sort()).toEqual(Object.values(commands).sort());
   const menus = manifest.contributes.menus;
-  const items = ['comments/commentThread/context', 'comments/comment/title', 'comments/comment/context'].flatMap((menu) => menus[menu]);
+  const items = ['comments/commentThread/context', 'comments/commentThread/title', 'comments/comment/title', 'comments/comment/context'].flatMap(
+    (menu) => menus[menu],
+  );
   expect(items.map((item: { command: string }) => item.command).sort()).toEqual(Object.values(commands).sort());
   for (const item of items) {
     expect(item.when, item.command).toMatch(new RegExp(`^commentController == ${controllerId.replace(/\./g, '\\.')}( |$)`));
   }
-  // Edit Note and Delete Note are buttons of a written note only, not of a new note that was not written yet.
+  // Edit and Delete are buttons of a written answer only, and Delete Thread of a written note only, not of a text that
+  // was not written yet.
   for (const item of menus['comments/comment/title']) {
     expect(item.when, item.command).toContain(`comment == ${noteContext}`);
   }
-  // The first button of a box is its primary button, which Ctrl+Enter in the editor of the box runs.
-  expect(menus['comments/commentThread/context'][0].command).toBe(commands.addNote);
-  expect(menus['comments/comment/context'][0].command).toBe(commands.saveNote);
+  for (const item of menus['comments/commentThread/title']) {
+    expect(item.when, item.command).toContain(`commentThread == ${noteContext}`);
+  }
+  // The first button of a box is its primary button, which Ctrl+Enter in the editor of the box runs: Add Note in a new
+  // thread, Answer in the thread of a note.
+  const replies = menus['comments/commentThread/context'];
+  expect(replies.find((item: { when: string }) => / commentThreadIsEmpty$/.test(item.when)).command).toBe(commands.addNote);
+  expect(replies.find((item: { when: string }) => /!commentThreadIsEmpty$/.test(item.when)).command).toBe(commands.answer);
+  expect(menus['comments/comment/context'][0].command).toBe(commands.saveAnswer);
   // The buttons need the box of their note, so the Command Palette shows none of the commands.
   expect(menus.commandPalette).toEqual(Object.values(commands).map((command) => ({ command, when: 'false' })));
 });
@@ -137,7 +169,7 @@ test('the README and the guide name every setting that the manifest contributes'
   }
 });
 
-test('the package holds the bundle, the preview styles, the icon and the documents only', () => {
+test('the package holds the bundle, the styles and the scripts of the preview and the side view, the icons and the documents only', () => {
   const patterns = read('.vscodeignore')
     .split('\n')
     .filter((line) => line && !line.startsWith('#'));
@@ -145,7 +177,11 @@ test('the package holds the bundle, the preview styles, the icon and the documen
     '**',
     '!dist/extension.js',
     '!media/markdownPreview.css',
+    '!media/markdownPreview.js',
+    '!media/notesView.css',
+    '!media/notesView.js',
     '!resources/icon.png',
+    '!resources/notes-view.svg',
     '!package.json',
     '!README.md',
     '!CHANGELOG.md',

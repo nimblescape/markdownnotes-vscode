@@ -1,0 +1,240 @@
+/*
+ * SPDX-License-Identifier: MIT
+ * © 2026 Hannes Stauss (scalarion@nimblescape.com)
+ * Licensed under the MIT License. See LICENSE in the repository root for details.
+ */
+
+/*
+ * The styles of the side view "Notes" (R-SIDE-001, R-SIDE-002). The view uses
+ * the font, the colors and the buttons of the theme of VS Code. Each thread is
+ * a box; the selected thread has the color of the focus at its left side.
+ */
+
+body {
+  padding: 0 12px 12px;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.top {
+  margin: 8px 0;
+}
+
+.file {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account,
+.hint,
+.kind,
+.date {
+  color: var(--vscode-descriptionForeground);
+}
+
+.account {
+  margin-top: 2px;
+  font-size: 0.9em;
+}
+
+h2.new-title {
+  margin: 12px 0 4px;
+  font-size: 1em;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button.primary,
+button.secondary {
+  padding: 4px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+}
+
+button.primary {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button.secondary {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+button.link {
+  padding: 0;
+  border: none;
+  color: var(--vscode-textLink-foreground);
+  background: none;
+}
+
+button.link:hover {
+  text-decoration: underline;
+}
+
+button:focus-visible,
+textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+button.add {
+  margin: 4px 0 8px;
+}
+
+.thread {
+  margin: 8px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)));
+  border-left-width: 3px;
+  border-radius: 3px;
+}
+
+.thread.selected {
+  border-left-color: var(--vscode-focusBorder);
+}
+
+.thread-header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.thread-header .delete {
+  margin-left: auto;
+}
+
+.answer {
+  padding: 4px 0;
+}
+
+.answer + .answer {
+  border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.25));
+}
+
+.answer-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  align-items: baseline;
+  font-size: 0.9em;
+}
+
+.author {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.markdown-body {
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.markdown-body > :first-child {
+  margin-top: 4px;
+}
+
+.markdown-body > :last-child {
+  margin-bottom: 4px;
+}
+
+.markdown-body pre,
+.markdown-body code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  padding: 6px;
+  white-space: pre-wrap;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.12));
+}
+
+.markdown-body img {
+  max-width: 100%;
+}
+
+.answer-button {
+  margin-top: 4px;
+}
+
+.editor {
+  margin: 4px 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.tab {
+  padding: 2px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--vscode-foreground);
+  background: none;
+}
+
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--vscode-focusBorder);
+}
+
+textarea.text {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 6em;
+  padding: 4px 6px;
+  border: 1px solid var(--vscode-input-border, transparent);
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size, inherit);
+  resize: vertical;
+}
+
+.preview {
+  min-height: 6em;
+  padding: 2px 6px;
+  border: 1px dashed var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+}
+
+.problem {
+  margin: 4px 0;
+  padding: 4px 6px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+  color: var(--vscode-errorForeground, inherit);
+  background: var(--vscode-inputValidation-errorBackground, transparent);
+}
+
+.buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}

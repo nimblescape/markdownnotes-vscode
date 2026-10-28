@@ -5,57 +5,109 @@
  */
 
 /*
- * The styles of the callouts of the notes in the built-in Markdown preview
- * (R-PREV-001, R-PREV-002). They apply to the elements of the extension only,
- * so the rest of the preview keeps its look. The colors come from the theme of
- * VS Code; each one has a fallback for a page without the variables of the
- * theme, such as the HTML that another extension exports from the preview.
+ * The styles of the notes in the built-in Markdown preview (R-PREV-001,
+ * R-PREV-002). They apply to the elements of the extension only, so the rest
+ * of the preview keeps its look. The colors come from the theme of VS Code;
+ * each one has a fallback for a page without the variables of the theme, such
+ * as the HTML that another extension exports from the preview.
  *
- * A callout is a box with a colored bar at its left side, a header with the
- * number of an inline note, the author and the date, and the body of the note.
- * The number of an inline note also shows in its text, as a small badge.
+ * A note shows as a small icon: an inline note in the text, a block note in
+ * the left margin of the page. Its callout is hidden until the script of the
+ * preview shows it next to the icon: a box with a colored bar at its left
+ * side, and each answer with a header (author, date) and its body.
  */
 
+.nimblescape-note-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: 0.1em;
+  padding: 0 2px;
+  border-radius: 3px;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  opacity: 0.6;
+  line-height: 1;
+  vertical-align: 0.05em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nimblescape-note-icon:hover,
+.nimblescape-note-icon:focus-visible,
+.nimblescape-note-icon[aria-expanded='true'] {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.2));
+  text-decoration: none;
+}
+
+.nimblescape-note-icon svg {
+  width: 0.85em;
+  height: 0.85em;
+  fill: currentColor;
+}
+
+.nimblescape-note-count {
+  font-size: 0.7em;
+  font-weight: 600;
+}
+
+/* A block note: a line of no height between the blocks, with the icon in the left margin of the page. */
+.nimblescape-note-anchor {
+  position: relative;
+  height: 0;
+}
+
+.nimblescape-note-anchor > .nimblescape-note-icon {
+  position: absolute;
+  top: -1.1em;
+  left: -22px;
+  margin: 0;
+}
+
+.nimblescape-note:not([hidden]) {
+  display: block;
+}
+
 .nimblescape-note {
-  margin: 1em 0;
-  padding: 0.5em 1em;
-  border-left: 4px solid var(--vscode-editorInfo-foreground, #3794ff);
-  border-radius: 0 4px 4px 0;
-  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1));
+  position: fixed;
+  z-index: 100;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 12em;
+  max-width: min(32em, calc(100vw - 16px));
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid var(--vscode-editorHoverWidget-border, #c8c8c8);
+  border-left: 4px solid var(--vscode-textLink-foreground, #3794ff);
+  border-radius: 4px;
+  background: var(--vscode-editorHoverWidget-background, #f3f3f3);
+  color: var(--vscode-editorHoverWidget-foreground, inherit);
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+
+.nimblescape-note-answer {
+  padding: 6px 12px;
+}
+
+.nimblescape-note-answer + .nimblescape-note-answer {
+  border-top: 1px solid var(--vscode-editorHoverWidget-border, #c8c8c8);
 }
 
 .nimblescape-note-header {
   display: flex;
   flex-wrap: wrap;
+  gap: 0 8px;
   align-items: baseline;
-  gap: 0.5em;
-  margin-bottom: 0.25em;
-  color: var(--vscode-descriptionForeground, inherit);
-  font-size: 0.9em;
+  margin-bottom: 2px;
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground, #717171);
 }
 
 .nimblescape-note-author {
-  color: var(--vscode-foreground, inherit);
   font-weight: 600;
-}
-
-.nimblescape-note-number {
-  display: inline-block;
-  min-width: 1.5em;
-  padding: 0 0.4em;
-  border-radius: 0.75em;
-  background: var(--vscode-badge-background, #616161);
-  color: var(--vscode-badge-foreground, #ffffff);
-  font-size: 0.8em;
-  font-weight: 600;
-  line-height: 1.5em;
-  text-align: center;
-}
-
-/* The number of an inline note in its text: a badge that does not change the height of the line. */
-.nimblescape-note-reference {
-  margin-left: 0.15em;
-  line-height: 0;
+  color: var(--vscode-editorHoverWidget-foreground, inherit);
 }
 
 .nimblescape-note-body > :first-child {
@@ -66,11 +118,12 @@
   margin-bottom: 0;
 }
 
-/* A note that holds the start of another comment: the message, and the text of the note as it is. */
 .nimblescape-note-problem {
-  color: var(--vscode-errorForeground, #f14c4c);
+  margin: 6px 12px 0;
+  color: var(--vscode-editorWarning-foreground, #bf8803);
 }
 
 .nimblescape-note-text {
+  margin: 0;
   white-space: pre-wrap;
 }

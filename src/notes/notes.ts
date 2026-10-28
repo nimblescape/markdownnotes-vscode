@@ -5,16 +5,15 @@
 /**
  * The notes of a Markdown text, by their places in the lines of the text
  * ([R-NOTE-001](../../docs/requirements.md#r-note-001)). The text editor, the
- * Comments view, the folding and the warnings of the extension work with
- * these places. The module uses no API of VS Code.
+ * Comments view, the side view, the folding and the warnings of the extension
+ * work with these places. The module uses no API of VS Code.
  *
  * The notes come from markdown-it, the parser of the Markdown preview, with
  * the options of the preview, its rule for the front matter of a document,
- * and the inline rule of the markdown-it plugin
- * ([src/notes/syntax.ts](syntax.ts)). So the editor and the preview agree on
- * the notes: a comment in a code span, in a code block or in the front matter
- * of the document is no note, and a comment in a block quote or in a list
- * item is one.
+ * and the rules of the markdown-it plugin ([src/notes/syntax.ts](syntax.ts)).
+ * So the editor and the preview agree on the notes: a comment in a code span,
+ * in a code block or in the front matter of the document is no note, and a
+ * comment in a block quote or in a list item is one.
  *
  * markdown-it keeps the line of each block, not the column of a comment. The
  * text of a block in a block quote or in a list item also loses the prefix of
@@ -25,7 +24,19 @@
 
 import MarkdownIt from 'markdown-it';
 import type { StateBlock, Token } from 'markdown-it';
-import { type InlineNoteMeta, inlineNoteRule, innerText, noteTokenType, type NoteText, onlyComments, readNote } from './syntax';
+import {
+  type InlineNoteMeta,
+  inlineNoteRule,
+  innerText,
+  type Kind,
+  type NoteLinesMeta,
+  noteLinesRule,
+  noteLinesTokenType,
+  noteTokenType,
+  type NoteText,
+  onlyComments,
+  readNote,
+} from './syntax';
 
 /** Position is a place in the lines of a text: the index of the line and the index of the character in the line. */
 export interface Position {
@@ -33,7 +44,10 @@ export interface Position {
   character: number;
 }
 
-/** Place tells where a note stands: on lines of its own (`block`), or in the text of a paragraph or a heading (`inline`). */
+/**
+ * Place tells where a note stands: on lines of its own (`block`), or in the text of a line of a paragraph or a heading
+ * (`inline`). An inline note `<!-- note inline` on lines of its own has the place `block`.
+ */
 export type Place = 'block' | 'inline';
 
 /** Note is a comment of a Markdown text, with its place and its content. */
@@ -89,16 +103,26 @@ function frontMatter(state: StateBlock, startLine: number, endLine: number, sile
 }
 
 /**
+ * addNoteRules adds the rules of the notes to a markdown-it instance: the block rule of an inline note on lines of its
+ * own, and the inline rule of a comment in a text.
+ * @param md - The markdown-it instance.
+ */
+export function addNoteRules(md: MarkdownIt): void {
+  md.block.ruler.before('html_block', noteLinesTokenType, noteLinesRule, { alt: ['paragraph', 'reference', 'blockquote'] });
+  md.inline.ruler.before('html_inline', noteTokenType, inlineNoteRule);
+}
+
+/**
  * parser reads a Markdown text as the Markdown preview of VS Code does, with HTML, with the front matter of the
- * document and with the inline rule of the notes. It skips the rules that change only the text of the tokens.
+ * document and with the rules of the notes. It skips the rules that change only the text of the tokens.
  */
 const parser = new MarkdownIt({ html: true });
 parser.block.ruler.before('fence', 'front_matter', frontMatter, { alt: ['paragraph', 'reference', 'blockquote', 'list'] });
-parser.inline.ruler.before('html_inline', noteTokenType, inlineNoteRule);
+addNoteRules(parser);
 parser.core.ruler.disable(['linkify', 'replacements', 'smartquotes', 'text_join']);
 
 /** leafTypes are the tokens of the blocks that hold no other block, by which a new note finds its place. */
-const leafTypes = new Set(['paragraph_open', 'heading_open', 'fence', 'code_block', 'html_block', 'table_open', 'hr', 'front_matter']);
+const leafTypes = new Set(['paragraph_open', 'heading_open', 'fence', 'code_block', 'html_block', 'table_open', 'hr', 'front_matter', noteLinesTokenType]);
 
 /**
  * inlineParents are the tokens before an inline token whose text can hold a note: a note has several lines, and the
@@ -208,9 +232,27 @@ function noteAt(locator: Locator, content: string, start: number, end: number, p
   if (!note || !startPosition || !endPosition) {
     return undefined;
   }
-  // The lines of the text before the body: the line of `<!--` is the first.
-  const bodyLine = startPosition.line + note.bodyLine;
-  return { ...note, bodyLine, place, start: startPosition, end: endPosition, text, prefix };
+  return { ...note, place, start: startPosition, end: endPosition, text, prefix };
+}
+
+/**
+ * positionOf returns a function that returns the position of an offset of the source text of the parser.
+ * @param lines - The lines of the Markdown text, which the parser read joined with `\n`.
+ */
+function positionOf(lines: readonly string[]): (offset: number) => Position {
+  const starts: number[] = [];
+  let offset = 0;
+  for (const line of lines) {
+    starts.push(offset);
+    offset += line.length + 1;
+  }
+  return (target) => {
+    let line = 0;
+    while (line + 1 < starts.length && starts[line + 1] <= target) {
+      line++;
+    }
+    return { line, character: target - starts[line] };
+  };
 }
 
 /**
@@ -221,19 +263,29 @@ const parse = (lines: readonly string[]): Token[] => parser.parse(lines.join('\n
 
 /**
  * findNotes returns the notes of a Markdown text, with their places and their contents: each note of an HTML block
- * that holds only comments, and each inline note of a paragraph or a heading, where markdown-it reads the comment of
- * the note as a comment of Markdown. Every other comment is left out.
+ * that holds only comments, each inline note `<!-- note inline` on lines of its own, and each note in the text of a
+ * paragraph or a heading, where markdown-it reads the comment of the note as a comment of Markdown. Every other
+ * comment is left out.
  * @param lines - The lines of the Markdown text.
  */
 export function findNotes(lines: readonly string[]): Note[] {
-  if (!lines.some((line) => /<!--[ \t]*note[ \t]*$/i.test(line))) {
+  if (!lines.some((line) => /<!--[ \t]*note(?:[ \t]+inline)?[ \t]*$/i.test(line))) {
     return [];
   }
   const tokens = parse(lines);
+  const position = positionOf(lines);
   const notes: Note[] = [];
   const containers: Token[] = [];
   tokens.forEach((token, index) => {
-    if (token.type === 'blockquote_open' || token.type === 'list_item_open') {
+    if (token.type === noteLinesTokenType && token.map) {
+      const text = innerText(token.content);
+      const note = readNote(text);
+      const { start, end } = token.meta as NoteLinesMeta;
+      if (note) {
+        const prefix = containerPrefix(lines[token.map[0]], token.map[0], containers);
+        notes.push({ ...note, place: 'block', start: position(start), end: position(end), text, prefix });
+      }
+    } else if (token.type === 'blockquote_open' || token.type === 'list_item_open') {
       containers.push(token);
     } else if (token.type === 'blockquote_close' || token.type === 'list_item_close') {
       containers.pop();
@@ -273,20 +325,23 @@ export function findNotes(lines: readonly string[]): Note[] {
   return notes;
 }
 
-/** Insertion is the place of a new note: the line before which it goes, and the prefix of its lines. */
+/** Insertion is the place of a new note: the line before which it goes, the prefix of its lines, and its kind. */
 export interface Insertion {
   /** line is the index of the line before which the note goes; the number of lines puts it at the end. */
   line: number;
   /** prefix is the prefix of each line of the note. */
   prefix: string;
+  /** kind is the kind of the new note: `inline` in a paragraph or after a heading, `block` elsewhere. */
+  kind: Kind;
 }
 
 /**
  * insertionFor returns the place of a new note for a line of a Markdown text
- * ([R-EDIT-003](../../docs/requirements.md#r-edit-003)): after the block that holds the line, with the prefix of the
- * block, so that the note stays in the block quote or the list item of the block and does not split a paragraph. On
- * a line outside every block, for example a blank line, the note goes after the block before the line, or at the
- * start of the text.
+ * ([R-EDIT-003](../../docs/requirements.md#r-edit-003)). On a line of a paragraph, the note is an inline note after
+ * that line, so that it keeps its place in the text; after a heading and after an inline note, it is an inline note
+ * too. On a line of another block, it is a block note after the block. The note gets the prefix of the block, so that
+ * it stays in the block quote or the list item of the block. On a line outside every block, for example a blank line,
+ * the note is a block note after the block before the line, or at the start of the text.
  * @param lines - The lines of the Markdown text.
  * @param line - The index of the line.
  */
@@ -311,8 +366,13 @@ export function insertionFor(lines: readonly string[], line: number): Insertion 
   }
   const block = found ?? before;
   if (!block) {
-    return { line: 0, prefix: '' };
+    return { line: 0, prefix: '', kind: 'block' };
   }
   const [start, end] = block.token.map!;
-  return { line: end, prefix: block.token.type === 'front_matter' ? '' : containerPrefix(lines[start], start, block.containers) };
+  const prefix = block.token.type === 'front_matter' ? '' : containerPrefix(lines[start], start, block.containers);
+  if (found && block.token.type === 'paragraph_open') {
+    return { line: line + 1, prefix, kind: 'inline' };
+  }
+  const inline = found !== undefined && (block.token.type === 'heading_open' || block.token.type === noteLinesTokenType);
+  return { line: end, prefix, kind: inline ? 'inline' : 'block' };
 }

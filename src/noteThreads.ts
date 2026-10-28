@@ -7,48 +7,60 @@
  * ([R-TEXT-001](../docs/requirements.md#r-text-001) and
  * [R-VIEW-001](../docs/requirements.md#r-view-001)), with the comments API of
  * VS Code: a comment controller with one comment thread for each note of an
- * open Markdown document. The box of a thread shows the body of the note as
- * Markdown, with the author and the date of its front matter. Its button
- * "Edit Note" turns the box into an editor of Markdown, and "Save" writes the
- * text back into the comment of the note in the document
+ * open Markdown document, and one comment for each answer of the note. The
+ * box of a thread shows each answer as Markdown, with the author and the date
+ * of its front matter, as the extension GitHub Pull Requests shows the
+ * comments of a pull request; it collapses and expands
+ * ([R-TEXT-002](../docs/requirements.md#r-text-002)). The text editor shows the
+ * source of each note dimmed ([R-TEXT-003](../docs/requirements.md#r-text-003)).
+ *
+ * The button "Edit" of an answer turns it into an editor of Markdown, and
+ * "Save" writes the text back into the answer in the comment of the note
  * ([R-EDIT-001](../docs/requirements.md#r-edit-001) and
- * [R-EDIT-002](../docs/requirements.md#r-edit-002)). The `+` at a line of a
- * Markdown document adds a new note ([R-EDIT-003](../docs/requirements.md#r-edit-003)),
- * and "Delete Note" removes a note ([R-EDIT-004](../docs/requirements.md#r-edit-004)).
- * A text that a note must not hold, for example another comment, is not
- * written: the box shows a message and opens the editor with the text again
- * ([R-NOTE-003](../docs/requirements.md#r-note-003)).
+ * [R-EDIT-002](../docs/requirements.md#r-edit-002)). The `+` at a line adds a
+ * new note ([R-EDIT-003](../docs/requirements.md#r-edit-003)), the reply box
+ * adds an answer ([R-EDIT-005](../docs/requirements.md#r-edit-005)), and
+ * "Delete" removes an answer or the whole note
+ * ([R-EDIT-004](../docs/requirements.md#r-edit-004)). A new note and a new
+ * answer name the GitHub login of the user as their author
+ * ([R-GEN-006](../docs/requirements.md#r-gen-006)). A text that a note must
+ * not hold, for example another comment, is not written: the box shows a
+ * message and opens the editor with the text again
+ * ([R-NOTE-003](../docs/requirements.md#r-note-003)). The side view
+ * ([src/notesView.ts](notesView.ts)) uses the same operations.
  *
  * The threads follow the text: after each change of a document, and a pause
  * of changeDelay, the extension reads the notes again and keeps the thread of
  * each note whose comment kept its text, so that an open box stays open. The
  * extension also warns at a note that holds the start of another comment, and
- * lets the editor fold the notes of several lines.
+ * lets the editor fold the notes on lines of their own.
  */
 
 import * as vscode from 'vscode';
-import { deleteNote, type Edit, insertNote, type Problem, replaceBody } from './notes/edits';
+import { appendAnswer, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, type Result } from './notes/edits';
 import { findNotes, type Note, type Position } from './notes/notes';
-import { formatDate, normalizeBody, parseDate } from './notes/syntax';
+import { type Answer, formatDate, normalizeBody, parseDate } from './notes/syntax';
 import type { Settings } from './settings';
 
 /** controllerId is the identifier of the comment controller, which the conditions of the menus name. */
 export const controllerId = 'nimblescape.markdownNotes';
 
-/** noteContext is the context value of the comment of a note, which the conditions of the menus name. */
+/** noteContext is the context value of a thread of a note and of the comment of an answer, which the menus name. */
 export const noteContext = 'nimblescape.markdownNotes.note';
 
-/** draftContext is the context value of the comment of a new note that was not written yet. */
+/** draftContext is the context value of the comment of a new note or a new answer that was not written yet. */
 export const draftContext = 'nimblescape.markdownNotes.draft';
 
 /** commands are the commands of the buttons of the boxes. */
 export const commands = {
   addNote: 'nimblescape.markdownNotes.addNote',
   discardNewNote: 'nimblescape.markdownNotes.discardNewNote',
-  editNote: 'nimblescape.markdownNotes.editNote',
-  deleteNote: 'nimblescape.markdownNotes.deleteNote',
-  saveNote: 'nimblescape.markdownNotes.saveNote',
+  answer: 'nimblescape.markdownNotes.answer',
+  editAnswer: 'nimblescape.markdownNotes.editAnswer',
+  deleteAnswer: 'nimblescape.markdownNotes.deleteAnswer',
+  saveAnswer: 'nimblescape.markdownNotes.saveAnswer',
   cancelEdit: 'nimblescape.markdownNotes.cancelEdit',
+  deleteNote: 'nimblescape.markdownNotes.deleteNote',
 } as const;
 
 /** changeDelay is the pause, in milliseconds, after the last change of a document before its notes are read again. */
@@ -64,7 +76,7 @@ const reopenDelay = 300;
 /** threadLabel is the label of the box of a note. */
 const threadLabel = 'Markdown note';
 
-/** NoteComment is the comment of the thread of a note: the body, the author and the date of the note. */
+/** NoteComment is the comment of one answer of a note in its thread, or of a text that was not written yet. */
 export class NoteComment implements vscode.Comment {
   body: vscode.MarkdownString;
   mode = vscode.CommentMode.Preview;
@@ -75,22 +87,23 @@ export class NoteComment implements vscode.Comment {
 
   /**
    * @param thread - The thread of the comment.
-   * @param note - The note, or undefined for a new note that was not written yet.
+   * @param index - The index of the answer, or undefined for a text that was not written yet: a new note in a thread
+   *   without a note, or a new answer in the thread of a note.
    * @param document - The document of the note, whose folder is the base of the relative links of the body.
-   * @param draft - For a new note: its text and the author of the new note.
+   * @param answer - The answer, or for a text that was not written yet its text and its author.
    */
   constructor(
     readonly thread: vscode.CommentThread,
-    public note: Note | undefined,
+    public index: number | undefined,
     document: vscode.Uri,
-    draft?: { text: string; author: string | undefined },
+    answer: Answer | { body: string; author: string | undefined; date?: undefined },
   ) {
-    this.body = markdown(note?.body ?? draft?.text ?? '', document);
-    this.author = { name: (note ? note.author : draft?.author) || 'Note' };
-    this.timestamp = note?.date ? parseDate(note.date) : undefined;
+    this.body = markdown(answer.body, document);
+    this.author = { name: answer.author || 'Note' };
+    this.timestamp = answer.date ? parseDate(answer.date) : undefined;
     // A date of another form shows as written.
-    this.label = note?.date && !this.timestamp ? note.date : undefined;
-    this.contextValue = note ? noteContext : draftContext;
+    this.label = answer.date && !this.timestamp ? answer.date : undefined;
+    this.contextValue = index === undefined ? draftContext : noteContext;
   }
 
   /** text returns the text of the body, which VS Code sets to the text of the editor before a button runs. */
@@ -114,12 +127,22 @@ function markdown(text: string, document: vscode.Uri): vscode.MarkdownString {
 
 /** Entry is the thread of a note of a document. */
 interface Entry {
+  /** id identifies the thread while the document is open, also after changes of the document. */
+  id: string;
   thread: vscode.CommentThread;
-  comment: NoteComment;
+  /** comments are the comments of the answers, and the comment of a new answer that was not written yet. */
+  comments: NoteComment[];
+  note: Note;
   /** raw is the text of the comment in the document, by which a thread finds its note after a change. */
   raw: string;
   /** expected is the position of the note after an edit of the extension, which the next reading finds there. */
   expected: Position | undefined;
+}
+
+/** NoteEntry is a note of a document with the identifier of its thread, for the side view. */
+export interface NoteEntry {
+  id: string;
+  note: Note;
 }
 
 /**
@@ -129,9 +152,13 @@ interface Entry {
 export function problemMessage(problem: Problem): string {
   switch (problem.kind) {
     case 'nested':
-      return `The note was not saved: a note must not contain another comment. Remove "${problem.text}" from its text.`;
+      return `The change was not saved: a note must not contain another comment. Remove "${problem.text}" from its text.`;
     case 'structure':
-      return 'The note was not saved: in this place, the text would change the Markdown around the note, for example with a blank line in a note inside a paragraph. Write the text without blank lines, or put the note on lines of its own.';
+      return 'The change was not saved: the text would change the note or the Markdown around it. A blank line ends a note in the text of a line, and a front matter (---, author: …, ---) in a text starts a new answer.';
+    case 'signIn':
+      return 'The change was not saved: sign in with GitHub, so that the note names its author. The extension asks for the sign-in when you add a note or an answer.';
+    case 'missing':
+      return 'The change was not saved: the file no longer holds the note.';
   }
 }
 
@@ -155,47 +182,57 @@ const linesOf = (document: vscode.TextDocument): string[] => document.getText().
  * rangeOf returns the range of a note in its document.
  * @param note - The note.
  */
-const rangeOf = (note: Note): vscode.Range => new vscode.Range(note.start.line, note.start.character, note.end.line, note.end.character);
+export const rangeOf = (note: Note): vscode.Range => new vscode.Range(note.start.line, note.start.character, note.end.line, note.end.character);
 
 /** NoteThreads keeps the threads of the notes of the open Markdown documents. */
 export class NoteThreads implements vscode.Disposable {
   private readonly controller: vscode.CommentController;
   private readonly diagnostics: vscode.DiagnosticCollection;
+  /** dimmed is the decoration of the source of the notes in the text editor. */
+  private readonly dimmed: vscode.TextEditorDecorationType;
   /** entries holds the threads of the notes of each document, by its URI. */
   private readonly entries = new Map<string, Entry[]>();
   /** timers holds the pending reading of each changed document, by its URI. */
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   /** notes holds the notes of each document for one version, which the folding shares. */
   private readonly notes = new WeakMap<vscode.TextDocument, { version: number; notes: Note[] }>();
+  /** listeners are the listeners of the changes of the notes of a document. */
+  private readonly listeners = new Set<(document: vscode.Uri) => void>();
+  /** count is the number of threads that the extension created, for their identifiers. */
+  private count = 0;
 
   /**
    * @param settingsOf - Returns the settings of a document.
-   * @param authorOf - Returns the author of a new note in a document, or undefined.
+   * @param authorOf - Returns the GitHub login of the user after a sign-in, or undefined without one.
    */
   constructor(
     private readonly settingsOf: (document: vscode.Uri) => Settings,
-    private readonly authorOf: (document: vscode.Uri) => Promise<string | undefined>,
+    private readonly authorOf: () => Promise<string | undefined>,
   ) {
     this.controller = vscode.comments.createCommentController(controllerId, 'Markdown notes');
-    this.controller.options = { prompt: 'Add a note…', placeHolder: 'The text of the note, in Markdown' };
+    this.controller.options = { prompt: 'Add a note…', placeHolder: 'The text, in Markdown' };
     this.controller.commentingRangeProvider = {
       provideCommentingRanges: (document) => (isNoteDocument(document) ? [new vscode.Range(0, 0, Math.max(document.lineCount - 1, 0), 0)] : []),
     };
     this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNotes');
+    this.dimmed = vscode.window.createTextEditorDecorationType({ opacity: '0.55' });
   }
 
   /** register registers the commands, the listeners and the folding, and reads the notes of the open documents. */
   register(): vscode.Disposable[] {
     const registrations = [
-      vscode.commands.registerCommand(commands.addNote, (reply: vscode.CommentReply) => this.add(reply)),
+      vscode.commands.registerCommand(commands.addNote, (reply: vscode.CommentReply) => this.writeNew(reply.thread, reply.text, undefined)),
       vscode.commands.registerCommand(commands.discardNewNote, (reply: vscode.CommentReply) => reply.thread.dispose()),
-      vscode.commands.registerCommand(commands.editNote, (comment: NoteComment) => this.edit(comment)),
+      vscode.commands.registerCommand(commands.answer, (reply: vscode.CommentReply) => this.answerIn(reply.thread, reply.text, undefined)),
+      vscode.commands.registerCommand(commands.editAnswer, (comment: NoteComment) => this.show(comment, vscode.CommentMode.Editing)),
       vscode.commands.registerCommand(commands.cancelEdit, (comment: NoteComment) => this.cancel(comment)),
-      vscode.commands.registerCommand(commands.saveNote, (comment: NoteComment) => this.save(comment)),
-      vscode.commands.registerCommand(commands.deleteNote, (comment: NoteComment) => this.delete(comment)),
+      vscode.commands.registerCommand(commands.saveAnswer, (comment: NoteComment) => this.save(comment)),
+      vscode.commands.registerCommand(commands.deleteAnswer, (comment: NoteComment) => this.deleteFrom(comment)),
+      vscode.commands.registerCommand(commands.deleteNote, (thread: vscode.CommentThread) => this.deleteThread(thread)),
       vscode.workspace.onDidOpenTextDocument((document) => this.sync(document)),
       vscode.workspace.onDidChangeTextDocument((event) => this.syncLater(event.document)),
       vscode.workspace.onDidCloseTextDocument((document) => this.forget(document.uri)),
+      vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => this.decorate(editor))),
       vscode.languages.registerFoldingRangeProvider('markdown', {
         /** provideFoldingRanges folds each note on lines of its own with more than one line, as a comment. */
         provideFoldingRanges: (document) =>
@@ -219,11 +256,40 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
+   * onDidChange adds a listener of the changes of the notes of a document.
+   * @param listener - The listener, which gets the URI of the document.
+   */
+  onDidChange(listener: (document: vscode.Uri) => void): vscode.Disposable {
+    this.listeners.add(listener);
+    return { dispose: () => this.listeners.delete(listener) };
+  }
+
+  /**
    * threadsOf returns the threads of the notes of a document, in the order of the notes.
    * @param document - The URI of the document.
    */
   threadsOf(document: vscode.Uri): vscode.CommentThread[] {
     return (this.entries.get(document.toString()) ?? []).map((entry) => entry.thread);
+  }
+
+  /**
+   * entriesOf returns the notes of an open document with the identifiers of their threads, in the order of the notes.
+   * @param document - The URI of the document.
+   */
+  entriesOf(document: vscode.Uri): NoteEntry[] {
+    return (this.entries.get(document.toString()) ?? []).map(({ id, note }) => ({ id, note }));
+  }
+
+  /**
+   * expand opens the box of the thread of a note in the text editor.
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread.
+   */
+  expand(document: vscode.Uri, id: string): void {
+    const entry = this.entryOf(document, id);
+    if (entry) {
+      entry.thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+    }
   }
 
   /**
@@ -237,6 +303,15 @@ export class NoteThreads implements vscode.Disposable {
       this.notes.set(document, known);
     }
     return known.notes;
+  }
+
+  /**
+   * decorate dims the source of the notes of the document of a text editor.
+   * @param editor - The text editor.
+   */
+  private decorate(editor: vscode.TextEditor): void {
+    const notes = isNoteDocument(editor.document) && !editor.document.isClosed ? this.notesOf(editor.document) : [];
+    editor.setDecorations(this.dimmed, notes.map(rangeOf));
   }
 
   /**
@@ -303,30 +378,55 @@ export class NoteThreads implements vscode.Disposable {
           return diagnostic;
         }),
     );
+    for (const editor of vscode.window.visibleTextEditors) {
+      if (editor.document === document) {
+        this.decorate(editor);
+      }
+    }
+    for (const listener of this.listeners) {
+      listener(document.uri);
+    }
   }
 
   /**
-   * create builds the thread of a note.
+   * create builds the thread of a note, or makes a new thread of the `+` the thread of a new note.
    * @param document - The document.
    * @param note - The note.
    * @param raw - The text of its comment in the document.
+   * @param thread - The thread of the `+`, or undefined for a new thread.
    */
-  private create(document: vscode.TextDocument, note: Note, raw: string): Entry {
-    const thread = this.controller.createCommentThread(document.uri, rangeOf(note), []);
-    const comment = new NoteComment(thread, note, document.uri);
-    thread.comments = [comment];
-    thread.canReply = false;
-    thread.label = threadLabel;
-    thread.contextValue = noteContext;
-    thread.collapsibleState = this.settingsOf(document.uri).expandInEditor
-      ? vscode.CommentThreadCollapsibleState.Expanded
-      : vscode.CommentThreadCollapsibleState.Collapsed;
-    return { thread, comment, raw, expected: undefined };
+  private create(document: vscode.TextDocument, note: Note, raw: string, thread?: vscode.CommentThread): Entry {
+    const created = thread ?? this.controller.createCommentThread(document.uri, rangeOf(note), []);
+    created.canReply = true;
+    created.label = threadLabel;
+    created.contextValue = noteContext;
+    if (!thread) {
+      created.collapsibleState = this.settingsOf(document.uri).expandInEditor
+        ? vscode.CommentThreadCollapsibleState.Expanded
+        : vscode.CommentThreadCollapsibleState.Collapsed;
+    }
+    const entry: Entry = { id: String(++this.count), thread: created, comments: [], note, raw, expected: undefined };
+    this.fill(entry, document.uri);
+    return entry;
   }
 
   /**
-   * update gives a thread the place and the content of its note. A comment whose box is being edited keeps the text
-   * of its editor.
+   * fill gives a thread a comment for each answer of its note. A comment whose box is being edited keeps the text of
+   * its editor, and a new answer that was not written yet stays at the end.
+   * @param entry - The thread.
+   * @param document - The URI of the document.
+   */
+  private fill(entry: Entry, document: vscode.Uri): void {
+    const comments = entry.note.answers.map((answer, index) => {
+      const old = entry.comments[index];
+      return old && old.index !== undefined && old.mode === vscode.CommentMode.Editing ? old : new NoteComment(entry.thread, index, document, answer);
+    });
+    entry.comments = [...comments, ...entry.comments.filter((comment) => comment.index === undefined)];
+    entry.thread.comments = entry.comments;
+  }
+
+  /**
+   * update gives a thread the place and the content of its note.
    * @param entry - The thread.
    * @param document - The URI of the document.
    * @param note - The note.
@@ -337,16 +437,12 @@ export class NoteThreads implements vscode.Disposable {
     if (!entry.thread.range?.isEqual(range)) {
       entry.thread.range = range;
     }
-    const changed = entry.raw !== raw || entry.comment.note === undefined;
+    const changed = entry.raw !== raw;
     entry.raw = raw;
     entry.expected = undefined;
-    entry.comment.note = note;
-    if (changed && entry.comment.mode !== vscode.CommentMode.Editing) {
-      const comment = new NoteComment(entry.thread, note, document);
-      entry.comment = comment;
-      entry.thread.comments = [comment];
-      entry.thread.contextValue = noteContext;
-      entry.thread.label = threadLabel;
+    entry.note = note;
+    if (changed) {
+      this.fill(entry, document);
     }
   }
 
@@ -363,14 +459,26 @@ export class NoteThreads implements vscode.Disposable {
     }
     this.entries.delete(key);
     this.diagnostics.delete(document);
+    for (const listener of this.listeners) {
+      listener(document);
+    }
   }
 
   /**
-   * entryOf returns the thread of a comment.
-   * @param comment - The comment.
+   * entryOf returns the thread of a note by its identifier.
+   * @param document - The URI of the document.
+   * @param id - The identifier.
    */
-  private entryOf(comment: NoteComment): Entry | undefined {
-    return this.entries.get(comment.thread.uri.toString())?.find((entry) => entry.comment === comment || entry.thread === comment.thread);
+  private entryOf(document: vscode.Uri, id: string): Entry | undefined {
+    return this.entries.get(document.toString())?.find((entry) => entry.id === id);
+  }
+
+  /**
+   * entryOfThread returns the entry of a thread, or undefined for a thread without a note.
+   * @param thread - The thread.
+   */
+  private entryOfThread(thread: vscode.CommentThread): Entry | undefined {
+    return this.entries.get(thread.uri.toString())?.find((entry) => entry.thread === thread);
   }
 
   /**
@@ -380,28 +488,27 @@ export class NoteThreads implements vscode.Disposable {
    */
   private show(comment: NoteComment, mode: vscode.CommentMode): void {
     comment.mode = mode;
-    comment.thread.comments = [comment];
+    const entry = this.entryOfThread(comment.thread);
+    comment.thread.comments = entry ? [...entry.comments] : [comment];
   }
 
   /**
-   * edit opens the editor of the box of a note.
-   * @param comment - The comment of the note.
-   */
-  private edit(comment: NoteComment): void {
-    this.show(comment, vscode.CommentMode.Editing);
-  }
-
-  /**
-   * cancel closes the editor of a box and drops its text: the box shows the note as the document holds it. A new
-   * note that was not written yet goes away.
+   * cancel closes the editor of a box and drops its text: the box shows the answer as the document holds it. A new
+   * note that was not written yet goes away with its thread, and a new answer with its comment.
    * @param comment - The comment.
    */
   private cancel(comment: NoteComment): void {
-    if (!comment.note) {
+    const entry = this.entryOfThread(comment.thread);
+    if (!entry) {
       comment.thread.dispose();
       return;
     }
-    comment.body = markdown(comment.note.body, comment.thread.uri);
+    if (comment.index === undefined) {
+      entry.comments = entry.comments.filter((other) => other !== comment);
+      entry.thread.comments = entry.comments;
+      return;
+    }
+    comment.body = markdown(entry.note.answers[comment.index]?.body ?? '', comment.thread.uri);
     this.show(comment, vscode.CommentMode.Preview);
   }
 
@@ -433,103 +540,228 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
-   * save writes the text of the editor of a box into the note, or adds a new note that was refused before.
+   * change writes the edit of a note of a document: it reads the notes first, so that the edit fits the text of the
+   * document, and again after the edit.
+   * @param uri - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   * @param edit - Returns the edit for the lines of the document and the note.
+   * @param keepsNote - Whether the note stays after the edit, so that its thread finds it at its place.
+   * @param written - Runs after the edit and before the notes are read again.
+   */
+  private async change(
+    uri: vscode.Uri,
+    id: string,
+    edit: (lines: string[], note: Note) => Result,
+    keepsNote: (note: Note) => boolean,
+    written?: () => void,
+  ): Promise<Problem | undefined> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    this.sync(document);
+    const entry = this.entryOf(uri, id);
+    if (!entry) {
+      return { kind: 'missing' };
+    }
+    const result = edit(linesOf(document), entry.note);
+    if ('problem' in result) {
+      return result.problem;
+    }
+    entry.expected = keepsNote(entry.note) ? entry.note.start : undefined;
+    if (!(await this.apply(document, result.edit))) {
+      entry.expected = undefined;
+      return { kind: 'structure' };
+    }
+    written?.();
+    this.sync(document);
+    return undefined;
+  }
+
+  /**
+   * saveAnswer writes a text into an answer of a note ([R-EDIT-002](../docs/requirements.md#r-edit-002)).
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   * @param index - The index of the answer.
+   * @param text - The text of the editor.
+   * @param written - Runs after the edit and before the notes are read again.
+   */
+  saveAnswer(document: vscode.Uri, id: string, index: number, text: string, written?: () => void): Promise<Problem | undefined> {
+    return this.change(document, id, (lines, note) => (index < note.answers.length ? replaceAnswer(lines, note, index, normalizeBody(text)) : { problem: { kind: 'missing' } }), () => true, written);
+  }
+
+  /**
+   * answer adds an answer of the signed-in user to a note ([R-EDIT-005](../docs/requirements.md#r-edit-005)).
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   * @param text - The text of the answer.
+   * @param written - Runs after the edit and before the notes are read again.
+   */
+  async answer(document: vscode.Uri, id: string, text: string, written?: () => void): Promise<Problem | undefined> {
+    const author = await this.authorOf();
+    if (!author) {
+      return { kind: 'signIn' };
+    }
+    return this.change(document, id, (lines, note) => appendAnswer(lines, note, normalizeBody(text), { author, date: formatDate(new Date()) }), () => true, written);
+  }
+
+  /**
+   * deleteAnswer removes an answer of a note, and the note with its only answer
+   * ([R-EDIT-004](../docs/requirements.md#r-edit-004)).
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   * @param index - The index of the answer.
+   */
+  deleteAnswer(document: vscode.Uri, id: string, index: number): Promise<Problem | undefined> {
+    return this.change(
+      document,
+      id,
+      (lines, note) => (index < note.answers.length ? deleteAnswer(lines, note, index) : { problem: { kind: 'missing' } }),
+      (note) => note.answers.length > 1,
+    );
+  }
+
+  /**
+   * deleteNote removes a note with all its answers ([R-EDIT-004](../docs/requirements.md#r-edit-004)).
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   */
+  deleteNote(document: vscode.Uri, id: string): Promise<Problem | undefined> {
+    return this.change(document, id, (lines, note) => ({ edit: deleteNote(lines, note) }), () => false);
+  }
+
+  /**
+   * addNote adds a note of the signed-in user for a line of a document ([R-EDIT-003](../docs/requirements.md#r-edit-003)).
+   * @param uri - The URI of the document.
+   * @param line - The index of the line.
+   * @param text - The text of the note.
+   * @param thread - The thread of the `+`, which becomes the thread of the note, or undefined for a new thread.
+   * @returns The identifier of the thread of the new note, or the problem that prevents it.
+   */
+  async addNote(uri: vscode.Uri, line: number, text: string, thread?: vscode.CommentThread): Promise<{ id: string } | { problem: Problem }> {
+    const author = await this.authorOf();
+    if (!author) {
+      return { problem: { kind: 'signIn' } };
+    }
+    const document = await vscode.workspace.openTextDocument(uri);
+    const result = insertNote(linesOf(document), line, normalizeBody(text), { author, date: formatDate(new Date()) });
+    if ('problem' in result) {
+      return result;
+    }
+    if (!(await this.apply(document, result.edit))) {
+      return { problem: { kind: 'structure' } };
+    }
+    const lines = linesOf(document);
+    const note = findNotes(lines).find((candidate) => candidate.start.line === result.start!.line && candidate.start.character === result.start!.character);
+    if (!note) {
+      return { problem: { kind: 'structure' } };
+    }
+    // The thread of the new note takes it, so that the next reading keeps the thread.
+    const entry = this.create(document, note, document.getText(rangeOf(note)), thread);
+    entry.thread.range = rangeOf(note);
+    entry.thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+    entry.expected = note.start;
+    this.entries.set(uri.toString(), [...(this.entries.get(uri.toString()) ?? []), entry]);
+    this.sync(document);
+    return { id: entry.id };
+  }
+
+  /**
+   * save writes the text of the editor of a box: into its answer, as a new answer, or as a new note.
    * @param comment - The comment, whose body VS Code set to the text of the editor.
    */
   private async save(comment: NoteComment): Promise<void> {
-    if (!comment.note) {
-      await this.write(comment.thread, comment.text(), comment);
+    const entry = this.entryOfThread(comment.thread);
+    if (!entry) {
+      await this.writeNew(comment.thread, comment.text(), comment);
       return;
     }
-    const document = await vscode.workspace.openTextDocument(comment.thread.uri);
-    this.sync(document);
-    const entry = this.entryOf(comment);
-    const note = entry?.comment.note;
-    if (!entry || !note) {
-      void vscode.window.showErrorMessage('The note was not saved: the document no longer holds it.');
+    if (comment.index === undefined) {
+      await this.answerIn(comment.thread, comment.text(), comment);
       return;
     }
-    const result = replaceBody(linesOf(document), note, normalizeBody(comment.text()));
-    if ('problem' in result) {
-      this.refuse(comment, result.problem);
-      return;
+    // VS Code closed the editor of the box; the comment leaves the editing mode, so that "Edit" opens it again.
+    const problem = await this.saveAnswer(comment.thread.uri, entry.id, comment.index, comment.text(), () => (comment.mode = vscode.CommentMode.Preview));
+    if (problem) {
+      this.refuse(comment, problem);
     }
-    entry.expected = note.start;
-    if (!(await this.apply(document, result.edit))) {
-      entry.expected = undefined;
-      this.refuse(comment, { kind: 'structure' });
-      return;
-    }
-    // VS Code closed the editor of the box; the comment leaves the editing mode, so that "Edit Note" opens it again.
-    this.show(comment, vscode.CommentMode.Preview);
-    this.sync(document);
   }
 
   /**
-   * add writes a new note from the reply box of a new thread.
-   * @param reply - The thread and the text of its reply box.
-   */
-  private async add(reply: vscode.CommentReply): Promise<void> {
-    await this.write(reply.thread, reply.text, undefined);
-  }
-
-  /**
-   * write adds a new note to the document of a thread, after the block of the last line of the thread. The thread
-   * becomes the thread of the note. A refused text stays in the box, in an editor.
+   * writeNew adds a new note from the reply box of a new thread, after the block of the last line of the thread. The
+   * thread becomes the thread of the note. A refused text stays in the box, in an editor.
    * @param thread - The new thread.
    * @param text - The text of the note.
    * @param draft - The comment that holds a refused text from before, or undefined.
    */
-  private async write(thread: vscode.CommentThread, text: string, draft: NoteComment | undefined): Promise<void> {
-    const document = await vscode.workspace.openTextDocument(thread.uri);
-    const author = (await this.authorOf(document.uri)) || undefined;
-    const comment = draft ?? new NoteComment(thread, undefined, document.uri, { text, author });
-    comment.body = markdown(text, document.uri);
-    thread.canReply = false;
-    thread.label = threadLabel;
-    const result = insertNote(linesOf(document), thread.range?.end.line ?? 0, normalizeBody(text), { author, date: formatDate(new Date()) });
+  private async writeNew(thread: vscode.CommentThread, text: string, draft: NoteComment | undefined): Promise<void> {
+    const result = await this.addNote(thread.uri, thread.range?.end.line ?? 0, text, thread);
     if ('problem' in result) {
+      const comment = draft ?? new NoteComment(thread, undefined, thread.uri, { body: text, author: undefined });
+      comment.body = markdown(text, thread.uri);
+      thread.canReply = false;
+      thread.label = threadLabel;
       thread.contextValue = draftContext;
       this.refuse(comment, result.problem);
-      return;
     }
-    const entries = this.entries.get(document.uri.toString()) ?? [];
-    const entry: Entry = { thread, comment, raw: '', expected: result.start };
-    this.entries.set(document.uri.toString(), [...entries, entry]);
-    if (!(await this.apply(document, result.edit))) {
-      this.entries.set(document.uri.toString(), entries);
-      this.refuse(comment, { kind: 'structure' });
-      return;
-    }
-    this.show(comment, vscode.CommentMode.Preview);
-    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
-    this.sync(document);
   }
 
   /**
-   * delete removes a note from its document. Undo in the editor brings it back.
-   * @param comment - The comment of the note.
+   * answerIn adds an answer from the reply box of the thread of a note. A refused text stays in the thread, in an
+   * editor of a new answer.
+   * @param thread - The thread.
+   * @param text - The text of the answer.
+   * @param draft - The comment that holds a refused text from before, or undefined.
    */
-  private async delete(comment: NoteComment): Promise<void> {
-    const document = await vscode.workspace.openTextDocument(comment.thread.uri);
-    this.sync(document);
-    const note = this.entryOf(comment)?.comment.note;
-    if (!note) {
+  private async answerIn(thread: vscode.CommentThread, text: string, draft: NoteComment | undefined): Promise<void> {
+    const entry = this.entryOfThread(thread);
+    if (!entry) {
       return;
     }
-    if (await this.apply(document, deleteNote(linesOf(document), note))) {
-      this.sync(document);
+    const problem = await this.answer(thread.uri, entry.id, text, () => {
+      if (draft) {
+        entry.comments = entry.comments.filter((comment) => comment !== draft);
+      }
+    });
+    if (problem) {
+      const comment = draft ?? new NoteComment(thread, undefined, thread.uri, { body: text, author: undefined });
+      comment.body = markdown(text, thread.uri);
+      if (!draft) {
+        entry.comments = [...entry.comments, comment];
+      }
+      this.refuse(comment, problem);
     }
   }
 
-  /** dispose removes the threads, the warnings and the comment controller. */
+  /**
+   * deleteFrom removes the answer of a comment. Undo in the editor brings it back.
+   * @param comment - The comment of the answer.
+   */
+  private async deleteFrom(comment: NoteComment): Promise<void> {
+    const entry = this.entryOfThread(comment.thread);
+    if (entry && comment.index !== undefined) {
+      await this.deleteAnswer(comment.thread.uri, entry.id, comment.index);
+    }
+  }
+
+  /**
+   * deleteThread removes the note of a thread with all its answers. Undo in the editor brings it back.
+   * @param thread - The thread.
+   */
+  private async deleteThread(thread: vscode.CommentThread): Promise<void> {
+    const entry = this.entryOfThread(thread);
+    if (entry) {
+      await this.deleteNote(thread.uri, entry.id);
+    }
+  }
+
+  /** dispose removes the threads, the warnings, the decoration and the comment controller. */
   dispose(): void {
     for (const timer of this.timers.values()) {
       clearTimeout(timer);
     }
     this.timers.clear();
     this.entries.clear();
+    this.listeners.clear();
     this.diagnostics.dispose();
+    this.dimmed.dispose();
     this.controller.dispose();
   }
 }

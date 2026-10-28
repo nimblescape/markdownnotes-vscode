@@ -1,7 +1,7 @@
 {
   "name": "nimblescape-markdown-notes",
   "displayName": "nimblescape Markdown Notes",
-  "description": "Notes in Markdown files, written as HTML comments: the text editor shows each note in a box with its author and date that edits the note as Markdown, the Comments view lists the notes, and the Markdown preview shows them as callouts. Every change of a note goes back into the comment in the file.",
+  "description": "Notes in Markdown files, written as HTML comments: threads of answers with their authors and dates. The text editor shows each note in a box that edits it as Markdown, the Markdown preview shows an icon with a callout, and a side view edits and answers the notes. Every change goes back into the comment in the file.",
   "publisher": "nimblescape",
   "author": {
     "name": "nimblescape e.U.",
@@ -66,12 +66,13 @@
     "workspace"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onUri"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
-      "description": "The extension reads the notes of open Markdown files and changes a file only when you add, edit or delete a note. It runs no program of the workspace."
+      "description": "The extension reads the notes of open Markdown files and changes a file only when you add, edit, answer or delete a note. It runs no program of the workspace."
     },
     "virtualWorkspaces": {
       "supported": true
@@ -82,6 +83,27 @@
     "markdown.previewStyles": [
       "./media/markdownPreview.css"
     ],
+    "markdown.previewScripts": [
+      "./media/markdownPreview.js"
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nimblescape-markdown-notes",
+          "title": "Markdown Notes",
+          "icon": "resources/notes-view.svg"
+        }
+      ]
+    },
+    "views": {
+      "nimblescape-markdown-notes": [
+        {
+          "type": "webview",
+          "id": "nimblescape.markdownNotes.notes",
+          "name": "Notes"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "nimblescape.markdownNotes.addNote",
@@ -94,19 +116,24 @@
         "category": "Markdown Notes"
       },
       {
-        "command": "nimblescape.markdownNotes.editNote",
-        "title": "Edit Note",
+        "command": "nimblescape.markdownNotes.answer",
+        "title": "Answer",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.editAnswer",
+        "title": "Edit",
         "category": "Markdown Notes",
         "icon": "$(edit)"
       },
       {
-        "command": "nimblescape.markdownNotes.deleteNote",
-        "title": "Delete Note",
+        "command": "nimblescape.markdownNotes.deleteAnswer",
+        "title": "Delete",
         "category": "Markdown Notes",
         "icon": "$(trash)"
       },
       {
-        "command": "nimblescape.markdownNotes.saveNote",
+        "command": "nimblescape.markdownNotes.saveAnswer",
         "title": "Save",
         "category": "Markdown Notes"
       },
@@ -114,6 +141,12 @@
         "command": "nimblescape.markdownNotes.cancelEdit",
         "title": "Cancel",
         "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteNote",
+        "title": "Delete Thread",
+        "category": "Markdown Notes",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -124,26 +157,38 @@
           "when": "commentController == nimblescape.markdownNotes && commentThreadIsEmpty"
         },
         {
+          "command": "nimblescape.markdownNotes.answer",
+          "group": "inline@1",
+          "when": "commentController == nimblescape.markdownNotes && !commentThreadIsEmpty"
+        },
+        {
           "command": "nimblescape.markdownNotes.discardNewNote",
           "group": "inline@2",
           "when": "commentController == nimblescape.markdownNotes && commentThreadIsEmpty"
         }
       ],
+      "comments/commentThread/title": [
+        {
+          "command": "nimblescape.markdownNotes.deleteNote",
+          "group": "inline",
+          "when": "commentController == nimblescape.markdownNotes && commentThread == nimblescape.markdownNotes.note"
+        }
+      ],
       "comments/comment/title": [
         {
-          "command": "nimblescape.markdownNotes.editNote",
+          "command": "nimblescape.markdownNotes.editAnswer",
           "group": "inline@1",
           "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
         },
         {
-          "command": "nimblescape.markdownNotes.deleteNote",
+          "command": "nimblescape.markdownNotes.deleteAnswer",
           "group": "inline@2",
           "when": "commentController == nimblescape.markdownNotes && comment == nimblescape.markdownNotes.note"
         }
       ],
       "comments/comment/context": [
         {
-          "command": "nimblescape.markdownNotes.saveNote",
+          "command": "nimblescape.markdownNotes.saveAnswer",
           "group": "inline@1",
           "when": "commentController == nimblescape.markdownNotes"
         },
@@ -163,19 +208,27 @@
           "when": "false"
         },
         {
-          "command": "nimblescape.markdownNotes.editNote",
+          "command": "nimblescape.markdownNotes.answer",
           "when": "false"
         },
         {
-          "command": "nimblescape.markdownNotes.deleteNote",
+          "command": "nimblescape.markdownNotes.editAnswer",
           "when": "false"
         },
         {
-          "command": "nimblescape.markdownNotes.saveNote",
+          "command": "nimblescape.markdownNotes.deleteAnswer",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.saveAnswer",
           "when": "false"
         },
         {
           "command": "nimblescape.markdownNotes.cancelEdit",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteNote",
           "when": "false"
         }
       ]
@@ -183,22 +236,17 @@
     "configuration": {
       "title": "nimblescape Markdown Notes",
       "properties": {
-        "nimblescape.markdownNotes.author": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "The author that a new note names in its front matter (`author:`). When the value is empty, the extension takes `user.name` of the Git configuration of the file; without one, a new note names no author. A note that exists keeps its author."
-        },
         "nimblescape.markdownNotes.expandInEditor": {
           "type": "boolean",
           "default": false,
           "scope": "resource",
-          "markdownDescription": "Open the box of each note in the text editor when the file opens. The value `false` shows only a mark at the line of each note; a click on the mark opens the box."
+          "markdownDescription": "Open the box of each note in the text editor when the file opens. The value `false` shows only a mark at the lines of each note; a click on the mark opens the box."
         },
         "nimblescape.markdownNotes.showInPreview": {
           "type": "boolean",
           "default": true,
           "scope": "resource",
-          "markdownDescription": "Show the notes as callouts in the Markdown preview. The value `false` shows the preview as without the extension, without the notes."
+          "markdownDescription": "Show the notes as icons with callouts in the Markdown preview. The value `false` shows the preview without the notes; the text around an inline note stays one paragraph."
         }
       }
     }
