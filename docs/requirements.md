@@ -87,9 +87,10 @@ publishes the extension until Hannes asks for it.
 author of every note and every answer is always known. It uses the GitHub
 authentication of VS Code (the accounts menu of VS Code). Before the user adds
 or answers a note, the extension asks for the sign-in when the user is not
-signed in; without a sign-in, it writes nothing. The author of a new note or
-answer is the GitHub login of the signed-in account. The user cannot type
-another author.
+signed in; without a sign-in, it writes no new note and no answer. The
+author of a new note or answer is the GitHub login of the signed-in account.
+The user cannot type another author. Reading, editing and deleting need no
+sign-in ([decision 3](#decisions)).
 
 ## Notes
 
@@ -170,7 +171,7 @@ Friday works.
 A line `---` that is followed by field lines and a closing `---` starts the
 next answer. The text editor, the side view and the preview show the answers
 of a thread one below the other, each with its author and date. One comment
-per thread is the decision of Hannes (2026-10-28).
+per thread is [decision 1](#decisions).
 
 ### R-NOTE-005
 
@@ -259,7 +260,8 @@ adds a note at the line of the cursor of the text editor
 
 **Edit.** The user can edit each answer of a note: in the side view
 ([R-SIDE-002](#r-side-002)), and in the box of the text editor with the button
-"Edit", which turns the answer into an editor of Markdown.
+"Edit", which turns the answer into an editor of Markdown. This includes the
+answers of other authors ([decision 2](#decisions)).
 
 ### R-EDIT-002
 
@@ -284,8 +286,9 @@ local date and time in minutes with the offset of the zone.
 
 ### R-EDIT-004
 
-**Delete.** The user deletes an answer with "Delete". The extension removes
-the answer from the comment. Deleting the only answer, or the whole thread
+**Delete.** The user deletes an answer with "Delete", also an answer of
+another author ([decision 2](#decisions)). The extension removes the answer
+from the comment. Deleting the only answer, or the whole thread
 with "Delete Thread", removes the comment of the note; a note on lines of its
 own loses its lines. The editor of the file can undo the change.
 
@@ -339,20 +342,25 @@ then shows the file as without the extension, without the notes; inline notes
 are still removed with their blanks, so that the paragraphs stay whole. A
 change of the setting renders the open previews again.
 
-## Open questions
+## Decisions
 
-1. **Storage of answers** ([R-NOTE-004](#r-note-004)). Decided by Hannes on
-   2026-10-28: one comment holds the whole thread. The other choice was one
-   comment `<!-- note reply` for each answer, directly after the note.
-2. **Rights.** This document assumes that every user who can change the file
-   can edit and delete every answer, also the answers of other authors, as in
-   the file itself. The other choice is that the buttons "Edit" and "Delete"
-   show only at the answers of the signed-in author.
-3. **Reading without sign-in.** This document assumes that the text editor,
-   the side view and the preview show the notes also without a GitHub
-   sign-in, and that only adding a note or an answer needs it, because only
-   these write an author ([R-GEN-006](#r-gen-006)). Editing and deleting an
-   answer keep or remove its front matter, so they need no sign-in.
+Hannes decided these questions on 2026-10-28. The requirements above follow
+them.
+
+1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one comment holds the
+   whole thread. The other choice was one comment `<!-- note reply` for each
+   answer, directly after the note.
+2. **Rights** ([R-EDIT-001](#r-edit-001), [R-EDIT-004](#r-edit-004)): every
+   user who can change the file can edit and delete every answer, also the
+   answers of other authors, as in the file itself. The other choice was
+   that the buttons "Edit" and "Delete" show only at the answers of the
+   signed-in author.
+3. **Work without sign-in** ([R-GEN-006](#r-gen-006)): the text editor, the
+   side view and the preview show the notes also without a GitHub sign-in,
+   and the user can edit and delete answers without it. Only adding a note
+   or an answer needs the sign-in, because only these write an author.
+   Editing and deleting an answer keep or remove its front matter. The other
+   choice was that editing and deleting need the sign-in too.
 
 ---
 
