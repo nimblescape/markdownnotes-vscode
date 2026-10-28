@@ -56,15 +56,18 @@ describes its security model.
 | `package-lock.json` | The locked development tools. npm writes this file, and nobody edits it by hand. |
 | `.node-version` | The Node release of the development tools. `actions/setup-node` in the workflows and local Node version managers read it. |
 | `.vscodeignore` | Lists the files of the package: `dist/extension.js`, `media/markdownPreview.css`, `media/markdownPreview.js`, `media/notesView.css`, `media/notesView.js`, `resources/icon.png`, `resources/notes-view.svg`, `package.json`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`. |
-| `.github/workflows/ci.yml` | Checks the types, runs the unit tests and the tests in VS Code, and packages every push to `main`, every pull request and the commit of every release. The release publishes the VSIX of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
+| `.github/workflows/ci.yml` | Checks the types, runs the unit tests and the tests in VS Code, and packages every push to `main`, every pull request and the commit of every release: the VSIX, and the npm package of the command line tool, which it also runs on Node.js 20. The release publishes the VSIX and the npm package of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/vscode-versions.yml` | Runs `ci.yml` once per week with VS Code Insiders and with the lowest supported VS Code version. |
 | `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace. A dry run tests without a change. The section [Release](#release) explains it. |
+| `.github/workflows/npm-package.yml` | Publishes the npm package of the command line tool after each successful run of the workflow "Release", or tests the publish after a dry run. The section [npm package](#npm-package) explains it. |
 | `.github/workflows/release-dry-run.yml` | Fails on a pull request that changes the release process (`release.yml`, `ci.yml` or `scripts/release-checks.mjs`) until a dry run on its branch tested the change (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/marketplace-identity.yml` | Prints the Marketplace member ID of the publishing identity, to check the setup of the repository. |
 | `.github/dependabot.yml` | Proposes weekly updates of the development tools and of the pinned actions. |
 | `scripts/build-vscode-tests.mjs` | Bundles each test of `test/vscode/` into `out/test/vscode/` for the tests in VS Code. |
 | `scripts/install-local.mjs`, `scripts/uninstall-local.mjs` | Install the built package into every profile of the VS Code of this computer, and remove it again. |
 | `scripts/marketplace-setup.sh` | Sets up the Marketplace publishing of the repository. The section [Setup of a repository](#setup-of-a-repository) explains it. |
+| `scripts/npm-package.mjs`, `scripts/npm-package.test.mjs` | Builds the npm package of the command line tool from `dist/cli.js` into `out/npm/` and packs it into `nimblescape-markdown-notes-<version>.tgz`, and the test of its manifest. |
+| `npm/README.md` | The README of the npm package, which npm shows on the page of the package. |
 | `scripts/release-checks.mjs`, `scripts/release-checks.test.mjs` | The check of rule 4 of the [release rules](#release-rules), which the workflows run, and its test. |
 | `.vscode/launch.json`, `.vscode/tasks.json` | Build the bundle and start a VS Code window that loads the extension from this folder. |
 
@@ -75,7 +78,9 @@ The development tools are TypeScript, esbuild, vitest,
 tests in VS Code, and [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce),
 the Microsoft tool that packages and publishes extensions. Everything runs on
 Node.js 24: the release in `.node-version` for the tools and CI, and the
-runtime of VS Code 1.125 and later (`engines.vscode`) for the extension.
+runtime of VS Code 1.125 and later (`engines.vscode`) for the extension. The
+command line tool of the formatter, `dist/cli.js`, also runs on Node.js 20
+and later outside VS Code.
 
 | Command | Effect |
 | --- | --- |
@@ -83,8 +88,9 @@ runtime of VS Code 1.125 and later (`engines.vscode`) for the extension.
 | `npm run typecheck` | Checks the types with `tsc`. esbuild does not check them. |
 | `npm test` | Runs the unit tests with vitest. The tests touch no installed editor. |
 | `npm run test:vscode` | Builds the bundle and the tests in VS Code, downloads VS Code to `.vscode-test/` and runs the tests in it. On Linux without a display, run it as `xvfb-run -a npm run test:vscode`. `VSCODE_TEST_VERSION=insiders` or a version such as `1.125.0` selects another VS Code. |
-| `npm run build` | Bundles `dist/extension.js` with a source map. |
+| `npm run build` | Bundles `dist/extension.js` and the command line tool `dist/cli.js` with source maps. `node dist/cli.js format <file>` runs the tool. |
 | `npm run package` | Builds `nimblescape-markdown-notes-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
+| `npm run package:npm` | Builds the production bundles and packs the npm package of the command line tool, `nimblescape-markdown-notes-<version>.tgz`, with `scripts/npm-package.mjs`. `npx -y ./nimblescape-markdown-notes-<version>.tgz format <file>` runs it. |
 | `npm run install-local` | Builds the package and installs it into every profile of the VS Code of this computer; `-- --profile <name>` installs into one profile. Reload the window after an update of an active extension. |
 | `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdown-notes` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
 
@@ -706,6 +712,41 @@ Only when the publisher, the app or the variables are lost:
 3. Set the organization variables `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` to the application ID and the directory ID of the app. Organization variables reach private repositories only on a paid GitHub plan.
 4. Set up a repository with the script, and run its workflow "Marketplace identity".
 5. On the publisher management page, open the publisher `nimblescape`, then "Members", and add the member ID that the workflow printed with the role "Contributor".
+
+## npm package
+
+The formatter on the command line ([R-FMT-004](docs/requirements.md#r-fmt-004))
+is the npm package `nimblescape-markdown-notes`, with the version of the
+extension, so that programs and AI agents run it with
+`npx -y nimblescape-markdown-notes format <file>`. The job "Test and package"
+of `ci.yml` packs it with `npm run package:npm`, installs the packed file on
+Node.js 20, the oldest release that it supports, and runs it. The workflow
+`npm-package.yml` publishes it after each successful run of the workflow
+"Release", from the artifact "npm" of the CI job of that run, so the package
+holds the code of the released version. It is a workflow of its own, because
+`release.yml` is the same in every extension repository of nimblescape. After
+a dry run of "Release", its job "npm dry run" runs `npm publish --dry-run`.
+After a release, its job "Publish to npm" adds the package to the files of the
+GitHub release and publishes it with
+[trusted publishing](https://docs.npmjs.com/trusted-publishers): npm
+exchanges the OpenID Connect token of the job, so no npm token is stored. It
+skips a version that npm holds already. GitHub starts the workflow only in its
+version on the default branch.
+
+Trusted publishing needs a package that exists on npm. Until it exists, the
+job "Publish to npm" publishes nothing and reports it. Set up the package
+once, after the first release:
+
+1. Sign in to [npmjs.com](https://www.npmjs.com) with the npm account of nimblescape e.U., with two-factor authentication.
+2. Download `nimblescape-markdown-notes-<version>.tgz` from the GitHub release and publish it on a computer: `npm login`, then `npm publish nimblescape-markdown-notes-<version>.tgz --access public`.
+3. On npmjs.com, open the package, then "Settings", "Trusted Publisher", "GitHub Actions": the organization `nimblescape`, the repository `nimblescape-markdown-notes`, the workflow `npm-package.yml` and the environment `npm`.
+4. In the same settings, under "Publishing access", choose "Require two-factor authentication and disallow tokens", so that only the workflow publishes.
+
+From the next release on, the workflow publishes each version. The
+environment `npm` of the repository ("Settings", "Environments") can limit
+the publish to the branch `main`. No other workflow, npm script or file of
+`scripts/` runs `npm publish` without `--dry-run`, and nobody runs
+`npm unpublish`: npm never gives a version number again.
 
 ---
 

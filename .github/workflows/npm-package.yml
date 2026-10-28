@@ -1,0 +1,159 @@
+# SPDX-License-Identifier: MIT
+# © 2026 Hannes Stauss (scalarion@nimblescape.com)
+# Licensed under the MIT License. See LICENSE in the repository root for details.
+
+# Publish the npm package of the formatter on the command line
+# (docs/requirements.md, R-FMT-004) after each successful run of the workflow
+# "Release". The CI job of the release run packs the package
+# nimblescape-markdown-notes-<version>.tgz (ci.yml, artifact "npm"), so the
+# package holds the code of the released version, and this workflow neither
+# tests nor builds it again. It is a workflow of its own, because release.yml
+# is the same in every extension repository of nimblescape (CONTRIBUTING.md,
+# "Release").
+# After a dry run of "Release", the job "dry run" runs `npm publish --dry-run`
+# and changes nothing. After a release, the job "publish" checks that the
+# GitHub release v<version> exists, adds the npm package to its files when it
+# holds none, and publishes the package to npm with trusted publishing: npm
+# exchanges the OpenID Connect token of the job for this workflow and the
+# environment "npm", so no npm token is stored. It skips a version that npm
+# holds already, and only reports a package that npm does not hold yet,
+# because trusted publishing needs a package that exists: its first version is
+# published once by hand (CONTRIBUTING.md, "npm package").
+# GitHub starts this workflow only in its version on the default branch.
+
+name: npm package
+run-name: npm package of ${{ github.event.workflow_run.display_title }}
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One publish at a time, and a running publish is never cancelled.
+  group: npm-package
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    name: npm dry run
+    if: github.event.workflow_run.conclusion == 'success' && endsWith(github.event.workflow_run.display_title, '(dry run)')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # Downloads the npm package of the release run.
+      actions: read
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up the pinned Node release
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Download the npm package of the release run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Publish the npm package as a dry run
+        run: npm publish ./*.tgz --access public --dry-run
+
+  publish:
+    name: Publish to npm
+    if: github.event.workflow_run.conclusion == 'success' && !endsWith(github.event.workflow_run.display_title, '(dry run)')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The rules of the environment decide which runs may publish, and the trusted publisher of the package on npm names
+    # this workflow and this environment.
+    environment: npm
+    permissions:
+      # Adds the npm package to the files of the GitHub release.
+      contents: write
+      # Downloads the npm package of the release run.
+      actions: read
+      # npm exchanges the OpenID Connect token of this job (trusted publishing).
+      id-token: write
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The pinned Node release brings npm 11, which publishes with trusted publishing.
+      - name: Set up the pinned Node release
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          registry-url: https://registry.npmjs.org
+
+      - name: Download the npm package of the release run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      # The name of the package is the name of the manifest, and its file name is <name>-<version>.tgz.
+      - name: Find the version of the npm package
+        id: package
+        run: |
+          name=$(node -p 'require("./package.json").name')
+          files=(./*.tgz)
+          if [ "${#files[@]}" != 1 ] || ! [[ "${files[0]}" =~ ^\./$name-([0-9]+\.[0-9]+\.[0-9]+)\.tgz$ ]]; then
+            echo "::error::The release run holds no single npm package $name-<version>.tgz: ${files[*]}"
+            exit 1
+          fi
+          {
+            echo "name=$name"
+            echo "version=${BASH_REMATCH[1]}"
+            echo "tgz=${files[0]#./}"
+          } >> "$GITHUB_OUTPUT"
+
+      # A release run that ended before its GitHub release, for example in a re-run, publishes nothing.
+      - name: Add the npm package to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ steps.package.outputs.version }}
+          TGZ: ${{ steps.package.outputs.tgz }}
+        run: |
+          if ! gh release view "$TAG" --json assets --jq '.assets[].name' > assets.txt; then
+            echo "::error::The GitHub release $TAG does not exist."
+            exit 1
+          fi
+          if grep -Fqx "$TGZ" assets.txt; then
+            echo "The release $TAG keeps its file $TGZ."
+          else
+            gh release upload "$TAG" "$TGZ"
+          fi
+
+      # npm view fails with E404 for a package that npm does not hold, and gives one version as a string, more as a
+      # list.
+      - name: Publish the npm package
+        env:
+          NAME: ${{ steps.package.outputs.name }}
+          VERSION: ${{ steps.package.outputs.version }}
+          TGZ: ${{ steps.package.outputs.tgz }}
+        run: |
+          if ! versions=$(npm view "$NAME" versions --json 2>&1); then
+            if grep -q E404 <<< "$versions"; then
+              echo "::notice::npm holds no package $NAME yet: publish $TGZ of the GitHub release once by hand, then add the trusted publisher (CONTRIBUTING.md, npm package)."
+              exit 0
+            fi
+            echo "$versions"
+            exit 1
+          fi
+          if node -e 'process.exit([].concat(JSON.parse(process.argv[1])).includes(process.env.VERSION) ? 0 : 1)' "$versions"; then
+            echo "npm holds $NAME $VERSION already."
+            exit 0
+          fi
+          npm publish "./$TGZ" --access public

@@ -3,9 +3,10 @@
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
 # Keep the installed development tools, the bundle, the built tests, the
-# downloaded VS Code and the built packages out of Git.
+# downloaded VS Code and the built packages (VSIX and npm) out of Git.
 node_modules/
 dist/
 out/
 .vscode-test/
 *.vsix
+*.tgz

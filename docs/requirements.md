@@ -936,7 +936,10 @@ as the extension does on save.
 - `--help` shows the help, and `--version` the version of the tool and of the
   format of the notes ([R-NOTE-007](#r-note-007)).
 
-The specification of the format of the notes for AI agents
+The tool is the npm package `nimblescape-markdown-notes`, with the version of
+the extension and published with each release, so that
+`npx -y nimblescape-markdown-notes format <file>` runs it without an
+installation. The specification of the format of the notes for AI agents
 ([docs/format.md](format.md)) tells agents to run the tool after a change of
 a file with notes.
 
