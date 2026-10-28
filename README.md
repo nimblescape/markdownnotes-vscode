@@ -93,8 +93,8 @@ describes each step and where its protection ends.
 - **Formatter.** The extension formats a Markdown file when you save it:
   each paragraph on one line with its hard line breaks, aligned tables,
   no spaces at the end of a line, one blank line between blocks, and `<wbr>`
-  before each start marker. Code, HTML, a front matter and the notes stay as
-  they are. Programs and AI agents run the same formatter on the command line
+  before each start marker, which every note gets. Code, HTML, a front matter
+  and the answers of the notes stay as they are. Programs and AI agents run the same formatter on the command line
   with Node.js 22 or later, from the npm package `@nimblescape/markdown-notes`:
   `npx -y @nimblescape/markdown-notes format paper.md`, or with `--check`,
   which changes nothing and exits with 1 when a file is not formatted.

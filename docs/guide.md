@@ -640,9 +640,9 @@ on "Format Document" (Shift+Alt+F). It changes:
 
 It keeps code blocks, HTML and comments (also the comment of the format of
 the notes), a front matter, math blocks (`$$`), containers (`:::`), headings
-underlined with `===` or `---`, and the notes as they are. When the formatted
-text would show other blocks or another text in the preview, it changes
-nothing. Undo takes a change back.
+underlined with `===` or `---`, and the answers of the notes as they are; of
+a note, it changes only the start marker. When the formatted text would show
+other blocks or another text in the preview, it changes nothing. Undo takes a change back.
 
 To turn it off, add to your settings (`settings.json`):
 

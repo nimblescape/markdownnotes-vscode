@@ -197,7 +197,7 @@ web page, so the extension:
   one edit of the lines that it formats, on "Format Document" and, with the
   default `editor.formatOnSave` of the manifest for `[markdown]`, on each
   save of a Markdown file. It keeps code blocks, blocks of HTML, a front
-  matter and the notes as they are, and returns the text unchanged when the
+  matter and the answers of the notes as they are, and returns the text unchanged when the
   formatted text would show other blocks or another text in the Markdown
   preview. The settings `editor.formatOnSave` and `editor.defaultFormatter`
   of VS Code for `[markdown]` turn it off.

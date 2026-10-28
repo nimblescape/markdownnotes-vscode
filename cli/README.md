@@ -48,10 +48,13 @@ request.
 - No line ends with spaces, apart from a hard line break; one blank line
   stands between two blocks and around each heading with `#`; the file ends
   with one line break.
+- Each start marker of a note of the extension starts with `<wbr>`, and a
+  note without a start marker gets one at the start of the text of its block,
+  so that GitHub shows the paragraph whole and every note has its highlight.
 
 It keeps code blocks, HTML and comments, a front matter, math blocks (`$$`),
-containers (`:::`), headings underlined with `===` or `---`, and the notes of
-the extension as they are. When the formatted text would show other blocks or
+containers (`:::`), headings underlined with `===` or `---`, and the answers
+of the notes of the extension as they are. When the formatted text would show other blocks or
 another text in a Markdown preview, it keeps the text as it was. A file keeps
 its line breaks (LF or CRLF) and its byte order mark.
 

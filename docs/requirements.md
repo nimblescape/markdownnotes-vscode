@@ -1003,8 +1003,9 @@ that Undo takes the whole change back.
 **What the formatter keeps.** The formatter keeps as they are: code blocks,
 blocks of HTML (also comments and the comment of the format of the notes,
 [R-NOTE-007](#r-note-007)), a front matter, blocks of math (`$$`),
-containers (`:::`), setext headings and the notes. The definition of a
-footnote stays on a line of its own. It reads the text as the
+containers (`:::`), setext headings and the answers of the notes; of a
+note, it changes only the start marker ([R-FMT-002](#r-fmt-002)). The
+definition of a footnote stays on a line of its own. It reads the text as the
 Markdown preview reads it, and keeps the text as it was when the formatted
 text would show other blocks or another text in the preview.
 
