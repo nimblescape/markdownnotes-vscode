@@ -362,12 +362,11 @@ Every extension of the publisher `nimblescape` uses one name,
 | Package file | `nimblescape-<name>-<version>.vsix` | `nimblescape-markdown-notes-<version>.vsix` |
 | Display name | `nimblescape <Title>` | `nimblescape Markdown Notes` |
 
-The repository was created as `nimblescape/nimblescape-markdown`. Rename it
-to `nimblescape/nimblescape-markdown-notes` (Settings > General > Repository
-name) before the [Marketplace setup](#setup-of-a-repository), because
+The repository was created as `nimblescape/nimblescape-markdown` and renamed
+to `nimblescape/nimblescape-markdown-notes` on 2026-10-28, before the
+[Marketplace setup](#setup-of-a-repository), because
 `scripts/marketplace-setup.sh` requires that the name of the repository equals
-the `name` of `package.json`, and the links of the documents already use the
-new name. GitHub forwards the old address to the new one.
+the `name` of `package.json`. GitHub forwards the old address to the new one.
 
 The prefix keeps the name apart from the names of other publishers, because
 the Marketplace accepts a `name` only once. The Marketplace cannot rename an
