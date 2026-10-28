@@ -1,0 +1,65 @@
+<!--
+SPDX-License-Identifier: MIT
+© 2026 Hannes Stauss (scalarion@nimblescape.com)
+Licensed under the MIT License. See LICENSE in the repository root for details.
+-->
+
+# Example of notes
+
+This file shows notes of nimblescape Markdown Notes as GitHub shows them: each
+note is a footnote at the end of the page. Open the file in VS Code with the
+extension to see the same notes as boxes in the text editor, as icons in the
+Markdown preview, and in the side view "Notes". The
+[user guide](guide.md#write-a-note) explains the syntax.
+
+## Release
+
+Version 2.0 comes out in November.[^note-k7q2] The agents <!--[note-m3x8-->change the work of teams[^note-m3x8] in three ways.
+
+[^note-k7q2]: **hannes** · 2026-10-28 10:15+01:00
+
+    Which day exactly?
+
+    > **anna** · 2026-10-28 11:02+01:00
+    >
+    > Friday, **November 13**.
+    >
+    > > **hannes** · 2026-10-28 11:30+01:00
+    > >
+    > > Thanks, then I change the text.
+
+    > **bob** · 2026-10-28 09:00-02:00
+    >
+    > The beta starts one week before.
+
+[^note-m3x8]: **anna** · 2026-10-28 09:40Z
+
+    Which three ways? The script of the plan lists them:
+
+    ```sh
+    npm run plan -- --list
+    ```
+
+    > **hannes** · 2026-10-28 12:05+01:00
+    >
+    > The output:
+    >
+    > ```text
+    > 1. Faster reviews
+    > 2. Fewer meetings
+    > 3. Shared notes
+    > ```
+
+## Tasks
+
+- Update the user guide.
+- Test the <!--[note-p4d1-->side view[^note-p4d1] on Windows.
+
+[^note-p4d1]: **anna** · 2026-10-28 14:20+01:00
+
+    - [ ] Windows 11
+    - [ ] Windows 10
+
+The other footnotes of a file stay footnotes.[^1]
+
+[^1]: A footnote of the document, which is no note.

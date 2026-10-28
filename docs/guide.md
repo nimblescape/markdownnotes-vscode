@@ -76,7 +76,9 @@ and its first line is a header. Every other footnote, for example `[^1]`,
 stays a footnote: the extension shows it nowhere and never changes it.
 
 GitHub and other Markdown tools show each note as a footnote: a small number
-at the reference, and the header and the body at the end of the page.
+at the reference, and the header and the body at the end of the page. The
+file [example.md](example.md) holds notes with replies, code blocks and a task
+list; open it on GitHub to see how GitHub shows them.
 
 ### Author and date
 
