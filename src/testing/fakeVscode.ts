@@ -24,6 +24,10 @@ export class FakeUri {
     readonly fragment = '',
   ) {}
 
+  static from(components: { scheme: string; path?: string; query?: string; authority?: string; fragment?: string }): FakeUri {
+    return new FakeUri(components.scheme, components.path ?? '', components.query, components.authority, components.fragment);
+  }
+
   static parse(text: string): FakeUri {
     const match = /^([a-z][\w+.-]*):(?:\/\/([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?$/i.exec(text);
     if (!match) {
@@ -168,6 +172,23 @@ interface FakeCodeActionProvider {
   provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: [] }): FakeCodeAction[];
 }
 
+/** FakeEventEmitter is an event of the fake API, which calls its listeners on fire. */
+export class FakeEventEmitter<T> {
+  private readonly listeners: ((value: T) => void)[] = [];
+  readonly event = (listener: (value: T) => void) => {
+    this.listeners.push(listener);
+    return { dispose: () => undefined };
+  };
+
+  fire(value: T): void {
+    for (const listener of this.listeners) {
+      listener(value);
+    }
+  }
+
+  dispose(): void {}
+}
+
 /** FakeWorkspaceEdit stands for a vscode.WorkspaceEdit. */
 export class FakeWorkspaceEdit {
   readonly replacements: { uri: FakeUri; range: FakeRange; text: string }[] = [];
@@ -209,6 +230,30 @@ export class FakeFoldingRange {
   ) {}
 }
 
+/** FakeTabInputText stands for a vscode.TabInputText: the input of a tab of a text editor. */
+export class FakeTabInputText {
+  constructor(readonly uri: FakeUri) {}
+}
+
+/** FakeTab stands for a vscode.Tab. */
+export interface FakeTab {
+  input: unknown;
+  isPreview?: boolean;
+}
+
+/** ShowOptions stands for the vscode.TextDocumentShowOptions that the extension gives. */
+interface ShowOptions {
+  viewColumn?: number;
+  preview?: boolean;
+  preserveFocus?: boolean;
+  selection?: FakeRange;
+}
+
+/** FakeFileSystemProvider stands for the part of a vscode.FileSystemProvider that VS Code reads to open a document. */
+interface FakeFileSystemProvider {
+  readFile(uri: FakeUri): Uint8Array | Promise<Uint8Array>;
+}
+
 /** FakeThemeColor stands for a vscode.ThemeColor. */
 export class FakeThemeColor {
   constructor(readonly id: string) {}
@@ -218,6 +263,10 @@ export class FakeThemeColor {
 export class FakeDocument {
   version = 1;
   isClosed = false;
+  /** isDirty tells whether the document has changes that are not saved: an edit sets it, and a save clears it. */
+  isDirty = false;
+  /** saves counts the saves of the document. */
+  saves = 0;
 
   constructor(
     readonly uri: FakeUri,
@@ -249,6 +298,12 @@ export class FakeDocument {
   lineAt(line: number): { text: string; range: FakeRange } {
     const text = this.text.split(/\r\n|\r|\n/)[line];
     return { text, range: new FakeRange(line, 0, line, text.length) };
+  }
+
+  async save(): Promise<boolean> {
+    this.saves++;
+    this.isDirty = false;
+    return true;
   }
 }
 
@@ -304,6 +359,7 @@ export class FakeEditor {
       const cursor = this.document.offsetAt(this.current.active);
       this.document.text = this.document.text.slice(0, start) + text + this.document.text.slice(end);
       this.document.version++;
+      this.document.isDirty = true;
       const moved = cursor >= end ? cursor - (end - start) + text.length : cursor > start ? start : cursor;
       this.selection = { active: this.document.positionAt(moved) };
     }
@@ -454,11 +510,18 @@ export class Fake {
    * tabGroups are the groups of tabs of the windows of VS Code, with the URIs of their tabs, and the active tab with
    * the type of its webview or custom editor and its label.
    */
-  tabGroups: { viewColumn: number; tabs: { input: { uri: FakeUri } }[]; activeTab?: { input: { viewType?: string; uri?: FakeUri }; label: string } }[] = [];
+  tabGroups: { viewColumn: number; tabs: FakeTab[]; activeTab?: FakeTab & { label?: string } }[] = [];
+  /** closedTabs records the tabs that the extension closed. */
+  closedTabs: FakeTab[] = [];
   /** workspaceFolder is the path of the folder of the workspace. */
   workspaceFolder = '/folder/';
-  /** files holds the texts of the files that are not open, by their paths; openTextDocument opens them. */
+  /**
+   * files holds the texts of the files that are not open, and the texts on disk of the files, by their paths;
+   * openTextDocument opens them.
+   */
   files = new Map<string, string>();
+  /** providers holds the file systems of the extension, by their schemes; openTextDocument reads their documents. */
+  providers = new Map<string, FakeFileSystemProvider>();
   registrations: Registration[] = [];
   /** api is the module `vscode` of the fake. */
   readonly api: Record<string, unknown>;
@@ -481,18 +544,22 @@ export class Fake {
       CodeActionKind: FakeCodeActionKind,
       CodeActionTriggerKind: { Invoke: 1, Automatic: 2 },
       WorkspaceEdit: FakeWorkspaceEdit,
+      EventEmitter: FakeEventEmitter,
+      FileSystemError: { NoPermissions: (message: string) => new Error(message), FileNotFound: (uri: FakeUri) => new Error(`no file ${uri.toString()}`) },
       TextEdit: FakeTextEdit,
       Diagnostic: FakeDiagnostic,
       FoldingRange: FakeFoldingRange,
       ThemeColor: FakeThemeColor,
       DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2 },
       FoldingRangeKind: { Comment: 1 },
-      TextEditorRevealType: { InCenterIfOutsideViewport: 2 },
+      TextEditorRevealType: { InCenterIfOutsideViewport: 2, AtTop: 3 },
+      TabInputText: FakeTabInputText,
       TextEditorSelectionChangeKind: { Keyboard: 1, Mouse: 2, Command: 3 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },
       TextDocumentSaveReason: { Manual: 1, AfterDelay: 2, FocusOut: 3 },
       FileType: { File: 1, Directory: 2 },
+      FileChangeType: { Changed: 1, Created: 2, Deleted: 3 },
       ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
       env: {
         uriScheme: 'vscode',
@@ -549,6 +616,7 @@ export class Fake {
           return this.answer;
         },
         createTextEditorDecorationType: (options: unknown) => Object.assign(this.registration(), { options }),
+        createOutputChannel: () => Object.assign(this.registration(), { appendLine: () => undefined }),
         get visibleTextEditors() {
           return fake.editors;
         },
@@ -564,6 +632,17 @@ export class Fake {
           },
           onDidChangeTabs: on('tabs'),
           onDidChangeTabGroups: on('tabGroups'),
+          close: async (tabs: FakeTab | FakeTab[]) => {
+            const closing = Array.isArray(tabs) ? tabs : [tabs];
+            this.closedTabs.push(...closing);
+            for (const group of this.tabGroups) {
+              group.tabs = group.tabs.filter((tab) => !closing.includes(tab));
+              if (group.activeTab && closing.includes(group.activeTab as FakeTab)) {
+                group.activeTab = undefined;
+              }
+            }
+            return true;
+          },
         },
         onDidChangeVisibleTextEditors: on('visibleEditors'),
         onDidChangeActiveTextEditor: on('activeEditor'),
@@ -577,9 +656,15 @@ export class Fake {
           this.uriHandler = handler;
           return this.registration();
         },
-        showTextDocument: async (document: FakeDocument, options: unknown) => {
+        showTextDocument: async (target: FakeDocument | FakeUri, options?: ShowOptions) => {
+          if (target instanceof FakeDocument) {
+            this.shown.push({ document: target, options });
+            return this.editors.find((editor) => editor.document === target) ?? new FakeEditor(target);
+          }
+          // A URI opens its document in a new text editor of the group, as VS Code does.
+          const document = await this.openTextDocument(target);
           this.shown.push({ document, options });
-          return this.editors.find((editor) => editor.document === document) ?? new FakeEditor(document);
+          return this.show(document, options);
         },
       },
       workspace: {
@@ -600,21 +685,22 @@ export class Fake {
         get textDocuments() {
           return fake.documents;
         },
-        openTextDocument: async (uri: FakeUri) => {
-          const document = this.documents.find((candidate) => candidate.uri.toString() === uri.toString());
-          if (document) {
-            return document;
-          }
-          const text = this.files.get(uri.path);
-          if (uri.scheme !== 'file' || text === undefined) {
-            throw new Error(`no document ${uri.toString()}`);
-          }
-          return this.open(text, uri.path);
-        },
+        openTextDocument: (uri: FakeUri) => this.openTextDocument(uri),
         applyEdit: (edit: FakeWorkspaceEdit) => this.applyEdit(edit),
+        registerFileSystemProvider: (scheme: string, provider: FakeFileSystemProvider) => {
+          this.providers.set(scheme, provider);
+          return this.registration();
+        },
         getWorkspaceFolder: (uri: FakeUri) => (uri.path.startsWith(this.workspaceFolder) ? { uri: new FakeUri('file', this.workspaceFolder) } : undefined),
         fs: {
           isWritableFileSystem: (scheme: string) => (scheme === 'file' ? true : scheme === 'git' ? false : undefined),
+          readFile: async (uri: FakeUri) => {
+            const text = this.files.get(uri.path);
+            if (text === undefined) {
+              throw new Error(`no file ${uri.toString()}`);
+            }
+            return new TextEncoder().encode(text);
+          },
           stat: async (uri: FakeUri) => {
             if (this.directories.has(uri.path)) {
               return { type: 2 };
@@ -628,6 +714,7 @@ export class Fake {
         onDidOpenTextDocument: on('open'),
         onDidChangeTextDocument: on('change'),
         onDidCloseTextDocument: on('close'),
+        onDidSaveTextDocument: on('save'),
         onDidChangeConfiguration: on('configuration'),
         onWillSaveTextDocument: on('willSave'),
       },
@@ -687,13 +774,69 @@ export class Fake {
     });
     for (const { document, start, end, text } of replacements.sort((a, b) => b.start - a.start)) {
       document.text = document.text.slice(0, start) + text + document.text.slice(end);
+      document.isDirty = true;
       changed.add(document);
     }
     for (const document of changed) {
       document.version++;
-      this.fire('change', { document });
+      this.fire('change', { document, contentChanges: [] });
     }
     return true;
+  }
+
+  /**
+   * openTextDocument returns the open document of a URI, or opens it as VS Code does: a file from the files, and a
+   * document of a file system of the extension from it, and fires the event of the open.
+   * @param uri - The URI of the document.
+   */
+  async openTextDocument(uri: FakeUri): Promise<FakeDocument> {
+    const document = this.documents.find((candidate) => candidate.uri.toString() === uri.toString());
+    if (document) {
+      return document;
+    }
+    const provider = this.providers.get(uri.scheme);
+    if (provider) {
+      const opened = new FakeDocument(uri, new TextDecoder().decode(await provider.readFile(uri)));
+      this.documents.push(opened);
+      this.fire('open', opened);
+      return opened;
+    }
+    const text = this.files.get(uri.path);
+    if (uri.scheme !== 'file' || text === undefined) {
+      throw new Error(`no document ${uri.toString()}`);
+    }
+    return this.open(text, uri.path);
+  }
+
+  /**
+   * show shows a document in a new text editor in place of the text editor of its group, with the options of
+   * showTextDocument, and makes its tab the active tab of the group: a tab of its own, or the tab that it has there.
+   * @param document - The document.
+   * @param options - The group, the preview, the focus and the selection.
+   */
+  show(document: FakeDocument, options: ShowOptions = {}): FakeEditor {
+    const column = options.viewColumn ?? 1;
+    const editor = new FakeEditor(document, 0, column);
+    if (options.selection) {
+      const { selection } = options;
+      editor.selection = selection instanceof FakeSelection ? selection : new FakeSelection(selection.start, selection.end);
+    }
+    this.editors = [...this.editors.filter((other) => other.viewColumn !== column), editor];
+    let group = this.tabGroups.find((candidate) => candidate.viewColumn === column);
+    if (!group) {
+      group = { viewColumn: column, tabs: [] };
+      this.tabGroups.push(group);
+    }
+    let tab = group.tabs.find((candidate) => candidate.input instanceof FakeTabInputText && candidate.input.uri.toString() === document.uri.toString());
+    if (!tab) {
+      tab = { input: new FakeTabInputText(document.uri), isPreview: options.preview ?? true };
+      group.tabs.push(tab);
+    }
+    group.activeTab = tab;
+    if (!options.preserveFocus) {
+      this.activeEditor = editor;
+    }
+    return editor;
   }
 
   /**

@@ -153,6 +153,13 @@ test('the notes collapse the first time their file is in the active editor, into
   fake.fire('activeEditor', editor);
   await settle();
   expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([fold(0, 6)]);
+  // After no text editor showed the file, for example while its clean editing view showed, it collapses again.
+  fake.calls.length = 0;
+  fake.fire('visibleEditors', []);
+  fake.fire('visibleEditors', [editor]);
+  fake.fire('activeEditor', editor);
+  await settle();
+  expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([fold(0, 6)]);
 });
 
 test('a fold command waits for the edits of the extension, and folds the lines of the notes in the changed document (R-TEXT-005)', async () => {

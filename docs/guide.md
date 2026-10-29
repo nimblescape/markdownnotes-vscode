@@ -32,8 +32,9 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Show and hide the highlights](#show-and-hide-the-highlights) | text editor, preview | available | [R-GEN-011](requirements.md#r-gen-011), [R-PREV-005](requirements.md#r-prev-005) |
 | [GitHub sign-in](#github-sign-in) | VS Code | available | [R-GEN-006](requirements.md#r-gen-006) |
 | [Footnotes in the preview](#footnotes-in-the-preview) | Markdown preview | available | [R-GEN-008](requirements.md#r-gen-008) |
-| [Collapsed notes](#collapsed-notes) | text editor | available | [R-GEN-009](requirements.md#r-gen-009), [R-TEXT-005](requirements.md#r-text-005) |
-| [Rendered header lines](#rendered-header-lines) | text editor | available | [R-TEXT-007](requirements.md#r-text-007) |
+| [Clean editing view](#clean-editing-view) | text editor | available | [R-TEXT-009](requirements.md#r-text-009) |
+| [Collapsed notes](#collapsed-notes) | text editor of the file itself | available | [R-GEN-009](requirements.md#r-gen-009), [R-TEXT-005](requirements.md#r-text-005) |
+| [Rendered header lines](#rendered-header-lines) | text editor of the file itself | available | [R-TEXT-007](requirements.md#r-text-007) |
 | [Warnings](#warnings) | text editor, Problems view | available | [R-TEXT-008](requirements.md#r-text-008) |
 | [Side view "Notes"](#side-view-notes) | secondary side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-005](requirements.md#r-side-005), [R-SIDE-006](requirements.md#r-side-006) |
 | [The view next to the text](#the-view-next-to-the-text) | side view, text editor | available | [R-SIDE-007](requirements.md#r-side-007) |
@@ -332,16 +333,55 @@ still read, edit and delete the notes of a file without a sign-in.
 
 ## Notes in the text editor
 
-The text editor never shows the text of a note and its markers: the notes
-are collapsed, the markers are hidden, and the side view shows the text of
-the notes. The text editor shows the highlights, the warnings and the hover
-over the selected text, which adds a note ([Add a note](#add-a-note)).
+A Markdown file with notes, or with the comment of the format, opens in the
+clean editing view: the text editor shows the text of the file without the
+notes markup, and behaves as in a file without notes. The side view shows
+the text of the notes. The view shows the highlights, and the light bulb at
+the selected text adds a note ([Add a note](#add-a-note)).
+
+### Clean editing view
+
+The view opens by itself: from the Explorer, a search, a link, the tabs of
+the last session, and when a file gets its first note. It takes the place of
+the text editor of the file, at the same place, and its tab has the name of
+the file. The line breaks, the cursor, the word moves, the search, the copy
+and Undo count only the characters of the text. Each change in the view goes
+into the file at once, and each note stays at its text:
+
+- Text typed at the start or the end of a highlight stays outside of it;
+  text typed inside a highlight stays in it, also when you type over its
+  first or its last word.
+- Deleting text never deletes a note: a highlight whose whole text you delete
+  becomes a point, and the Problems view warns about it.
+- A paragraph break inside a highlight ends the highlight there, and the note
+  moves after the paragraph of its highlight.
+- Undo and Redo bring back the file as it was, with each note at its place.
+- A save of the view saves the file, with the format on save and the comment
+  of the format. "Don't Save" at the close of the view brings the file back
+  to its text on disk.
+- A relative link of the view opens the file of the link: in its view when it
+  has notes, else in its own text editor.
+- The Markdown preview of the view shows the highlights and scrolls with the
+  view.
+
+While the view has changes that are not saved, VS Code shows a second tab
+with the name of the file, because VS Code keeps a tab of each file with
+changes that are not saved. A click on it shows the view, and it closes
+after the save.
+
+The view of the changes of git shows the file itself, with its markup,
+because git compares the file. To open the file itself, for example for a
+conflict of git in a note, choose "Markdown Notes: Open File with Markup" in
+the Command Palette. The file then stays in its own text editor until you
+close its tab. The next sections describe the text editor of the file itself:
+it never shows the text of a note and its markers, the notes are collapsed
+and the markers are hidden.
 
 ### Collapsed notes
 
-The text editor collapses the notes of a file the first time the file is in
-the text editor, so that each note vanishes and the text reads as if the note
-were not there:
+The text editor of the file itself collapses the notes of a file the first
+time the file is in the text editor, so that each note vanishes and the text
+reads as if the note were not there:
 
 - The definition of a note folds into the last line of text before it,
   together with the blank lines before it. VS Code shows "⋯" at the end of
@@ -542,7 +582,9 @@ indentation of four spaces and the quote markers of the answer. The header of
 the answer keeps its author and gets the date and time of the save, because
 the text changed; a text that you save unchanged keeps its date. The text gets
 the line breaks of the file. The file then has unsaved changes: save it as
-usual. Undo in the text editor takes the change back.
+usual. Undo in the text editor of the file itself takes the change back; in
+the clean editing view, choose "Open File with Markup" first
+([Limits](#limits)).
 
 The extension writes the text only when the Markdown preview reads the changed
 text as the same note with the same answers. A block quote whose first line is
@@ -586,8 +628,9 @@ can correct it and save it, or cancel it.
   note with all its answers.
 
 When a note goes, its definition goes with one blank line, and its reference
-and its start marker leave the text. Undo in the text editor brings the
-answer or the note back.
+and its start marker leave the text. Undo in the text editor of the file
+itself brings the answer or the note back; in the clean editing view, choose
+"Open File with Markup" first ([Limits](#limits)).
 
 ## Highlights in the Markdown preview
 
@@ -715,6 +758,16 @@ you can remove them from your settings.
 
 ## Limits
 
+- In the [clean editing view](#clean-editing-view), Undo takes back the
+  changes of the view only, not a change of the side view, such as a new,
+  changed or deleted note, because that change leaves the text of the view as
+  it is. "Open File with Markup" and Undo there take it back. The warnings of
+  the notes show in the Problems view only, the left edge shows no changes of
+  git, and a hidden highlight does not show under the pointer. "Format Document"
+  formats the text of the view; the save formats the whole file. An edit
+  that opens a comment or a code block over a note changes how the file
+  reads, and the view then shows the markup that is no longer a note, until
+  Undo.
 - The mode "Markdown Editor" of VS Code shows no notes and no highlights,
   only the side view does; the section
   [Modes of a Markdown file](#modes-of-a-markdown-file) explains why.

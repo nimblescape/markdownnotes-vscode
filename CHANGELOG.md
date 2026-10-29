@@ -57,11 +57,18 @@ The first version.
   login of the user as their author. VS Code shows each date in the local
   time of the reader, and its tooltip or hover the local time of the author.
   A saved change of an answer gets the date of the save.
-- The text editor never shows the text of a note and its markers: it
-  collapses the notes, and collapses again a note that VS Code opens; the
-  cursor steps over a hidden marker, and Backspace and Delete never change
-  it. A header line that shows, for example of a note in the first line of
-  the file, shows rendered with the author and the date.
+- The clean editing view: a Markdown file with notes opens in a text editor
+  of its text without the notes markup, which behaves as in a file without
+  notes; the extension writes each change into the file and keeps each note
+  at its text, also for Undo, and the save of the view saves the file. Its
+  Markdown preview shows the highlights. "Open File with Markup" in the
+  Command Palette opens the file itself.
+- The text editor of the file itself, for example in the view of the changes
+  of git, never shows the text of a note and its markers: it collapses the
+  notes, and collapses again a note that VS Code opens; the cursor steps over
+  a hidden marker, and Backspace and Delete never change it. A header line
+  that shows, for example of a note in the first line of the file, shows
+  rendered with the author and the date.
 - The Markdown preview shows the highlights, and never a note as a footnote.
 - A comment at the top of each file with notes, after a front matter, names
   the format of the notes with its version and links to the specification

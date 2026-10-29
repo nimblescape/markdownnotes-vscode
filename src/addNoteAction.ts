@@ -20,6 +20,7 @@
 import * as vscode from 'vscode';
 import { highlightFor } from './notes/edits';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
+import type { CleanMirror } from './notesView';
 
 /** addNoteTitle is the title of the action in the list of the light bulb. */
 export const addNoteTitle = 'Add Note';
@@ -40,10 +41,13 @@ export class AddNoteAction implements vscode.CodeActionProvider {
   /**
    * @param threads - The threads of the notes, which read each document once for each version.
    * @param command - The command "Add Note" of the side view.
+   * @param mirror - The link of the clean editing view (R-TEXT-009), whose selected text names text of its
+   * file.
    */
   constructor(
     private readonly threads: NoteThreads,
     private readonly command: string,
+    private readonly mirror?: CleanMirror,
   ) {}
 
   /** register registers the action for the Markdown files. */
@@ -61,11 +65,16 @@ export class AddNoteAction implements vscode.CodeActionProvider {
    * @param context - The context, with the kinds that VS Code asks for.
    */
   provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext): vscode.CodeAction[] {
-    if (range.isEmpty || (context.only !== undefined && !context.only.contains(this.kind)) || !isNoteDocument(document)) {
+    // The selected text of the clean editing view is text of its file, before the hidden parts at its edges.
+    const real = this.mirror?.realOf(document.uri);
+    const file = real ? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === real.toString()) : document;
+    if (range.isEmpty || (context.only !== undefined && !context.only.contains(this.kind)) || !file || !isNoteDocument(file)) {
       return [];
     }
     const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document === document && candidate.selection.isEqual(range));
-    if (editor === undefined || editor.selections.length > 1 || highlightFor(linesOf(document), range, this.threads.textReadingOf(document)) === undefined) {
+    const start = real ? this.mirror!.toReal(document.uri, range.start) : range.start;
+    const end = real ? this.mirror!.toReal(document.uri, range.end) : range.end;
+    if (editor === undefined || editor.selections.length > 1 || !start || !end || highlightFor(linesOf(file), new vscode.Range(start, end), this.threads.textReadingOf(file)) === undefined) {
       return [];
     }
     const action = new vscode.CodeAction(addNoteTitle, this.kind);

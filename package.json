@@ -72,6 +72,7 @@
   ],
   "activationEvents": [
     "onLanguage:markdown",
+    "onFileSystem:markdown-notes",
     "onUri"
   ],
   "capabilities": {
@@ -147,6 +148,11 @@
         "title": "Show or Hide Notes",
         "category": "Markdown Notes",
         "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.openWithMarkup",
+        "title": "Open File with Markup",
+        "category": "Markdown Notes"
       },
       {
         "command": "nimblescape.markdownNotes.deleteLeft",
@@ -231,6 +237,10 @@
         {
           "command": "nimblescape.markdownNotes.hideNotes",
           "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.openWithMarkup",
+          "when": "resourceScheme == markdown-notes"
         },
         {
           "command": "nimblescape.markdownNotes.deleteLeft",

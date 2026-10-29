@@ -95,6 +95,30 @@ export const keepTime = 300;
 const dimAlpha = '59';
 
 /**
+ * highlightStyles returns the styles of the highlight of a note in a color: `shown` with a clear background and a line
+ * below, `faint` dimmed while another note is selected, and `strong` with a frame for the selected note. The text
+ * editor and the clean editing view show the same styles.
+ * @param color - The color of the note.
+ */
+export const highlightStyles = (color: string): Record<'shown' | 'faint' | 'strong', vscode.DecorationRenderOptions> => ({
+  shown: {
+    textDecoration: `underline 2px ${color}; text-underline-offset: 3px; background-color: ${color}47;`,
+    overviewRulerColor: color,
+    overviewRulerLane: vscode.OverviewRulerLane.Center,
+  },
+  faint: {
+    textDecoration: `underline 1px ${color}${dimAlpha}; text-underline-offset: 3px; background-color: ${color}1f;`,
+    overviewRulerColor: `${color}${dimAlpha}`,
+    overviewRulerLane: vscode.OverviewRulerLane.Center,
+  },
+  strong: {
+    textDecoration: `none; background-color: ${color}73; outline: 1px solid ${color}; border-radius: 3px;`,
+    overviewRulerColor: color,
+    overviewRulerLane: vscode.OverviewRulerLane.Full,
+  },
+});
+
+/**
  * settleTime is the time in milliseconds after the first collapse of the notes of a document in which the extension
  * collapses them again each time VS Code reads the folds of the unchanged document.
  */
@@ -145,32 +169,14 @@ export class NoteEditor implements vscode.Disposable {
    * marker stands too far to the right, or does not show; a style of the text stays on the text (measured in VS Code
    * 1.143).
    */
-  private readonly highlights = noteColors.map((color) =>
-    vscode.window.createTextEditorDecorationType({
-      textDecoration: `underline 2px ${color}; text-underline-offset: 3px; background-color: ${color}47;`,
-      overviewRulerColor: color,
-      overviewRulerLane: vscode.OverviewRulerLane.Center,
-    }),
-  );
+  private readonly highlights = noteColors.map((color) => vscode.window.createTextEditorDecorationType(highlightStyles(color).shown));
   /** faint holds the decoration of the highlights of each color of the other notes while a note is selected: dimmed. */
-  private readonly faint = noteColors.map((color) =>
-    vscode.window.createTextEditorDecorationType({
-      textDecoration: `underline 1px ${color}${dimAlpha}; text-underline-offset: 3px; background-color: ${color}1f;`,
-      overviewRulerColor: `${color}${dimAlpha}`,
-      overviewRulerLane: vscode.OverviewRulerLane.Center,
-    }),
-  );
+  private readonly faint = noteColors.map((color) => vscode.window.createTextEditorDecorationType(highlightStyles(color).faint));
   /** strong holds the decoration of the highlight of the selected note of each color: a strong highlight with a frame. */
-  private readonly strong = noteColors.map((color) =>
-    vscode.window.createTextEditorDecorationType({
-      textDecoration: `none; background-color: ${color}73; outline: 1px solid ${color}; border-radius: 3px;`,
-      overviewRulerColor: color,
-      overviewRulerLane: vscode.OverviewRulerLane.Full,
-    }),
-  );
+  private readonly strong = noteColors.map((color) => vscode.window.createTextEditorDecorationType(highlightStyles(color).strong));
   /** headers shows the rendered header of an answer in place of its header line. */
   private readonly headers = vscode.window.createTextEditorDecorationType({});
-  /** collapsed holds the documents whose notes the extension collapsed once, by their URIs. */
+  /** collapsed holds the documents whose notes the extension collapsed once while a text editor shows them, by their URIs. */
   private readonly collapsed = new Set<string>();
   /** pending holds the documents whose first collapse repeats, by their URIs: the version of the document and the time until which it repeats. */
   private readonly pending = new Map<string, { version: number; until: number }>();
@@ -220,7 +226,16 @@ export class NoteEditor implements vscode.Disposable {
       vscode.commands.registerCommand(deleteCommands.right, () => this.deleteNext('right', false)),
       vscode.commands.registerCommand(deleteCommands.wordLeft, () => this.deleteNext('left', true)),
       vscode.commands.registerCommand(deleteCommands.wordRight, () => this.deleteNext('right', true)),
-      vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => this.decorate(editor))),
+      vscode.window.onDidChangeVisibleTextEditors((editors) => {
+        // A file that no text editor shows collapses again in its next text editor, for example in "Open File with
+        // Markup" after its clean editing view (R-TEXT-009).
+        for (const key of this.collapsed) {
+          if (!editors.some((editor) => editor.document.uri.toString() === key)) {
+            this.collapsed.delete(key);
+          }
+        }
+        editors.forEach((editor) => this.decorate(editor));
+      }),
       vscode.window.onDidChangeActiveTextEditor((editor) => {
         this.collapseOnce(editor);
         this.markContext(editor);
@@ -602,8 +617,8 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * collapseOnce collapses the notes of the document of the active editor the first time it is there; keepShut
-   * collapses a note that the user adds later.
+   * collapseOnce collapses the notes of the document of the active editor the first time it is there, and again after
+   * no text editor showed it; keepShut collapses a note that the user adds later.
    * @param editor - The active text editor, or undefined.
    */
   private collapseOnce(editor: vscode.TextEditor | undefined): void {

@@ -18,6 +18,7 @@
 
 import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { cleanCommands } from './cleanView';
 import { highlightCommands, highlightsContext } from './extension';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
@@ -74,7 +75,7 @@ const closeView = (view: FakeView): void => {
 
 test('the activation registers the commands, the side view and the handler of links, and the disposal of the context removes every registration', async () => {
   const { context, extension } = await fake.activate();
-  expect([...fake.commands.keys()].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands)].sort());
+  expect([...fake.commands.keys()].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands)].sort());
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
   // The overlay of the text editor learns the place of the pointer from a hover provider, and the selected text has the

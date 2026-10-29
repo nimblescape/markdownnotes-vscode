@@ -60,7 +60,7 @@ as the highlights of a marker pen on paper.
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
-| 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file (decision 27) | [R-TEXT-005](#r-text-005), [R-NOTE-006](#r-note-006) | prototype; shown to Hannes before the full build, before step 29 |
+| 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
 
 ## General
 
@@ -516,8 +516,11 @@ text view of a thread ([R-SIDE-002](#r-side-002)).
 
 ### R-TEXT-005
 
-**Collapsed notes.** The text editor never shows the text of a note (Hannes,
-2026-10-28: "in the text view we never show the notes and the markers"):
+**Collapsed notes.** A Markdown file with notes opens in the clean editing
+view, which shows no markup ([R-TEXT-009](#r-text-009)). The text editor of
+the file itself, after "Open File with Markup", never shows the text of a note
+either (Hannes, 2026-10-28: "in the text view we never show the notes and the
+markers"):
 every note is collapsed, and nothing expands it. The editor folds the lines
 of the definition of the note together with the blank lines before it into
 the last line of text before the note, so that this line stays and the note
@@ -621,6 +624,72 @@ extension ([R-NOTE-005](#r-note-005)), or that breaks a rule of the notes
 
 "Format Document" adds a missing start marker and a missing `<wbr>`
 ([R-FMT-002](#r-fmt-002)).
+
+### R-TEXT-009
+
+**Clean editing view.** The text editor of a Markdown file with notes edits
+the text of the file without the notes markup (Hannes, 2026-10-29: "all notes
+markup must not have effects on the editing, the editor must behave as if
+there was no notes markup at all in the document"; [decision 27](#decisions)):
+without the start markers, the references, the definitions of the notes and
+the comment of the format. The line breaks, the cursor, the word moves, the
+search, the copy and Undo count only the characters of the text, as in a file
+without notes. The extension writes each change of the view into the file at
+once, and keeps each note at its text:
+
+- Text typed at the start or the end of a highlight stays outside of it; text
+  typed inside a highlight stays in it, also when it replaces the first or the
+  last word of the highlight, letter by letter.
+- A deleted text never deletes a note: a highlight whose whole text goes
+  becomes a point, which the checks report ([R-TEXT-008](#r-text-008)).
+- A paragraph break inside a highlight ends the highlight before the break, and
+  the definition of the note moves after the block of its reference; two
+  joined paragraphs take the definitions of the first one after the joined
+  block.
+- Undo and Redo bring back the file as it was, with each note at its place.
+- A save of the view saves the file, with the format on save
+  ([R-FMT-001](#r-fmt-001)) and the comment of the format
+  ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for example
+  a note of the side view, shows in the view. A view that closes without a
+  save ("Don't Save") brings the file back to its text on disk.
+- The view shows the highlights of the notes as the text editor of the file
+  does ([R-GEN-011](#r-gen-011)), the selected note strong
+  ([R-SIDE-007](#r-side-007)), and the light bulb action "Add Note" at the
+  selected text ([R-EDIT-006](#r-edit-006)). The side view follows the cursor
+  of the view and names the lines of the view.
+- The Markdown preview of the view renders the file with its notes, and
+  scrolls with the view.
+- A relative link of the view, for example to another Markdown file, opens
+  the file of the link: in its view when it has notes, else in its own text
+  editor.
+
+A Markdown file with notes, or with the comment of the format, always opens in
+the view (Hannes, 2026-10-29: "we always want our markdown notes be in
+cleanview - always not with a separate command"): from the Explorer, a search,
+a link, the tabs of the last session, and when a file gets its first note.
+The view takes the place of the text editor of the file in its group, with
+the same selection and the same first visible line, and the tab of the file
+closes. VS Code keeps a tab of each file with changes that are not saved, also
+when only its view changed it: that tab stays behind the view, a click on it
+shows the view, and it closes after the save, or after a close of the view
+without a save. The view of the changes of git shows the file itself, because
+git compares the file.
+
+The command "Open File with Markup" of the Command Palette opens the file
+itself beside the view, for rare cases such as a conflict of git in a note;
+that file stays in its own text editor until its tab closes. The text editor
+of the file collapses the notes and hides the markers
+([R-TEXT-005](#r-text-005), [R-NOTE-006](#r-note-006)).
+
+Limits of the view, which the text editor of the file does not have: Undo
+of the view takes back the changes of the view only, not a change of the side
+view, which leaves the clean text as it is (Undo in the text editor of the
+file itself takes it back); the warnings of the notes
+([R-TEXT-008](#r-text-008)) show in the Problems view only; the view shows no changes of git at the left edge; a hidden highlight
+does not show under the pointer ([R-GEN-011](#r-gen-011)); "Format Document"
+formats the text of the view, and the save formats the whole file; an edit
+that opens a comment or a code block over a note changes how the file reads,
+and the view then shows the markup that is no longer a note, until Undo.
 
 ### R-VIEW-001
 
@@ -1560,8 +1629,11 @@ requirements above follow them.
     could end early and the cursor could stand in a gap (Hannes, 09:10: "the
     cursor is in a position where nothing is there, editing there breaks the
     format"). No decoration and no API of VS Code for extensions changes that
-    count. A prototype comes first, checked in VS Code and shown to Hannes,
-    before the full build. The choice comes before steps 29 and 30, because
+    count. A prototype came first, checked in VS Code and shown to Hannes
+    (10:20). For the full build, Hannes decided at 11:11: "we always want our
+    markdown notes be in cleanview - always not with a separate command", so
+    a file with notes always opens in the view
+    ([R-TEXT-009](#r-text-009)). The choice comes before steps 29 and 30, because
     the hidden form changes the markup that the copy leaves out. The other
     choices were the notes outside the text, which name their text by a
     quote, at the end of the file or in a file beside it (a new format,

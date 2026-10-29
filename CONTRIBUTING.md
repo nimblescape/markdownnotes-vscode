@@ -23,6 +23,8 @@ describes its security model.
 | `src/notes/checks.ts` | The warnings at the notes of a text: each form of a note that GitHub or another Markdown viewer shows differently from the extension, and each note without a start marker or without highlighted text. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes of the open Markdown documents: one thread for each note with an identifier that stays while the document is open, the reading of the notes after a change, the warnings of the notes as diagnostics, and the operations that write the changes of the side view. |
 | `src/noteEditor.ts` | The overlay of the notes in the text editor: the folding ranges of the notes, their collapse and the collapse again of a note that VS Code opens, the highlights in the colors of the notes while the side view is open, the strong highlight of the selected note, the hidden highlight under the pointer, the hidden start markers and references, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
+| `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdown-notes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, and the text of the file for the Markdown preview of the view. |
+| `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
 | `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
@@ -38,7 +40,7 @@ describes its security model.
 | `resources/notes-icons.ttf`, `resources/icons/highlighter.svg`, `scripts/icon-font.py` | The icon font of the buttons "Show Highlights" (U+E001) and "Hide Highlights" (U+E002), its source image, a highlighter pen over its line, and the script that builds the font from the image ([Icon font](#icon-font)). |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
-| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
+| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`), the clean text (`src/notes/clean.test.ts`), the clean editing view (`src/cleanView.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
 | `test/cli/` | The tests of the built command `markdown-notes` (`cli/dist/markdown-notes.js`), with the Node.js of the tests in the temporary folder of the system. |
 | `test/vscode/` | The tests in a real VS Code: the highlights and the hidden markers in the text editor, the comment of the format, the collapse of the notes, the side view with the buttons "Show Highlights" and "Hide Highlights", the light bulb action and the shortcut of "Add Note", the formatter, and the highlights of the Markdown preview of VS Code (`markdown.api.render`). |
 | `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
@@ -132,7 +134,8 @@ commit of the build.
 - `.vscodeignore` lists the files of the package, not a `files` field: it ignores everything and keeps the bundle, the styles and the scripts of the preview and of the side view, the icons, the icon font and the documents. A test checks the list.
 - `icon` is `resources/icon.png`, a PNG, because the Marketplace takes no SVG icon. `resources/icon.svg` is its source; after a change of the source, render it again as a PNG of 256 × 256 pixels with a transparent background, for example with a screenshot of the SVG in Chromium. A test checks the size.
 - `extensionKind` selects the workspace host, where the documents are.
-- The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, and `onUri` when VS Code passes it a link of the highlight of a note.
+- The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, `onFileSystem:markdown-notes` when VS Code opens a document of the clean editing view, for example from the tabs of the last session, and `onUri` when VS Code passes it a link of the highlight of a note.
+- The command "Open File with Markup" (`nimblescape.markdownNotes.openWithMarkup`) shows in the Command Palette only for a document of the clean editing view (`resourceScheme == markdown-notes`).
 - The contributions `markdown.markdownItPlugins`, `markdown.previewStyles` and `markdown.previewScripts` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
 - `viewsContainers.secondarySidebar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`, in the secondary side bar only, so that the primary side bar stays free for the Explorer ([R-SIDE-001](docs/requirements.md#r-side-001)). VS Code 1.125, the oldest supported version, already knows this place. The section [Side view](#side-view) explains it.
 - The command "Add Note" is the button `+` in the title of the side view (`view/title`) and an entry of the context menu of the text editor (`editor/context`) while text is selected (`editorHasSelection`); the Command Palette shows it only then. The commands "Show Highlights" and "Hide Highlights" are buttons in the title of the text editor, of the preview of a Markdown file and of the modes "Markdown Preview" and "Markdown Editor" of VS Code (`editor/title`); the context key `nimblescape.markdownNotes.highlightsShown`, which the extension sets while the setting `showHighlights` is on and the side view is open, shows one of them. The command "Show or Hide Notes" is a button in the same titles (`activeCustomEditorId` for the modes). A test checks the commands and the menus against `src/notesView.ts`, `src/extension.ts` and `src/noteEditor.ts`.
@@ -427,6 +430,46 @@ side view asks with `silent`, to show the account without a dialog, and
 follows `vscode.authentication.onDidChangeSessions`. The extension never
 reads the access token. The tests in VS Code add no note and no answer,
 because a test cannot sign in; the unit tests cover them with the fake API.
+
+## Clean editing view
+
+`src/cleanView.ts` gives the text editor the clean text of a Markdown file
+with notes ([R-TEXT-009](docs/requirements.md#r-text-009)), from the file
+system `markdown-notes` of the extension. The URI of a clean document has the
+path of its file, so that the tab shows the name of the file and VS Code
+reads it as Markdown, and the scheme and the authority of the file in its
+authority, so that a relative link of the view leads to the view of the file
+of the link. `src/notes/clean.ts` projects the text of the file
+(`project`): the clean text, the hidden parts and the highlights in the clean
+text. Each change of a clean document goes into the model of its file at once,
+change by change as VS Code reports them (`applyClean`), and the extension
+writes the model into the document of the file with a workspace edit; a
+change of the file from elsewhere, for example a note of the side view, goes
+back into the clean document. VS Code types over a selection as a replacement
+with the first letter and then single insertions, and reports the moves of
+the cursor late, so the view keeps the range of the text typed at the end of
+a highlight (`typing`), where the next letters stay in the highlight. Undo
+and Redo of the view find the text of the file of the clean text in a
+history. A save of the view saves the document of the file, so that the
+format on save and the comment of the format run on the file.
+
+The extension switches each visible text editor of a Markdown file with notes
+to the view, in its group, when the active tab of the group shows the file:
+`showTextDocument` with the selection and the first visible line of the
+view, and then the tab of the file closes. A diff editor stays. VS Code
+opens a tab of each document with changes that are not saved
+(`TextFileEditorTracker`), also of a file that only its view changed; such a
+tab closes after the save, and after a close of the view without a save,
+when the extension writes the text on disk back into the file and saves it
+(`reverts` skips the format and the comment of this save). VS Code closes the
+document of a file when its last tab closes, and an extension that opened a
+document that a text editor shows holds no reference to it, so the extension
+opens the document of the file of an open view again when VS Code closes it;
+then VS Code keeps it for some minutes. The Markdown preview parses the text
+of a document without its URI, and caches the tokens by the version of the
+document, so the plugin of the preview asks the view for the text of the file
+by the clean text (`sourceOf`), and a change of the file from elsewhere
+refreshes the previews.
 
 ## Side view
 

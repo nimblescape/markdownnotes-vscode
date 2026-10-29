@@ -12,18 +12,16 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 56 requested features, 38 are built. One bug is open: the line breaks and
-the cursor next to the hidden markers in the text editor. For this bug,
-Hannes chose the clean editing view ([decision 27](requirements.md#decisions)),
-and a prototype comes first. 9 features are planned but not built: the clean
-editing view and the eight features of the section
+Of 57 requested features, 41 are built, among them the clean editing view
+([decision 27](requirements.md#decisions)), which fixes the bug of the line
+breaks and the cursor next to the hidden markers in the text editor. 8
+features are planned but not built: the features of the section
 [Planned features](#planned-features). The npm package with the first release
 needs Hannes. 7 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
-notes, the standard footnotes in the side view, and the rule of 2026-10-29
-that the notes markup has no effect on the editing.
+notes and the standard footnotes in the side view.
 
 The columns of the tables:
 
@@ -66,17 +64,18 @@ tooltips, the lighter dimming and the list that scrolls on its own came on
 
 ## Text editor
 
-The text editor has what Hannes asked for, but one bug of 2026-10-29 is open:
-the line breaks and the cursor next to the hidden markers. The clean editing
-view will fix it.
+The text editor has what Hannes asked for. Since 2026-10-29, a Markdown file
+with notes opens in the clean editing view, which fixes the bug of the line
+breaks and the cursor next to the hidden markers.
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
-| Line breaks and editing next to the hidden markers: "the cursor is in a position where nothing is there, editing there breaks the format" | 10-29 09:09 | [R-TEXT-005](requirements.md#r-text-005) | Bug | VS Code wraps a line by all its characters, also the hidden ones, so a row ends early. [Decision 27](requirements.md#decisions) (10-29 09:37): the clean editing view, step 38 of the plan. A prototype runs in VS Code 1.144; it is not in the pull request yet |
-| The notes markup has no effect on the editing: "the editor must behave as if there was no notes markup at all in the document" | 10-29 09:17 | [R-TEXT-005](requirements.md#r-text-005) | Planned | [Decision 27](requirements.md#decisions): the clean editing view, step 38 of the plan, prototype first |
+| Line breaks and editing next to the hidden markers: "the cursor is in a position where nothing is there, editing there breaks the format" | 10-29 09:09 | [R-TEXT-005](requirements.md#r-text-005) | Built | VS Code wraps a line by all its characters, also the hidden ones, so a row ended early. Fixed by the clean editing view of [decision 27](requirements.md#decisions) (10-29 09:37), which shows no hidden characters |
+| The notes markup has no effect on the editing: "the editor must behave as if there was no notes markup at all in the document" | 10-29 09:17 | [R-TEXT-009](requirements.md#r-text-009) | Built | [Decision 27](requirements.md#decisions): the clean editing view, step 38 of the plan; a prototype shown at 10:20, the full build checked in VS Code 1.144. Its limits are in [R-TEXT-009](requirements.md#r-text-009) |
+| A file with notes always in the clean editing view: "we always want our markdown notes be in cleanview - always not with a separate command" | 10-29 11:11 | [R-TEXT-009](requirements.md#r-text-009) | Built | From the Explorer, a search, a link, the last session and the first note; "Open File with Markup" in the Command Palette shows the file itself, and the view of the changes of git shows the file |
 | A better icon for "Show Highlights" | 10-29 08:57 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 26](requirements.md#decisions) (10-29 09:35): a highlighter pen from an icon font of the extension, in place of the eye; commit [8ab9937](https://github.com/nimblescape/nimblescape-markdown-notes/commit/8ab9937) |
 | Notes always collapsed: "in the text view we never show the notes and the markers" | 10-28 20:02 | [R-TEXT-005](requirements.md#r-text-005) | Built | Also at the start of VS Code (10-28 14:37) |
-| Markers and header lines never editable; the cursor steps over them; Backspace and Delete act on the other side | 10-28 | [R-NOTE-006](requirements.md#r-note-006) | Built | See the bug above |
+| Markers and header lines never editable; the cursor steps over them; Backspace and Delete act on the other side | 10-28 | [R-NOTE-006](requirements.md#r-note-006) | Built | In the text editor of the file itself; the clean editing view shows no markers |
 | The header of an answer written by the extension and shown rendered | 10-28 11:51 | [R-TEXT-007](requirements.md#r-text-007) | Built | |
 | Highlights, as with a marker pen, with good contrast, and buttons that show and hide them | 10-28 20:00, 20:18 | [R-GEN-011](requirements.md#r-gen-011) | Built | Setting `showHighlights` |
 | A hidden highlight shows under the pointer | 10-28 20:29 | [R-GEN-011](requirements.md#r-gen-011) | Built | |
@@ -150,23 +149,18 @@ side view, and ESLint.
 
 ## Open work and its order
 
-The rule of 2026-10-29 09:17 comes first, because it can change the format
-before the first release: "all notes markup must not have effects on the
-editing, the editor must behave as if there was no notes markup at all in the
-document".
+The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
+[decision 27](requirements.md#decisions)). The open work, in its order:
 
-1. The clean editing view (step 38, [decision 27](requirements.md#decisions)):
-   the text editor edits a copy of the file without the markup, and the
-   extension writes each change into the file. First a prototype, checked in
-   VS Code and shown to Hannes, then the full build.
-2. Steps 29 and 30: the hidden form of the notes and its icon, before the
-   first release.
-3. The merge of
+1. Steps 29 and 30: the hidden form of the notes and its icon, before the
+   first release, because it changes the markup that the clean editing view
+   leaves out.
+2. The merge of
    [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
    the first release and the npm package: these need Hannes.
-4. Steps 31 to 35: the text without notes, and the standard footnotes in the
+3. Steps 31 to 35: the text without notes, and the standard footnotes in the
    side view.
-5. Step 14: the visual editing in the side view.
+4. Step 14: the visual editing in the side view.
 
 ---
 

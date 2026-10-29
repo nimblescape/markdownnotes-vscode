@@ -85,6 +85,15 @@ export interface PreviewOptions {
    * @param env - The environment of the rendering.
    */
   deselectLinkOf?(env: unknown): string | undefined;
+  /**
+   * sourceOf returns the text that the preview renders in place of a text, and the line in the text of each line of
+   * that text, or undefined to render the text: the preview of the clean editing view renders the text of its file with
+   * the notes, and its lines stay those of the view, for the scroll of the preview with the view
+   * ([R-TEXT-009](../../docs/requirements.md#r-text-009)). The preview parses a text without its document, so the
+   * text names the view.
+   * @param text - The text that the preview parses.
+   */
+  sourceOf?(text: string): { text: string; lines: readonly number[] } | undefined;
 }
 
 /** PreviewNote is what the preview needs of a note: its label, its color, the ID of its highlight, and the line of its definition. */
@@ -230,7 +239,28 @@ function edgeHtml(md: MarkdownIt, { note, edge }: EdgeMeta, env: unknown, option
  */
 export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): MarkdownIt {
   addNoteRules(md);
+  md.core.ruler.before('normalize', 'nimblescape_source', (state) => {
+    const source = options.sourceOf?.(state.src);
+    if (source) {
+      state.src = source.text;
+    }
+    if (typeof state.env === 'object' && state.env !== null) {
+      (state.env as { nimblescapeLines?: readonly number[] }).nimblescapeLines = source?.lines;
+    }
+  });
   md.core.ruler.push('nimblescape_notes', transform);
+  // The lines of the tokens of the text of a file name the lines of its clean editing view, after the notes took theirs.
+  md.core.ruler.push('nimblescape_lines', (state) => {
+    const lines = (state.env as { nimblescapeLines?: readonly number[] }).nimblescapeLines;
+    if (lines) {
+      const lineOf = (line: number): number => lines[Math.min(line, lines.length - 1)] ?? line;
+      for (const token of state.tokens) {
+        if (token.map) {
+          token.map = [lineOf(token.map[0]), Math.max(lineOf(token.map[0]), lineOf(token.map[1]))];
+        }
+      }
+    }
+  });
   md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => edgeHtml(md, tokens[index].meta as EdgeMeta, env, options);
   // A reference that the core rule did not reach, such as one in the body of a note that the side view renders, shows
   // as written, and a start marker nothing.

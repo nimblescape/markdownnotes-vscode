@@ -190,6 +190,17 @@ function modeOf(document: vscode.Uri): { mode: 'preview' | 'editor'; column: vsc
   return undefined;
 }
 
+/**
+ * CleanMirror is the link of the clean editing view to the files ([R-TEXT-009](../docs/requirements.md#r-text-009)): the file of a clean
+ * document, the places of one in the other, and the text editor of the clean document of a file.
+ */
+export interface CleanMirror {
+  realOf(document: vscode.Uri): vscode.Uri | undefined;
+  toReal(document: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
+  cleanEditorOf(real: vscode.Uri): vscode.TextEditor | undefined;
+  toClean(real: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
+}
+
 /** NotesView is the provider of the side view. */
 export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable {
   private view: vscode.WebviewView | undefined;
@@ -199,6 +210,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private selected: string | undefined;
   /** lines holds the line of the cursor of each document, by its URI. */
   private readonly lines = new Map<string, number>();
+  /** clean is whether the view follows a text editor of the clean editing view, whose lines the threads name. */
+  private clean = false;
   /** selections holds the selection of the text editor of each document, by its URI, for "Add Note". */
   private readonly selections = new Map<string, vscode.Range>();
   /** rendered holds the HTML of rendered texts, by the text. */
@@ -220,6 +233,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param render - Renders a Markdown text as the Markdown preview does.
    * @param settingsOf - Returns the settings of a document.
    * @param chosen - The selected note of each document, which the view sets.
+   * @param mirror - The link of the clean editing view (R-TEXT-009), whose text editor shows the notes of its file.
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -228,6 +242,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     private readonly render: (text: string) => Promise<string>,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly chosen: SelectedNotes,
+    private readonly mirror?: CleanMirror,
   ) {
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
@@ -400,15 +415,19 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param click - Whether a click with the mouse moved the cursor.
    */
   private follow(editor: vscode.TextEditor | undefined, click = false): void {
-    if (!editor || !isNoteDocument(editor.document)) {
+    // A text editor of the clean editing view shows the notes of its file, at the places in the file.
+    const real = editor && this.mirror?.realOf(editor.document.uri);
+    if (!editor || (!real && !isNoteDocument(editor.document))) {
       return;
     }
-    const document = editor.document.uri;
-    const line = editor.selection.active.line;
+    const place = (position: vscode.Position): vscode.Position => (real ? (this.mirror!.toReal(editor.document.uri, position) ?? position) : position);
+    const document = real ?? editor.document.uri;
+    const active = place(editor.selection.active);
+    const line = active.line;
     this.lines.set(document.toString(), line);
-    const { active } = editor.selection;
-    this.selections.set(document.toString(), new vscode.Range(editor.selection.start ?? active, editor.selection.end ?? active));
-    const changed = document.toString() !== this.document?.toString();
+    this.selections.set(document.toString(), new vscode.Range(place(editor.selection.start ?? editor.selection.active), place(editor.selection.end ?? editor.selection.active)));
+    const changed = document.toString() !== this.document?.toString() || (real !== undefined) !== this.clean;
+    this.clean = real !== undefined;
     // The position, not only the line, names the note, because the selections of several notes can share a line.
     const entry = this.threads.entryAt(document, active);
     const selected = entry?.id;
@@ -517,10 +536,20 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   async state(): Promise<State> {
     const document = this.document;
     const entries = document ? this.threads.entriesOf(document) : [];
+    /**
+     * lineOf returns the line that the view names for a note: the line of its definition in the text editor, and the
+     * line of the start of its highlight in the clean editing view, which shows no definition.
+     * @param note - The note.
+     */
+    const lineOf = (note: (typeof entries)[number]['note']): number => {
+      const place = note.selection?.start ?? note.start;
+      const clean = this.clean && document ? this.mirror?.toClean(document, new vscode.Position(place.line, place.character)) : undefined;
+      return clean?.line ?? note.start.line;
+    };
     const threads = await Promise.all(
       entries.map(async ({ id, note, text }) => ({
         id,
-        line: note.start.line,
+        line: lineOf(note),
         color: colorOf(note),
         colorName: colorNames[colorIndexOf(note)],
         text,
@@ -597,6 +626,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.select(uri, id);
     const place = entry.note.selection?.start ?? entry.note.start;
     const start = new vscode.Position(place.line, place.character);
+    const clean = this.mirror?.cleanEditorOf(uri);
+    if (clean) {
+      const at = this.mirror!.toClean(uri, start) ?? start;
+      await vscode.window.showTextDocument(clean.document, { viewColumn: clean.viewColumn, selection: new vscode.Range(at, at), preserveFocus: !focus });
+      return;
+    }
     if (shown?.mode === 'editor') {
       // The mode "Markdown Editor" stays, and selects the selection of the note, because it shows no note.
       const end = entry.note.selection ? new vscode.Position(entry.note.selection.end.line, entry.note.selection.end.character) : start;

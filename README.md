@@ -89,10 +89,13 @@ describes each step and where its protection ends.
   the editor of the new note in the side view, where you choose its color.
   Nothing shows by itself over the selected text, and there is no note
   without highlighted text.
-- **The text stays readable.** The text editor never shows the text of a note
-  and its markers: the notes are collapsed, the cursor steps over a hidden
-  marker, and Backspace and Delete never change it. Where a header line
-  shows, it shows rendered, with the date in your local time.
+- **The text stays readable.** A Markdown file with notes opens in the clean
+  editing view: the text editor edits the text of the file without the notes
+  markup, so that the line breaks, the cursor and the search behave as in a
+  file without notes, and the extension writes each change into the file
+  with each note at its text. The view of the changes of git, and "Open File
+  with Markup" in the Command Palette, show the file itself, with the notes
+  collapsed and the markers hidden.
 - **Markdown preview.** The preview shows the highlights, no icons and no
   callouts, and never a note as a footnote at the end of the page.
 - **Formatter.** The extension formats a Markdown file with notes when you
@@ -158,7 +161,7 @@ you add or answer a note. In the side view "Notes":
 | Reply to an answer | Click "Reply" (arrow) at the answer, write the text, then click "Reply". |
 | Change the color | Click the color at the left of the thread, then a new color. |
 | See the whole note | Click "Show as Text" at the thread. |
-| Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor brings it back. |
+| Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor of the file itself ("Open File with Markup") brings it back. |
 
 In the text editor or in the Markdown preview (Ctrl+K V opens it to the
 side), click a highlight to open its note in the side view. In the preview,
@@ -186,6 +189,12 @@ on a save; "Save without Formatting" saves a file without the formatter.
 
 ## Limits
 
+- Undo in the clean editing view takes back the changes of the view, not a
+  change of the side view; "Open File with Markup" and Undo there take it
+  back. The view shows the warnings of the notes in the Problems view only,
+  and no changes of git at the left edge. While it has changes that are
+  not saved, VS Code shows a second tab of the file, which closes after the
+  save.
 - The mode "Markdown Editor" of VS Code (the visual editor) offers
   extensions no API for this. It shows no notes and no highlights, only the
   side view does; use the text editor or the mode "Markdown Preview" to see

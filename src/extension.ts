@@ -33,6 +33,7 @@
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
+import { CleanView, fileOf } from './cleanView';
 import { registerFormatter, type SaveChanges } from './formatter';
 import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
@@ -83,13 +84,23 @@ export function readSettings(document: vscode.Uri | undefined): Settings {
 }
 
 /**
- * documentOf returns the document that the Markdown preview renders. The preview names it in the environment of the
+ * renderedOf returns the document that the Markdown preview renders. The preview names it in the environment of the
  * rendering (`currentDocument`); a rendering without a document, such as a side of the rendered diff, has none.
  * @param env - The environment of the rendering.
  */
-function documentOf(env: unknown): vscode.Uri | undefined {
+function renderedOf(env: unknown): vscode.Uri | undefined {
   const document = (env as { currentDocument?: unknown } | undefined)?.currentDocument;
   return typeof document === 'object' && document !== null && 'scheme' in document ? (document as vscode.Uri) : undefined;
+}
+
+/**
+ * documentOf returns the file whose notes the Markdown preview shows: the rendered document, or the file of a clean
+ * document of the clean editing view ([R-TEXT-009](../docs/requirements.md#r-text-009)).
+ * @param env - The environment of the rendering.
+ */
+function documentOf(env: unknown): vscode.Uri | undefined {
+  const document = renderedOf(env);
+  return document && (fileOf(document) ?? document);
 }
 
 /**
@@ -206,7 +217,8 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights && view.visible;
   const editor = new NoteEditor(threads, showsHighlights, selected);
-  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected);
+  const clean = new CleanView(showsHighlights, selected);
+  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the
    * format while the setting formatOnSave is on and the document has notes or the comment of the format (R-FMT-001),
@@ -215,6 +227,10 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const saveChangesOf = (document: vscode.TextDocument): SaveChanges => {
     const settings = readSettings(document.uri);
+    if (clean.reverts(document.uri)) {
+      // The file goes back to its text on disk after its clean editing view closed without a save.
+      return { format: false, comment: false };
+    }
     const notes = threads.notesOf(document).length > 0;
     return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined), comment: settings.addFormatComment && notes };
   };
@@ -222,17 +238,20 @@ export function activate(context: vscode.ExtensionContext): Api {
   const showsChanged = (): void => {
     void vscode.commands.executeCommand('setContext', highlightsContext, showsHighlights(undefined));
     editor.showsChanged();
+    clean.showsChanged();
     refreshMarkdownPreviews();
   };
   context.subscriptions.push(
     editor,
     ...editor.register(),
+    clean,
+    ...clean.register(),
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     view.onDidChangeVisibility(showsChanged),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     ...registerFormatter(extensionId, saveChangesOf),
-    new AddNoteAction(threads, viewCommands.newNote).register(),
+    new AddNoteAction(threads, viewCommands.newNote, clean).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);
@@ -244,6 +263,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.commands.registerCommand(highlightCommands.hide, () => setSetting('showHighlights', false)),
     // The preview shows the selected note with a strong highlight, and scrolls to it on a request.
     selected.onDidChange(() => refreshMarkdownPreviews()),
+    // The preview of a clean editing view renders the text of its file, which can change while the clean text stays.
+    clean.onDidChangeMarkup(() => refreshMarkdownPreviews()),
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
@@ -263,6 +284,7 @@ export function activate(context: vscode.ExtensionContext): Api {
           return document && { label: selected.labelOf(document), reveal: selected.revealOf(document) };
         },
         deselectLinkOf: deselectLink,
+        sourceOf: (text) => clean.sourceOf(text),
       }),
     notesOf: (document) => threads.entriesOf(document).map((entry) => entry.note),
   };

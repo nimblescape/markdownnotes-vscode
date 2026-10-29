@@ -232,4 +232,20 @@ describe('the plugin', () => {
     expect(md.renderer.render(tokens, md.options, { show: true })).not.toContain(' data-hidden');
     expect(environments).toContainEqual({ show: false });
   });
+
+  test('renders the text of the file of a clean editing view in place of its clean text, with the lines of the view for the scrolling (R-TEXT-009)', () => {
+    const text = `First <wbr><!--[note-aaaa-->text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    Why?\n\nLast paragraph.\n`;
+    const md = new MarkdownIt({ html: true });
+    extendMarkdownIt(md, {
+      settingsOf: () => ({ showHighlights: true }),
+      linkOf: () => undefined,
+      sourceOf: (clean) => (clean === 'First text.\n\nLast paragraph.\n' ? { text, lines: [0, 1, 2, 2, 2, 2, 2, 3] } : undefined),
+    }).use(sourceMap);
+    const html = md.render('First text.\n\nLast paragraph.\n', {});
+    expect(html).toContain(' data-note="note-aaaa"');
+    expect(html).not.toContain('Why?');
+    expect(html).toContain('<p data-line="2" class="code-line" dir="auto">Last paragraph.</p>');
+    // Another rendering, such as of a file itself, renders its own text with its own lines.
+    expect(md.render('One.\n\nTwo.\n', {})).toContain('<p data-line="2" class="code-line" dir="auto">Two.</p>');
+  });
 });

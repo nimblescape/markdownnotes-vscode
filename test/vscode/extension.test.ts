@@ -101,7 +101,19 @@ describe('nimblescape Markdown Notes', () => {
   });
 
   /**
-   * open writes a Markdown file, opens it in the text editor, and returns it with its editor and its notes.
+   * view returns the clean editing view of a file once it is the active text editor (R-TEXT-009).
+   * @param file - The URI of the file.
+   */
+  const viewOf = (file: vscode.Uri): Promise<vscode.TextEditor> =>
+    waitFor(() => {
+      const editor = vscode.window.activeTextEditor;
+      return editor?.document.uri.scheme === 'markdown-notes' && editor.document.uri.path === file.path ? editor : undefined;
+    }, 'the clean editing view');
+
+  /**
+   * open writes a Markdown file, opens it in the text editor, and returns it with its editor and its notes. A file with
+   * notes opens in the clean editing view (R-TEXT-009); "Open File with Markup" then opens the file itself, whose text
+   * editor these tests check.
    * @param text - The text of the file.
    * @param notes - The number of notes that the file holds.
    */
@@ -109,7 +121,12 @@ describe('nimblescape Markdown Notes', () => {
     const file = path.join(folder, `test-${++count}.md`);
     fs.writeFileSync(file, text);
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
-    const editor = await vscode.window.showTextDocument(document);
+    let editor = await vscode.window.showTextDocument(document);
+    if (notes > 0) {
+      await viewOf(document.uri);
+      await vscode.commands.executeCommand(commandOf('openWithMarkup'));
+      editor = await waitFor(() => (vscode.window.activeTextEditor?.document === document ? vscode.window.activeTextEditor : undefined), 'the text editor of the file');
+    }
     const extension = await api();
     const found = await waitFor(() => {
       const read = extension.notesOf(document.uri);
@@ -178,6 +195,29 @@ describe('nimblescape Markdown Notes', () => {
         [8, 12],
       ],
     );
+  });
+
+  it('opens a file with notes in the clean editing view, which writes each change into the file and saves it (R-TEXT-009)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    assert.equal(view.document.getText(), '# Title\n\nThe text of the page and a highlight here.\n\nMore.\n');
+    const fileTab = () => vscode.window.tabGroups.all.flatMap((group) => group.tabs).find((tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === file.toString());
+    await waitFor(() => (fileTab() ? undefined : true), 'the close of the tab of the file');
+    // Text typed at the end of a highlight stays outside of it.
+    const end = view.document.positionAt(view.document.getText().indexOf(' here.'));
+    await view.edit((edit) => edit.insert(end, ' and more'));
+    const real = await waitFor(() => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes(' and more')), 'the change in the file');
+    assert.ok(real.getText().includes('<wbr><!--[note-bbbb green-->a highlight[^note-bbbb] and more here.'));
+    assert.ok(await view.document.save(), 'the save of the view');
+    assert.ok(fs.readFileSync(file.fsPath, 'utf8').includes('a highlight[^note-bbbb] and more here.'), 'the file on disk');
+    assert.equal(real.isDirty, false);
+    // "Open File with Markup" opens the file itself, and the extension leaves it as it is.
+    await vscode.commands.executeCommand(commandOf('openWithMarkup'));
+    await waitFor(() => (vscode.window.activeTextEditor?.document === real ? true : undefined), 'the text editor of the file');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
   it('opens the side view "Notes", and "Hide Highlights" and "Show Highlights" change the setting showHighlights (R-SIDE-001, R-GEN-011)', async () => {

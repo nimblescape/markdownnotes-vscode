@@ -129,7 +129,8 @@ export function problemMessage(problem: Problem): string {
  */
 export function isNoteDocument(document: vscode.TextDocument): boolean {
   const scheme = document.uri.scheme;
-  return document.languageId === 'markdown' && (scheme === 'untitled' || vscode.workspace.fs.isWritableFileSystem(scheme) === true);
+  // The clean editing view shows a file without its notes (R-TEXT-009): its file has them.
+  return document.languageId === 'markdown' && scheme !== 'markdown-notes' && (scheme === 'untitled' || vscode.workspace.fs.isWritableFileSystem(scheme) === true);
 }
 
 /**

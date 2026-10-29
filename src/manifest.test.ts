@@ -17,6 +17,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
+import { cleanCommands } from './cleanView';
 import { deselectPath, extensionId, highlightCommands, highlightsContext, openPath } from './extension';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
@@ -93,7 +94,9 @@ test('the icon is a PNG of 256 × 256 pixels, because the Marketplace takes no S
 });
 
 test('the extension starts with the Markdown files, and adds its plugin, its styles and its script to the Markdown preview (R-PREV-001, R-PREV-002)', () => {
-  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'onUri']);
+  // The clean editing view (R-TEXT-009) reads its documents from the file system of the extension, also when
+  // VS Code opens one of them again after a restart.
+  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'onFileSystem:markdown-notes', 'onUri']);
   expect(manifest.contributes['markdown.markdownItPlugins']).toBe(true);
   expect(manifest.contributes['markdown.previewStyles']).toEqual(['./media/markdownPreview.css']);
   expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js']);
@@ -132,7 +135,7 @@ test('the manifest contributes the side view "Notes" in a container of its own i
 
 test('the manifest contributes the commands of the side view, of the highlights and of the keys next to a hidden marker, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
-  expect([...contributed].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands)].sort());
+  expect([...contributed].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands)].sort());
 });
 
 test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
