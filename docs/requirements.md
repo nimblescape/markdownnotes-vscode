@@ -60,6 +60,7 @@ as the highlights of a marker pen on paper.
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
+| 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file (decision 27) | [R-TEXT-005](#r-text-005), [R-NOTE-006](#r-note-006) | prototype; shown to Hannes before the full build, before step 29 |
 
 ## General
 
@@ -1543,6 +1544,30 @@ requirements above follow them.
     ([R-HIDE-002](#r-hide-002)). Before, the buttons showed an open and a
     closed eye. The other choices were the codicons "layers-active" and
     "layers", and "circle-large-filled" and "circle-large-outline".
+27. **The clean editing view** ([R-TEXT-005](#r-text-005),
+    [R-NOTE-006](#r-note-006), Hannes, 2026-10-29, 09:17: "all notes markup
+    must not have effects on the editing, the editor must behave as if there
+    was no notes markup at all in the document"; decided at 09:37 with the
+    option "Clean editing view"): the text editor edits a copy of the file
+    without the start markers, the references, the definitions of the notes
+    and the comment of the format, and the extension writes each change into
+    the file and keeps each note at its text. The line breaks, the cursor,
+    the word moves, the search and the copy then count only the characters
+    of the text. The format of the file and the notes on GitHub stay as they
+    are; the text editor of the copy shows no marks of git. Before, the text
+    editor showed the file with hidden markers, and VS Code counted the
+    hidden characters for the line breaks and the cursor, so that a row
+    could end early and the cursor could stand in a gap (Hannes, 09:10: "the
+    cursor is in a position where nothing is there, editing there breaks the
+    format"). No decoration and no API of VS Code for extensions changes that
+    count. A prototype comes first, checked in VS Code and shown to Hannes,
+    before the full build. The choice comes before steps 29 and 30, because
+    the hidden form changes the markup that the copy leaves out. The other
+    choices were the notes outside the text, which name their text by a
+    quote, at the end of the file or in a file beside it (a new format,
+    GitHub shows no notes, and a change outside VS Code can lose a note), and
+    the markers kept with a cursor that never stands in a hidden marker or a
+    gap (the line breaks still count the hidden characters).
 
 ---
 

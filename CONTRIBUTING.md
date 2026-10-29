@@ -4,7 +4,8 @@ This guide explains the files, the development, the tests and the release of
 the extension. The [README](README.md) describes the use in short, the
 [user guide](docs/guide.md) describes every feature,
 [docs/requirements.md](docs/requirements.md) lists what the extension must do,
-each requirement with an ID, and [docs/security.md](docs/security.md)
+each requirement with an ID, [docs/features.md](docs/features.md) lists the
+requested features and their state, and [docs/security.md](docs/security.md)
 describes its security model.
 
 ## Files
@@ -47,6 +48,7 @@ describes its security model.
 | `docs/format.md` | The specification of the format of the notes, for people and programs such as AI agents. The comment of the format links to it on the branch `main`, so the file keeps its path. |
 | `docs/example.md` | A document with notes of each kind: a tree of replies, code blocks, a task list, highlights in three colors, and a footnote that is no note. GitHub shows it as the readers of a repository see the notes. |
 | `docs/requirements.md` | The requirements, each with an ID as its heading, and the plan of the steps. |
+| `docs/features.md` | The features that Hannes asked for in the threads of the project, each with the date of the request, its requirement and its state: built, bug, planned, needs Hannes, replaced or dropped, and the open work in its order. A change of a feature or of its state updates its row. |
 | `docs/security.md` | The security model: what the extension does on your computer, what it protects, and where its protection ends. The section "What the extension does on your computer" at the top of the README lists the same behaviors in short. |
 | `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with the highlights of two notes and the list of the light bulb at the selected text (Ctrl+.), and the side view "Notes" beside it in the secondary side bar. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
 | `THIRD-PARTY-NOTICES.md` | The packages that the bundle contains, their licenses and the places of their source code. |

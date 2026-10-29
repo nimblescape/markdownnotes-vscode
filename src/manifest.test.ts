@@ -443,16 +443,18 @@ test('the description adds no search tag, for example of another programming lan
   expect(await tags(manifest.description)).toEqual(await tags(''));
 });
 
-test('every requirement has a unique ID, and every link to a requirement names an existing one', () => {
+test('every requirement has a unique ID, and every link to a requirement or a section of the requirements names an existing one', () => {
   const requirements = read('docs/requirements.md');
   const ids = [...requirements.matchAll(/^### (R-[A-Z]+-\d{3})$/gm)].map((match) => match[1]);
   expect(ids.length).toBeGreaterThan(0);
   expect(new Set(ids).size).toBe(ids.length);
-  const anchors = new Set(ids.map((id) => `#${id.toLowerCase()}`));
+  // The sections, for example "Plan" and "Decisions", are targets too.
+  const sections = [...requirements.matchAll(/^## (.+)$/gm)].map((match) => anchorOf(match[1]));
+  const anchors = new Set([...ids.map((id) => `#${id.toLowerCase()}`), ...sections]);
   for (const target of markdownLinks(requirements).filter((target) => target.startsWith('#r-'))) {
     expect(anchors.has(target), target).toBe(true);
   }
-  for (const file of ['docs/guide.md', 'docs/security.md', 'CONTRIBUTING.md']) {
+  for (const file of ['docs/guide.md', 'docs/features.md', 'docs/security.md', 'CONTRIBUTING.md']) {
     for (const target of markdownLinks(read(file)).filter((target) => /requirements\.md#/.test(target))) {
       expect(anchors.has(target.slice(target.indexOf('#'))), `${file}: ${target}`).toBe(true);
     }
@@ -471,10 +473,12 @@ test('every requirement has a unique ID, and every link to a requirement names a
   }
 });
 
-test('every link of the user guide to one of its sections names an existing heading', () => {
-  const guide = read('docs/guide.md');
-  const anchors = new Set([...guide.matchAll(/^#{2,4} (.+)$/gm)].map((match) => anchorOf(match[1])));
-  for (const target of markdownLinks(guide).filter((target) => target.startsWith('#'))) {
-    expect(anchors.has(target), target).toBe(true);
+test('every link of the user guide and of the list of the features to one of their sections names an existing heading', () => {
+  for (const file of ['docs/guide.md', 'docs/features.md']) {
+    const text = read(file);
+    const anchors = new Set([...text.matchAll(/^#{2,4} (.+)$/gm)].map((match) => anchorOf(match[1])));
+    for (const target of markdownLinks(text).filter((target) => target.startsWith('#'))) {
+      expect(anchors.has(target), `${file}: ${target}`).toBe(true);
+    }
   }
 });
