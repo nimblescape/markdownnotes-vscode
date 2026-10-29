@@ -184,6 +184,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly ready = new Map<string, Mirror>();
   /** markup holds the files that "Open File with Markup" opened, by their URIs: they stay as they are until their tabs close. */
   private readonly markup = new Set<string>();
+  /** opening holds the files that "Open File with Markup" opens now, by their URIs, before they have tabs. */
+  private readonly opening = new Set<string>();
   /** switching holds the files whose text editors become the view now, by their URIs. */
   private readonly switching = new Set<string>();
   /** reverting holds the files whose changes go back to their text on disk, by their URIs, after the view closed without a save. */
@@ -347,9 +349,21 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     if (!editor || !file) {
       return;
     }
-    this.markup.add(file.toString());
+    const key = file.toString();
     const place = (position: vscode.Position): vscode.Position => this.toReal(editor.document.uri, position) ?? position;
-    await vscode.window.showTextDocument(file, { viewColumn: editor.viewColumn, preview: false, selection: new vscode.Selection(place(editor.selection.anchor), place(editor.selection.active)) });
+    const { viewColumn } = editor;
+    const selection = new vscode.Selection(place(editor.selection.anchor), place(editor.selection.active));
+    this.markup.add(key);
+    this.opening.add(key);
+    try {
+      // The view can still close the tab of the file that it took the place of; the file opens after that.
+      while (this.switched) {
+        await this.switched.pass;
+      }
+      await vscode.window.showTextDocument(file, { viewColumn, preview: false, selection });
+    } finally {
+      this.opening.delete(key);
+    }
   }
 
   /** switchLater makes the text editors of files with notes the view, after the pass that runs now. */
@@ -377,7 +391,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private async switchEditors(): Promise<void> {
     // A file that "Open File with Markup" opened stays as it is until its tab closes.
     for (const key of this.markup) {
-      if (!hasTab(vscode.Uri.parse(key))) {
+      if (!this.opening.has(key) && !hasTab(vscode.Uri.parse(key))) {
         this.markup.delete(key);
       }
     }
@@ -483,7 +497,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     if (top && top.line > 0) {
       shown.revealRange(new vscode.Range(place(top), place(top)), vscode.TextEditorRevealType.AtTop);
     }
-    if (!editor.document.isDirty) {
+    // "Open File with Markup" can show the file again while the view opens; its tab then stays.
+    if (!editor.document.isDirty && !this.markup.has(file.toString())) {
       await this.closeTabsOf(file);
     }
   }

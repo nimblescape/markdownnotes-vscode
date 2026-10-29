@@ -282,6 +282,44 @@ test('opens the file itself for "Open File with Markup" at the place of the curs
   expect(fake.editors[0].document.uri.scheme).toBe('markdown-notes');
 });
 
+test.each(['before', 'while'])('keeps the file that "Open File with Markup" shows %s the view closes the tab of the file that it took the place of', async (when) => {
+  const window = fake.api.window as {
+    showTextDocument(target: unknown, options?: unknown): Promise<FakeEditor>;
+    tabGroups: { close(tabs: FakeTab[]): Promise<boolean> };
+  };
+  const { showTextDocument: show, tabGroups } = window;
+  const close = tabGroups.close;
+  // The user runs "Open File with Markup" as soon as the view shows. VS Code closes a tab later than it shows one, so
+  // the command can show the tab of the file that the view closes now.
+  const openWithMarkup = () => void fake.run('nimblescape.markdownNotes.openWithMarkup');
+  if (when === 'before') {
+    window.showTextDocument = async (target, options) => {
+      const editor = await show(target, options);
+      if (target instanceof FakeUri && target.scheme === 'markdown-notes') {
+        window.showTextDocument = show;
+        openWithMarkup();
+      }
+      return editor;
+    };
+  } else {
+    tabGroups.close = async (tabs) => {
+      tabGroups.close = close;
+      openWithMarkup();
+      await settle();
+      return close(tabs);
+    };
+  }
+  const { real } = await inEditor();
+  await settle();
+  fake.fire('tabs', {});
+  fake.fire('visibleEditors', fake.editors);
+  await settle();
+  await settle();
+  expect(fake.activeEditor?.document).toBe(real);
+  expect(fake.editors.map((editor) => editor.document)).toEqual([real]);
+  expect((fake.tabGroups[0].activeTab?.input as FakeTabInputText | undefined)?.uri).toBe(real.uri);
+});
+
 test('brings the file back to its text on disk when the view closes without a save, with a save that changes nothing more, and closes the tab of the file behind the view', async () => {
   const { view, real } = await inEditor();
   const document = fake.editors[0].document;
