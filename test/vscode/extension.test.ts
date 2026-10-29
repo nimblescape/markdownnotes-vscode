@@ -2,10 +2,11 @@
 // Tests in a real VS Code (npm run test:vscode, .vscode-test.mjs): mocha runs them in the extension host. They open
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
 // of the format (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
-// (R-SIDE-001, R-GEN-011), the hover over the selected text (R-EDIT-006), the formatter (R-FMT-001), and the highlights
-// of the Markdown preview of VS Code (R-PREV-001 to R-PREV-004) with the markdown-it plugin of the extension, and the
-// headings of the links of the side view in the HTML of the preview (R-SIDE-005). The tests add no note and no answer,
-// because these need a GitHub sign-in (R-GEN-006), which a test cannot give.
+// (R-SIDE-001, R-GEN-011), the hover over the selected text (R-EDIT-006), the formatter and its format on save of a file
+// with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to R-PREV-004) with the
+// markdown-it plugin of the extension, and the headings of the links of the side view in the HTML of the preview
+// (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
+// cannot give.
 
 import * as assert from 'node:assert/strict';
 import * as fs from 'node:fs';
@@ -216,6 +217,17 @@ describe('nimblescape Markdown Notes', () => {
     edit.set(document.uri, edits);
     await vscode.workspace.applyEdit(edit);
     assert.equal(document.getText().split('\n')[0], 'One <wbr><!--[note-aaaa-->line[^note-aaaa] of text.');
+  });
+
+  it('formats a file with notes on a save, and keeps the text of a file without notes (R-FMT-001)', async () => {
+    const { document, editor } = await open('One <!--[note-aaaa-->line[^note-aaaa]\nof text.\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n', 1);
+    await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), 'The '));
+    assert.ok(await document.save(), 'the save of the file with notes');
+    assert.equal(document.getText().split('\n')[0], 'The One <wbr><!--[note-aaaa-->line[^note-aaaa] of text.');
+    const plain = await open('# Title\nOne\ntwo\n', 0);
+    await plain.editor.edit((edit) => edit.insert(new vscode.Position(1, 0), 'The '));
+    assert.ok(await plain.document.save(), 'the save of the file without notes');
+    assert.equal(plain.document.getText(), '# Title\nThe One\ntwo\n');
   });
 
   it('the Markdown preview shows the highlight of each note in its color with its link, and never the text of a note or a footnote (R-PREV-001 to R-PREV-004)', async () => {

@@ -35,8 +35,9 @@ import { registerFormatter } from './formatter';
 import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
+import { findDoctype } from './notes/doctype';
 import type { Note } from './notes/notes';
-import { isNoteDocument, NoteThreads } from './noteThreads';
+import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
 import { SelectionHover } from './selectionHover';
@@ -205,6 +206,13 @@ export function activate(context: vscode.ExtensionContext): Api {
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights && view.visible;
   const editor = new NoteEditor(threads, showsHighlights, selected);
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, (document) => editor.hiddenLinesOf(document));
+  /**
+   * formatsWithNotes tells whether the settings and the notes of a document ask for its format on save: the setting
+   * formatOnSave is on, and the document has notes or the comment of the format (R-FMT-001).
+   * @param document - The document.
+   */
+  const formatsWithNotes = (document: vscode.TextDocument): boolean =>
+    readSettings(document.uri).formatOnSave && (threads.notesOf(document).length > 0 || findDoctype(linesOf(document)) !== undefined);
   /** showsChanged shows or hides the highlights in the text editors and the previews, and the buttons that fit. */
   const showsChanged = (): void => {
     void vscode.commands.executeCommand('setContext', highlightsContext, showsHighlights(undefined));
@@ -218,7 +226,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     view.onDidChangeVisibility(showsChanged),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
-    registerFormatter(),
+    ...registerFormatter(extensionId, formatsWithNotes),
     ...new SelectionHover(threads, viewCommands.newNote).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {

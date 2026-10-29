@@ -189,6 +189,37 @@ test('the formatter of Markdown documents gives one edit of the changed lines wi
   expect(format(crlf)).toBe('One two\r\n\r\nThree\r\n');
 });
 
+test('a save formats a Markdown file with notes or with the comment of the format, and no other file, also not with the setting formatOnSave off or when VS Code formats on save itself (R-FMT-001)', async () => {
+  await fake.activate();
+  /** save fires the save of a document and returns the edits that the extension gives VS Code before the save. */
+  const save = async (document: FakeDocument, reason = 1): Promise<FakeTextEdit[]> => {
+    const waits: PromiseLike<FakeTextEdit[]>[] = [];
+    fake.fire('willSave', { document, reason, waitUntil: (thenable: PromiseLike<FakeTextEdit[]>) => waits.push(thenable) });
+    return (await Promise.all(waits)).flat();
+  };
+  const withNotes = fake.open('One\ntwo[^note-aaaa].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n', '/folder/notes.md');
+  expect(await save(withNotes)).toHaveLength(1);
+  // A save with the focus on another editor formats; an automatic save after a delay does not, as in VS Code.
+  expect(await save(withNotes, 3)).toHaveLength(1);
+  expect(await save(withNotes, 2)).toEqual([]);
+  expect(await save(fake.open(marked('# Title\nOne\ntwo\n'), '/folder/doctype.md'))).toHaveLength(1);
+  // A Markdown file without notes keeps its text; "Format Document" still formats it.
+  const plain = fake.open('# Title\nOne\ntwo\n', '/folder/plain.md');
+  expect(await save(plain)).toEqual([]);
+  expect(fake.formatters.get('markdown')!.provideDocumentFormattingEdits(plain)).toHaveLength(1);
+  expect(await save(fake.open('One\ntwo[^note-aaaa].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n', '/folder/notes.txt', { languageId: 'plaintext' }))).toEqual([]);
+  fake.settings.set('/folder/notes.md', { [`${settingsSection}.formatOnSave`]: false });
+  expect(await save(withNotes)).toEqual([]);
+  fake.settings.delete('/folder/notes.md');
+  // With editor.formatOnSave on, VS Code runs the formatter itself; another default formatter is the choice of the user.
+  fake.settings.set('', { 'editor.formatOnSave': true });
+  expect(await save(withNotes)).toEqual([]);
+  fake.settings.set('', { 'editor.defaultFormatter': 'other.formatter' });
+  expect(await save(withNotes)).toEqual([]);
+  fake.settings.set('', { 'editor.defaultFormatter': 'nimblescape.nimblescape-markdown-notes' });
+  expect(await save(withNotes)).toHaveLength(1);
+});
+
 test('the button of the side view closes the secondary side bar, and the button of the editors shows or hides the view (R-SIDE-006)', async () => {
   await fake.activate();
   const view = fake.resolveView(notesViewId);

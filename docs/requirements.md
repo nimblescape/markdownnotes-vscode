@@ -48,6 +48,7 @@ as the highlights of a marker pen on paper.
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
 | 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done |
 | 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
+| 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 
 ## General
 
@@ -988,12 +989,22 @@ the mode ([R-SIDE-007](#r-side-007)).
 **Format on save.** The extension brings its own Markdown formatter (Hannes,
 2026-10-28: "guess the plugin must bring the own formatter", "it shall format
 on save tables and other reasonable defaults"). The manifest makes it the
-default formatter of Markdown files, with format on save. VS Code runs it on
-"Format Document" and when a Markdown file is saved. The user turns it off with
-the settings of VS Code for `[markdown]`: `editor.formatOnSave` set to
-`false`, or another `editor.defaultFormatter`. The formatter changes only the
-lines that it formats, in one edit, with the line breaks of the file, so
-that Undo takes the whole change back.
+default formatter of Markdown files, so VS Code runs it on "Format Document"
+for every Markdown file. A save formats only a Markdown file with notes or
+with the comment of the format ([R-NOTE-007](#r-note-007)), so that the
+Markdown files of other projects keep their text (Hannes, 2026-10-29: "Only
+files with notes", [decision 19](#decisions)). The save of such a file
+formats it while the setting `nimblescape.markdownNotes.formatOnSave` is on
+(the default), unless:
+
+- the save is an automatic save after a delay, which VS Code also saves
+  without its format on save, or "Save without Formatting";
+- the user turned on `editor.formatOnSave` for Markdown, so that VS Code
+  runs the formatter on each save itself, of every Markdown file;
+- the user chose another `editor.defaultFormatter` for Markdown.
+
+The formatter changes only the lines that it formats, in one edit, with the
+line breaks of the file, so that Undo takes the whole change back.
 
 ### R-FMT-002
 
@@ -1211,6 +1222,14 @@ them.
     offers the colors for a new note. Closing the side view keeps the
     setting, and "Show Highlights" also opens the side view, so that one
     click shows the highlights.
+19. **Format on save only for files with notes** ([R-FMT-001](#r-fmt-001),
+    Hannes, 2026-10-29, option "Only files with notes" of decision D1 of the
+    code review): a save formats only a Markdown file with notes or with the
+    comment of the format; "Format Document" still formats every Markdown
+    file. The code review found that the format on save of every Markdown
+    file changed 74 % of 436 README and CHANGELOG files on their first save,
+    also in projects without notes. The other choices were format on save
+    for every Markdown file, as before, and no format on save by default.
 
 ---
 

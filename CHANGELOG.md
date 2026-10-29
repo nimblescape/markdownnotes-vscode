@@ -76,8 +76,10 @@ The first version.
   a heading or in a note, a note without a start marker or without
   highlighted text, and a start marker without `<wbr>` at the start of a
   line.
-- An own Markdown formatter for "Format Document" and format on save, the
-  default for Markdown files: each paragraph on one line with its hard line
+- An own Markdown formatter, the default for "Format Document" of Markdown
+  files and the format on save of a Markdown file with notes or with the
+  comment of the format; other Markdown files keep their text on a save
+  (setting `nimblescape.markdownNotes.formatOnSave`): each paragraph on one line with its hard line
   breaks, aligned columns of the tables, no white space at the end of a line,
   one blank line between blocks, one line break at the end of the file,
   `<wbr>` before each start marker, and a start marker for each note without
@@ -97,5 +99,6 @@ The first version.
   footnotes, checkboxes and the GitHub styles. A footnote in a note is a
   footnote of the page.
 - The settings `nimblescape.markdownNotes.showHighlights`,
-  `nimblescape.markdownNotes.openLinksIn` and
-  `nimblescape.markdownNotes.addFormatComment`.
+  `nimblescape.markdownNotes.openLinksIn`,
+  `nimblescape.markdownNotes.addFormatComment` and
+  `nimblescape.markdownNotes.formatOnSave`.

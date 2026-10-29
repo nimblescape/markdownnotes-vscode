@@ -25,8 +25,9 @@ author.
   editor shows a file with notes without that comment, the extension adds
   it; the setting `nimblescape.markdownNotes.addFormatComment` turns this off. You save the
   file as usual, and Undo takes the change back. When you save a Markdown
-  file, the formatter of the extension formats it; `"editor.formatOnSave":
-  false` for `[markdown]` in the settings of VS Code turns this off.
+  file with notes, the formatter of the extension formats it; the setting
+  `nimblescape.markdownNotes.formatOnSave` turns this off. A Markdown file
+  without notes changes only with "Format Document".
   Other footnotes, for example `[^1]`, stay as they are.
 - **GitHub sign-in.** New notes and answers need a sign-in with GitHub, so
   that the author is always known. The extension uses the GitHub sign-in of
@@ -90,8 +91,9 @@ describes each step and where its protection ends.
   shows, it shows rendered, with the date in your local time.
 - **Markdown preview.** The preview shows the highlights, no icons and no
   callouts, and never a note as a footnote at the end of the page.
-- **Formatter.** The extension formats a Markdown file when you save it:
-  each paragraph on one line with its hard line breaks, aligned tables,
+- **Formatter.** The extension formats a Markdown file with notes when you
+  save it, and every Markdown file with "Format Document": each paragraph on
+  one line with its hard line breaks, aligned tables,
   no spaces at the end of a line, one blank line between blocks, and `<wbr>`
   before each start marker, which every note gets. Code, HTML, a front matter
   and the answers of the notes stay as they are. Programs and AI agents run the same formatter on the command line
@@ -172,10 +174,12 @@ extension to everyone who opens it.
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview while the side view "Notes" is open. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes as soon as an editor shows it. The value `false` adds it only with a change of a note. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
+| `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |
 
-The formatter is the default formatter of Markdown files with format on
-save. To turn it off, set `"editor.formatOnSave": false` in a
-`"[markdown]"` block of your settings.
+The formatter is the default formatter of Markdown files, so "Format
+Document" formats every Markdown file. With `"editor.formatOnSave": true` in
+a `"[markdown]"` block of your settings, VS Code formats every Markdown file
+on a save; "Save without Formatting" saves a file without the formatter.
 
 ## Limits
 

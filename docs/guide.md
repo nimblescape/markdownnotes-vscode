@@ -628,8 +628,10 @@ the mode "Markdown Preview" to see the highlights.
 ## Formatter
 
 The extension brings a formatter of Markdown files. It is the default
-formatter of Markdown, and VS Code runs it when you save a Markdown file and
-on "Format Document" (Shift+Alt+F). It changes:
+formatter of Markdown, so "Format Document" (Shift+Alt+F) formats every
+Markdown file with it. When you save a Markdown file with notes, or with the
+comment of the format, the extension formats it too; a Markdown file without
+notes keeps its text on a save. It changes:
 
 - Each paragraph stands on one line, also in a list item or a block quote.
   A hard line break stays: two spaces or a backslash at the end of a line.
@@ -651,16 +653,20 @@ underlined with `===` or `---`, and the answers of the notes as they are; of
 a note, it changes only the start marker. When the formatted text would show
 other blocks or another text in the preview, it changes nothing. Undo takes a change back.
 
-To turn it off, add to your settings (`settings.json`):
+The setting `nimblescape.markdownNotes.formatOnSave` turns the format on save
+off; "Save without Formatting" saves one file without it, and an automatic
+save after a delay never formats. To format every Markdown file on a save,
+add to your settings (`settings.json`):
 
 ```json
 "[markdown]": {
-  "editor.formatOnSave": false
+  "editor.formatOnSave": true
 }
 ```
 
 Another formatter takes over with `"editor.defaultFormatter"` in the same
-block, for example `"esbenp.prettier-vscode"`.
+block, for example `"esbenp.prettier-vscode"`; then the extension formats no
+file on a save.
 
 ### Formatter on the command line
 
@@ -692,6 +698,7 @@ after a change of a file with notes.
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, while the side view "Notes" is open. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes as soon as an editor shows it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. |
+| `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens from the side view: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. A folder of a workspace can have its own value. |
 
 The settings `showNotesIn`, `expandInEditor`, `collapseInEditor`,

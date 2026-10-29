@@ -10,11 +10,12 @@
 import { expect, test } from 'vitest';
 import { checkedSettings, defaultSettings, type Settings } from './settings';
 
-test('the defaults show the highlights, open links in a new window, and add the comment of the format', () => {
+test('the defaults show the highlights, open links in a new window, add the comment of the format, and format a file with notes on save', () => {
   expect(defaultSettings).toEqual({
     showHighlights: true,
     openLinksIn: 'newWindow',
     addFormatComment: true,
+    formatOnSave: true,
   });
 });
 
@@ -23,6 +24,7 @@ test('checkedSettings keeps the values that the settings take', () => {
     showHighlights: false,
     openLinksIn: 'system',
     addFormatComment: false,
+    formatOnSave: false,
   };
   expect(checkedSettings((key) => values[key])).toEqual(values);
   expect(checkedSettings((key) => ({ openLinksIn: 'editor' })[key as string])).toMatchObject({ openLinksIn: 'editor' });
@@ -34,6 +36,7 @@ test('checkedSettings gives a missing value or a value that the setting does not
     showHighlights: 'no',
     openLinksIn: true,
     addFormatComment: 'off',
+    formatOnSave: 'no',
   };
   expect(checkedSettings((key) => values[key])).toEqual(defaultSettings);
   expect(checkedSettings((key) => (key === 'openLinksIn' ? 'NewWindow' : undefined)).openLinksIn).toBe('newWindow');

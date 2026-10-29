@@ -450,6 +450,7 @@ export class Fake {
       TextEditorSelectionChangeKind: { Keyboard: 1, Mouse: 2, Command: 3 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },
+      TextDocumentSaveReason: { Manual: 1, AfterDelay: 2, FocusOut: 3 },
       FileType: { File: 1, Directory: 2 },
       ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
       env: {
@@ -540,7 +541,8 @@ export class Fake {
         getConfiguration: (section: string, scope?: FakeUri) => {
           const values = { ...this.settings.get(''), ...this.settings.get('workspace'), ...(scope ? this.settings.get(scope.path) : undefined) };
           return {
-            get: (key: string) => values[key],
+            // A test sets a setting by its whole name, such as editor.formatOnSave, or by its key alone.
+            get: (key: string) => values[`${section}.${key}`] ?? values[key],
             inspect: (key: string) => ({ globalValue: this.settings.get('')?.[key], workspaceValue: this.settings.get('workspace')?.[key] }),
             update: async (key: string, value: unknown, target: number) => {
               const scope = target === 2 ? 'workspace' : '';
@@ -582,6 +584,7 @@ export class Fake {
         onDidChangeTextDocument: on('change'),
         onDidCloseTextDocument: on('close'),
         onDidChangeConfiguration: on('configuration'),
+        onWillSaveTextDocument: on('willSave'),
       },
       extensions: {
         getExtension: (id: string) => (id === 'vscode.markdown-language-features' ? { isActive: true } : undefined),

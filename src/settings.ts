@@ -28,6 +28,8 @@ export interface Settings {
   openLinksIn: LinkTarget;
   /** addFormatComment writes the comment of the format into a file with notes as soon as an editor shows it ([R-NOTE-007](../docs/requirements.md#r-note-007)). */
   addFormatComment: boolean;
+  /** formatOnSave formats a Markdown file with notes when it is saved ([R-FMT-001](../docs/requirements.md#r-fmt-001)). */
+  formatOnSave: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
@@ -35,6 +37,7 @@ export const defaultSettings: Readonly<Settings> = {
   showHighlights: true,
   openLinksIn: 'newWindow',
   addFormatComment: true,
+  formatOnSave: true,
 };
 
 /**
@@ -42,7 +45,7 @@ export const defaultSettings: Readonly<Settings> = {
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const flag = (key: 'showHighlights' | 'addFormatComment'): boolean => {
+  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave'): boolean => {
     const raw = read(key);
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
@@ -51,5 +54,6 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     showHighlights: flag('showHighlights'),
     openLinksIn: linkTargets.find((value) => value === raw) ?? defaultSettings.openLinksIn,
     addFormatComment: flag('addFormatComment'),
+    formatOnSave: flag('formatOnSave'),
   };
 }
