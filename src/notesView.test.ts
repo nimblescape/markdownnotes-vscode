@@ -19,7 +19,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
 import { markdownModes, notesViewId, viewCommands } from './notesView';
-import { Fake, FakeEditor, FakePosition, FakeRange, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeTabInputText, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -377,6 +377,77 @@ test('a click on a thread puts the cursor at the start of the highlight of its n
   await send(view, { type: 'ready' });
   await send(view, { type: 'reveal', id: '1' });
   expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 33) }) });
+});
+
+/** twoNotes is a paragraph with the highlights of two notes, with their start markers. */
+const twoNotes = `The <wbr><!--[note-aaaa-->agents[^note-aaaa] change <wbr><!--[note-bbbb green-->the work[^note-bbbb].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n\n[^note-bbbb]: **ann** · 2026-10-28 10:15+01:00\n\n    B\n`;
+
+/**
+ * inCleanView opens a file from the Explorer in a tab of its own, as VS Code does, activates the extension, which
+ * shows it in the clean editing view (R-TEXT-009), and shows the side view.
+ * @param text - The text of the file.
+ */
+const inCleanView = async (text: string) => {
+  fake.files.set('/folder/a.md', text);
+  const document = fake.open(text);
+  const tab = { input: new FakeTabInputText(document.uri), isPreview: true };
+  fake.tabGroups.push({ viewColumn: 1, tabs: [tab], activeTab: tab });
+  fake.editors.push(new FakeEditor(document, 0, 1));
+  fake.activeEditor = fake.editors[0];
+  await fake.activate();
+  await settle();
+  await settle();
+  const [clean] = fake.editors;
+  fake.fire('activeEditor', clean);
+  const view = fake.resolveView(notesViewId);
+  await send(view, { type: 'ready' });
+  return { clean, document, view };
+};
+
+test('a click on a thread in the clean editing view selects the thread in the view, also when the cursor goes to the start of its highlight (R-SIDE-007, R-TEXT-009)', async () => {
+  const { clean, view } = await inCleanView(twoNotes);
+  expect(clean.document.getText()).toBe('The agents change the work.\n');
+  const [first, second] = view.state().threads;
+  for (const thread of [second, first]) {
+    await send(view, { type: 'reveal', id: thread.id, focus: false });
+    expect(view.state().selected).toBe(thread.id);
+    // VS Code puts the cursor at the start of the highlight in the view, which is the place of the hidden start marker.
+    const { selection } = fake.shown.at(-1)!.options as { selection: FakeRange };
+    expect(clean.document.getText(new FakeRange(selection.start, clean.document.positionAt(clean.document.getText().length)))).toMatch(thread === first ? /^agents/ : /^the work/);
+    clean.selection = { active: selection.start };
+    fake.fire('selection', { textEditor: clean, selections: [selection] });
+    await settle();
+    expect(view.state().selected).toBe(thread.id);
+  }
+});
+
+test('a click on a thread keeps the mode of the tab of the clean editing view, and the view shows the notes of its file in each mode (R-SIDE-007, R-TEXT-009)', async () => {
+  const { clean, document, view } = await inCleanView(twoNotes);
+  const [, second] = view.state().threads;
+  const shown = fake.shown.length;
+  // The user switches the tab of the view to the mode "Markdown Preview", which shows the clean document.
+  const inMode = async (viewType: string) => {
+    fake.editors = [];
+    fake.tabGroups = [{ viewColumn: 1, tabs: [], activeTab: { input: { viewType, uri: clean.document.uri }, label: 'a.md' } }];
+    fake.fire('tabs', {});
+    await settle();
+  };
+  await inMode(markdownModes.preview);
+  expect(view.state().threads).toHaveLength(2);
+  await send(view, { type: 'reveal', id: second.id, focus: false });
+  expect(fake.shown).toHaveLength(shown);
+  expect(view.state().selected).toBe(second.id);
+  expect(fake.calls.map(({ command }) => command)).not.toContain('vscode.openWith');
+  // The mode "Markdown Editor" of the view selects the highlight of the note in the clean document.
+  await inMode(markdownModes.editor);
+  await send(view, { type: 'reveal', id: second.id, focus: false });
+  expect(fake.shown).toHaveLength(shown);
+  const { command, args } = fake.calls.at(-1)!;
+  expect(command).toBe('vscode.openWith');
+  expect(args.slice(0, 2)).toEqual([clean.document.uri, markdownModes.editor]);
+  const { start, end } = (args[2] as { selection: FakeRange }).selection;
+  expect(clean.document.getText(new FakeRange(start, end))).toBe('the work');
+  expect(document.getText()).toBe(twoNotes);
 });
 
 test('a click on a thread keeps the mode of the file: the preview scrolls to the note, and the mode "Markdown Editor" selects its highlight (R-SIDE-007)', async () => {

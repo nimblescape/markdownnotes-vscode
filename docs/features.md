@@ -12,12 +12,12 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 57 requested features, 41 are built, among them the clean editing view
+Of 62 requested features, 44 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
-breaks and the cursor next to the hidden markers in the text editor. 8
+breaks and the cursor next to the hidden markers in the text editor. 9
 features are planned but not built: the features of the section
 [Planned features](#planned-features). The npm package with the first release
-needs Hannes. 7 requests were replaced or dropped by later decisions of
+needs Hannes. 8 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
@@ -61,6 +61,8 @@ tooltips, the lighter dimming and the list that scrolls on its own came on
 | The other notes dimmed while one is selected; on 10-29: "too dark" | 10-28, 10-29 09:06 | [R-SIDE-007](requirements.md#r-side-007) | Built | Opacity 70 % instead of 50 % |
 | Which thread belongs to which highlight: first a funnel, then the view aligned to the text with a line: "only the selected one has the connection" | 10-28 11:38, 19:50 | [R-SIDE-007](requirements.md#r-side-007) | Replaced | By [decision 25](requirements.md#decisions) (10-29 09:06): a list that scrolls freely |
 | The view scrolls on its own and smoothly: "cannot be scrolled individually to find a note", "laggy" | 10-29 09:03 | [R-SIDE-007](requirements.md#r-side-007) | Built | The list follows only a click or a move of the cursor into a highlight |
+| A click on a thread selects it in the view: "when selecting a note in the sideview, it gets not select in the sideview" | 10-29 16:30 | [R-SIDE-007](requirements.md#r-side-007) | Built | A bug of the clean editing view: the view got no new state after the click |
+| The icon of the Markdown preview on the button "Preview" of the editors: "the side view shows a wrong one" | 10-29 16:32 | [R-SIDE-002](requirements.md#r-side-002) | Built | The codicon "preview" of the mode "Markdown Preview" in place of "open-preview" (to the side); all icons of the view as VS Code 1.144 draws them |
 
 ## Text editor
 
@@ -79,7 +81,8 @@ breaks and the cursor next to the hidden markers.
 | The header of an answer written by the extension and shown rendered | 10-28 11:51 | [R-TEXT-007](requirements.md#r-text-007) | Built | |
 | Highlights, as with a marker pen, with good contrast, and buttons that show and hide them | 10-28 20:00, 20:18 | [R-GEN-011](requirements.md#r-gen-011) | Built | Setting `showHighlights` |
 | A hidden highlight shows under the pointer | 10-28 20:29 | [R-GEN-011](requirements.md#r-gen-011) | Built | |
-| Closing the side view hides the highlights | 10-28 20:31 | [R-GEN-011](requirements.md#r-gen-011) | Built | |
+| Closing the side view hides the highlights | 10-28 20:31 | [R-GEN-011](requirements.md#r-gen-011) | Replaced | By [decision 28](requirements.md#decisions) (10-29 16:33): the highlights do not depend on the side view |
+| "Show Highlights" only shows the highlights: "it shall not open the side view but only show the highlights. when a highlight is clicked, then the side view shall open" | 10-29 16:33 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 28](requirements.md#decisions), step 39 of the plan |
 | A click on a highlight selects its note and opens the side view; a click outside deselects it | 10-28, 20:32 | [R-SIDE-007](requirements.md#r-side-007) | Built | The selected highlight is strong, with a frame |
 | A note only for selected text: "there shall be no way to add a note without highlighting text" | 10-28 20:25 | [R-EDIT-003](requirements.md#r-edit-003) | Built | |
 | "Add Note" at the selected text: the light bulb (Ctrl+.), Shift+Alt+N (Cmd+K N on macOS), the context menu | 10-29 07:47 | [R-EDIT-006](requirements.md#r-edit-006) | Built | |
@@ -103,6 +106,7 @@ extension no place of its text, and Hannes chose the list
 | The buttons "Show Highlights" and "Hide Highlights" in the title of the preview | 10-28 20:00 | [R-PREV-005](requirements.md#r-prev-005) | Built | |
 | The text without the notes; other footnotes as before | 10-28 | [R-PREV-004](requirements.md#r-prev-004) | Built | Markdown Footnotes in the extension pack ([R-GEN-008](requirements.md#r-gen-008)) |
 | The side view follows the modes "Markdown Preview" and "Markdown Editor": "it shall stay in the mode the view is" | 10-28 | [R-PREV-006](requirements.md#r-prev-006) | Built | The mode "Markdown Editor" shows no highlights: it has no API for extensions |
+| A click on a thread keeps the mode of the tab also in the clean editing view: "it shall stay in the currently selected view" | 10-29 16:35 | [R-SIDE-007](requirements.md#r-side-007), [R-PREV-006](requirements.md#r-prev-006) | Built | A bug of the clean editing view: the tab of a mode holds the URI of the view, not of the file |
 | Only additions: other Markdown extensions keep working | 10-28 | [R-GEN-007](requirements.md#r-gen-007) | Built | |
 | A link from a highlight in the preview to its note: "the linking is not implemented for the preview" | 10-29 09:03 | [R-SIDE-007](requirements.md#r-side-007) | Replaced | By [decision 25](requirements.md#decisions): the list; the click selects the note |
 | Icons and callouts of the notes in the preview | 10-28 | [R-PREV-002](requirements.md#r-prev-002) | Dropped | "we completely drop the callouts on hover view" (10-28 19:59) |
@@ -142,6 +146,7 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
+| "Add Note" for selected text in the Markdown preview: "notes cannot be added in the preview view, but this should be possible as well" | 10-29 16:38 | [R-PREV-008](requirements.md#r-prev-008) | 40, in work | Planned |
 
 The later fixes of the code review of 2026-10-28 are not in the
 specification: a queue of writes for each file, tests of the script of the

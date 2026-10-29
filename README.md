@@ -61,9 +61,9 @@ describes each step and where its protection ends.
 - **Highlights.** A hidden start marker `<wbr><!--[note-7k2q-->` and the
   reference `[^note-7k2q]` stand around the text of a note, its highlight.
   The text editor and the Markdown preview show each highlight in the color
-  of its note, with a good contrast, while the side view is open. The buttons
-  "Hide Highlights" and "Show Highlights" in the title of the editor hide and
-  show them; a hidden highlight shows while the pointer is on it. A click on
+  of its note, with a good contrast, also while the side view is closed. The
+  buttons "Hide Highlights" and "Show Highlights" in the title of the editor
+  hide and show them; a hidden highlight shows while the pointer is on it. A click on
   a highlight selects its note in the side view and opens the side view. The
   highlight of the selected note is strong, with a frame, and the other
   highlights are dimmed.
@@ -177,7 +177,7 @@ extension to everyone who opens it.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview while the side view "Notes" is open. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
+| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |

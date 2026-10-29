@@ -24,11 +24,11 @@ The first version.
   for example `<wbr><!--[note-7k2q green-->`; all notes have the same color,
   blue, until the user gives a note one of six colors.
 - The text editor and the Markdown preview show the highlights in the colors
-  of their notes, with a good contrast, while the side view "Notes" is open.
-  "Hide Highlights" and "Show Highlights" in the title of the editors, with
-  the icon of a highlighter pen, change the setting
-  `nimblescape.markdownNotes.showHighlights`; "Show Highlights" also opens
-  the side view, and closing the side view hides the highlights.
+  of their notes, with a good contrast, also while the side view "Notes" is
+  closed. "Hide Highlights" and "Show Highlights" in the title of the
+  editors, with the icon of a highlighter pen, change the setting
+  `nimblescape.markdownNotes.showHighlights`, and leave the side view as it
+  is.
   A hidden highlight shows while the pointer is on it. A click on a highlight
   selects its note in the side view and opens the side view. The highlight of
   the selected note is strong with a frame, and the other highlights are

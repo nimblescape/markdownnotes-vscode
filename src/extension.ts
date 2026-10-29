@@ -23,11 +23,12 @@
  * Highlights" and "Hide Highlights", and refreshes the previews and the notes
  * when a setting of the extension changes.
  *
- * The highlights show while the setting `showHighlights` is on and the side
- * view is open (Hannes, 2026-10-28: "closing the side view, also hides the
- * highlights"). The context key highlightsContext tells the menus whether
- * they show: the title of the editors has "Hide Highlights" then, and else
- * "Show Highlights", which turns the setting on and opens the side view.
+ * The highlights show while the setting `showHighlights` is on, also while
+ * the side view is closed (Hannes, 2026-10-29: "clicking the highlight button
+ * [...] shall not open the side view but only show the highlights"); a click
+ * on a highlight opens the side view. The context key highlightsContext tells
+ * the menus whether they show: the title of the editors has "Hide Highlights"
+ * then, and else "Show Highlights", which turns the setting on.
  */
 
 import type MarkdownIt from 'markdown-it';
@@ -211,11 +212,10 @@ export function activate(context: vscode.ExtensionContext): Api {
   context.subscriptions.push(threads, ...threads.register());
   const selected = new SelectedNotes();
   /**
-   * showsHighlights tells whether the highlights of a document show: the setting showHighlights is on and the side view
-   * is open. The side view and the text editor overlay exist before the first call, which comes after registering.
+   * showsHighlights tells whether the highlights of a document show: the setting showHighlights is on.
    * @param document - The URI of the document, or undefined for the settings of the window.
    */
-  const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights && view.visible;
+  const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const editor = new NoteEditor(threads, showsHighlights, selected);
   const clean = new CleanView(showsHighlights, selected);
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
@@ -248,16 +248,12 @@ export function activate(context: vscode.ExtensionContext): Api {
     ...clean.register(),
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
-    view.onDidChangeVisibility(showsChanged),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     ...registerFormatter(extensionId, saveChangesOf),
     new AddNoteAction(threads, viewCommands.newNote, clean).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);
-      }
-      if (!view.visible) {
-        await view.open();
       }
     }),
     vscode.commands.registerCommand(highlightCommands.hide, () => setSetting('showHighlights', false)),

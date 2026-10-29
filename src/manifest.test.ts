@@ -174,8 +174,8 @@ test('the title of the text editor and of the preview of a Markdown file has the
   // of its editor, which are custom editors.
   const markdown =
     "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'";
-  // The highlights show while the setting showHighlights is on and the side view is open, so the buttons follow a
-  // context key of the extension, not the setting.
+  // The highlights show while the setting showHighlights is on in the settings of the workspace or of the user, so the
+  // buttons follow a context key of the extension that reads both, not the setting.
   expect(manifest.contributes.menus['editor/title']).toEqual([
     { command: viewCommands.toggle, group: 'navigation', when: `(${markdown})` },
     { command: highlightCommands.show, group: 'navigation', when: `(${markdown}) && !${highlightsContext}` },

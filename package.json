@@ -304,7 +304,7 @@
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "markdownDescription": "Show the highlight of each note, the text from its start marker to its reference, in the color of the note in the text editor and in the Markdown preview, while the side view \"Notes\" is open. The value `false` hides the highlights; the highlight of the selected note of the side view still shows, and a hidden highlight shows while the pointer is on its text. The buttons \"Hide Highlights\" and \"Show Highlights\" in the title of the editor change this setting; \"Show Highlights\" also opens the side view."
+          "markdownDescription": "Show the highlight of each note, the text from its start marker to its reference, in the color of the note in the text editor and in the Markdown preview, also while the side view \"Notes\" is closed. The value `false` hides the highlights; the highlight of the selected note of the side view still shows, and a hidden highlight shows while the pointer is on its text. The buttons \"Hide Highlights\" and \"Show Highlights\" in the title of the editor change this setting, and leave the side view as it is."
         },
         "nimblescape.markdownNotes.addFormatComment": {
           "type": "boolean",

@@ -9,7 +9,7 @@
  * notes the first time a file is in the active editor, which repeats while
  * VS Code reads the folds anew, and the collapse of a note that VS Code opens
  * (R-TEXT-005); the highlights in the colors of the notes while the setting
- * showHighlights is on and the side view is open, the hidden highlight under
+ * showHighlights is on, also with the side view closed, the hidden highlight under
  * the pointer and the strong highlight of the selected note, and the hidden
  * start markers and references (R-NOTE-006); the cursor and the keys next to
  * a hidden marker; and the rendered header lines with the time of the author
@@ -282,12 +282,10 @@ test('the notes stay collapsed: a fold that VS Code opens collapses again, and a
   expect(folds()).toEqual([fold(6)]);
 });
 
-test('while the side view is open, each highlight has a clear background and a line below it in the color of its note, and the overview ruler a mark (R-NOTE-006, R-GEN-011)', async () => {
+test('each highlight has a clear background and a line below it in the color of its note, and the overview ruler a mark, also while the side view is closed (R-NOTE-006, R-GEN-011)', async () => {
   const editor = await start(12, highlighted);
-  // The highlights show only while the side view is open (Hannes, 2026-10-28: "closing the side view, also hides the
+  // The highlights do not need the side view (Hannes, 2026-10-29: "it shall not open the side view but only show the
   // highlights").
-  expect(highlightsOf(editor, 'shown')).toEqual([]);
-  const view = openView();
   expect(highlightsOf(editor, 'shown')).toEqual([
     [noteColors[0], [new FakeRange(0, 33, 0, 48)]],
     [noteColors[1], [new FakeRange(6, 33, 6, 37)]],
@@ -296,16 +294,14 @@ test('while the side view is open, each highlight has a clear background and a l
   // A style of the text stays on the text also after a hidden marker, where VS Code places a background too far right.
   expect(type.options).toEqual({ textDecoration: `underline 2px ${noteColors[1]}; text-underline-offset: 3px; background-color: ${noteColors[1]}47;`, overviewRulerColor: noteColors[1], overviewRulerLane: 2 });
   expect(fake.calls).toContainEqual({ command: 'setContext', args: ['nimblescape.markdownNotes.highlightsShown', true] });
-  // Closing the side view hides the highlights again, and the setting stays as it is.
-  closeView(view);
-  expect(highlightsOf(editor, 'shown')).toEqual([]);
-  expect(fake.calls.at(-2)).toEqual({ command: 'setContext', args: ['nimblescape.markdownNotes.highlightsShown', false] });
+  // Opening and closing the side view keeps the highlights, and the setting stays as it is.
+  closeView(openView());
+  expect(highlightsOf(editor, 'shown')).toHaveLength(2);
   expect(fake.updates).toEqual([]);
 });
 
-test('the setting showHighlights off hides the highlights also while the side view is open (R-GEN-011)', async () => {
+test('the setting showHighlights off hides the highlights (R-GEN-011)', async () => {
   const editor = await start(12, highlighted);
-  openView();
   fake.settings.set('', { showHighlights: false });
   fake.fire('configuration', { affectsConfiguration: () => true });
   expect(highlightsOf(editor, 'shown')).toEqual([]);
@@ -315,6 +311,7 @@ test('the setting showHighlights off hides the highlights also while the side vi
 });
 
 test('a hidden highlight shows while the pointer rests on its text, until the pointer rests on other text or the cursor moves, and the extension shows no hover for it (R-NOTE-006)', async () => {
+  fake.settings.set('', { showHighlights: false });
   const editor = await start(12, highlighted);
   // VS Code asks the hover providers when the pointer rests on the text.
   expect(fake.hover(editor.document, new FakePosition(6, 35))).toEqual([]);
@@ -332,7 +329,6 @@ test('a hidden highlight shows while the pointer rests on its text, until the po
 
 test('the highlight of the selected note is strong with a frame in its color, also while the highlights are hidden, and the highlights of the other notes are dimmed (R-SIDE-007)', async () => {
   const editor = await start(12, highlighted);
-  const view = openView();
   // A mouse click into the highlight of the first note selects it.
   editor.selection = { active: new FakePosition(0, 40) };
   fake.fire('selection', { textEditor: editor, kind: 2 });
@@ -342,8 +338,9 @@ test('the highlight of the selected note is strong with a frame in its color, al
   expect(highlightsOf(editor, 'faint')).toEqual([[noteColors[1], [new FakeRange(6, 33, 6, 37)]]]);
   const type = [...editor.decorations.keys()].find((candidate) => String((candidate as DecorationType).options.textDecoration).startsWith(`none; background-color: ${noteColors[0]}`)) as DecorationType;
   expect(type.options).toMatchObject({ textDecoration: `none; background-color: ${noteColors[0]}73; outline: 1px solid ${noteColors[0]}; border-radius: 3px;`, overviewRulerLane: 7 });
-  // With the side view closed, only the selected note keeps its highlight.
-  closeView(view);
+  // With the highlights hidden, only the selected note keeps its highlight.
+  fake.settings.set('', { showHighlights: false });
+  fake.fire('configuration', { affectsConfiguration: () => true });
   expect(highlightsOf(editor, 'strong')).toEqual([[noteColors[0], [new FakeRange(0, 33, 0, 48)]]]);
   expect(highlightsOf(editor, 'faint')).toEqual([]);
   // A mouse click outside the notes deselects the note.

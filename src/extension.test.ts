@@ -6,9 +6,8 @@
  * These tests run the activation of the extension with a fake of the API of
  * VS Code ([src/testing/fakeVscode.ts](testing/fakeVscode.ts)). They check
  * that every registration can be removed; that the export renders the
- * highlights of the notes with the link of the document, hidden unless the
- * setting showHighlights is on and the side view is open (R-PREV-001,
- * R-PREV-003, R-PREV-005); the buttons "Show Highlights" and "Hide
+ * highlights of the notes with the link of the document, hidden while the
+ * setting showHighlights is off (R-PREV-001, R-PREV-003, R-PREV-005); the buttons "Show Highlights" and "Hide
  * Highlights" (R-GEN-011); the selected note of the preview; the formatter
  * (R-FMT-001); the buttons of the side view (R-SIDE-006); the links of the
  * preview; the comment of the format (R-NOTE-007); the reading of the notes
@@ -90,7 +89,7 @@ test('the activation registers the commands, the side view and the handler of li
   expect(fake.registrations.filter((registration) => !registration.disposed)).toEqual([]);
 });
 
-test('the export renders the highlights with the link of the rendered document, hidden unless the setting showHighlights is on and the side view is open (R-PREV-001, R-PREV-003, R-PREV-005)', async () => {
+test('the export renders the highlights with the link of the rendered document, hidden while the setting showHighlights is off (R-PREV-001, R-PREV-003, R-PREV-005)', async () => {
   const { api, extension } = await fake.activate();
   const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
   // A rendering without a document has no link to the side view.
@@ -99,9 +98,8 @@ test('the export renders the highlights with the link of the rendered document, 
   expect(plain).not.toContain(' data-href=');
   const document = new FakeUri('file', '/folder/a.md');
   const query = new URLSearchParams({ document: document.toString(), line: '4' }).toString();
-  expect(md.render(note, { currentDocument: document })).toContain(` data-href="vscode://${extension.extensionId}${extension.openPath}?${query.replace(/&/g, '&amp;')}" data-hidden="true"`);
-  // With the side view open, the highlights show, except in a document whose setting is off.
-  fake.resolveView(notesViewId);
+  expect(md.render(note, { currentDocument: document })).toContain(` data-href="vscode://${extension.extensionId}${extension.openPath}?${query.replace(/&/g, '&amp;')}"`);
+  // The highlights show also while the side view is closed, except in a document whose setting is off.
   expect(md.render(note, { currentDocument: document })).not.toContain('data-hidden');
   const hidden = new FakeUri('file', '/folder/hidden.md');
   fake.settings.set(hidden.path, { showHighlights: false });
@@ -110,16 +108,13 @@ test('the export renders the highlights with the link of the rendered document, 
   expect(md.render(note, { currentDocument: document })).not.toContain('An answer');
 });
 
-test('"Hide Highlights" turns the setting off in the settings that decide the value, and "Show Highlights" turns it on and opens the side view (R-GEN-011)', async () => {
+test('"Hide Highlights" turns the setting off in the settings that decide the value, and "Show Highlights" turns it on without opening the side view (R-GEN-011)', async () => {
   await fake.activate();
   const contexts = () => fake.calls.filter(({ command, args }) => command === 'setContext' && args[0] === highlightsContext).map(({ args }) => args[1]);
-  // The highlights do not show before the side view opens.
-  expect(contexts()).toEqual([false]);
+  // The highlights show from the start, also while the side view is closed.
+  expect(contexts()).toEqual([true]);
   await fake.run(highlightCommands.show);
   expect(fake.updates).toEqual([]);
-  expect(fake.executed).toContain(focus);
-  const view = fake.resolveView(notesViewId);
-  expect(contexts().at(-1)).toBe(true);
   await fake.run(highlightCommands.hide);
   expect(fake.updates).toEqual([{ key: 'showHighlights', value: false, target: 1 }]);
   expect(contexts().at(-1)).toBe(false);
@@ -130,26 +125,22 @@ test('"Hide Highlights" turns the setting off in the settings that decide the va
   expect(fake.updates[1]).toEqual({ key: 'showHighlights', value: true, target: 2 });
   expect(fake.settings.get('workspace')).toEqual({ showHighlights: true });
   expect(contexts().at(-1)).toBe(true);
-  // Closing the side view hides the highlights without a change of the setting, and the button opens it again.
-  closeView(view);
-  expect(contexts().at(-1)).toBe(false);
-  const shows = view.shows;
-  await fake.run(highlightCommands.show);
-  expect(fake.updates).toHaveLength(2);
-  expect(view.shows).toBe(shows + 1);
+  // "Show Highlights" only shows the highlights (Hannes, 2026-10-29: "it shall not open the side view but only show the
+  // highlights"), and closing the side view keeps them.
+  expect(fake.executed).not.toContain(focus);
+  closeView(fake.resolveView(notesViewId));
+  expect(contexts().at(-1)).toBe(true);
 });
 
-test('the previews render again when the side view opens or closes, and after a change of a setting of the extension only', async () => {
+test('the previews render again after a change of a setting of the extension only, not when the side view opens or closes', async () => {
   await fake.activate();
   const refreshes = () => fake.executed.filter((command) => command === 'markdown.preview.refresh').length;
-  const view = fake.resolveView(notesViewId);
-  expect(refreshes()).toBe(1);
-  closeView(view);
-  expect(refreshes()).toBe(2);
+  closeView(fake.resolveView(notesViewId));
+  expect(refreshes()).toBe(0);
   fake.fire('configuration', { affectsConfiguration: (section: string) => section === settingsSection });
-  expect(refreshes()).toBe(3);
+  expect(refreshes()).toBe(1);
   fake.fire('configuration', { affectsConfiguration: () => false });
-  expect(refreshes()).toBe(3);
+  expect(refreshes()).toBe(1);
 });
 
 test('the highlight of the selected note in the preview has the link that deselects it, and the link deselects the note in the side view, for an open document only (R-PREV-003)', async () => {

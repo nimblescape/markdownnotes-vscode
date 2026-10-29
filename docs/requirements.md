@@ -46,7 +46,7 @@ as the highlights of a marker pen on paper.
 | 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
 | 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
-| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28, the view aligned to the text editor in step 36 |
+| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28, the view aligned to the text editor in step 36, the highlights only with the side view in step 39 |
 | 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 | 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
@@ -61,6 +61,8 @@ as the highlights of a marker pen on paper.
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
 | 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
+| 39 | The highlights without the side view (decision 28); a click on a thread selects it in the side view also in the clean editing view, and keeps the mode "Markdown Preview" or "Markdown Editor" of its tab; the icon of the Markdown preview on the button "Preview" of the editors of the side view | [R-GEN-011](#r-gen-011), [R-PREV-001](#r-prev-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
+| 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | in work |
 
 ## General
 
@@ -187,7 +189,7 @@ place only, the side view ([R-SIDE-001](#r-side-001)) (Hannes, 2026-10-28:
   callout icons in the preview view"), only the highlights
   ([R-PREV-001](#r-prev-001)).
 - The text editor and the preview show the highlight of each note, the text
-  that the note is about, while the side view is open
+  that the note is about, also while the side view is closed
   ([R-GEN-011](#r-gen-011)), and a click on a highlight selects its note in
   the side view and opens the side view when it is closed
   ([R-SIDE-007](#r-side-007)).
@@ -227,15 +229,18 @@ be viewed or hidden, when viewd make it good constrast"):
 
 - The setting `nimblescape.markdownNotes.showHighlights` (on by default)
   shows the highlights in the text editor and in the Markdown preview.
-- The highlights show only while the side view "Notes" is open (Hannes,
-  2026-10-28: "closing the side view, also hides the highlights"). Closing the
-  side view hides them and does not change the setting; opening it shows
-  them again.
+- The highlights do not depend on the side view "Notes": they show also
+  while it is closed, and opening or closing it does not change them (Hannes,
+  2026-10-29: "clicking the highlight button, opens the side view, it shall
+  not open the side view but only show the highlights. when a highlight is
+  clicked, then the side view shall open"). This replaces the rule of
+  2026-10-28 "closing the side view, also hides the highlights"
+  ([decision 28](#decisions)).
 - The title of the text editor and of the preview of a Markdown file has the
   button "Hide Highlights" (a highlighter pen with a stroke) while the
   highlights show, which turns the setting off, and else the button "Show
   Highlights" (a highlighter pen over its line), which turns the setting on
-  and opens the side view. The icon shows what a click does, and the tooltip
+  and does not open the side view. The icon shows what a click does, and the tooltip
   names it. The pen is an icon font of the extension, so that VS Code draws
   it in the icon color of the theme, as its own codicons (Hannes,
   2026-10-29: "propose a better icon for the show highlights button";
@@ -397,7 +402,7 @@ user selects the text in the text editor and adds the note
   highlighting text").
 - A highlight stays in one block of text: its paragraph, its heading, its
   list item or its table cell. The highlights of several notes can overlap.
-- While the side view is open and the setting `showHighlights` is on
+- While the setting `showHighlights` is on
   ([R-GEN-011](#r-gen-011)), the text editor and the preview show each
   highlight in the color of its note, with a background and a line below the
   text, so that it stands out of the text. In the preview a highlight is
@@ -712,7 +717,8 @@ any view of VS Code. The view is the only place of the text of the notes
 each with the answers rendered as Markdown, with author and date. The active
 Markdown file is the file of the active text editor, or of the active tab in
 the mode "Markdown Preview" or "Markdown Editor" of VS Code
-([R-PREV-006](#r-prev-006)); another editor keeps the file of the view. The
+([R-PREV-006](#r-prev-006)), also of a clean editing view
+([R-TEXT-009](#r-text-009)); another editor keeps the file of the view. The
 selected thread is the note at the cursor of the text editor, or the note
 that the user clicked in the preview ([R-PREV-003](#r-prev-003)).
 
@@ -757,7 +763,9 @@ The view shows the answers as a tree, with the date of each answer in the
 local time of the reader and the local time of the author as its tooltip
 ([R-NOTE-002](#r-note-002), [R-NOTE-004](#r-note-004)). The editor of an
 answer switches between "Write" (the Markdown text) and "Preview" (the text
-rendered as the preview renders it). "Save" (or Ctrl+Enter) writes the text
+rendered as the preview renders it), with the icon of the mode "Markdown
+Preview" of VS Code (Hannes, 2026-10-29: "this is the preview icon, the side
+view shows a wrong one"). "Save" (or Ctrl+Enter) writes the text
 into the note ([R-EDIT-002](#r-edit-002)); "Cancel" (or Escape) keeps the
 note as it is. The visual editing of [R-SIDE-004](#r-side-004) is planned.
 
@@ -838,9 +846,13 @@ which thread of the view belongs to which highlight of the text (Hannes,
   text are highlighted together: the highlight of the note is strong, with a
   frame in its color, in the text editor and in the preview
   ([decision 10](#decisions)), also while the other highlights are hidden
-  ([R-GEN-011](#r-gen-011)). A click on a thread selects its note and shows
-  it where the file is open, and the focus stays in the view; the file keeps
-  its mode (Hannes, 2026-10-28: "it shall stay in the mode the view is"):
+  ([R-GEN-011](#r-gen-011)). A click on a thread selects it in the view and
+  its note in the text (Hannes, 2026-10-29: "when selecting a note in the
+  sideview, it gets not select in the sideview"), and shows the note where
+  the file is open, and the focus stays in the view; the file keeps its mode,
+  also in the clean editing view ([R-TEXT-009](#r-text-009)) (Hannes,
+  2026-10-28: "it shall stay in the mode the view is"; 2026-10-29: "it shall
+  stay in the currently selected view"):
   - in the text editor, the editor scrolls to the note, with the cursor at
     the start of its highlight;
   - when no text editor shows the file but the Markdown preview does, the
@@ -996,8 +1008,8 @@ the selected note.
 
 **Highlights in the preview.** The built-in Markdown preview shows the
 highlight of each note ([R-NOTE-006](#r-note-006)) in the color of the note,
-with a background and a line below the text, while the side view is open and
-the setting `showHighlights` is on ([R-GEN-011](#r-gen-011)). The highlight
+with a background and a line below the text, while the setting
+`showHighlights` is on ([R-GEN-011](#r-gen-011)). The highlight
 is strong under the pointer; a hidden highlight shows while the pointer is on
 its text. The preview shows no icon and no callout of a note (Hannes,
 2026-10-28: "we completely drop the callouts on hover view", "we completely
@@ -1085,6 +1097,17 @@ the mode ([R-SIDE-007](#r-side-007)).
 
 **Show and hide the icons of the preview.** Dropped with the icons
 ([decision 15](#decisions)), and with them the setting `showIconsInPreview`.
+
+### R-PREV-008
+
+**Add a note in the preview.** The user adds a note to selected text also in
+the Markdown preview, in the preview to the side and in the mode "Markdown
+Preview" of VS Code (Hannes, 2026-10-29: "notes cannot be added in the
+preview view, but this should be possible as well"). The selected text must
+stay in one block of text, as in the text editor
+([R-EDIT-003](#r-edit-003)). The extension finds the selected text in the
+file, and the editor of the new note opens in the side view, as for "Add
+Note" in the text editor ([R-EDIT-006](#r-edit-006)). Planned in step 40.
 
 ## Formatter
 
@@ -1536,7 +1559,8 @@ requirements above follow them.
     offered the colors for a new note (replaced by
     [decision 22](#decisions)). Closing the side view keeps the
     setting, and "Show Highlights" also opens the side view, so that one
-    click shows the highlights.
+    click shows the highlights. [Decision 28](#decisions) replaced the rule
+    that the highlights show only with the side view.
 19. **Format on save only for files with notes** ([R-FMT-001](#r-fmt-001),
     Hannes, 2026-10-29, option "Only files with notes" of decision D1 of the
     code review): a save formats only a Markdown file with notes or with the
@@ -1640,6 +1664,16 @@ requirements above follow them.
     GitHub shows no notes, and a change outside VS Code can lose a note), and
     the markers kept with a cursor that never stands in a hidden marker or a
     gap (the line breaks still count the hidden characters).
+28. **Highlights without the side view** ([R-GEN-011](#r-gen-011),
+    [R-PREV-001](#r-prev-001), Hannes, 2026-10-29, 16:33: "clicking the
+    highlight button, opens the side view, it shall not open the side view
+    but only show the highlights. when a highlight is clicked, then the side
+    view shall open"): the setting `showHighlights` and the buttons "Show
+    Highlights" and "Hide Highlights" alone show and hide the highlights; the
+    side view does not change them, and "Show Highlights" does not open it.
+    A click on a highlight still selects its note and opens the side view.
+    This replaces the rule of [decision 18](#decisions) that the highlights
+    show only while the side view is open.
 
 ---
 

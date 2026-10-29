@@ -190,9 +190,10 @@ A note belongs to an exact text, its highlight: from the start marker
     other side of it, and Ctrl+Backspace and Ctrl+Delete the word on the other
     side of it. No key changes a marker. "Find and Replace" of VS Code still
     changes the text of the file as it is.
-- While the side view "Notes" is open, the text editor and the preview show
-  each highlight in the color of its note, with a background and a line below
-  the text ([Show and hide the highlights](#show-and-hide-the-highlights)).
+- The text editor and the preview show each highlight in the color of its
+  note, with a background and a line below the text
+  ([Show and hide the highlights](#show-and-hide-the-highlights)), also while
+  the side view "Notes" is closed.
   The overview ruler at the right edge of the text editor has a mark in the
   same color.
 - A click with the mouse on a highlight, in the text editor or in the
@@ -292,25 +293,22 @@ appears under "Workspace Recommendations" in the Extensions view.
 
 ## Show and hide the highlights
 
-The highlights show while the side view "Notes" is open and the setting
-`nimblescape.markdownNotes.showHighlights` is on, which is the default. They
-have a clear background and a line below the text, so that they stand out of
-the text.
+The highlights show while the setting
+`nimblescape.markdownNotes.showHighlights` is on, which is the default, also
+while the side view "Notes" is closed. They have a clear background and a
+line below the text, so that they stand out of the text.
 
 - The button "Hide Highlights" (a highlighter pen with a stroke) in the title
   of the text editor and of the preview hides them. It turns the setting off: in the settings of
   the workspace when they hold a value, else in your user settings.
 - The button "Show Highlights" (a highlighter pen over its line) shows them
-  again. It turns the
-  setting on, and opens the side view when it is closed.
-- Closing the side view also hides the highlights, and keeps the setting.
-  Opening the side view shows them again.
+  again. It turns the setting on, and leaves the side view as it is.
+- Opening or closing the side view does not change the highlights.
 - A hidden highlight shows while the pointer rests on its text, and a click
   on it selects its note and opens the side view. In the preview it goes
   away when the pointer leaves the text. VS Code tells an extension no event
   when the pointer leaves the text of the text editor, so there it stays
-  until the pointer rests on other text, the cursor moves or the side view
-  opens.
+  until the pointer rests on other text or the cursor moves.
 - The highlight of the selected note always shows, strong and with a frame.
 
 The Command Palette has the commands "Markdown Notes: Show Highlights" and
@@ -502,8 +500,10 @@ and next to the Markdown preview alike:
 - You scroll the list on its own, with the mouse wheel over the view, to find
   a note. The list does not follow the scrolling of the text editor.
 - A click on a highlight, or a move of the cursor into it, selects its thread
-  and scrolls the thread to the top of the view. A click on a thread shows its
-  highlight in the text editor or the preview.
+  and scrolls the thread to the top of the view. A click on a thread selects
+  it, with a frame, and shows its highlight where the file is open: in the
+  text editor, the preview, or the mode "Markdown Preview" or "Markdown
+  Editor" of its tab, which stays as it is.
 - While a thread is selected, the other threads are dimmed a little.
 - The editor of a new note stands at the top of the list.
 
@@ -516,6 +516,7 @@ text.
 
 The editor of a text in the side view switches between "Write" (the Markdown
 text) and "Preview" (the text rendered as the Markdown preview renders it).
+The button "Preview" has the icon of the mode "Markdown Preview" of VS Code.
 "Save" (a check mark) or Ctrl+Enter writes the text; "Cancel" (×) or Escape
 keeps the note as it is. When the extension refuses a text, the editor stays
 open and shows why.
@@ -635,8 +636,8 @@ itself brings the answer or the note back; in the clean editing view, choose
 ## Highlights in the Markdown preview
 
 The built-in Markdown preview (Ctrl+Shift+V, or Ctrl+K V to the side) shows
-the highlight of each note in the color of the note, while the side view is
-open ([Show and hide the highlights](#show-and-hide-the-highlights)). It shows
+the highlight of each note in the color of the note
+([Show and hide the highlights](#show-and-hide-the-highlights)). It shows
 no icon and no callout: the text of the notes shows in the side view. The
 notes never show as footnotes at the end of the page, and their markers leave
 the text.
@@ -746,7 +747,7 @@ after a change of a file with notes.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, while the side view "Notes" is open. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
+| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens from the side view: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. A folder of a workspace can have its own value. |

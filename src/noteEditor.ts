@@ -18,11 +18,12 @@
  *   opens, for example after a click on its fold arrow, and keeps the cursor
  *   out of the lines of a collapsed note.
  * - **Highlights** ([R-NOTE-006](../docs/requirements.md#r-note-006)): while
- *   the setting `showHighlights` is on and the side view is open, the text
- *   from the start marker to the reference of each note, its highlight, has a
- *   background in the color of the note with a line below it, so that it
- *   stands out of the text (Hannes, 2026-10-28: "when viewed make it good
- *   contrast", "closing the side view, also hides the highlights"). The
+ *   the setting `showHighlights` is on, also while the side view is closed,
+ *   the text from the start marker to the reference of each note, its
+ *   highlight, has a background in the color of the note with a line below
+ *   it, so that it stands out of the text (Hannes, 2026-10-28: "when viewed
+ *   make it good contrast"; 2026-10-29: "it shall not open the side view but
+ *   only show the highlights"). The
  *   highlight of the selected note of the side view is strong with a frame in
  *   its color, also while the others are hidden, and the highlights of the
  *   other notes are dimmed. A hidden highlight shows while the pointer rests
@@ -193,8 +194,7 @@ export class NoteEditor implements vscode.Disposable {
 
   /**
    * @param threads - The threads of the notes, which read the notes of each document and tell their changes.
-   * @param showsHighlights - Tells whether the highlights of a document show: the setting showHighlights is on and the
-   * side view is open.
+   * @param showsHighlights - Tells whether the highlights of a document show: the setting showHighlights is on.
    * @param selected - The selected note of each document, whose highlight has the strong color.
    */
   constructor(
