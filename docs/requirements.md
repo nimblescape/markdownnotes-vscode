@@ -1149,7 +1149,7 @@ it shows no suggestions while the user types words.
   format").
 - `/user` inserts the GitHub login of the user, for example `hannes`, the
   name that the notes give their author ([R-GEN-006](#r-gen-006)) (Hannes,
-  2026-10-29, 20:26: "/user insert the current user name"). The list shows
+  2026-10-29, 18:29: "/user insert the current user name"). The list shows
   the login. Without a GitHub session, the list shows "Sign in with GitHub":
   `/user` then asks for the sign-in of VS Code and inserts the login after
   it, and inserts nothing when the user cancels the sign-in.
