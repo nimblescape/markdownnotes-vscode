@@ -51,6 +51,13 @@ as the highlights of a marker pen on paper.
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 | 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
 | 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
+| 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | planned; before the first release |
+| 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | planned; before the first release |
+| 31 | The text without notes for publishing: `markdown-notes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
+| 32 | The standard footnotes in the side view: show, edit, delete and reveal, the button "Show Footnotes" | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002) | planned |
+| 33 | "Add Footnote" at the cursor | [R-FOOT-003](#r-foot-003) | planned |
+| 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
+| 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
 
 ## General
 
@@ -263,7 +270,8 @@ The start marker `<wbr><!--[note-7k2q-->` before the text and the reference
 `[^note-7k2q]` after it mark the highlight of the note
 ([R-NOTE-006](#r-note-006)). A footnote is a note only when its label has the form of the label of a note
 ([R-NOTE-003](#r-note-003)) and its first line is a header. Every other
-footnote is no note: the extension shows it nowhere and never changes it.
+footnote is no note but a standard footnote, which the side view shows and
+edits as a footnote ([R-FOOT-001](#r-foot-001)).
 
 The extension finds the notes as the Markdown preview does, with markdown-it
 and the options of the preview. So a footnote or a reference in a code block,
@@ -431,6 +439,11 @@ always knows it is a notes md document"). The
   Short lines of words follow, which tell an AI agent to read the
   specification before it reads, changes or adds a note, and the last line is
   `-->`. GitHub and the Markdown preview do not show the comment.
+- In a file whose notes are hidden from other viewers
+  ([R-HIDE-001](#r-hide-001)), the first line holds the word `hidden` after
+  the version: `<!-- nimblescape-markdown-notes v1.0.0 hidden spec=…`. A
+  first line without the word means the visible form. The words of the
+  comment say that in a file with `hidden`, each note is an HTML comment.
 - The comment stands at the top of the file, with a blank line after it. It
   does not interfere with a front matter (Hannes: "it shall not interfere with
   frontmatter"): a YAML (`---`) or TOML (`+++`) front matter stays the first
@@ -1081,6 +1094,10 @@ as the extension does on save.
 - `--help` shows the help, and `--version` the version of the tool and of the
   format of the notes ([R-NOTE-007](#r-note-007)).
 
+The command `markdown-notes strip` writes the text of a file without its
+notes, for a website or a document that is published
+([R-HIDE-004](#r-hide-004)).
+
 The command is the npm package `@nimblescape/markdown-notes` in the folder
 `cli/` of this repository, as the npm package `@nimblescape/typescript` of
 the extension nimblescape TypeScript (Hannes, 2026-10-28: "same as with the
@@ -1091,6 +1108,208 @@ release publishes it to npmjs.com, so that
 installation. The specification of the format of the notes for AI agents
 ([docs/format.md](format.md)) tells agents to run the tool after a change of
 a file with notes.
+
+## Footnotes
+
+### R-FOOT-001
+
+**Footnotes in the side view.** The side view also shows the standard
+footnotes of the active Markdown file, the footnotes that are no note
+([R-NOTE-001](#r-note-001)), so that the extension is a rich editor of
+footnotes too (Hannes, 2026-10-29: "the extension could serve as a rich ui
+for editing footnotes", [decision 24](#decisions)):
+
+- Each footnote stands at the line of its first reference, aligned to the
+  text editor as a thread ([R-SIDE-007](#r-side-007)). A footnote without a
+  reference stands at the line of its definition.
+- It shows its label as the file holds it, for example `1`, and the
+  rendered text of its definition. It has no author, no date, no replies, no
+  color and no highlight. GitHub numbers all footnotes of a file in the
+  order of their first reference, also the notes of the visible form, so the
+  tooltip of the label gives the number that GitHub shows when it differs.
+  The step that builds this checks the numbers of GitHub and of the Markdown
+  preview first.
+- The cursor on a reference or in a definition selects the footnote, as it
+  selects a note.
+- The button "Show Footnotes" or "Hide Footnotes" in the title of the side
+  view, and the setting `nimblescape.markdownNotes.showFootnotes` (on by
+  default), show or hide the footnotes in the side view. The notes stay.
+- The side view shows footnotes also in a Markdown file without notes. Such
+  a file stays a file without notes: it gets no comment of the format
+  ([R-NOTE-007](#r-note-007)) and no format on save
+  ([R-FMT-001](#r-fmt-001)). The formatter changes a standard footnote only
+  as any Markdown text, and never adds a start marker to it
+  ([R-FMT-002](#r-fmt-002)).
+- A footnote stays visible in a file whose notes are hidden
+  ([R-HIDE-001](#r-hide-001)): it is a part of the text.
+
+### R-FOOT-002
+
+**Edit a footnote.** Each footnote in the side view has the buttons "Edit",
+"Delete" and "Go to Definition":
+
+- "Edit" opens the editor of the side view with "Write" and "Preview"
+  ([R-SIDE-002](#r-side-002)) with the text of the definition. "Save" writes
+  the text into the definition: the first line after `[^1]: `, and each
+  further line indented by four spaces, as Markdown needs it for a footnote
+  of more than one paragraph.
+- "Save" writes only while the definition still holds the text that the
+  editor started from, as for a note ([R-EDIT-007](#r-edit-007)).
+- "Delete" asks first, because it changes the text of the document, and then
+  removes the definition and every reference to it, in one edit that Undo
+  takes back.
+- A click on the footnote shows its first reference in the text editor, and
+  "Go to Definition" shows its definition.
+
+### R-FOOT-003
+
+**Add a footnote.** The command "Add Footnote" adds a standard footnote at
+the cursor of the text editor. It is in the title of the side view, in the
+menu of the right mouse button of the text editor, and in the Command
+Palette, and it has a keyboard shortcut with the rules of the shortcut of
+"Add Note" ([R-EDIT-006](#r-edit-006)).
+
+- It needs no selected text: a footnote names a place, not a passage. The
+  reference goes at the cursor, or after the word when the cursor stands in
+  a word, or at the end of the selected text.
+- It opens the editor of the new footnote in the side view. "Save" writes
+  the reference and the definition in one edit; "Cancel" writes nothing.
+- The label is the next free number: one more than the highest label of the
+  file that is a number, and never a label that the file already uses.
+- The definition stands after the last definition of a standard footnote of
+  the file, or at the end of the file when it has none, with a blank line
+  before it.
+- No reference goes into a code span, a code block, the text of a link or a
+  marker of a note: the command then says why and writes nothing.
+
+### R-FOOT-004
+
+**Checks of the footnotes.** The text editor shows a warning for a
+reference without a definition, for a definition without a reference, and
+for two definitions with the same label. The quick fixes "Add Definition"
+(it opens the editor of a new definition for the label) and "Delete
+Definition" (for a definition without a reference) repair them. The checks
+cover the standard footnotes; the notes have their own warnings.
+
+### R-FOOT-005
+
+**Renumber the footnotes.** The command "Renumber Footnotes" gives the
+standard footnotes whose labels are numbers the labels 1, 2, 3 … in the
+order of their first reference, in the references and the definitions, in
+one edit that Undo takes back. A label that is a word, for example
+`[^smith-2020]`, stays, and so do the labels of the notes
+([R-NOTE-003](#r-note-003)). The numbers that a reader sees do not depend on
+the labels; the command makes the labels of the file match them.
+
+### R-FOOT-006
+
+**A note becomes a footnote.** The button "Make Footnote" of a thread in the
+side view turns a note into a standard footnote, for a note whose text the
+authors accept into the document: the text of the first answer becomes the
+text of the footnote, the reference at the end of the highlight gets the
+next free number as its label ([R-FOOT-003](#r-foot-003)), and the start
+marker and the replies go. It asks first when the note has replies. Undo
+brings the note back.
+
+## Hidden notes
+
+### R-HIDE-001
+
+**The hidden form.** The notes of a file are in the visible form, which
+GitHub and other viewers show as footnotes ([decision 8](#decisions)), or in
+the hidden form, which every Markdown viewer hides, also GitHub (Hannes,
+2026-10-29: "when the users decides to hide the notes that also GitHub shall
+hide the notes with A", [decision 23](#decisions)). The extension shows the notes
+of both forms in the same way.
+
+- The first line of the comment of the format holds the word `hidden`
+  ([R-NOTE-007](#r-note-007)). A file in the hidden form always has the
+  comment.
+- The start marker stays as it is, because it is already a comment. The end
+  marker is the comment `<!--note-7k2q]-->` in place of the reference
+  `[^note-7k2q]`.
+- The definition of each note is an HTML comment of its own: a line `<!--`,
+  the definition as in the visible form, and a line `-->`, with a blank line
+  before and after the comment:
+
+  ````markdown
+  The agents <wbr><!--[note-7k2q-->change the work of teams<!--note-7k2q]--> in three ways.
+
+  <!--
+  [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+      Which three ways?
+  -->
+  ````
+
+- **Escape** (Hannes: "is there an escape mechanism for the --> problem?"):
+  an HTML comment has no escape of its own, and `-->` ends it, as `--!>`
+  does in a browser. Inside the comment of a hidden note, each place where
+  `--` or `--!` is followed by any number of backslashes and then `>` gets
+  one more backslash before the `>`: `-->` becomes `--\>`, and `--\>` becomes
+  `--\\>`. When the extension reads the note, it removes one backslash from
+  each such place. So a note can hold any text, also HTML code with `-->`, and the
+  side view, the text view and every editor show the text as the user wrote
+  it.
+- The text view of a thread ([R-SIDE-002](#r-side-002)) shows the
+  definition without the lines `<!--` and `-->` and without the escape, as in
+  the visible form.
+
+### R-HIDE-002
+
+**Hide the notes from other viewers.** An icon at the top of the side view
+decides whether other viewers show the notes of the active file (Hannes,
+2026-10-29: "a top level icon on the side view decides about hiding the
+notes by other viewers"):
+
+- The icon shows the form of the file: an eye for the visible form, an eye
+  with a stroke for the hidden form. Its tooltip says the state and what a
+  click does, for example "Other viewers show the notes, also GitHub. Click
+  to hide them."
+- A click writes all notes of the file in the other form in one edit, which
+  Undo takes back: it puts each definition into its comment or takes it
+  out, exchanges the end markers, applies or removes the escape, and sets or
+  removes the word `hidden`. The commands "Hide Notes from Other Viewers" and
+  "Show Notes in Other Viewers" of the Command Palette do the same.
+- The icon shows only for a file with notes. The setting
+  `nimblescape.markdownNotes.hideNotesInNewFiles` (off by default) chooses
+  the form of a file that gets its first note.
+- After the change, the extension writes each new note and answer in the
+  form of the file.
+
+### R-HIDE-003
+
+**Both forms everywhere.** The extension reads the notes of both forms in
+the side view, the highlights of the text editor and of the preview, the
+checks, the formatter and the command line tool. The formatter writes each
+note in the form of its file, for example a visible note that a merge or an
+AI agent added to a file in the hidden form ([R-FMT-002](#r-fmt-002)). The
+specification for programs ([docs/format.md](format.md)) describes the
+hidden form and its escape. The step that builds the form checks with the
+renderer of GitHub that a file in the hidden form shows no part of a note,
+and that its paragraphs, lists, block quotes and tables stay whole.
+
+### R-HIDE-004
+
+**The text without notes.** For a website, a PDF or another place where a
+text is published, the extension writes the text of a file without its notes
+(Hannes, 2026-10-29: option B):
+
+- `markdown-notes strip <file>` ([R-FMT-004](#r-fmt-004)) writes the text to
+  the standard output; `-` reads the standard input, and `--out <folder>`
+  writes a copy of each file into the folder. The command never changes a
+  file itself.
+- The commands "Copy without Notes" (to the clipboard) and "Save Copy without
+  Notes" (with a dialog for the file) of VS Code do the same for the active
+  Markdown file.
+- The text has no definitions of notes with the blank line after each, no
+  start and end markers and no comment of the format, in both forms. The
+  standard footnotes, all other comments and the rest of the text stay as
+  they are. A test compares the rendering of the text without notes with
+  the rendering of the Markdown preview, which leaves the notes out.
+- A file whose comment names a higher major version stays unread: the
+  command writes nothing for it, says why, and exits with 2, as `format`
+  does.
 
 ## Decisions
 
@@ -1279,6 +1498,25 @@ requirements above follow them.
     with the colors showed by itself over each selection in each Markdown
     file, also when the user selected text only to copy or change it. The
     other choice was the hover only while the side view is open.
+23. **Hidden notes** ([R-HIDE-001](#r-hide-001) to [R-HIDE-004](#r-hide-004),
+    Hannes, 2026-10-29: "also think of a mechanism to hide notes for other
+    markdown viewers", "A and B, when the users decides to hide the notes
+    that also GitHub shall hide the notes with A", "a top level icon on the
+    side view decides about hiding the notes by other viewers"): an icon of
+    the side view switches a file to a hidden form, in which each note is an
+    HTML comment that every viewer hides, also GitHub; and the command line
+    and VS Code write a text without notes for publishing. The visible form
+    of [decision 8](#decisions) stays the default. The other choice was
+    plugins for other renderers (remark, Pandoc, MkDocs), which help only in
+    those tools. The hidden form is part of format v1.0.0, so it comes before
+    the first release.
+24. **Footnotes in the side view** ([R-FOOT-001](#r-foot-001) to
+    [R-FOOT-006](#r-foot-006), Hannes, 2026-10-29: "how could we integrate
+    standard footnotes into the side view edit as well?", "the extension
+    could serve as a rich ui for editing footnotes"): the side view also
+    shows, edits, adds, checks and renumbers the standard footnotes of a
+    file, and turns an accepted note into a footnote. Before, the extension
+    showed no footnote that is no note and never changed one.
 
 ---
 
