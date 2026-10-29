@@ -63,6 +63,7 @@ as the highlights of a marker pen on paper.
 | 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
 | 39 | The highlights without the side view (decision 28); a click on a thread selects it in the side view also in the clean editing view, and keeps the mode "Markdown Preview" or "Markdown Editor" of its tab; the icon of the Markdown preview on the button "Preview" of the editors of the side view | [R-GEN-011](#r-gen-011), [R-PREV-001](#r-prev-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | done |
+| 41 | A click on a highlight selects its note, a double click opens the side view; the cursor that leaves a highlight deselects its note; each thread that is not selected dimmed ([decision 29](#decisions)) | [R-SIDE-007](#r-side-007), [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006) | done |
 
 ## General
 
@@ -190,9 +191,9 @@ place only, the side view ([R-SIDE-001](#r-side-001)) (Hannes, 2026-10-28:
   ([R-PREV-001](#r-prev-001)).
 - The text editor and the preview show the highlight of each note, the text
   that the note is about, also while the side view is closed
-  ([R-GEN-011](#r-gen-011)), and a click on a highlight selects its note in
-  the side view and opens the side view when it is closed
-  ([R-SIDE-007](#r-side-007)).
+  ([R-GEN-011](#r-gen-011)), and a click on a highlight selects its note,
+  and a double click on it opens the side view
+  ([R-SIDE-007](#r-side-007), [decision 29](#decisions)).
 
 The side view shows the whole text of a note also as the file holds it, in
 its text view ([R-SIDE-002](#r-side-002)). The settings `showNotesIn`,
@@ -427,10 +428,11 @@ user selects the text in the text editor and adds the note
     deletes a part of a marker. Other edits of the file, for example "Find
     and Replace", still change the text as it is.
 - A click with the mouse on a highlight in the text editor or in the preview,
-  also on a hidden highlight, selects its note in the side view, and opens
-  the side view when it is closed (Hannes, 2026-10-28: "hovering over a
-  highlight and clicking it opens the side view"). In the text editor the
-  cursor stays in the text.
+  also on a hidden highlight, selects its note, and a double click on it
+  opens the side view (Hannes, 2026-10-29: "only a double click on a
+  selected highlight shall open the side view", "in both text and preview";
+  [decision 29](#decisions)). In the text editor the cursor stays in the
+  text.
 
 This is [decision 6](#decisions), with [decision 16](#decisions) and
 [decision 17](#decisions).
@@ -869,22 +871,31 @@ which thread of the view belongs to which highlight of the text (Hannes,
   - in the mode "Markdown Editor" of VS Code, that editor selects the text of
     the highlight.
 
-  A move of the cursor into a highlight selects its thread, and a click with
-  the mouse on a highlight also opens the view when it is closed
-  ([R-NOTE-006](#r-note-006)). The position of the cursor, not only its
+  A move of the cursor into a highlight selects its thread, also with the
+  keys, and the view scrolls to it (Hannes, 2026-10-29: "navigating to a
+  highlight selects that highlight and scrolls in the side view to that
+  highlight"); a double click on a highlight opens the view
+  ([R-NOTE-006](#r-note-006), [decision 29](#decisions)). VS Code tells an
+  extension no double click: the extension reads one from the second click,
+  which selects the word at the cursor of the first one. The position of the cursor, not only its
   line, names the note, because the highlights of several notes can share a
   line; of several highlights at the position, the one that starts last is
   the note (Hannes, 2026-10-28: a click selected the note above).
 - **Deselect:** a click with the mouse into the text outside the highlights,
   in the text editor or in the preview ([R-PREV-003](#r-prev-003)),
   deselects the selected note (Hannes, 2026-10-28: "clicking somewhere in the
-  text shall deselect the selected note"); a move of the cursor with the keys
-  keeps it. In the view, a click on its empty part, outside the threads, or
-  Escape outside an editor deselects it too.
-- **Dimming:** while a thread is selected, the view dims the other threads
-  a little, to 70 % (Hannes, 2026-10-29: "dimming of the non selected tags is
-  too dark when one is selected"); a thread under the pointer or with the
-  focus shows clear.
+  text shall deselect the selected note"); the cursor that leaves the
+  highlight of the selected note, also with the keys, deselects it (Hannes,
+  2026-10-29: "moving the cursor out of the highlight again shall deselect
+  both the highlight and the side view"). A move of the cursor with the keys
+  outside the notes keeps a note that the user selected in the view. In the
+  view, a click on its empty part, outside the threads, or Escape outside an
+  editor deselects it too.
+- **Dimming:** the view dims each thread that is not selected a little, to
+  70 % (Hannes, 2026-10-29: "dimming of the non selected tags is too dark
+  when one is selected"), also while no thread is selected and under the
+  pointer (Hannes, 2026-10-29: "deselected items in the side view are
+  dimmed", "it shall stay dimmed as long as it is not selected").
 
 VS Code lets no view draw into the text editor, tells an extension only the
 whole rows that a text editor shows, after it scrolled, and tells no place
@@ -1038,15 +1049,16 @@ icon.
 ### R-PREV-003
 
 **Click selects the note.** A click on a highlight, also on a hidden one
-under the pointer, selects its note in the side view
-([R-SIDE-001](#r-side-001)), and opens the side view when it is closed
-(Hannes, 2026-10-28: "hovering over a highlight and clicking it opens the
-side view"), where the user can edit and answer the note. A click on the text
-outside the highlights while a note is selected deselects it
+under the pointer, selects its note ([R-SIDE-001](#r-side-001)), and a
+double click on it opens the side view ([decision 29](#decisions)), where
+the user can edit and answer the note. The second click of the double click
+selects no word, and the double click does not open the text editor. A click
+on the text outside the highlights while a note is selected deselects it
 ([R-SIDE-007](#r-side-007)). The page of the preview stays as it is (Hannes,
 2026-10-28: "clicking a selection in preview breaks the view"). A click on a
 link or a button in the highlight, a click that ends a selection of text, and
-a double click, which opens the text editor, do what they always do.
+a double click on other text, which opens the text editor, do what they
+always do.
 
 The Markdown preview lets a page open only some kinds of links, and VS Code
 passes a click to the extension only when the user clicks a link. The script
@@ -1695,9 +1707,20 @@ requirements above follow them.
     view shall open"): the setting `showHighlights` and the buttons "Show
     Highlights" and "Hide Highlights" alone show and hide the highlights; the
     side view does not change them, and "Show Highlights" does not open it.
-    A click on a highlight still selects its note and opens the side view.
-    This replaces the rule of [decision 18](#decisions) that the highlights
-    show only while the side view is open.
+    A click on a highlight still selects its note and opens the side view
+    (replaced by [decision 29](#decisions): a double click opens it). This
+    replaces the rule of [decision 18](#decisions) that the highlights show
+    only while the side view is open.
+29. **A double click opens the side view** ([R-SIDE-007](#r-side-007),
+    [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006), Hannes,
+    2026-10-29, 17:49: "only a double click on a selected highlight shall
+    open the side view", "in both text and preview"): a click on a
+    highlight, in the text editor or in the preview, only selects its note;
+    a double click on it opens the side view, and in the preview does not
+    open the text editor. The cursor that leaves the highlight of the
+    selected note deselects it (17:48: "keeps it selected when the cursor
+    goes out of it again"), and each thread that is not selected is dimmed
+    (18:12). This replaces the last rule of [decision 28](#decisions).
 
 ---
 

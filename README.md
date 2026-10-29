@@ -65,7 +65,7 @@ describes each step and where its protection ends.
   of its note, with a good contrast, also while the side view is closed. The
   buttons "Hide Highlights" and "Show Highlights" in the title of the editor
   hide and show them; a hidden highlight shows while the pointer is on it. A click on
-  a highlight selects its note in the side view and opens the side view. The
+  a highlight selects its note, and a double click opens the side view. The
   highlight of the selected note is strong, with a frame, and the other
   highlights are dimmed.
 - **Colors.** Every note has the same color, until you give it one of six
@@ -74,7 +74,7 @@ describes each step and where its protection ends.
 - **Side view "Notes".** The only place of the text of the notes. The view
   is a list of the threads in the order of the file, which you scroll on its
   own; a click on a highlight or a move of the cursor into it scrolls its
-  thread to the top. The buttons are icons with tooltips, as in the title of
+  thread to the top, and each thread that is not selected is dimmed. The buttons are icons with tooltips, as in the title of
   an editor:
   "Reply", "Edit" and "Delete" at each answer, the color, "Show as Text",
   "Answer" and "Delete Thread" at each thread. "Show as Text" shows the whole

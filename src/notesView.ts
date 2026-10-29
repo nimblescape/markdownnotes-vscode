@@ -161,6 +161,12 @@ const cacheSize = 200;
 /** titleLength is the number of characters of the highlighted text in the title of the editor of a new note. */
 const titleLength = 60;
 
+/** doubleClickTime is the longest time in milliseconds from the first click of a double click to the second one. */
+const doubleClickTime = 500;
+
+/** wordCharacter matches a letter, a digit or an underscore: a character of a word that a double click selects. */
+const wordCharacter = /[\p{L}\p{N}_]/u;
+
 /**
  * escapeHtml escapes the characters of a text that HTML reads as markup.
  * @param text - The text.
@@ -229,6 +235,13 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private selected: string | undefined;
   /** lines holds the line of the cursor of each document, by its URI. */
   private readonly lines = new Map<string, number>();
+  /** atCursor holds the identifier of the thread of the note at the cursor of each document, by its URI. */
+  private readonly atCursor = new Map<string, string | undefined>();
+  /**
+   * cursor is the last cursor of a text editor without selected text: its document, its place, its time, and whether a
+   * click with the mouse put it there.
+   */
+  private cursor: { document: string; position: vscode.Position; time: number; click: boolean } | undefined;
   /** clean is whether the view follows a text editor of the clean editing view, whose lines the threads name. */
   private clean = false;
   /** selections holds the selection of the text editor of each document, by its URI, for "Add Note". */
@@ -241,6 +254,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private ready = false;
   /** newPending tells whether "Add Note" waits for a script that did not start yet. */
   private newPending = false;
+  /**
+   * account is the GitHub login of the user that the view shows, read once for each change of the sessions: VS Code can
+   * take seconds for a session, and the view shows each selected note at once.
+   */
+  private account: Promise<string | undefined> | undefined;
   private readonly registrations: vscode.Disposable[];
 
   /**
@@ -273,6 +291,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       }),
       vscode.authentication.onDidChangeSessions((event) => {
         if (event.provider.id === githubProvider) {
+          this.account = undefined;
           void this.refresh();
         }
       }),
@@ -317,7 +336,19 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * show opens the view with the note at a line of a document, for a click on its highlight in the preview.
+   * choose selects the note at a line of a document, for a click on its highlight in the preview, and leaves the view
+   * closed when it is closed.
+   * @param document - The URI of the document.
+   * @param line - The index of a line of the note.
+   */
+  async choose(document: vscode.Uri, line: number): Promise<void> {
+    this.document = document;
+    this.select(document, this.threads.entryAt(document, { line, character: 0 })?.id ?? this.selected);
+    await this.refresh();
+  }
+
+  /**
+   * show opens the view with the note at a line of a document, for a double click on its highlight in the preview.
    * @param document - The URI of the document.
    * @param line - The index of a line of the note.
    */
@@ -452,11 +483,44 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
+   * doubleClicked tells whether a change of the selection of a text editor with the mouse is the second click of a
+   * double click, and returns the place of the cursor before it. VS Code tells an extension no double click: it reports
+   * the first click as a cursor without selected text, unless the cursor stood there, and the second click as the
+   * selected word at that place. A drag of the mouse and a click with Shift select text from the cursor, so a word around
+   * the cursor is the word of a double click; a word that starts or ends at the cursor is one only soon after a click.
+   * @param editor - The text editor.
+   * @param click - Whether the mouse changed the selection.
+   */
+  private doubleClicked(editor: vscode.TextEditor, click: boolean): vscode.Position | undefined {
+    const last = this.cursor;
+    const key = editor.document.uri.toString();
+    const { selection } = editor;
+    this.cursor = selection.isEmpty ? { document: key, position: selection.active, time: Date.now(), click } : undefined;
+    if (!click || !last || last.document !== key || selection.isEmpty || !selection.isSingleLine || last.position.line !== selection.start.line) {
+      return undefined;
+    }
+    const { start, end } = selection;
+    const at = last.position.character;
+    const around = start.character < at && at < end.character;
+    const atEdge = (at === start.character || at === end.character) && last.click && Date.now() - last.time <= doubleClickTime;
+    if (!around && !atEdge) {
+      return undefined;
+    }
+    const line = editor.document.lineAt(start.line).text;
+    const word = line.slice(start.character, end.character);
+    const edges = [line[start.character - 1] ?? '', line[end.character] ?? ''];
+    return !/\s/u.test(word) && edges.every((character) => !wordCharacter.test(character)) ? last.position : undefined;
+  }
+
+  /**
    * follow makes the document of a text editor the document of the view, and selects the note at its cursor. Another
-   * editor, for example the preview, keeps the document of the view. A click with the mouse on a highlight of a note
-   * opens the view when it is closed, and a click with the mouse outside the notes deselects the selected note (Hannes,
-   * 2026-10-28: "clicking somewhere in the text shall deselect the selected note"); a move of the cursor with the keys
-   * keeps it.
+   * editor, for example the preview, keeps the document of the view. The selected note stays selected while the cursor
+   * is in it, and the cursor that leaves it deselects it (Hannes, 2026-10-29: "moving the cursor into a highlight shows
+   * the highlight but keeps it selected when the cursor goes out of it again"); a click with the mouse outside the notes
+   * deselects the selected note (Hannes, 2026-10-28: "clicking somewhere in the text shall deselect the selected
+   * note"). A move of the cursor with the keys outside the notes keeps a note that the user chose in the view. A double
+   * click on the highlight of the selected note opens the view (Hannes, 2026-10-29: "only a double click on a selected
+   * highlight shall open the side view").
    * @param editor - The text editor, or undefined.
    * @param click - Whether a click with the mouse moved the cursor.
    */
@@ -468,7 +532,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     }
     const place = (position: vscode.Position): vscode.Position => (real ? (this.mirror!.toReal(editor.document.uri, position) ?? position) : position);
     const document = real ?? editor.document.uri;
-    const active = place(editor.selection.active);
+    // The word of a double click can end at the end of a highlight, outside the note; the place of the click names it.
+    const doubleClick = this.doubleClicked(editor, click);
+    const active = place(doubleClick ?? editor.selection.active);
     const line = active.line;
     this.lines.set(document.toString(), line);
     this.selections.set(document.toString(), new vscode.Range(place(editor.selection.start ?? editor.selection.active), place(editor.selection.end ?? editor.selection.active)));
@@ -477,15 +543,17 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     // The position, not only the line, names the note, because the selections of several notes can share a line.
     const entry = this.threads.entryAt(document, active);
     const selected = entry?.id;
+    const left = this.atCursor.get(document.toString()) === this.selected && this.selected !== undefined;
+    this.atCursor.set(document.toString(), selected);
     this.document = document;
-    if (changed || (selected !== undefined && selected !== this.selected) || (click && selected === undefined && this.selected !== undefined)) {
+    if (changed || (selected !== undefined && selected !== this.selected) || ((click || left) && selected === undefined && this.selected !== undefined)) {
       this.select(document, selected);
       void this.refresh();
     } else {
       void this.view?.webview.postMessage({ type: 'line', line, highlight: this.highlightOf(document) });
     }
     const inSelection = entry?.note.selection !== undefined && !(entry.note.start.line <= active.line && active.line <= entry.note.end.line);
-    if (click && inSelection && !this.view?.visible) {
+    if (doubleClick && inSelection) {
       void this.open();
     }
   }
@@ -620,7 +688,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       file: document?.path.split('/').pop(),
       line: document ? this.lines.get(document.toString()) : undefined,
       highlight: document && this.highlightOf(document),
-      account: await this.login(false),
+      account: await (this.account ??= this.login(false)),
       selected: entries.some((entry) => entry.id === this.selected) ? this.selected : undefined,
       threads,
       colors: colorNames.map((name, index) => ({ name, color: noteColors[index] })),
@@ -710,6 +778,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       case 'signIn':
         await this.login(true);
+        this.account = undefined;
         await this.refresh();
         return;
       case 'render':

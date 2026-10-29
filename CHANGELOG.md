@@ -30,14 +30,16 @@ The first version.
   `nimblescape.markdownNotes.showHighlights`, and leave the side view as it
   is.
   A hidden highlight shows while the pointer is on it. A click on a highlight
-  selects its note in the side view and opens the side view. The highlight of
+  selects its note, and a double click opens the side view. The highlight of
   the selected note is strong with a frame, and the other highlights are
-  dimmed; a click outside the highlights deselects the note.
+  dimmed; a click outside the highlights, or the cursor that leaves the
+  highlight, deselects the note.
 - The side view "Notes" is the only place of the text of the notes. It
   lists the threads of the active Markdown file, also in the modes "Markdown
   Preview" and "Markdown Editor" of VS Code, with their trees of replies.
   The list scrolls on its own, and a click on a highlight or a move of the
-  cursor into it scrolls its thread to the top. Its buttons are icons with
+  cursor into it scrolls its thread to the top; each thread that is not
+  selected is dimmed. Its buttons are icons with
   tooltips: "Reply", "Edit" and
   "Delete" at each answer; the color, "Show as Text", "Answer" and "Delete
   Thread" at each thread; "Add Note" in its title. "Show as Text" shows the

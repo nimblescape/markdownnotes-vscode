@@ -20,7 +20,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
 import { addPath, extensionId } from './extension';
 import { markdownModes, notesViewId, previewTextMissing, viewCommands } from './notesView';
-import { Fake, FakeEditor, FakePosition, FakeRange, FakeTabInputText, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeSelection, FakeTabInputText, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -180,13 +180,16 @@ test('the view selects the thread at the cursor and follows the active Markdown 
   fake.fire('selection', { textEditor: editor });
   await settle();
   expect(view.state().selected).toBe('1');
-  // A move of the cursor outside the notes keeps the selection and tells the script the line, and the selected text
-  // that a new note would highlight: none without a selection.
+  // The cursor that leaves the note deselects it (Hannes, 2026-10-29), and a move outside the notes tells the script the
+  // line, and the selected text that a new note would highlight: none without a selection.
   editor.selection = { active: new FakePosition(12, 0) };
   fake.fire('selection', { textEditor: editor });
   await settle();
-  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 12, highlight: undefined });
-  expect(view.state().selected).toBe('1');
+  expect(view.state().selected).toBeUndefined();
+  editor.selection = { active: new FakePosition(11, 0) };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 11, highlight: undefined });
   const other = new FakeEditor(fake.open('Other\n', '/folder/b.md'));
   fake.fire('activeEditor', other);
   await settle();
@@ -498,25 +501,46 @@ test('the view follows the active tab that shows a Markdown file in the mode "Ma
   expect(view.state().threads).toHaveLength(1);
 });
 
-test('a mouse click into the highlight of a note opens the hidden view, and the keyboard or a click on the note itself does not (R-SIDE-007)', async () => {
+test('a click into the highlight of a note selects it, and a double click on it opens the view; the keyboard, a drag and the note itself do not (R-SIDE-007)', async () => {
   const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
   const { editor, view } = await start(text);
   view.visible = false;
-  const move = async (line: number, character: number, kind: number) => {
-    editor.selection = { active: new FakePosition(line, character) };
+  /**
+   * select changes the selection of the text editor as VS Code does: the mouse (2) or the keys (1).
+   * @param anchor - The line and the character of the anchor.
+   * @param active - The line and the character of the active end; the anchor without one.
+   * @param kind - The kind of the change.
+   */
+  const select = async (anchor: [number, number], active = anchor, kind = 2) => {
+    editor.selection = new FakeSelection(new FakePosition(...anchor), new FakePosition(...active));
     fake.fire('selection', { textEditor: editor, kind });
     await settle();
   };
-  await move(0, 30, 1);
+  await select([0, 30], [0, 30], 1);
+  expect(view.state().selected).toBe('1');
+  await select([1, 2]);
   expect(view.shows).toBe(0);
-  await move(6, 4, 2);
-  expect(view.shows).toBe(0);
-  await move(1, 2, 2);
+  // VS Code reports the second click of a double click as the word at the place of the cursor.
+  await select([1, 0], [1, 3]);
   expect(view.shows).toBe(1);
   expect(view.state().selected).toBe('1');
+  // A drag selects the text from the cursor in steps, and the keys select no word of a double click.
+  await select([1, 5]);
+  await select([1, 5], [1, 7]);
+  await select([1, 4]);
+  vi.advanceTimersByTime(1000);
+  await select([1, 4], [1, 8]);
+  await select([1, 6]);
+  await select([1, 4], [1, 8], 1);
+  // A double click on the note itself or outside the notes opens nothing.
+  await select([5, 6]);
+  await select([5, 4], [5, 9]);
+  await select([0, 1]);
+  await select([0, 0], [0, 3]);
+  expect(view.shows).toBe(1);
 });
 
-test('a mouse click outside the notes deselects the selected note, a move with the keys keeps it, and the script of the view deselects it for a click on its empty part or Escape (R-SIDE-007)', async () => {
+test('a mouse click outside the notes and a cursor that leaves the selected note deselect it, a move with the keys outside the notes keeps a note of the view, and the script of the view deselects it for a click on its empty part or Escape (R-SIDE-007)', async () => {
   const { editor, view } = await start();
   const move = async (line: number, kind: number) => {
     editor.selection = { active: new FakePosition(line, 0) };
@@ -525,11 +549,17 @@ test('a mouse click outside the notes deselects the selected note, a move with t
   };
   await move(5, 2);
   expect(view.state().selected).toBe('1');
-  await move(12, 1);
-  expect(view.state().selected).toBe('1');
   await move(12, 2);
   expect(view.state().selected).toBeUndefined();
+  // The cursor that leaves the selected note deselects it, also with the keys (Hannes, 2026-10-29: "keeps it selected
+  // when the cursor goes out of it again").
   await move(5, 1);
+  expect(view.state().selected).toBe('1');
+  await move(12, 1);
+  expect(view.state().selected).toBeUndefined();
+  // A note that the user chose in the view stays selected while the keys move the cursor outside the notes.
+  await send(view, { type: 'reveal', id: '1', focus: false });
+  await move(11, 1);
   expect(view.state().selected).toBe('1');
   await send(view, { type: 'deselect' });
   expect(view.state().selected).toBeUndefined();

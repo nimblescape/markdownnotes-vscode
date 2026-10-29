@@ -18,7 +18,7 @@
  * ([src/formatter.ts](formatter.ts)), and the light bulb action of the
  * selected text, which adds a note
  * ([src/addNoteAction.ts](addNoteAction.ts)). It handles the links of the
- * highlights of the preview, which select a note in the side view, and the
+ * highlights of the preview, which select a note and open the side view, and the
  * links of the preview that deselect the selected note, and the links of the
  * button "Add Note" at the selected text of the preview, which add a note to
  * that text ([R-PREV-008](../docs/requirements.md#r-prev-008)), and the
@@ -28,7 +28,9 @@
  * The highlights show while the setting `showHighlights` is on, also while
  * the side view is closed (Hannes, 2026-10-29: "clicking the highlight button
  * [...] shall not open the side view but only show the highlights"); a click
- * on a highlight opens the side view. The context key highlightsContext tells
+ * on a highlight selects its note, and a double click opens the side view
+ * (Hannes, 2026-10-29: "only a double click on a selected highlight shall open
+ * the side view"). The context key highlightsContext tells
  * the menus whether they show: the title of the editors has "Hide Highlights"
  * then, and else "Show Highlights", which turns the setting on.
  */
@@ -51,8 +53,14 @@ import { checkedSettings, type Settings, settingsSection } from './settings';
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
 export const extensionId = 'nimblescape.nimblescape-markdown-notes';
 
-/** openPath is the path of the links that select a note in the side view. */
+/** openPath is the path of the links that select a note and open the side view, for a double click on its highlight. */
 export const openPath = '/open';
+
+/**
+ * selectPath is the path of the links of the preview that select a note and leave the side view as it is, for a click on
+ * its highlight: the script of the preview takes the link of the highlight with this path.
+ */
+export const selectPath = '/select';
 
 /** deselectPath is the path of the links of the preview that deselect the selected note, for a click outside its highlight. */
 export const deselectPath = '/deselect';
@@ -153,11 +161,11 @@ function addLink(env: unknown): string | undefined {
 }
 
 /**
- * openFromLink selects the note of a link of the preview in the side view. The link names a document and a line. A
- * link can also come from outside VS Code, so the extension opens only a Markdown document that is open or that belongs
- * to the workspace, and only shows its notes. A link that deselects the selected note of an open document deselects
- * it. A link of "Add Note" of an open document opens the editor of a new note in the side view, which the user writes
- * and adds.
+ * openFromLink selects the note of a link of the preview, and opens the side view for a link that opens it. The link
+ * names a document and a line. A link can also come from outside VS Code, so the extension opens only a Markdown
+ * document that is open or that belongs to the workspace, and only shows its notes. A link that deselects the selected
+ * note of an open document deselects it. A link of "Add Note" of an open document opens the editor of a new note in the
+ * side view, which the user writes and adds.
  * @param uri - The URI that VS Code passes to the extension.
  * @param view - The side view.
  */
@@ -182,7 +190,7 @@ async function openFromLink(uri: vscode.Uri, view: NotesView): Promise<void> {
   }
   const target = query.get('document');
   const line = Number(query.get('line'));
-  if (uri.path !== openPath || !target || !Number.isInteger(line) || line < 0) {
+  if ((uri.path !== openPath && uri.path !== selectPath) || !target || !Number.isInteger(line) || line < 0) {
     return;
   }
   const parsed = vscode.Uri.parse(target);
@@ -191,7 +199,7 @@ async function openFromLink(uri: vscode.Uri, view: NotesView): Promise<void> {
     document = await vscode.workspace.openTextDocument(parsed).then(undefined, () => undefined);
   }
   if (document && isNoteDocument(document)) {
-    await view.show(document.uri, line);
+    await (uri.path === openPath ? view.show(document.uri, line) : view.choose(document.uri, line));
   }
 }
 

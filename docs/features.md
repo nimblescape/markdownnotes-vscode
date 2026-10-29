@@ -12,12 +12,12 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 63 requested features, 46 are built, among them the clean editing view
+Of 66 requested features, 47 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor. 8
 features are planned but not built: the features of the section
 [Planned features](#planned-features). The npm package with the first release
-needs Hannes. 8 requests were replaced or dropped by later decisions of
+needs Hannes. 10 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
@@ -59,6 +59,7 @@ tooltips, the lighter dimming and the list that scrolls on its own came on
 | The selected note at the top of the view: "so the selected note is on top" | 10-28 | [R-SIDE-001](requirements.md#r-side-001) | Built | |
 | A click on the empty part of the view, or Escape, deselects the note | 10-28 | [R-SIDE-007](requirements.md#r-side-007) | Built | |
 | The other notes dimmed while one is selected; on 10-29: "too dark" | 10-28, 10-29 09:06 | [R-SIDE-007](requirements.md#r-side-007) | Built | Opacity 70 % instead of 50 % |
+| Each thread that is not selected dimmed, also under the pointer; with the view open, the cursor that moves into a highlight selects its thread and scrolls the view to it | 10-29 18:12 | [R-SIDE-007](requirements.md#r-side-007) | Built | The view showed a new selection late: it asked VS Code for the GitHub session each time; now once for each change of the sessions |
 | Which thread belongs to which highlight: first a funnel, then the view aligned to the text with a line: "only the selected one has the connection" | 10-28 11:38, 19:50 | [R-SIDE-007](requirements.md#r-side-007) | Replaced | By [decision 25](requirements.md#decisions) (10-29 09:06): a list that scrolls freely |
 | The view scrolls on its own and smoothly: "cannot be scrolled individually to find a note", "laggy" | 10-29 09:03 | [R-SIDE-007](requirements.md#r-side-007) | Built | The list follows only a click or a move of the cursor into a highlight |
 | A click on a thread selects it in the view: "when selecting a note in the sideview, it gets not select in the sideview" | 10-29 16:30 | [R-SIDE-007](requirements.md#r-side-007) | Built | A bug of the clean editing view: the view got no new state after the click |
@@ -83,7 +84,9 @@ breaks and the cursor next to the hidden markers.
 | A hidden highlight shows under the pointer | 10-28 20:29 | [R-GEN-011](requirements.md#r-gen-011) | Built | |
 | Closing the side view hides the highlights | 10-28 20:31 | [R-GEN-011](requirements.md#r-gen-011) | Replaced | By [decision 28](requirements.md#decisions) (10-29 16:33): the highlights do not depend on the side view |
 | "Show Highlights" only shows the highlights: "it shall not open the side view but only show the highlights. when a highlight is clicked, then the side view shall open" | 10-29 16:33 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 28](requirements.md#decisions), step 39 of the plan |
-| A click on a highlight selects its note and opens the side view; a click outside deselects it | 10-28, 20:32 | [R-SIDE-007](requirements.md#r-side-007) | Built | The selected highlight is strong, with a frame |
+| A click on a highlight selects its note and opens the side view; a click outside deselects it | 10-28, 20:32 | [R-SIDE-007](requirements.md#r-side-007) | Replaced | By [decision 29](requirements.md#decisions) (10-29 17:49): a click selects, a double click opens the side view |
+| Only a double click opens the side view: "only a double click on a selected highlight shall open the side view", "in both text and preview" | 10-29 17:49 | [R-SIDE-007](requirements.md#r-side-007), [R-PREV-003](requirements.md#r-prev-003) | Built | [Decision 29](requirements.md#decisions), step 41 of the plan. VS Code tells an extension no double click in the text editor: the extension reads one from the word that the second click selects |
+| The cursor that leaves a highlight deselects its note: "moving the cursor into a highlight shows the highlight but keeps it selected when the cursor goes out of it again" | 10-29 17:48, 18:12 | [R-SIDE-007](requirements.md#r-side-007) | Built | Also with the keys; a note that the user selected in the side view stays while the keys move outside the notes |
 | A note only for selected text: "there shall be no way to add a note without highlighting text" | 10-28 20:25 | [R-EDIT-003](requirements.md#r-edit-003) | Built | |
 | "Add Note" at the selected text: the light bulb (Ctrl+.), Shift+Alt+N (Cmd+K N on macOS), the context menu | 10-29 07:47 | [R-EDIT-006](requirements.md#r-edit-006) | Built | |
 | A hover with color icons over the selected text | 10-28 20:27 | [R-EDIT-006](requirements.md#r-edit-006) | Replaced | By the light bulb above (10-29 07:47) |
@@ -103,7 +106,7 @@ extension no place of its text, and Hannes chose the list
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
 | The highlights in the preview, faint, strong under the pointer | 10-28 16:36, 20:00 | [R-PREV-001](requirements.md#r-prev-001) | Built | |
-| A click on a highlight selects its note in the side view and opens the view; a click outside deselects it | 10-28 | [R-PREV-003](requirements.md#r-prev-003) | Built | |
+| A click on a highlight selects its note in the side view and opens the view; a click outside deselects it | 10-28 | [R-PREV-003](requirements.md#r-prev-003) | Replaced | By [decision 29](requirements.md#decisions) (10-29 17:49): a click selects, a double click opens the side view and not the text editor |
 | "Add Note" for selected text in the Markdown preview: "notes cannot be added in the preview view, but this should be possible as well" | 10-29 16:38 | [R-PREV-008](requirements.md#r-prev-008) | Built | A button "Add Note" above the selected text, in the preview to the side and in the mode "Markdown Preview" |
 | The style sheets of `markdown.styles` in the preview of the clean editing view: a warning "Could not load 'markdown.styles': .vscode/markdown-serif.css" | 10-29 17:43 | [R-TEXT-009](requirements.md#r-text-009) | Built | A bug of the clean editing view: its preview looked for the style sheet in the folder of the file, and showed no images; the file system of the view now gives the preview these files |
 | The buttons "Show Highlights" and "Hide Highlights" in the title of the preview | 10-28 20:00 | [R-PREV-005](requirements.md#r-prev-005) | Built | |

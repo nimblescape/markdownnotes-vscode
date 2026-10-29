@@ -720,7 +720,6 @@
     for (const thread of state.threads) {
       root.append(threadOf(thread));
     }
-    document.body.classList.toggle('with-selection', state.threads.some((thread) => thread.id === state.selected));
     if (anchor && !anchor.isConnected) {
       hideTooltip();
     }

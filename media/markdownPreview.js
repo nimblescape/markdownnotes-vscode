@@ -26,13 +26,18 @@
 // body: a link with the CSS `display: contents` around the slot of the
 // content, so the page shows and works as before. The link has an address
 // only for the time of a click: when the user presses the mouse button on a
-// highlight, also a hidden one, the address of its end (data-href), so that the click
-// selects the note in the side view (R-PREV-003); on the text outside a
+// highlight, also a hidden one, the address of its end (data-href) with the
+// path that only selects the note (R-PREV-003); for the second press of a
+// double click on a highlight, the address itself, which also opens the side
+// view (Hannes, 2026-10-29: "only a double click on a selected highlight shall
+// open the side view", "in both text and preview"); on the text outside a
 // highlight while a note is selected, the address that deselects the note.
-// The script arms only an address of this extension (ownLink), so that HTML of
-// a file with the same attributes opens no other address with a click. A
-// click on a link of the text, the end of a drag that selects text, and a
-// double click, which opens the text editor, open no address of the script.
+// The second press of a double click on a highlight selects no word, and its
+// double click does not open the text editor, as a double click on other text
+// does. The script arms only an address of this extension (ownLink), so that
+// HTML of a file with the same attributes opens no other address with a click.
+// A click on a link of the text, the end of a drag that selects text, and a
+// double click on other text open no address of the script.
 // Chromium sends no click when the element of the press leaves the page
 // before the release, so the script moves no element of the page; and the
 // path of an event, where VS Code looks for the link, holds no element of a
@@ -90,7 +95,7 @@
   /** @type {HTMLAnchorElement | undefined} the link of the script around the content of the page, in the shadow tree of the body. */
   let pageLink;
 
-  /** @type {'open' | 'deselect' | 'add' | undefined} what the address of the link of the page does. */
+  /** @type {'open' | 'select' | 'deselect' | 'add' | undefined} what the address of the link of the page does. */
   let armed;
 
   /** @type {string | undefined} the address of the button "Add Note": the address of the page with the selected text. */
@@ -336,15 +341,22 @@
   };
 
   /**
-   * ownLink matches the addresses of the extension that the plugin writes: a URI of VS Code for the extension that opens
-   * or deselects a note, or adds one.
+   * ownLink matches the addresses of the extension that the plugin writes: a URI of VS Code for the extension that opens,
+   * selects or deselects a note, or adds one.
    */
-  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes\/(open|deselect|add)(\?|$)/;
+  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes\/(open|select|deselect|add)(\?|$)/;
+
+  /**
+   * selectLink returns the address that only selects the note of the address of the end of a highlight, which also
+   * opens the side view.
+   * @param {string} href - The address of the end of the highlight.
+   */
+  const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes)\/open(?=\?|$)/, '$1/select');
 
   /**
    * arm gives the link of the page an address of the extension for the time of a click.
    * @param {string} href - The address.
-   * @param {'open' | 'deselect' | 'add'} kind - What the address does.
+   * @param {'open' | 'select' | 'deselect' | 'add'} kind - What the address does.
    */
   const arm = (href, kind) => {
     const link = linkOfPage();
@@ -491,15 +503,23 @@
       if (event.button === 0) {
         pressed = true;
       }
-      // The second press of a double click opens no address, so that the double click opens the text editor.
-      if (event.button !== 0 || event.detail > 1 || !target || target === document.body || target === document.documentElement || target.closest(controlSelector) || frames.contains(target)) {
+      if (event.button !== 0 || !target || target === document.body || target === document.documentElement || target.closest(controlSelector) || frames.contains(target)) {
         return;
       }
       const end = highlightAt(event.clientX, event.clientY);
       const href = end?.getAttribute('data-href');
+      if (event.detail > 1) {
+        // The second press of a double click on a highlight opens the side view and selects no word; on other text it
+        // opens no address, so that the double click opens the text editor.
+        if (href) {
+          event.preventDefault();
+          arm(href, 'open');
+        }
+        return;
+      }
       const deselect = end ? undefined : chosen()?.getAttribute('data-deselect');
       if (href) {
-        arm(href, 'open');
+        arm(selectLink(href), 'select');
       } else if (deselect) {
         arm(deselect, 'deselect');
       }
@@ -535,6 +555,17 @@
       if (pressed) {
         pressed = false;
         showAddLater();
+      }
+    },
+    true,
+  );
+  // A double click on a highlight opens the side view, not the text editor as the preview does for other text.
+  window.addEventListener(
+    'dblclick',
+    (event) => {
+      const target = targetOf(event);
+      if (event.button === 0 && target && !target.closest(controlSelector) && !addButton.contains(target) && highlightAt(event.clientX, event.clientY)?.getAttribute('data-href')) {
+        event.stopImmediatePropagation();
       }
     },
     true,

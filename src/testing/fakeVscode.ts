@@ -97,6 +97,10 @@ export class FakeRange {
     }
   }
 
+  get isSingleLine(): boolean {
+    return this.start.line === this.end.line;
+  }
+
   get isEmpty(): boolean {
     return this.start.line === this.end.line && this.start.character === this.end.character;
   }

@@ -256,7 +256,7 @@ test('the button of the side view closes the secondary side bar, and the button 
   expect(fake.calls.at(-1)).toEqual({ command: focus, args: [] });
 });
 
-test('a link of a highlight of the preview opens the side view at its note, for an open Markdown document or one of the workspace only', async () => {
+test('a link of a double click on a highlight of the preview opens the side view at its note, and the link of a click only selects it, for an open Markdown document or one of the workspace only', async () => {
   const document = fake.open(note);
   const { extension } = await fake.activate();
   const view = fake.resolveView(notesViewId);
@@ -266,6 +266,14 @@ test('a link of a highlight of the preview opens the side view at its note, for 
     await fake.uriHandler!.handleUri(uri);
     await settle();
   };
+  // The link of a click selects the note and leaves the view as it is (Hannes, 2026-10-29: "only a double click on a
+  // selected highlight shall open the side view").
+  await handle(link(document.uri.toString(), '5', extension.selectPath));
+  expect(fake.executed.filter((command) => command === focus)).toHaveLength(0);
+  expect(view.state()).toMatchObject({ file: 'a.md', selected: view.state().threads[0].id });
+  await view.send({ type: 'deselect' });
+  await settle();
+  expect(view.state().selected).toBeUndefined();
   await handle(link(document.uri.toString(), '5'));
   expect(fake.executed.filter((command) => command === focus)).toHaveLength(1);
   expect(view.state()).toMatchObject({ file: 'a.md', selected: view.state().threads[0].id });

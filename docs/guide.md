@@ -197,15 +197,17 @@ A note belongs to an exact text, its highlight: from the start marker
   The overview ruler at the right edge of the text editor has a mark in the
   same color.
 - A click with the mouse on a highlight, in the text editor or in the
-  preview, selects its note in the side view, and opens the side view when it
-  is closed. In the text editor the cursor stays in the text.
+  preview, selects its note, and a double click on it opens the side view. In
+  the text editor the cursor stays in the text.
 - The note that is selected in the side view has a strong highlight with a
   frame in its color, in the text editor and in the preview, so that you see
   which text the selected thread belongs to. The highlights of the other
   notes are dimmed.
 - A click with the mouse into the text outside the highlights, in the text
-  editor or in the preview, deselects the note. A move of the cursor with the
-  keys keeps it.
+  editor or in the preview, deselects the note, and so does the cursor that
+  leaves the highlight of the selected note, also with the keys. A note that
+  you selected in the side view stays selected while the keys move the
+  cursor outside the notes.
 
 The extension writes the start marker and the reference itself when you add a
 note ([Add a note](#add-a-note)). An older file can have a note without a
@@ -304,8 +306,8 @@ line below the text, so that they stand out of the text.
 - The button "Show Highlights" (a highlighter pen over its line) shows them
   again. It turns the setting on, and leaves the side view as it is.
 - Opening or closing the side view does not change the highlights.
-- A hidden highlight shows while the pointer rests on its text, and a click
-  on it selects its note and opens the side view. In the preview it goes
+- A hidden highlight shows while the pointer rests on its text, a click on
+  it selects its note, and a double click opens the side view. In the preview it goes
   away when the pointer leaves the text. VS Code tells an extension no event
   when the pointer leaves the text of the text editor, so there it stays
   until the pointer rests on other text or the cursor moves.
@@ -463,8 +465,8 @@ the only place of the text of the notes, and their editor:
   Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can). The
   title of the view has "Add Note" (`+`).
 - The view selects the thread at the cursor of the text editor, and the
-  thread whose highlight you clicked in the preview. The other threads are
-  dimmed while a thread is selected; a thread under the pointer shows clear.
+  thread whose highlight you clicked in the preview. Each thread that is not
+  selected is dimmed, also under the pointer.
   A click on the empty part of the view, or Escape outside an editor,
   deselects the thread, as a click into the text outside the highlights does.
 - A click on "Line N" of a thread shows the note where the file is open, and
@@ -500,12 +502,12 @@ and next to the Markdown preview alike:
 
 - You scroll the list on its own, with the mouse wheel over the view, to find
   a note. The list does not follow the scrolling of the text editor.
-- A click on a highlight, or a move of the cursor into it, selects its thread
-  and scrolls the thread to the top of the view. A click on a thread selects
+- A click on a highlight, or a move of the cursor into it, also with the
+  keys, selects its thread and scrolls the thread to the top of the view. A click on a thread selects
   it, with a frame, and shows its highlight where the file is open: in the
   text editor, the preview, or the mode "Markdown Preview" or "Markdown
   Editor" of its tab, which stays as it is.
-- While a thread is selected, the other threads are dimmed a little.
+- Each thread that is not selected is dimmed a little.
 - The editor of a new note stands at the top of the list.
 
 VS Code tells an extension only the whole rows that a text editor shows, and
@@ -653,13 +655,14 @@ notes never show as footnotes at the end of the page, and their markers leave
 the text.
 
 - Under the pointer, a highlight is strong, and the pointer shows a hand.
-- A click on a highlight selects its note in the side view, and opens the
-  side view when it is closed, where you can edit and answer the note.
+- A click on a highlight selects its note, and a double click on it opens
+  the side view, where you can edit and answer the note. That double click
+  selects no word and does not open the text editor.
 - A click on the text outside the highlights deselects the note.
 - Selected text gets the button "Add Note" above it, which adds a note to it
   ([Add a note](#add-a-note)).
-- A click on a link of the text, a drag that selects text and a double click,
-  which opens the text editor, work as without the extension.
+- A click on a link of the text, a drag that selects text and a double click
+  on other text, which opens the text editor, work as without the extension.
 - The note that is selected in the side view has a strong highlight with a
   frame in its color, the other highlights are dimmed, and a click on its
   thread scrolls the preview to it.

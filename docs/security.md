@@ -47,7 +47,8 @@ links to its details.
   (`extensionPack`). It is an extension of its own, with its own markdown-it
   plugin for the preview; you can disable or uninstall it.
 - **Links of the preview.** A click on the highlight of a note opens a link
-  `vscode://nimblescape.nimblescape-markdown-notes/open?document=…&line=…`.
+  `vscode://nimblescape.nimblescape-markdown-notes/select?document=…&line=…`,
+  and a double click a link with the path `/open`.
   The extension opens only a Markdown file that is open or that belongs to
   the workspace, and only shows its notes. See
   [Links to the extension](#links-to-the-extension).
@@ -109,8 +110,8 @@ connection of VS Code, as the text of an open file does.
   passes the click to the extension
   ([Links to the extension](#links-to-the-extension)). It gives only a link
   to the extension, with the scheme of VS Code, the host
-  `nimblescape.nimblescape-markdown-notes` and the path `/open`, `/deselect`
-  or `/add`, because a document can write an element with the same classes
+  `nimblescape.nimblescape-markdown-notes` and the path `/open`, `/select`,
+  `/deselect` or `/add`, because a document can write an element with the same classes
   in raw HTML. It sends no message. It reads the text of the page only for
   "Add Note" of the preview: a click on the button "Add Note" above selected
   text puts the selected text and the text of its block before it into the
@@ -189,9 +190,9 @@ VS Code passes to the URI handler of the extension. VS Code may ask once whether
 open it. Such a link can also come from outside VS Code, for example from a
 web page, so the extension:
 
-- handles only the path `/open` with a document and the index of a line,
-  the path `/deselect` with a document, and the path `/add` with a document,
-  the index of a line and two texts;
+- handles only the paths `/open` and `/select` with a document and the index
+  of a line, the path `/deselect` with a document, and the path `/add` with a
+  document, the index of a line and two texts;
 - opens only a document that is open in VS Code, or a file of a folder of the
   workspace, and only when it is a Markdown document that can have notes;
   `/deselect` and `/add` take only a document that is open;

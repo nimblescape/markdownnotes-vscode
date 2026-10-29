@@ -8,7 +8,7 @@
  * The styles of the side view "Notes" (R-SIDE-001, R-SIDE-002). The view uses
  * the font and the colors of the theme of VS Code. Each thread is a box with
  * the color of its note at its left side and a round button of this color;
- * the selected thread has a frame in this color, and the other threads are
+ * the selected thread has a frame in this color, and each other thread is
  * dimmed (R-SIDE-007). The replies to a reply are indented below it. The
  * buttons are small icons, as the buttons in the title of an editor, and the
  * text view of a note has the font of the text editor. The view is a list
@@ -163,8 +163,11 @@ textarea:focus {
   box-shadow: inset 0 0 0 1px var(--note-color, var(--vscode-focusBorder));
 }
 
-/* The other threads while a thread is selected: dimmed a little, and clear again under the pointer or with the focus. */
-body.with-selection .thread:not(.selected, :hover, :focus-within) {
+/*
+ * Each thread that is not selected: dimmed a little, also while no thread is selected and under the pointer (Hannes,
+ * 2026-10-29: "deselected items in the side view are dimmed", "it shall stay dimmed as long as it is not selected").
+ */
+.thread:not(.selected) {
   opacity: 0.7;
 }
 

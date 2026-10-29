@@ -522,10 +522,18 @@ the preview does, and keeps up to 200 rendered texts.
   the author and the date of the answer and how many earlier answers of the
   thread have both, not its index, so an editor stays at its answer when an
   earlier answer goes, and closes when its answer goes.
-- A link of the highlight of a note in the preview opens the view at the note: the
-  URI handler of `src/extension.ts` checks the link
+- A link of the highlight of a note in the preview selects the note: the URI
+  handler of `src/extension.ts` checks the link
   ([docs/security.md](docs/security.md#links-to-the-extension)) and calls
-  `NotesView.show`, which runs the command `nimblescape.markdownNotes.notes.focus`.
+  `NotesView.choose` for the path `/select` of a click, and `NotesView.show`
+  for the path `/open` of a double click, which runs the command
+  `nimblescape.markdownNotes.notes.focus`. In the text editor, VS Code tells
+  an extension no double click: `NotesView.doubleClicked` reads one from a
+  change of the selection with the mouse to the word around the cursor of
+  the change before. `NotesView.follow` keeps the note at the cursor of each
+  document (`atCursor`), so that the cursor that leaves the selected note
+  deselects it. The view reads the GitHub login once for each change of the
+  sessions (`account`), because VS Code can take seconds for a session.
 - `retainContextWhenHidden` keeps the page, and so the open editors, while
   the view is hidden.
 - The button "Show or Hide Notes" in the title of the Markdown editors runs
