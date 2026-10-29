@@ -406,6 +406,53 @@ test('shows a file without notes in place of its view, for example for a link of
   expect(fake.tabGroups[0].tabs.map((tab) => (tab.input as FakeTabInputText).uri.toString())).toEqual(['markdown-notes://file/folder/a.md', file]);
 });
 
+test('gives the files of the Markdown preview of a view as they are: the files beside the file, its style sheets from the folder of the workspace, and its images by their paths there', async () => {
+  const { CleanView, cleanUriOf, resourceFolder } = await import('./cleanView');
+  const { SelectedNotes } = await import('./selectedNotes');
+  const view = new CleanView(() => true, new SelectedNotes());
+  view.register();
+  fake.settings.set('', { 'markdown.styles': ['.vscode/serif.css', 'https://x.y/web.css', '/abs/style.css'] });
+  fake.files.set('/folder/docs/img/a.png', 'image a');
+  fake.files.set('/folder/figures/b.png', 'image b');
+  fake.files.set('/folder/.vscode/serif.css', 'body { font-family: serif; }');
+  const document = cleanUriOf(new FakeUri('file', '/folder/docs/paper.md') as never);
+  const read = async (uri: unknown): Promise<string> => new TextDecoder().decode(await view.readFile(uri as never));
+  // VS Code reads a relative image from the folder of the document, and a relative style sheet from there too, because
+  // the document belongs to no folder of the workspace.
+  expect(await read(FakeUri.joinPath(document as never, '..', 'img/a.png'))).toBe('image a');
+  expect(await view.stat(FakeUri.joinPath(document as never, '..', 'img/a.png') as never)).toMatchObject({ type: 1, permissions: 1 });
+  expect(await read(FakeUri.joinPath(document as never, '..', '.vscode/serif.css'))).toBe('body { font-family: serif; }');
+  const image = (source: string): string | undefined => view.imageOf(document, source)?.toString();
+  const inFolder = `markdown-notes://file/folder/docs/${resourceFolder}`;
+  expect(image('img/a.png')).toBe(`${inFolder}/docs/img/a.png`);
+  expect(image('../figures/b.png')).toBe(`${inFolder}/figures/b.png`);
+  expect(image('/figures/b.png?size=2#top')).toBe(`${inFolder}/figures/b.png`);
+  expect(image('img/a%20b.png')).toBe(`${inFolder}/docs/img/a b.png`);
+  for (const outside of ['../../outside.png', 'https://x.y/c.png', 'data:image/png;base64,AA==', '//x.y/c.png', '']) {
+    expect(image(outside)).toBeUndefined();
+  }
+  expect(view.imageOf(new FakeUri('file', '/folder/docs/paper.md') as never, 'img/a.png')).toBeUndefined();
+  expect(await read(view.imageOf(document, '../figures/b.png'))).toBe('image b');
+  expect(view.resourceOf(FakeUri.parse(`${inFolder}/../../../etc/passwd`) as never)).toBeUndefined();
+  // A file that is no Markdown file does not change, and a file that does not exist is not found.
+  await expect(view.writeFile(FakeUri.joinPath(document as never, '..', 'img/a.png') as never, new Uint8Array())).rejects.toThrow('changes only Markdown files');
+  await expect(view.stat(FakeUri.joinPath(document as never, '..', 'img/none.png') as never)).rejects.toThrow('no file markdown-notes://file/folder/docs/img/none.png');
+  expect(view.resourceOf(document)).toBeUndefined();
+});
+
+test('shows a file that is no Markdown file in place of its view, for a link of a view to it', async () => {
+  const { cleanUriOf } = await import('./cleanView');
+  await inEditor();
+  fake.files.set('/folder/data.csv', 'a,b\n1,2\n');
+  const link = await fake.openTextDocument(cleanUriOf(new FakeUri('file', '/folder/data.csv') as never) as never);
+  expect(link.getText()).toBe('a,b\n1,2\n');
+  fake.show(link, { viewColumn: 1 });
+  fake.fire('visibleEditors', fake.editors);
+  await settle();
+  await settle();
+  expect(fake.editors.map((editor) => editor.document.uri.toString())).toEqual([new FakeUri('file', '/folder/data.csv').toString()]);
+});
+
 test('opens the document of a file again that VS Code closes behind its view, for the notes of the side view', async () => {
   const { real } = await inEditor();
   // VS Code closes the document of a file after its last tab closed.

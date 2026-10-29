@@ -12,7 +12,7 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 62 requested features, 45 are built, among them the clean editing view
+Of 63 requested features, 46 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor. 8
 features are planned but not built: the features of the section
@@ -105,6 +105,7 @@ extension no place of its text, and Hannes chose the list
 | The highlights in the preview, faint, strong under the pointer | 10-28 16:36, 20:00 | [R-PREV-001](requirements.md#r-prev-001) | Built | |
 | A click on a highlight selects its note in the side view and opens the view; a click outside deselects it | 10-28 | [R-PREV-003](requirements.md#r-prev-003) | Built | |
 | "Add Note" for selected text in the Markdown preview: "notes cannot be added in the preview view, but this should be possible as well" | 10-29 16:38 | [R-PREV-008](requirements.md#r-prev-008) | Built | A button "Add Note" above the selected text, in the preview to the side and in the mode "Markdown Preview" |
+| The style sheets of `markdown.styles` in the preview of the clean editing view: a warning "Could not load 'markdown.styles': .vscode/markdown-serif.css" | 10-29 17:43 | [R-TEXT-009](requirements.md#r-text-009) | Built | A bug of the clean editing view: its preview looked for the style sheet in the folder of the file, and showed no images; the file system of the view now gives the preview these files |
 | The buttons "Show Highlights" and "Hide Highlights" in the title of the preview | 10-28 20:00 | [R-PREV-005](requirements.md#r-prev-005) | Built | |
 | The text without the notes; other footnotes as before | 10-28 | [R-PREV-004](requirements.md#r-prev-004) | Built | Markdown Footnotes in the extension pack ([R-GEN-008](requirements.md#r-gen-008)) |
 | The side view follows the modes "Markdown Preview" and "Markdown Editor": "it shall stay in the mode the view is" | 10-28 | [R-PREV-006](requirements.md#r-prev-006) | Built | The mode "Markdown Editor" shows no highlights: it has no API for extensions |

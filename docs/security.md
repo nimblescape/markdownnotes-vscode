@@ -115,6 +115,13 @@ connection of VS Code, as the text of an open file does.
   "Add Note" of the preview: a click on the button "Add Note" above selected
   text puts the selected text and the text of its block before it into the
   link to the extension.
+- **The files of the preview of the clean editing view.** The file system
+  `markdown-notes` of the extension gives the preview of a clean document
+  its images and style sheets as they are, read only, and never writes them.
+  The preview loads files only from the folder of the document; an image
+  from elsewhere loads under the folder `~markdown-notes~` there, by its path
+  in the folder of the workspace of the file, and only from inside that
+  folder of the workspace, as the preview of the file itself does.
 - **The light bulb action of the selected text.** The Code Action "Add
   Note" has a fixed title and runs the command "Add Note" of the extension
   without arguments, which opens the editor of a new note in the side view;

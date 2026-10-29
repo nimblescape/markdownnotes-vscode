@@ -62,8 +62,9 @@ The first version.
   of its text without the notes markup, which behaves as in a file without
   notes; the extension writes each change into the file and keeps each note
   at its text, also for Undo, and the save of the view saves the file. Its
-  Markdown preview shows the highlights. "Open File with Markup" in the
-  Command Palette opens the file itself.
+  Markdown preview shows the highlights, and the images and the style sheets
+  of `markdown.styles` as the preview of the file. "Open File with Markup" in
+  the Command Palette opens the file itself.
 - The text editor of the file itself, for example in the view of the changes
   of git, never shows the text of a note and its markers: it collapses the
   notes, and collapses again a note that VS Code opens; the cursor steps over

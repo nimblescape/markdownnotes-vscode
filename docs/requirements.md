@@ -663,7 +663,13 @@ once, and keeps each note at its text:
   selected text ([R-EDIT-006](#r-edit-006)). The side view follows the cursor
   of the view and names the lines of the view.
 - The Markdown preview of the view renders the file with its notes, and
-  scrolls with the view.
+  scrolls with the view. It shows the images of the file and the style
+  sheets of the setting `markdown.styles` as the preview of the file itself
+  does (Hannes, 2026-10-29: the warning "Could not load 'markdown.styles'").
+  The preview loads files only from the folder of the document, so the file
+  system of the view gives the files there as they are: an image by its path
+  in the folder of the workspace of the file, and a style sheet with a
+  relative path from the folder of the workspace.
 - A relative link of the view, for example to another Markdown file, opens
   the file of the link: in its view when it has notes, else in its own text
   editor.
@@ -694,7 +700,10 @@ file itself takes it back); the warnings of the notes
 does not show under the pointer ([R-GEN-011](#r-gen-011)); "Format Document"
 formats the text of the view, and the save formats the whole file; an edit
 that opens a comment or a code block over a note changes how the file reads,
-and the view then shows the markup that is no longer a note, until Undo.
+and the view then shows the markup that is no longer a note, until Undo; the
+preview of the view does not show an image of HTML (`<img>`) from outside the
+folder of the file, nor a style sheet of `markdown.styles` with an absolute
+path.
 
 ### R-VIEW-001
 

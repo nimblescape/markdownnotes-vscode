@@ -23,7 +23,7 @@ describes its security model.
 | `src/notes/checks.ts` | The warnings at the notes of a text: each form of a note that GitHub or another Markdown viewer shows differently from the extension, and each note without a start marker or without highlighted text. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes of the open Markdown documents: one thread for each note with an identifier that stays while the document is open, the reading of the notes after a change, the warnings of the notes as diagnostics, and the operations that write the changes of the side view. |
 | `src/noteEditor.ts` | The overlay of the notes in the text editor: the folding ranges of the notes, their collapse and the collapse again of a note that VS Code opens, the highlights in the colors of the notes, the strong highlight of the selected note, the hidden highlight under the pointer, the hidden start markers and references, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
-| `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdown-notes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, and the text of the file for the Markdown preview of the view. |
+| `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdown-notes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, the text of the file for the Markdown preview of the view, and the files of that preview as they are. |
 | `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
 | `src/notes/rendered.ts` | The place in the Markdown text of text that the user selected in the Markdown preview, for "Add Note" of the preview: the letters and digits of the text of the block without the parts that the page does not show, and the selected text after as many of them as the text before it holds, or the nearest occurrence. It uses no API of VS Code. |
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
@@ -471,6 +471,21 @@ of a document without its URI, and caches the tokens by the version of the
 document, so the plugin of the preview asks the view for the text of the file
 by the clean text (`sourceOf`), and a change of the file from elsewhere
 refreshes the previews.
+
+The Markdown preview of a clean document loads files only from the folder of
+the document (its `localResourceRoots`), because a clean document belongs to
+no folder of the workspace, and it reads a relative path of
+`markdown.styles` from that folder too. So the file system gives each clean
+URI that names no clean text as the file itself, read only (`resourceOf`): a
+file that is no Markdown file, such as an image beside the file or the file
+of a link, which the view then shows in its own text editor; a style sheet
+of `markdown.styles` with a relative path, from the folder of the workspace;
+and a file under the folder `~markdown-notes~` beside the document, by its
+path in the folder of the workspace. The plugin of the preview gives each
+image of a clean rendering such an address (`imageOf`), after the image rule
+of VS Code, which wraps the rules of the plugins and keeps the address of the
+text in `data-src`. Only files inside the folder of the workspace of the file
+load this way, as for the preview of the file itself.
 
 ## Side view
 

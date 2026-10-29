@@ -314,6 +314,12 @@ export function activate(context: vscode.ExtensionContext): Api {
         deselectLinkOf: deselectLink,
         addLinkOf: addLink,
         sourceOf: (text) => clean.sourceOf(text),
+        imageOf: (env, source) => {
+          const document = renderedOf(env);
+          const provider = (env as { resourceProvider?: { asWebviewUri(uri: vscode.Uri): vscode.Uri } }).resourceProvider;
+          const image = document && provider && clean.imageOf(document, source);
+          return image ? provider.asWebviewUri(image).toString(true) : undefined;
+        },
       }),
     notesOf: (document) => threads.entriesOf(document).map((entry) => entry.note),
   };

@@ -108,6 +108,14 @@ export interface PreviewOptions {
    * @param env - The environment of the rendering.
    */
   addLinkOf?(env: unknown): string | undefined;
+  /**
+   * imageOf returns the address from which the preview loads an image of the rendered document, or undefined for the
+   * address of the preview: the preview of the clean editing view loads the images of its file from the folder of its
+   * document ([R-TEXT-009](../../docs/requirements.md#r-text-009)).
+   * @param env - The environment of the rendering.
+   * @param source - The address of the image in the Markdown text, as markdown-it encodes it.
+   */
+  imageOf?(env: unknown, source: string): string | undefined;
 }
 
 /** PreviewNote is what the preview needs of a note: its label, its color, the ID of its highlight, and the line of its definition. */
@@ -282,6 +290,21 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
       }
     }
   });
+  if (options.imageOf) {
+    const image = md.renderer.rules.image;
+    md.renderer.rules.image = (tokens, index, markdownOptions, env, self) => {
+      const token = tokens[index];
+      // The preview of VS Code keeps the address of the Markdown text in the attribute data-src, and sets the address
+      // of an image only without it.
+      const source = token.attrGet('data-src') ?? token.attrGet('src');
+      const address = source === null ? undefined : options.imageOf?.(env, source);
+      if (source !== null && address !== undefined) {
+        token.attrSet('data-src', source);
+        token.attrSet('src', address);
+      }
+      return image ? image(tokens, index, markdownOptions, env, self) : self.renderToken(tokens, index, markdownOptions);
+    };
+  }
   md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => edgeHtml(md, tokens[index].meta as EdgeMeta, env, options);
   md.renderer.rules[pageTokenType] = (_tokens, _index, _options, env) => {
     const link = options.addLinkOf?.(env);

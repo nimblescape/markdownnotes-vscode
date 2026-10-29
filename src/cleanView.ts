@@ -39,6 +39,19 @@ export const cleanScheme = 'markdown-notes';
 export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWithMarkup' };
 
 /**
+ * resourceFolder is the name of the folder beside a clean document that holds the files of the folder of the workspace
+ * of its file, by their paths in that folder, for the Markdown preview of the view: the preview loads only files from
+ * the folder of the clean document, because a clean document belongs to no folder of the workspace.
+ */
+export const resourceFolder = '~markdown-notes~';
+
+/** markdownName matches the names of the files that VS Code reads as Markdown: a clean URI of such a file names its clean text. */
+const markdownName = /\.(?:md|mkd|mkdn|mdwn|mdown|markdown|markdn|mdtxt|mdtext|litcoffee|ron|ronn|workbook)$/i;
+
+/** schemePrefix matches the start of an address with a scheme, such as `https:` or `data:`. */
+const schemePrefix = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
  * hex returns the bytes of a text in UTF-8 as hexadecimal digits.
  * @param text - The text.
  */
@@ -66,6 +79,25 @@ export const cleanUriOf = (file: vscode.Uri): vscode.Uri =>
 export function fileOf(document: vscode.Uri): vscode.Uri | undefined {
   const [scheme, authority = ''] = document.authority.split('~');
   return document.scheme === cleanScheme && scheme ? vscode.Uri.from({ scheme, authority: unhex(authority), path: document.path, query: document.query }) : undefined;
+}
+
+/**
+ * folderOf returns the path of a folder with a slash at its end, so that a path inside it starts with it.
+ * @param folder - The URI of the folder.
+ */
+const folderOf = (folder: vscode.Uri): string => folder.path.replace(/\/?$/, '/');
+
+/**
+ * fromFile reads a file of the workspace for a clean URI, and reports a file that does not exist for the clean URI.
+ * @param uri - The clean URI.
+ * @param read - Reads the file.
+ */
+async function fromFile<T>(uri: vscode.Uri, read: () => Thenable<T>): Promise<T> {
+  try {
+    return await read();
+  } catch {
+    throw vscode.FileSystemError.FileNotFound(uri);
+  }
 }
 
 /**
@@ -429,13 +461,20 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * leaves returns the file of a clean document without changes that shows no Markdown file with notes, for example
-   * the view of the file of a link of a view to a file without notes, or undefined: its text editor becomes the text
-   * editor of the file.
+   * the view of the file of a link of a view to a file without notes or to a file that is no Markdown file, or
+   * undefined: its text editor becomes the text editor of the file.
    * @param document - The document.
    */
   private leaves(document: vscode.TextDocument): vscode.Uri | undefined {
+    if (document.isDirty) {
+      return undefined;
+    }
     const mirror = this.ready.get(document.uri.toString());
-    return mirror && !document.isDirty && (document.languageId !== 'markdown' || !hasMarkup(mirror.model)) ? mirror.file : undefined;
+    if (!mirror) {
+      // A file of a link of a view that is no Markdown file, which the file system of the view gives as it is.
+      return document.uri.scheme === cleanScheme ? this.resourceOf(document.uri) : undefined;
+    }
+    return document.languageId !== 'markdown' || !hasMarkup(mirror.model) ? mirror.file : undefined;
   }
 
   /**
@@ -575,6 +614,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       const projection = project(model);
       const opened: Mirror = { file, model, projection, queue: Promise.resolve(), writing: 0, mtime: Date.now(), shown: false, history: [{ clean: projection.clean, text: model }] };
       this.ready.set(key, opened);
+      if (vscode.workspace.textDocuments.some((document) => document.uri.toString() === key)) {
+        // VS Code read the document before as a file that is no Markdown file, as it is; it reads the clean text now.
+        this.changes.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+      }
       return opened;
     }, () => {
       // For example a link of the view to a file that does not exist.
@@ -817,22 +860,99 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     return new vscode.Disposable(() => undefined);
   }
 
+  /**
+   * resourceOf returns the file that a clean URI names when it names no clean text, or undefined: a file that the
+   * Markdown preview of a view loads, such as an image or a style sheet of the setting `markdown.styles`, or the file of
+   * a link of a view that is no Markdown file. The file system gives such a file as it is, and does not change it. The
+   * preview of a view loads only files from the folder of its clean document, so it loads an image of a file in a
+   * folder of the workspace from the folder resourceFolder there (imageOf), by its path in the folder of the workspace,
+   * and a style sheet with a relative path from the folder of the clean document, which stands for the folder of the
+   * workspace, as for the file itself.
+   * @param uri - The clean URI.
+   */
+  resourceOf(uri: vscode.Uri): vscode.Uri | undefined {
+    const file = fileOf(uri);
+    if (!file || this.mirrors.has(uri.toString())) {
+      return undefined;
+    }
+    const marker = `/${resourceFolder}/`;
+    const at = file.path.indexOf(marker);
+    if (at >= 0) {
+      const folder = vscode.workspace.getWorkspaceFolder(file.with({ path: file.path.slice(0, at + 1) }));
+      const path = file.path.slice(at + marker.length);
+      return folder && path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..') ? vscode.Uri.joinPath(folder.uri, path) : undefined;
+    }
+    for (const scope of [uri, file]) {
+      const styles = vscode.workspace.getConfiguration('markdown', scope).get<unknown>('styles');
+      for (const style of Array.isArray(styles) ? styles : []) {
+        // The preview loads a style sheet with a relative path from the folder of the workspace of a file.
+        if (typeof style !== 'string' || style === '' || schemePrefix.test(style) || style.startsWith('/') || style.split(/[\\/]/).includes('..')) {
+          continue;
+        }
+        const suffix = vscode.Uri.joinPath(file.with({ path: '/' }), style).path;
+        const folder = file.path.endsWith(suffix) && vscode.workspace.getWorkspaceFolder(file.with({ path: file.path.slice(0, file.path.length - suffix.length + 1) }));
+        if (folder) {
+          return vscode.Uri.joinPath(folder.uri, style);
+        }
+      }
+    }
+    return markdownName.test(file.path) ? undefined : file;
+  }
+
+  /**
+   * imageOf returns the clean URI from which the Markdown preview of a view loads an image of its file, or undefined
+   * for an image that the preview loads as it is: the URI of the image in the folder resourceFolder beside the clean
+   * document, for an image in the folder of the workspace of the file (resourceOf). The preview reads a relative path
+   * of an image from the folder of the file, and a path that starts with a slash from the folder of the workspace.
+   * @param document - The URI of the clean document that the preview renders.
+   * @param source - The address of the image in the Markdown text, as markdown-it encodes it.
+   */
+  imageOf(document: vscode.Uri, source: string): vscode.Uri | undefined {
+    const file = fileOf(document);
+    const folder = file && vscode.workspace.getWorkspaceFolder(file);
+    if (!folder || source === '' || source.startsWith('#') || source.startsWith('//') || schemePrefix.test(source)) {
+      return undefined;
+    }
+    let path: string;
+    try {
+      path = decodeURIComponent(source.replace(/[?#].*$/s, ''));
+    } catch {
+      return undefined;
+    }
+    const target = path.startsWith('/') ? vscode.Uri.joinPath(folder.uri, path) : vscode.Uri.joinPath(file, '..', path);
+    const root = folderOf(folder.uri);
+    return target.path.startsWith(root) ? vscode.Uri.joinPath(document, '..', resourceFolder, target.path.slice(root.length)) : undefined;
+  }
+
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    const resource = this.resourceOf(uri);
+    if (resource) {
+      const stat = await fromFile(uri, () => vscode.workspace.fs.stat(resource));
+      return { type: stat.type, ctime: stat.ctime, mtime: stat.mtime, size: stat.size, permissions: vscode.FilePermission.Readonly };
+    }
     const mirror = await this.mirrorOf(uri);
     return { type: vscode.FileType.File, ctime: 0, mtime: mirror.mtime, size: new TextEncoder().encode(mirror.projection.clean).length };
   }
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    const resource = this.resourceOf(uri);
+    if (resource) {
+      return fromFile(uri, () => vscode.workspace.fs.readFile(resource));
+    }
     return new TextEncoder().encode((await this.mirrorOf(uri)).projection.clean);
   }
 
   /**
    * writeFile saves the file of a clean document: VS Code writes the clean text when the user saves the view. A text
-   * that differs from the clean text of the model goes into the file as one change first.
+   * that differs from the clean text of the model goes into the file as one change first. A file that the clean URI
+   * names as it is (resourceOf) does not change.
    * @param uri - The URI of the clean document.
    * @param content - The clean text.
    */
   async writeFile(uri: vscode.Uri, content: Uint8Array): Promise<void> {
+    if (this.resourceOf(uri)) {
+      throw vscode.FileSystemError.NoPermissions('The clean editing view changes only Markdown files.');
+    }
     const mirror = await this.mirrorOf(uri);
     const text = new TextDecoder().decode(content);
     if (text !== mirror.projection.clean) {

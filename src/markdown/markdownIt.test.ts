@@ -248,4 +248,28 @@ describe('the plugin', () => {
     // Another rendering, such as of a file itself, renders its own text with its own lines.
     expect(md.render('One.\n\nTwo.\n', {})).toContain('<p data-line="2" class="code-line" dir="auto">Two.</p>');
   });
+
+  test('loads an image from the address that the extension gives, after the address of the preview of VS Code, and keeps the address of the text (R-TEXT-009)', () => {
+    const md = new MarkdownIt({ html: true });
+    extendMarkdownIt(md, {
+      settingsOf: () => ({ showHighlights: true }),
+      linkOf: () => undefined,
+      imageOf: (env, source) => ((env as { clean?: boolean }).clean && !source.startsWith('https:') ? `https://view/${source}` : undefined),
+    });
+    // The preview of VS Code wraps the rule of the plugins and sets the address of the preview first.
+    const inner = md.renderer.rules.image!;
+    md.renderer.rules.image = (tokens, index, options, env, self) => {
+      const token = tokens[index];
+      if (!token.attrGet('data-src')) {
+        token.attrSet('data-src', token.attrGet('src')!);
+        token.attrSet('src', `preview:${token.attrGet('src')}`);
+      }
+      return inner(tokens, index, options, env, self);
+    };
+    const text = '![a b](../img/a%20b.png) ![web](https://x.y/c.png)';
+    expect(md.render(text, { clean: true })).toBe(
+      '<p><img src="https://view/../img/a%20b.png" alt="a b" data-src="../img/a%20b.png"> <img src="preview:https://x.y/c.png" alt="web" data-src="https://x.y/c.png"></p>\n',
+    );
+    expect(md.render(text, {})).toBe('<p><img src="preview:../img/a%20b.png" alt="a b" data-src="../img/a%20b.png"> <img src="preview:https://x.y/c.png" alt="web" data-src="https://x.y/c.png"></p>\n');
+  });
 });

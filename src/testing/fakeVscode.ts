@@ -559,6 +559,7 @@ export class Fake {
       EndOfLine: { LF: 1, CRLF: 2 },
       TextDocumentSaveReason: { Manual: 1, AfterDelay: 2, FocusOut: 3 },
       FileType: { File: 1, Directory: 2 },
+      FilePermission: { Readonly: 1 },
       FileChangeType: { Changed: 1, Created: 2, Deleted: 3 },
       ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
       env: {

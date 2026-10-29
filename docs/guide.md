@@ -360,7 +360,8 @@ into the file at once, and each note stays at its text:
 - A relative link of the view opens the file of the link: in its view when it
   has notes, else in its own text editor.
 - The Markdown preview of the view shows the highlights and scrolls with the
-  view.
+  view. It shows the images and the style sheets of the setting
+  `markdown.styles` as the preview of the file itself does.
 
 While the view has changes that are not saved, VS Code shows a second tab
 with the name of the file, because VS Code keeps a tab of each file with
@@ -779,7 +780,9 @@ you can remove them from your settings.
   formats the text of the view; the save formats the whole file. An edit
   that opens a comment or a code block over a note changes how the file
   reads, and the view then shows the markup that is no longer a note, until
-  Undo.
+  Undo. Its Markdown preview does not show an image of HTML (`<img>`) from
+  outside the folder of the file, nor a style sheet of `markdown.styles` with
+  an absolute path; use a relative path from the folder of the workspace.
 - The mode "Markdown Editor" of VS Code shows no notes and no highlights,
   only the side view does; the section
   [Modes of a Markdown file](#modes-of-a-markdown-file) explains why.
