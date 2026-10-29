@@ -87,6 +87,7 @@ A note from a stranger can still:
 | --- | --- | --- |
 | The extension (`dist/extension.js`) | Your user, in the extension host of VS Code, where the workspace is | VS Code. It reads the documents only as text. |
 | The light bulb action "Add Note" (`src/addNoteAction.ts`) | The Code Actions of VS Code, in the VS Code window | A fixed title and the command "Add Note" of the extension, without arguments; it holds no text of the file |
+| The slash commands (`src/slashCommands.ts`) | The suggestions of VS Code, in the VS Code window | Fixed labels, the date and the time, the text that the typed slash replaced, and commands of the extension with the document, a range and a label as arguments |
 | The side view (`media/notesView.js`) | A webview of VS Code, in the VS Code window | The state that the extension sends: the answers and their HTML, which the Markdown preview renderer made from the text of the file |
 | The markdown-it plugin, the styles and the script of the preview (`media/markdownPreview.css`, `media/markdownPreview.js`) | The Markdown extension of VS Code, which renders the page of the Markdown preview, with the security policy of the Markdown preview | The Markdown text of the document |
 
@@ -128,6 +129,12 @@ connection of VS Code, as the text of an open file does.
   without arguments, which opens the editor of a new note in the side view;
   it changes no text by itself and holds no text of the file. The extension
   shows no hover with HTML or command links over the selected text.
+- **The slash commands.** The suggestions after a typed slash are plain
+  text: the labels of the commands, the date and the time, and for `/note`
+  and `/todo` the text that the slash replaced, which goes back to its place.
+  Their commands are no links of a page; only the list of suggestions runs
+  them, for the document of the text editor. The extension keeps the last
+  selected text of each open Markdown document in memory, to put it back.
 - **No network.** The extension has no network code and starts no program.
 
 ## Side view
@@ -285,6 +292,8 @@ still needs your agreement.
 | --- | --- | --- |
 | The notes of the open documents, with their places | The memory of the extension host | Until the document closes, or VS Code closes |
 | The rendered HTML of up to 200 texts for the side view | The memory of the extension host | Until VS Code closes |
+| The last selected text of each open Markdown document, for `/note` | The memory of the extension host | Until the document closes, or VS Code closes |
+| The filters of the side view | The state of the page of the side view, which VS Code keeps | Until VS Code closes the view |
 | The settings of the extension | The settings of VS Code, when you change them | Until you change them |
 | The GitHub session | VS Code, which stores it in its secret storage | Until you sign out in the accounts menu of VS Code |
 

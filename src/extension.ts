@@ -48,6 +48,7 @@ import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
+import { SlashCommands } from './slashCommands';
 import { checkedSettings, type Settings, settingsSection } from './settings';
 
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
@@ -291,6 +292,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     ...registerFormatter(extensionId, saveChangesOf),
     new AddNoteAction(threads, viewCommands.newNote, clean).register(),
+    ...new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), clean).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);

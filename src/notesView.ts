@@ -71,7 +71,7 @@ import { hiddenText } from './format/format';
 import { colorIndexOf, colorNames, colorOf, noteColors } from './notes/colors';
 import { highlightFor, placeFor } from './notes/edits';
 import { renderedRange } from './notes/rendered';
-import { authorDate, displayDate } from './notes/syntax';
+import { authorDate, displayDate, type TodoState } from './notes/syntax';
 import { type AnswerRef, isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
 import type { SelectedNotes } from './selectedNotes';
 import type { Settings } from './settings';
@@ -98,7 +98,8 @@ export type Message =
   | { type: 'deselect' }
   | { type: 'save'; request: number; id: string; answer: AnswerRef; text: string }
   | { type: 'answer'; request: number; id: string; text: string; parent?: AnswerRef }
-  | { type: 'add'; request: number; text: string; color?: string }
+  | { type: 'add'; request: number; text: string; color?: string; todo?: boolean }
+  | { type: 'todo'; id: string; done: boolean }
   | { type: 'deleteAnswer'; id: string; answer: AnswerRef }
   | { type: 'deleteNote'; id: string }
   | { type: 'color'; id: string; color: string | undefined }
@@ -132,6 +133,8 @@ interface ThreadState {
   colorName: string;
   /** text is the whole text of the note, for its text view. */
   text: string;
+  /** todo is the state of a todo note ([R-NOTE-008](../docs/requirements.md#r-note-008)), or undefined for another note. */
+  todo?: TodoState;
   answers: AnswerState[];
 }
 
@@ -252,8 +255,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private version = 0;
   /** ready tells whether the script of the view started and receives messages. */
   private ready = false;
-  /** newPending tells whether "Add Note" waits for a script that did not start yet. */
-  private newPending = false;
+  /** newPending is the request of "Add Note" that waits for a script that did not start yet: whether the note is a todo. */
+  private newPending: { todo: boolean } | undefined;
   /**
    * account is the GitHub login of the user that the view shows, read once for each change of the sessions: VS Code can
    * take seconds for a session, and the view shows each selected note at once.
@@ -384,9 +387,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param text - The selected text, as the preview shows it.
    */
   async addFromPreview(rendered: vscode.TextDocument, line: number, before: string, text: string): Promise<void> {
-    const real = this.mirror?.realOf(rendered.uri);
-    const file = real ? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === real.toString()) : rendered;
-    if (!file || !isNoteDocument(file)) {
+    if (!this.fileOf(rendered)) {
       return;
     }
     const range = renderedRange(linesOf(rendered), line, before, text);
@@ -394,6 +395,49 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       void vscode.window.showInformationMessage(previewTextMissing);
       return;
     }
+    await this.newNoteAt(rendered, range, false);
+  }
+
+  /**
+   * addFromText opens the editor of a new note in the view for text of a text editor that a slash command names
+   * ([R-EDIT-008](../docs/requirements.md#r-edit-008)): the text that the typed slash replaced, for `/note` and `/todo`,
+   * or the sentence before `/todo`. The text editor selects the text, as for "Add Note".
+   * @param editor - The text editor, also of a clean editing view.
+   * @param range - The text.
+   * @param todo - Whether the new note is a todo ([R-NOTE-008](../docs/requirements.md#r-note-008)).
+   */
+  async addFromText(editor: vscode.TextEditor, range: vscode.Range, todo: boolean): Promise<void> {
+    if (!this.fileOf(editor.document)) {
+      return;
+    }
+    editor.selection = new vscode.Selection(range.start, range.end);
+    await this.newNoteAt(editor.document, range, todo);
+  }
+
+  /**
+   * fileOf returns the file of a document that the extension can change: the document itself, or the file of a clean
+   * editing view.
+   * @param rendered - The document, also of a clean editing view.
+   */
+  private fileOf(rendered: vscode.TextDocument): { file: vscode.TextDocument; real: vscode.Uri | undefined } | undefined {
+    const real = this.mirror?.realOf(rendered.uri);
+    const file = real ? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === real.toString()) : rendered;
+    return file && isNoteDocument(file) ? { file, real } : undefined;
+  }
+
+  /**
+   * newNoteAt opens the editor of a new note in the view for a range of a document, also of a clean editing view, when a
+   * note can highlight its text; for other text it opens nothing and tells the user what to select.
+   * @param rendered - The document.
+   * @param range - The range.
+   * @param todo - Whether the new note is a todo.
+   */
+  private async newNoteAt(rendered: vscode.TextDocument, range: { start: { line: number; character: number }; end: { line: number; character: number } }, todo: boolean): Promise<void> {
+    const found = this.fileOf(rendered);
+    if (!found) {
+      return;
+    }
+    const { file, real } = found;
     const place = (position: { line: number; character: number }): vscode.Position | undefined => {
       const at = new vscode.Position(position.line, position.character);
       return real ? this.mirror!.toReal(rendered.uri, at) : at;
@@ -414,7 +458,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     if (this.ready) {
       await this.view?.webview.postMessage({ type: 'line', line: start.line, highlight: this.highlightOf(file.uri) });
     }
-    await this.newNote();
+    await this.newNote(todo);
   }
 
   /**
@@ -422,8 +466,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * which the editor changes. Without selected text it opens nothing and tells the user to select text (Hannes,
    * 2026-10-28: "there shall be no way to add a note without highlighting text"). It ignores the arguments, such as the
    * URI that a menu of VS Code passes.
+   * @param todo - Whether the new note is a todo ([R-NOTE-008](../docs/requirements.md#r-note-008)).
    */
-  private async newNote(): Promise<void> {
+  private async newNote(todo = false): Promise<void> {
     const document = this.document;
     const selection = document && this.selections.get(document.toString());
     if (!selection || selection.isEmpty) {
@@ -434,10 +479,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       await vscode.commands.executeCommand(`${notesViewId}.focus`);
     }
     if (this.ready) {
-      await this.view?.webview.postMessage({ type: 'new' });
+      await this.view?.webview.postMessage(todo ? { type: 'new', todo } : { type: 'new' });
     } else {
       // The script of a view that opens just now gets the request when it starts.
-      this.newPending = true;
+      this.newPending = { todo };
     }
   }
 
@@ -667,6 +712,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         color: colorOf(note),
         colorName: colorNames[colorIndexOf(note)],
         text,
+        ...(note.answers[0]?.todo ? { todo: note.answers[0].todo } : {}),
         answers: await Promise.all(
           note.answers.map(
             async (answer): Promise<AnswerState> => ({
@@ -772,8 +818,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         this.ready = true;
         await this.refresh();
         if (this.newPending) {
-          this.newPending = false;
-          await this.view?.webview.postMessage({ type: 'new' });
+          const { todo } = this.newPending;
+          this.newPending = undefined;
+          await this.view?.webview.postMessage(todo ? { type: 'new', todo } : { type: 'new' });
         }
         return;
       case 'signIn':
@@ -812,7 +859,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;
         const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
-        const result = await this.threads.addNote(document, range, message.text, colorNames.find((name) => name === message.color));
+        const result = await this.threads.addNote(document, range, message.text, colorNames.find((name) => name === message.color), message.todo === true);
         if ('id' in result) {
           this.select(document, result.id);
           await this.refresh();
@@ -824,12 +871,15 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.reply(message.request, await this.threads.saveNoteText(document, message.id, message.text, message.original));
         return;
       case 'color':
+      case 'todo':
       case 'deleteAnswer':
       case 'deleteNote': {
         const problem =
           message.type === 'color'
             ? await this.threads.colorNote(document, message.id, message.color)
-            : message.type === 'deleteAnswer'
+            : message.type === 'todo'
+              ? await this.threads.todoNote(document, message.id, message.done ? 'done' : 'todo')
+              : message.type === 'deleteAnswer'
               ? await this.threads.deleteAnswer(document, message.id, message.answer)
               : await this.threads.deleteNote(document, message.id);
         if (problem) {

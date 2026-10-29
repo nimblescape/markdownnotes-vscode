@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { authorDate, displayDate, formatDate, markerText, newLabel, normalizeBody, noteLines, parseDate, readDefinition, readHeader, readMarker, readNote, usedLabels } from './syntax';
+import { authorDate, displayDate, formatDate, headerText, markerText, newLabel, normalizeBody, noteLines, parseDate, readDefinition, readHeader, readMarker, readNote, usedLabels } from './syntax';
 
 describe('labels and headers', () => {
   test('a new label is note- and four random small letters or digits that no footnote of the text uses', () => {
@@ -28,6 +28,21 @@ describe('labels and headers', () => {
     expect(readHeader('**hannes** · 2026-10-28 10:15')).toBeUndefined();
     expect(readHeader('**hannes** - 2026-10-28 10:15+01:00')).toBeUndefined();
     expect(readHeader('hannes · 2026-10-28 10:15+01:00')).toBeUndefined();
+  });
+
+  test('the header of a todo note ends with its state, todo while it is open and done when it is completed (R-NOTE-008)', () => {
+    expect(readHeader('**hannes** · 2026-10-29 18:30+01:00 · todo')).toEqual({ author: 'hannes', date: '2026-10-29 18:30+01:00', todo: 'todo' });
+    expect(readHeader('**hannes** · 2026-10-29 18:30+01:00 · done ')).toEqual({ author: 'hannes', date: '2026-10-29 18:30+01:00', todo: 'done' });
+    expect(readHeader('**hannes** · 2026-10-29 18:30+01:00 · later')).toBeUndefined();
+    expect(readHeader('**hannes** · 2026-10-29 18:30+01:00 ·todo')).toBeUndefined();
+    expect(readHeader('**hannes** · 2026-10-29 18:30+01:00 · TODO')).toBeUndefined();
+    expect(headerText({ author: 'hannes', date: '2026-10-29 18:30+01:00', todo: 'done' })).toBe('**hannes** · 2026-10-29 18:30+01:00 · done');
+    expect(headerText({ author: 'hannes', date: '2026-10-29 18:30+01:00' })).toBe('**hannes** · 2026-10-29 18:30+01:00');
+    const note = readNote(['[^note-7k2q]: **hannes** · 2026-10-29 18:30+01:00 · todo', '', '    Fix it.', '', '    > **anna** · 2026-10-29 18:40Z', '    >', '    > Soon.']);
+    expect(note?.answers.map((answer) => [answer.author, answer.todo])).toEqual([
+      ['hannes', 'todo'],
+      ['anna', undefined],
+    ]);
   });
 
   test('a definition is a note only with the label of a note and a header', () => {

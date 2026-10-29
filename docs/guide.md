@@ -38,7 +38,10 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Warnings](#warnings) | text editor, Problems view | available | [R-TEXT-008](requirements.md#r-text-008) |
 | [Side view "Notes"](#side-view-notes) | secondary side bar | available | [R-SIDE-001](requirements.md#r-side-001), [R-SIDE-002](requirements.md#r-side-002), [R-SIDE-005](requirements.md#r-side-005), [R-SIDE-006](requirements.md#r-side-006) |
 | [The view next to the text](#the-view-next-to-the-text) | side view, text editor | available | [R-SIDE-007](requirements.md#r-side-007) |
+| [Filters of the side view](#filters-of-the-side-view) | side view | available | [R-SIDE-008](requirements.md#r-side-008) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-SIDE-003](requirements.md#r-side-003), [R-EDIT-003](requirements.md#r-edit-003), [R-EDIT-006](requirements.md#r-edit-006) |
+| [Todo notes](#todo-notes) | text editor, side view | available | [R-NOTE-008](requirements.md#r-note-008) |
+| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/date`, `/time`: available; `/research`, `/source`: planned | [R-EDIT-008](requirements.md#r-edit-008) |
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
@@ -462,8 +465,9 @@ the only place of the text of the notes, and their editor:
 - The buttons are small icons with a tooltip, as the buttons in the title of
   an editor of VS Code. Each answer has "Reply" (an arrow), "Edit" (a pencil)
   and "Delete" (a trash can). Each thread has its color, "Line N", "Show as
-  Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can). The
-  title of the view has "Add Note" (`+`).
+  Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can); a
+  todo note has its check box before its color ([Todo notes](#todo-notes)).
+  The title of the view has "Add Note" (`+`).
 - The view selects the thread at the cursor of the text editor, and the
   thread whose highlight you clicked in the preview. Each thread that is not
   selected is dimmed, also under the pointer.
@@ -496,9 +500,11 @@ the only place of the text of the notes, and their editor:
 
 ### The view next to the text
 
-The side view is a list of the threads in the order of the file, with the
-name of the file and your GitHub account at its top, next to the text editor
-and next to the Markdown preview alike:
+The side view is a list of the threads in the order of the file, below its
+header with the name of the file and the filters
+([Filters of the side view](#filters-of-the-side-view)), with your GitHub
+account at the top of the list, next to the text editor and next to the
+Markdown preview alike:
 
 - You scroll the list on its own, with the mouse wheel over the view, to find
   a note. The list does not follow the scrolling of the text editor.
@@ -514,6 +520,34 @@ VS Code tells an extension only the whole rows that a text editor shows, and
 only after it scrolled, and no place of the text of the preview, so the view
 cannot stand at the height of each highlight and move smoothly with the
 text.
+
+### Filters of the side view
+
+The header of the side view stays at the top while you scroll the list. Its
+first row shows the name of the file, the todo filter, the colors of the
+notes as dots, and "Clear Filter" (×) at its right end; its second row is the
+search field:
+
+```text
+notes.md   [ ] [x]  (blue) (green) (orange) (purple) (red) (teal)   ×
+[ Search the notes                                                   ]
+```
+
+- **Todo filter:** the empty box shows the open todos, the checked box the
+  completed todos, and both together all todo notes
+  ([Todo notes](#todo-notes)).
+- **Color filter:** a click on a dot shows the notes of its color; several
+  dots show the notes of each of their colors. A second click turns a dot
+  off.
+- **Search:** type words to see the notes whose answers hold each word in
+  their text or as their author, without regard to case. Escape clears the
+  search field.
+- The filters combine: the view shows the notes that match each filter that
+  is on. A button of a filter that is on has a frame, as an option of the
+  find widget of VS Code.
+- "Clear Filter" (×) turns all filters off.
+- The selected note shows also when the filters hide it, and the view tells
+  you when no note matches. The filters stay when you open another file.
 
 ### Editors of the side view
 
@@ -547,6 +581,8 @@ about in the text editor or in the Markdown preview. In the text editor:
   them.
 - **With "Add Note" in a menu:** click "Add Note" (`+`) in the title of the
   side view, or choose "Add Note" in the context menu of the text editor.
+- **With a slash command:** type `/` over the selected text, then `note`,
+  and press Tab ([Slash commands](#slash-commands)).
 
 Nothing shows by itself over the selected text of the text editor, so a
 selection for a copy or a change of the text stays as it is.
@@ -583,6 +619,45 @@ The extension writes the new note:
 The new note has a new label and a header with the GitHub login of the author
 and your local date and time with the offset of the zone, for example
 `**hannes** · 2026-10-28 10:15+01:00`. An empty text adds no note.
+
+## Todo notes
+
+A todo note is a note for a task, which you mark completed when it is done.
+Type `/todo` at the end of a sentence in the text editor and press Tab
+([Slash commands](#slash-commands)): the sentence before the command is
+selected, and the side view opens the editor of the new todo note ("New todo
+on …"). Write the task and click "Add Todo" (a check mark).
+
+- The header of the first answer of a todo note ends with ` · todo` while
+  the task is open, and with ` · done` when it is completed:
+  `[^note-7k2q]: **hannes** · 2026-10-29 18:30+01:00 · todo`. GitHub shows
+  the header as it is.
+- In the side view, a todo note has a check box at the start of its header:
+  empty while the task is open, checked when it is completed. A click on it
+  changes the state; the date of the answer stays.
+- The todo filter of the side view shows the open or the completed todos
+  ([Filters of the side view](#filters-of-the-side-view)).
+- Only the first answer holds the state; the replies have none. When you
+  delete the first answer, the state goes to the answer that takes its place.
+
+## Slash commands
+
+A slash (`/`) at the start of a line or after a space shows the slash
+commands in the list of suggestions of VS Code, in the text editor of a
+Markdown file, also in the clean editing view. Type the first letters of a
+command to narrow the list, and press Tab or Enter to run the chosen
+command; Escape closes the list. The editors of the side view have no slash
+commands.
+
+| Command | What it does |
+| --- | --- |
+| `/note` | Adds a note to the selected text. Select the text, type `/`: VS Code replaces the selected text with the slash, and `/note` puts the text back, selects it and opens the editor of the new note in the side view. The list shows `/note` only after a slash that replaced selected text. |
+| `/todo` | Adds a [todo note](#todo-notes): to the selected text, as `/note`, or else to the sentence before the command, from the end of the sentence before it (`.`, `!` or `?`) in the same paragraph, or from the start of the paragraph. It removes the command with the space before it. The list shows `/todo` only where a note can highlight the sentence. |
+| `/footnote` | Adds a standard footnote after the word before the command: the reference with the next free number, for example `[^3]`, and its definition `[^3]: ` after the last footnote of the file, or at the end of the file. The cursor goes to the definition, where you write the text of the footnote. |
+| `/date` | Inserts the current date, for example `2026-10-29`. |
+| `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
+
+`/research` and `/source`, for the sources of a document, are planned.
 
 ## Edit an answer
 

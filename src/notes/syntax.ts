@@ -88,15 +88,24 @@ const dateText = String.raw`\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})`;
 
 /**
  * headerPattern matches the header of an answer: the GitHub login of the author in bold, a middle dot, and the date,
- * for example `**hannes** · 2026-10-28 10:15+01:00`.
+ * for example `**hannes** · 2026-10-28 10:15+01:00`, and for the first answer of a todo note a middle dot and its state,
+ * `todo` or `done`.
  */
-const headerPattern = new RegExp(String.raw`^\*\*([A-Za-z0-9][A-Za-z0-9_-]{0,38})\*\* · (${dateText})[ \t]*$`);
+const headerPattern = new RegExp(String.raw`^\*\*([A-Za-z0-9][A-Za-z0-9_-]{0,38})\*\* · (${dateText})(?: · (todo|done))?[ \t]*$`);
 
-/** Header is the author and the date of an answer. */
+/**
+ * TodoState is the state of a todo note ([R-NOTE-008](../../docs/requirements.md#r-note-008)): `todo` while it is open
+ * and `done` when it is completed.
+ */
+export type TodoState = 'todo' | 'done';
+
+/** Header is the author and the date of an answer, and the state of a todo note in its first answer. */
 export interface Header {
   author: string;
   /** date is the date as written, for example `2026-10-28 10:15+01:00`. */
   date: string;
+  /** todo is the state of a todo note, or undefined for a note that is no todo. */
+  todo?: TodoState;
 }
 
 /**
@@ -105,14 +114,14 @@ export interface Header {
  */
 export function readHeader(text: string): Header | undefined {
   const match = headerPattern.exec(text.trim());
-  return match ? { author: match[1], date: match[2] } : undefined;
+  return match ? { author: match[1], date: match[2], ...(match[3] ? { todo: match[3] as TodoState } : {}) } : undefined;
 }
 
 /**
  * headerText returns the header of an answer.
- * @param header - The author and the date.
+ * @param header - The author, the date, and the state of a todo note.
  */
-export const headerText = (header: Header): string => `**${header.author}** · ${header.date}`;
+export const headerText = (header: Header): string => `**${header.author}** · ${header.date}${header.todo ? ` · ${header.todo}` : ''}`;
 
 /** definitionPattern matches the first line of the definition of a note: the label, a colon and the header. */
 const definitionPattern = /^\[\^(note-[a-z0-9]{4})\]:[ \t]+(.*)$/;
@@ -308,7 +317,7 @@ export function readNote(lines: readonly string[]): NoteText | undefined {
     answers: answers.map(({ header, depth, parent, start, lines: own }): Answer => {
       const { body, last } = trimmedBody(own.map((line) => line.text));
       const end = last === undefined ? start + 1 : own.filter((line) => line.text.trim() !== '').at(-1)!.index + 1;
-      return { author: header.author, date: header.date, body, depth, parent, start, end };
+      return { author: header.author, date: header.date, ...(header.todo ? { todo: header.todo } : {}), body, depth, parent, start, end };
     }),
   };
 }

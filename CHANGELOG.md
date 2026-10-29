@@ -48,7 +48,17 @@ The first version.
   open: web and mail links with the system, files in VS Code at a line or a
   heading. The view is in the secondary side bar, and the button "Show or
   Hide Notes" in the title of the Markdown editors opens and closes it, also
-  in Zen Mode.
+  in Zen Mode. Its header stays at the top, with the name of the file, the
+  todo filter, the colors as dots, "Clear Filter" and a search field for the
+  text and the authors of the answers; the filters that are on combine.
+- Todo notes: the header of the first answer of a note ends with ` · todo`
+  for an open task and ` · done` for a completed one; a check box in the side
+  view changes it.
+- Slash commands in the text editor: a `/` at the start of a line or after a
+  space offers `/note` for the text that the slash replaced, `/todo` for that
+  text or the sentence before it, `/footnote` for a standard footnote with
+  the next free number and its definition, `/date` and `/time`, in the list
+  of suggestions of VS Code; Tab or Enter takes the chosen command.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side

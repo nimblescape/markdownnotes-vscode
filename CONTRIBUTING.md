@@ -31,6 +31,8 @@ describes its security model.
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their colors and their whole texts, the places of the highlights beside the text editor, the actions of its script, and the commands "Add Note", "Hide Notes" and "Show or Hide Notes". |
 | `src/addNoteAction.ts` | The light bulb action "Add Note" of the selected text in the text editor: a Code Action of the kind `quickfix.markdownNotes.addNote`, which runs "Add Note" of the side view. |
+| `src/slashCommands.ts` | The slash commands of the text editor: the suggestions `/note`, `/todo`, `/footnote`, `/date` and `/time` after a typed slash, the selected text that a slash replaced, and the commands that the suggestions run. |
+| `src/notes/slash.ts` | The text of the slash commands: the typed command, the sentence before it for `/todo`, the date and the time, and the label and the definition of the footnote of `/footnote`. It uses no API of VS Code. |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
@@ -384,6 +386,25 @@ the other extensions of Markdown stay as they are
   the direction of its move, and Backspace or Delete that would join a line
   with a header line does nothing.
 
+`src/slashCommands.ts` registers a completion item provider for the language
+`markdown` with the trigger character `/`
+([R-EDIT-008](docs/requirements.md#r-edit-008)). VS Code asks it after a
+typed slash also in a Markdown file, where `editor.quickSuggestions` is off;
+each suggestion has its own range, from the slash, or from the spaces before
+it for a command that removes its text, and its `filterText`, so the typed
+letters narrow the list. VS Code replaces selected text with the typed
+slash: the provider keeps the last selected text of each document with the
+version of the document, and a change that replaces exactly that selection
+with `/` in the next version makes the text that `/note` and `/todo` put
+back. `/todo` and `/note` run `nimblescape.markdownNotes.slashNote`, which
+calls `NotesView.addFromText`: it selects the text in the text editor and
+opens the editor of the new note, as `addFromPreview` does, through
+`newNoteAt`. `/footnote` writes the reference with its range and runs
+`nimblescape.markdownNotes.slashFootnote`, which writes the definition with
+`TextEditor.edit` without an undo stop before it, so that one Undo takes
+both back, and puts the cursor into it. The two commands are in no menu and
+not in the manifest.
+
 `src/addNoteAction.ts` gives the selected text the Code Action "Add Note"
 ([R-EDIT-006](docs/requirements.md#r-edit-006), decision 22). VS Code asks
 the provider with the selection of a text editor, for the light bulb after
@@ -510,7 +531,8 @@ the preview does, and keeps up to 200 rendered texts.
   HTML before it shows it ([docs/security.md](docs/security.md#side-view)).
 - The script sends the actions of the user as messages: `save` (with the
   `AnswerRef` of the answer), `answer` (with the `AnswerRef` of the answer
-  that a reply replies to), `add` (with the name of a color), `color`,
+  that a reply replies to), `add` (with the name of a color, and `todo` for a
+  todo note), `color`, `todo` (the check box of a todo note, with `done`),
   `saveText` (the text view, with the text that it started with),
   `deleteAnswer` (with the `AnswerRef`),
   `deleteNote`, `reveal`, `render` (the preview of an editor), `openLink` (a
@@ -536,6 +558,17 @@ the preview does, and keeps up to 200 rendered texts.
   sessions (`account`), because VS Code can take seconds for a session.
 - `retainContextWhenHidden` keeps the page, and so the open editors, while
   the view is hidden.
+- **The header with the filters** ([R-SIDE-008](docs/requirements.md#r-side-008)):
+  the script builds the header (`header.top`, `position: sticky`) once,
+  outside the element of the list that it builds anew for each state, so
+  that the search field keeps its text and the focus. It filters the threads
+  of the state itself, without a message: the todo state of each thread
+  (`todo` of `ThreadState`, from the header of its first answer), the name
+  of its color, and the authors and the bodies of its answers. The filter
+  stays in `vscode.setState`. A `ResizeObserver` gives the height of the
+  header to the CSS variable `--header`, which `scroll-margin-top` of the
+  threads and the editors uses, so that a thread that scrolls to the top
+  stands below the header.
 - The button "Show or Hide Notes" in the title of the Markdown editors runs
   `nimblescape.markdownNotes.notes.focus`, or
   `workbench.action.closeAuxiliaryBar` while the view shows, because VS Code

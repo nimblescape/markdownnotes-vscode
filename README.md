@@ -83,6 +83,17 @@ describes each step and where its protection ends.
   Explorer stays usable; the button "Show or Hide Notes" in the title of the
   Markdown editors opens and closes it with one click, also in Zen Mode and
   in the modes "Markdown Preview" and "Markdown Editor" of VS Code.
+- **Filters.** The header of the side view stays at the top: the name of the
+  file, the todo filter (open and completed todos), the colors as dots,
+  "Clear Filter", and a search field for the text and the authors of the
+  notes. The filters that are on combine.
+- **Todo notes.** A note can be a task: ` · todo` at the end of the header of
+  its first answer, ` · done` when it is completed. A check box in the side
+  view marks it completed.
+- **Slash commands.** In the text editor, a `/` at the start of a line or
+  after a space offers `/note` (over selected text), `/todo` (for the
+  sentence before it), `/footnote`, `/date` and `/time`; Tab takes the
+  chosen command.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
@@ -167,7 +178,8 @@ you add or answer a note. In the side view "Notes":
 | Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor of the file itself ("Open File with Markup") brings it back. |
 
 In the text editor or in the Markdown preview (Ctrl+K V opens it to the
-side), click a highlight to open its note in the side view. In the preview,
+side), click a highlight to select its note, and double-click it to open the
+note in the side view. In the preview,
 VS Code may ask once whether the extension may open the link.
 
 The first time you add or answer a note, VS Code asks you to sign in with

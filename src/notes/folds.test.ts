@@ -106,4 +106,9 @@ describe('the header lines', () => {
       { line: 6, start: 6, end: 34, text: 'anna · 2026-10-28 11:02', date: '2026-10-28 10:02Z' },
     ]);
   });
+
+  test('the header line of a todo note shows its state (R-NOTE-008)', () => {
+    const lines = ['Text[^note-aaaa].', '', `[^note-aaaa]: ${header} · done`, '', '    A'];
+    expect(headersOf(lines, findNotes(lines)).map((line) => line.text)).toEqual(['hannes · 2026-10-28 10:15 · done']);
+  });
 });

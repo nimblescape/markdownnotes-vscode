@@ -22,6 +22,7 @@ import { highlightCommands, highlightsContext } from './extension';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
+import { slashCommandIds } from './slashCommands';
 import { Fake, FakeCodeActionKind, FakeDocument, FakeEditor, FakeFoldingRange, FakePosition, FakeRange, FakeSelection, type FakeTextEdit, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
@@ -74,13 +75,17 @@ const closeView = (view: FakeView): void => {
 
 test('the activation registers the commands, the side view and the handler of links, and the disposal of the context removes every registration', async () => {
   const { context, extension } = await fake.activate();
-  expect([...fake.commands.keys()].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands)].sort());
+  expect([...fake.commands.keys()].sort()).toEqual(
+    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), ...Object.values(slashCommandIds)].sort(),
+  );
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
   // The overlay of the text editor learns the place of the pointer from a hover provider, and the selected text has the
   // light bulb action "Add Note".
   expect(fake.hovers.get('markdown')).toHaveLength(1);
   expect(fake.codeActions.get('markdown')).toHaveLength(1);
+  // A slash in the text editor offers the slash commands (R-EDIT-008).
+  expect(fake.completions.get('markdown')?.map(({ triggers }) => triggers)).toEqual([['/']]);
   expect(typeof extension.deactivate).toBe('function');
   expect(fake.registrations.length).toBeGreaterThan(0);
   for (const subscription of context.subscriptions) {
@@ -316,7 +321,7 @@ test('a save of a file with notes writes the comment of the format at its top, a
   // A note that the user writes into a file without notes brings the comment with the next save.
   plain.text = `Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n`;
   plain.version++;
-  fake.fire('change', { document: plain });
+  fake.fire('change', { document: plain, contentChanges: [] });
   await vi.advanceTimersByTimeAsync(1000);
   expect(plain.text).toBe('Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n');
   expect(await saved(plain)).toBe(marked(plain.text));
@@ -351,7 +356,7 @@ test('after a change of a document and a pause, the extension reads its notes ag
   expect(labels()).toEqual([['note-aaaa', 4]]);
   document.text = `Intro.\n\n${note}\nSecond[^note-bbbb].\n\n[^note-bbbb]: **ann** · 2026-10-28 10:15+01:00\n\n    Second\n`;
   document.version++;
-  fake.fire('change', { document });
+  fake.fire('change', { document, contentChanges: [] });
   // The notes are read again only after the pause.
   expect(labels()).toEqual([['note-aaaa', 4]]);
   await vi.advanceTimersByTimeAsync(300);

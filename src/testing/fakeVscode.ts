@@ -171,6 +171,26 @@ export class FakeCodeAction {
   ) {}
 }
 
+/** FakeCompletionItem stands for a vscode.CompletionItem. */
+export class FakeCompletionItem {
+  detail: string | undefined;
+  range: FakeRange | undefined;
+  insertText: string | undefined;
+  filterText: string | undefined;
+  sortText: string | undefined;
+  command: { command: string; title: string; arguments?: unknown[] } | undefined;
+
+  constructor(
+    readonly label: string | { label: string; description?: string },
+    readonly kind?: number,
+  ) {}
+}
+
+/** FakeCompletionProvider stands for a vscode.CompletionItemProvider. */
+interface FakeCompletionProvider {
+  provideCompletionItems(document: FakeDocument, position: FakePosition): FakeCompletionItem[] | undefined;
+}
+
 /** FakeCodeActionProvider stands for a vscode.CodeActionProvider. */
 interface FakeCodeActionProvider {
   provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: [] }): FakeCodeAction[];
@@ -354,9 +374,13 @@ export class FakeEditor {
    * cursor after a change moves with the text, and a cursor in a change goes to its start.
    * @param callback - Adds the changes.
    */
-  async edit(callback: (builder: { delete(range: FakeRange): void; replace(range: FakeRange, text: string): void }) => void): Promise<boolean> {
+  async edit(callback: (builder: { delete(range: FakeRange): void; replace(range: FakeRange, text: string): void; insert(position: FakePosition, text: string): void }) => void): Promise<boolean> {
     const changes: { range: FakeRange; text: string }[] = [];
-    callback({ delete: (range) => changes.push({ range, text: '' }), replace: (range, text) => changes.push({ range, text }) });
+    callback({
+      delete: (range) => changes.push({ range, text: '' }),
+      replace: (range, text) => changes.push({ range, text }),
+      insert: (position, text) => changes.push({ range: new FakeRange(position.line, position.character, position.line, position.character), text }),
+    });
     for (const { range, text } of changes.reverse()) {
       const start = this.document.offsetAt(range.start);
       const end = this.document.offsetAt(range.end);
@@ -451,6 +475,7 @@ export class FakeView {
         color: string;
         colorName: string;
         text: string;
+        todo?: 'todo' | 'done';
         answers: { author: string; date: string; authorDate: string; written: string; body: string; html: string; depth: number; parent: number | undefined }[];
       }[];
     };
@@ -495,6 +520,8 @@ export class Fake {
   hovers = new Map<string, { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }[]>();
   /** codeActions holds the providers of the Code Actions of each language, with the kinds that they provide. */
   codeActions = new Map<string, { provider: FakeCodeActionProvider; kinds: readonly FakeCodeActionKind[] }[]>();
+  /** completions holds the providers of the suggestions of each language, with their trigger characters. */
+  completions = new Map<string, { provider: FakeCompletionProvider; triggers: string[] }[]>();
   /** formatters holds the provider of "Format Document" of each language. */
   formatters = new Map<string, { provideDocumentFormattingEdits(document: FakeDocument): FakeTextEdit[] }>();
   listeners = new Map<string, ((event: unknown) => void)[]>();
@@ -547,6 +574,8 @@ export class Fake {
       CodeAction: FakeCodeAction,
       CodeActionKind: FakeCodeActionKind,
       CodeActionTriggerKind: { Invoke: 1, Automatic: 2 },
+      CompletionItem: FakeCompletionItem,
+      CompletionItemKind: { Function: 2, Value: 11, Reference: 17 },
       WorkspaceEdit: FakeWorkspaceEdit,
       EventEmitter: FakeEventEmitter,
       FileSystemError: { NoPermissions: (message: string) => new Error(message), FileNotFound: (uri: FakeUri) => new Error(`no file ${uri.toString()}`) },
@@ -585,6 +614,10 @@ export class Fake {
         },
         registerCodeActionsProvider: (language: string, provider: FakeCodeActionProvider, metadata: { providedCodeActionKinds: readonly FakeCodeActionKind[] }) => {
           this.codeActions.set(language, [...(this.codeActions.get(language) ?? []), { provider, kinds: metadata.providedCodeActionKinds }]);
+          return this.registration();
+        },
+        registerCompletionItemProvider: (language: string, provider: FakeCompletionProvider, ...triggers: string[]) => {
+          this.completions.set(language, [...(this.completions.get(language) ?? []), { provider, triggers }]);
           return this.registration();
         },
         registerHoverProvider: (language: string, provider: { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }) => {
@@ -895,6 +928,16 @@ export class Fake {
     return (this.codeActions.get(document.languageId) ?? []).flatMap(({ provider }) =>
       provider.provideCodeActions(document, range, { only, triggerKind: 2, diagnostics: [] }).map((action) => ({ title: action.title, kind: action.kind?.value, command: action.command?.command })),
     );
+  }
+
+  /**
+   * complete asks the providers of the suggestions of a document for a position, as VS Code does after a trigger
+   * character, and returns their suggestions.
+   * @param document - The document.
+   * @param position - The position of the cursor.
+   */
+  complete(document: FakeDocument, position: FakePosition): FakeCompletionItem[] {
+    return (this.completions.get(document.languageId) ?? []).flatMap(({ provider }) => provider.provideCompletionItems(document, position) ?? []);
   }
 
   /**

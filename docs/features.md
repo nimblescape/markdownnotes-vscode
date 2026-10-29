@@ -12,16 +12,18 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 66 requested features, 47 are built, among them the clean editing view
+Of 79 requested features, 57 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
-breaks and the cursor next to the hidden markers in the text editor. 8
+breaks and the cursor next to the hidden markers in the text editor. 10
 features are planned but not built: the features of the section
 [Planned features](#planned-features). The npm package with the first release
-needs Hannes. 10 requests were replaced or dropped by later decisions of
+needs Hannes. 11 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
-notes and the standard footnotes in the side view.
+notes, the standard footnotes in the side view, and the slash commands
+`/research` and `/source`, which wait for the answer of Hannes on how a source
+is written in the Markdown text.
 
 The columns of the tables:
 
@@ -43,7 +45,8 @@ The side view has what Hannes asked for, apart from the visual editing,
 which is in the section [Planned features](#planned-features). The
 tooltips, the lighter dimming and the list that scrolls on its own came on
 2026-10-29 (commit
-[a508cdf](https://github.com/nimblescape/nimblescape-markdown-notes/commit/a508cdf)).
+[a508cdf](https://github.com/nimblescape/nimblescape-markdown-notes/commit/a508cdf)),
+the header with the filters in the evening of 2026-10-29.
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
@@ -64,6 +67,11 @@ tooltips, the lighter dimming and the list that scrolls on its own came on
 | The view scrolls on its own and smoothly: "cannot be scrolled individually to find a note", "laggy" | 10-29 09:03 | [R-SIDE-007](requirements.md#r-side-007) | Built | The list follows only a click or a move of the cursor into a highlight |
 | A click on a thread selects it in the view: "when selecting a note in the sideview, it gets not select in the sideview" | 10-29 16:30 | [R-SIDE-007](requirements.md#r-side-007) | Built | A bug of the clean editing view: the view got no new state after the click |
 | The icon of the Markdown preview on the button "Preview" of the editors: "the side view shows a wrong one" | 10-29 16:32 | [R-SIDE-002](requirements.md#r-side-002) | Built | The codicon "preview" of the mode "Markdown Preview" in place of "open-preview" (to the side); all icons of the view as VS Code 1.144 draws them |
+| A header that stays at the top of the view while the list scrolls: "filename [ ] [X] (R) (B) (G) ... X", the search field in a second row over the full width | 10-29 17:56, 18:07 | [R-SIDE-008](requirements.md#r-side-008) | Built | The name of the file, the todo filter, the color filter and "Clear Filter" in the first row |
+| A filter by the color of the notes | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | One dot for each color that the notes of the file use; more than one dot shows the notes of each pressed color |
+| A search in the full text of the notes | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | The text and the authors of all answers, without regard to case; each typed word must be in the note; Escape clears the field |
+| A todo filter: "an empty box for open todos and a checked box for completed todos" | 10-29 17:56, 18:04 | [R-SIDE-008](requirements.md#r-side-008) | Built | Both boxes together show all todo notes |
+| The filters together, and a button that clears them: "the filters are combined with AND" | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | "Clear Filter" (X); the selected thread always shows; the filter stays when the view is hidden and shown again |
 
 ## Text editor
 
@@ -94,6 +102,12 @@ breaks and the cursor next to the hidden markers.
 | Comment boxes as in GitHub pull requests, the Comments view | 10-28 | [R-TEXT-001](requirements.md#r-text-001) | Dropped | "we completely drop the inline view" (10-28 19:58) |
 | Colored numbers in the left margin | 10-28 14:51 | [R-TEXT-006](requirements.md#r-text-006) | Dropped | "drop all colored icons on the left" (10-28 20:01) |
 | Markdown highlighting inside a note, dimming after the cursor | 10-28 | [R-TEXT-004](requirements.md#r-text-004) | Dropped | The text editor never shows a note |
+| Todo notes: "/todo in the text adds a special todo note", "a todo can be marked completed" | 10-29 17:56 | [R-NOTE-008](requirements.md#r-note-008) | Built | [Decision 30](requirements.md#decisions) (10-29 17:58). The state `todo` or `done` stands in the header of the first answer; a check box in the side view marks a todo completed or open again |
+| Slash commands in the text editor with completion: "the / command allows tab completion" | 10-29 18:28 | [R-EDIT-008](requirements.md#r-edit-008) | Built | A slash at the start of a line or after a space shows the list of VS Code; Tab or Enter takes a command. "all slash commands are intended for the text editor" (18:40) |
+| `/date` and `/time` | 10-29 18:29 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The local date `2026-10-29`, and the local date and time in minutes `2026-10-29 19:29` |
+| "/footnote creates a footnote" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | After a word: the reference with the next free number, the definition after the last standard footnote, and the cursor in the definition. The command "Add Footnote" (step 33) stays planned |
+| "selecting and /note creates a note", "/note is not available when no text is selected" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The slash that replaced the selected text offers `/note` and `/todo`; the text comes back and the side view opens the editor of the new note. `/todo` without selected text takes the sentence before the slash |
+| `/todo` at the start of the text of a new note in the side view | 10-29 17:58 | [R-NOTE-008](requirements.md#r-note-008) | Dropped | The part "in the side view" of [decision 30](requirements.md#decisions): "all slash commands are intended for the text editor" (18:40) |
 
 ## Markdown preview and the modes of VS Code
 
@@ -137,7 +151,7 @@ need Hannes after the merge of
 
 ## Planned features
 
-Eight features are in the specification and the plan, but not built. Steps 29
+Ten features are in the specification and the plan, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -152,6 +166,8 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
+| "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it; the comment of the format explains to an agent what to do with it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
+| "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45, waits for Hannes | Planned |
 
 The later fixes of the code review of 2026-10-28 are not in the
 specification: a queue of writes for each file, tests of the script of the
@@ -168,9 +184,11 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 2. The merge of
    [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
    the first release and the npm package: these need Hannes.
-3. Steps 31 to 35: the text without notes, and the standard footnotes in the
+3. Step 45: the slash commands `/research` and `/source`, after the answer of
+   Hannes on how a source is written in the Markdown text.
+4. Steps 31 to 35: the text without notes, and the standard footnotes in the
    side view.
-4. Step 14: the visual editing in the side view.
+5. Step 14: the visual editing in the side view.
 
 ---
 

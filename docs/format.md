@@ -161,6 +161,11 @@ The definition is the note itself: the first answer and its replies.
 - The date is the local date and time of the author with the offset of the
   time zone: `YYYY-MM-DD HH:MM+HH:MM`, `YYYY-MM-DD HH:MM-HH:MM`, or
   `YYYY-MM-DD HH:MMZ` for UTC.
+- The header of the first answer of a todo note ends with a space, a middle
+  dot, a space and the state of the todo: `todo` while it is open, `done`
+  when it is completed, for example
+  `[^note-7k2q]: **hannes** · 2026-10-29 18:30+01:00 · todo`. The header of a
+  reply has no state. A note without a state is no todo.
 
 ### The body of an answer
 
@@ -198,6 +203,10 @@ A program, for example an AI agent, follows these steps:
   version is lower than yours ([1.1](#11-the-version-of-the-format)).
 - **Color a note:** write the name of the color after the label in its start
   marker, or remove the name for the default color.
+- **Mark a todo:** write ` · todo` at the end of the header of the first
+  answer for an open todo, and ` · done` when it is completed; keep the date.
+  When the first answer goes, its state goes to the answer that takes its
+  place.
 - **Answer:** write the reply at its place in the tree, with its own header.
 - **Change an answer:** change its body, keep its author, and write the
   current local time with the offset as its date.

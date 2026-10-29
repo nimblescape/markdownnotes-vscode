@@ -31,11 +31,11 @@
  */
 
 import * as vscode from 'vscode';
-import { appendAnswer, colorNote, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, replaceNoteText, type Result, withDoctype } from './notes/edits';
+import { appendAnswer, colorNote, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, replaceNoteText, type Result, todoNote, withDoctype } from './notes/edits';
 import { checksOf } from './notes/checks';
 import { formatVersion, newerFormat, versionText } from './notes/doctype';
 import { findNotes, type Note, noteAt, type Position, type Reading, read, readNotes } from './notes/notes';
-import { formatDate, normalizeBody } from './notes/syntax';
+import { formatDate, normalizeBody, type TodoState } from './notes/syntax';
 
 /** changeDelay is the pause, in milliseconds, after the last change of a document before its notes are read again. */
 const changeDelay = 300;
@@ -533,6 +533,16 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
+   * todoNote gives a todo note its state ([R-NOTE-008](../docs/requirements.md#r-note-008)): open or completed.
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   * @param state - The state: `todo` while it is open, `done` when it is completed.
+   */
+  todoNote(document: vscode.Uri, id: string, state: TodoState): Promise<Problem | undefined> {
+    return this.change(document, id, (lines, note) => todoNote(lines, note, state), () => true);
+  }
+
+  /**
    * saveNoteText writes the text of the text view of the side view into a note: the whole text of its definition. It
    * writes only while the note still has the text that the text view started from, so that it never takes back a change
    * that came in the meantime, such as a new reply.
@@ -557,9 +567,10 @@ export class NoteThreads implements vscode.Disposable {
    * @param range - The range, for example the selection of the text editor.
    * @param text - The text of the note.
    * @param color - The name of the color of the note, or undefined for the default color.
+   * @param todo - Whether the note is an open todo ([R-NOTE-008](../docs/requirements.md#r-note-008)).
    * @returns The identifier of the thread of the new note, or the problem that prevents it.
    */
-  async addNote(uri: vscode.Uri, range: vscode.Range, text: string, color?: string): Promise<{ id: string } | { problem: Problem }> {
+  async addNote(uri: vscode.Uri, range: vscode.Range, text: string, color?: string, todo = false): Promise<{ id: string } | { problem: Problem }> {
     const author = await this.authorOf();
     if (!author) {
       return { problem: { kind: 'signIn' } };
@@ -570,7 +581,7 @@ export class NoteThreads implements vscode.Disposable {
     if (format !== undefined) {
       return { problem: { kind: 'format', format } };
     }
-    const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()) }, undefined, color);
+    const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()), ...(todo ? { todo: 'todo' as const } : {}) }, undefined, color);
     if ('problem' in result) {
       return result;
     }

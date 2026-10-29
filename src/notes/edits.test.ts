@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { appendAnswer, applyEdit, colorNote, deleteAnswer, deleteNote, type Edit, highlightFor, insertNote, replaceAnswer, replaceNoteText, type Result } from './edits';
+import { appendAnswer, applyEdit, colorNote, deleteAnswer, deleteNote, type Edit, highlightFor, insertNote, replaceAnswer, replaceNoteText, type Result, todoNote } from './edits';
 import { findNotes, type Position } from './notes';
 
 /**
@@ -262,6 +262,33 @@ describe('colorNote', () => {
   test('a color that the start marker cannot hold is not written', () => {
     const source = lines(thread);
     expect(after(source, colorNote(source, findNotes(source)[0], 'Green'))).toEqual({ kind: 'structure' });
+  });
+});
+
+describe('todoNote', () => {
+  /** todo is a note of two answers, which is no todo note. */
+  const todo = 'The <wbr><!--[note-7k2q-->text[^note-7k2q].\n\n[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00\n\n    Fix it.\n\n    > **anna** · 2026-10-28 11:00Z\n    >\n    > Soon.';
+
+  test('writes the state of a todo note into the header of its first answer, and takes it away (R-NOTE-008)', () => {
+    const source = lines(todo);
+    const open = after(source, todoNote(source, findNotes(source)[0], 'todo'));
+    expect(open).toBe(todo.replace('10:15+01:00\n', '10:15+01:00 · todo\n'));
+    const opened = lines(open as string);
+    expect(findNotes(opened)[0].answers.map((answer) => answer.todo)).toEqual(['todo', undefined]);
+    const done = after(opened, todoNote(opened, findNotes(opened)[0], 'done'));
+    expect(done).toBe(todo.replace('10:15+01:00\n', '10:15+01:00 · done\n'));
+    const completed = lines(done as string);
+    expect(after(completed, todoNote(completed, findNotes(completed)[0], undefined))).toBe(todo);
+    // A change of the text of the first answer keeps the state, and a new reply has none.
+    expect(after(completed, replaceAnswer(completed, findNotes(completed)[0], 0, 'Fix it now.', '2026-10-29 09:00+01:00'))).toContain('[^note-7k2q]: **hannes** · 2026-10-29 09:00+01:00 · done\n\n    Fix it now.');
+    expect(after(completed, appendAnswer(completed, findNotes(completed)[0], 'Thanks.', fields))).toContain('    > **hannes** · 2026-10-28 10:15+01:00\n    >\n    > Thanks.');
+  });
+
+  test('the state goes to the answer that takes the place of the first answer (R-EDIT-004)', () => {
+    const source = lines(todo.replace('10:15+01:00\n', '10:15+01:00 · done\n'));
+    expect(after(source, deleteAnswer(source, findNotes(source)[0], 0))).toBe(
+      'The <wbr><!--[note-7k2q-->text[^note-7k2q].\n\n[^note-7k2q]: **anna** · 2026-10-28 11:00Z · done\n\n    Soon.',
+    );
   });
 });
 

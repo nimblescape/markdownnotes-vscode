@@ -60,6 +60,15 @@
 // as the hover of VS Code shows the tooltip of a button in the title of an
 // editor: after half a second under the pointer, at once when the pointer
 // comes from another tooltip, and when a key moves the focus to the element.
+//
+// The header of the view stays at the top while the list scrolls (R-SIDE-008):
+// the name of the file, the todo filter, the colors of the notes as dots and
+// "Clear Filter" in its first row, the search field in its second row. The
+// view shows the threads that match each filter that is on, and always the
+// selected thread. The header is built once, so that the search field keeps
+// its text and the focus while the list changes; the filters stay in the state
+// of the page. A todo note (R-NOTE-008) has a check box at the start of its
+// header, which marks it completed or open.
 
 (() => {
   'use strict';
@@ -69,7 +78,7 @@
 
   /**
    * @typedef {{ author: string, date: string, authorDate: string, written: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
-   * @typedef {{ id: string, line: number, color: string, colorName: string, text: string, answers: AnswerState[] }} ThreadState
+   * @typedef {{ id: string, line: number, color: string, colorName: string, text: string, todo?: 'todo' | 'done', answers: AnswerState[] }} ThreadState
    * @typedef {{ file: string | undefined, line: number | undefined, highlight: string | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], colors: { name: string, color: string }[] }} State
    * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined, original?: string }} Editor
    */
@@ -97,11 +106,15 @@
   /** @type {string | undefined} the name of the color of the new note, or undefined for the default color. */
   let newColor;
 
+  /** newTodo tells whether the new note is a todo, for `/todo` of the text editor (R-NOTE-008). */
+  let newTodo = false;
+
   /**
    * icons are the paths of the codicons of VS Code that the buttons show (https://github.com/microsoft/vscode-codicons,
    * CC BY 4.0, version 0.0.46-24, which VS Code 1.144 shows), each drawn in a square of 16 units: "reply", "edit",
    * "trash", "comment", "check", "close", "preview" (the button of the mode "Markdown Preview" of VS Code) and
-   * "go-to-file".
+   * "go-to-file"; and the boxes of the todo notes, drawn for the view: an empty box for an open todo, and a box with a
+   * check mark for a completed one.
    */
   const icons = {
     reply:
@@ -121,6 +134,10 @@
     source:
       'M8.58594 1.00098C8.98394 1.00098 9.36646 1.15943 9.64746 1.44043L12.5605 4.35352C12.8415 4.63552 13.001 5.01704 13.001 5.41504V13.001C13.001 14.106 12.106 15.001 11.001 15.001H5.00098C3.89599 15.001 3.00098 14.106 3.00098 13.001V6.00098H4.00098V13.001C4.00098 13.553 4.44899 14.001 5.00098 14.001H11.001C11.553 14.001 12.001 13.553 12.001 13.001V6.00098H9.50098C8.67299 6.00096 8.00098 5.32897 8.00098 4.50098V2.00098C7.99198 1.97699 7.98265 1.9527 7.97266 1.92871C7.89674 1.74704 7.78717 1.5812 7.64746 1.44238L7.20605 1.00098H8.58594ZM9 4.5C9 4.776 9.224 5 9.5 5H11.793L9 2.20703V4.5Z M4.5 0C4.63299 0 4.75952 0.0534683 4.85352 0.147461L6.85352 2.14746C6.90042 2.19336 6.93789 2.24775 6.96289 2.30859C6.98789 2.36959 7.00097 2.43498 7.00098 2.50098C7.00098 2.56698 6.98789 2.63236 6.96289 2.69336C6.93789 2.75323 6.90043 2.80956 6.85352 2.85547L4.85352 4.85547C4.75956 4.94917 4.63278 5.00195 4.5 5.00195C4.36722 5.00195 4.24044 4.94917 4.14648 4.85547C4.05248 4.76147 3.99902 4.63398 3.99902 4.50098C3.99903 4.36799 4.05249 4.24146 4.14648 4.14746L5.29297 3.00098H2.5C2.10201 3.00098 1.72045 3.15944 1.43945 3.44043C1.15846 3.72242 1.00001 4.10298 1 4.50098V5.50098C1 5.63398 0.947516 5.76147 0.853516 5.85547C0.759563 5.94817 0.632774 6.00098 0.5 6.00098C0.367225 6.00098 0.240437 5.94917 0.146484 5.85547C0.0534844 5.76147 0 5.63398 0 5.50098V4.50098C6.17892e-06 3.83799 0.263427 3.20239 0.732422 2.7334C1.20142 2.26441 1.83701 2.00098 2.5 2.00098H5.29297L4.14648 0.855469C4.05248 0.761469 3.99902 0.633977 3.99902 0.500977C3.99903 0.367985 4.05249 0.241455 4.14648 0.147461C4.24048 0.0534683 4.36701 0 4.5 0Z',
   };
+
+  const box = 'M4 2H12C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4C2 2.89543 2.89543 2 4 2ZM4 3C3.44772 3 3 3.44772 3 4V12C3 12.5523 3.44772 13 4 13H12C12.5523 13 13 12.5523 13 12V4C13 3.44772 12.5523 3 12 3H4Z';
+  icons.todoOpen = box;
+  icons.todoDone = `${box}M11.3536 5.64645C11.5488 5.84171 11.5488 6.15829 11.3536 6.35355L7.35355 10.3536C7.15829 10.5488 6.84171 10.5488 6.64645 10.3536L4.64645 8.35355C4.45118 8.15829 4.45118 7.84171 4.64645 7.64645C4.84171 7.45118 5.15829 7.45118 5.35355 7.64645L7 9.29289L10.6464 5.64645C10.8417 5.45118 11.1583 5.45118 11.3536 5.64645Z`;
 
   /** requests holds the keys of the editors whose texts the extension handles, by the number of the request. @type {Map<number, string>} */
   const requests = new Map();
@@ -253,6 +270,7 @@
     editors.delete(key);
     if (key === 'new') {
       newColor = undefined;
+      newTodo = false;
     }
     show();
   };
@@ -488,6 +506,22 @@
       { 'data-tooltip': `Color: ${thread.colorName}`, 'aria-label': `Color of the note: ${thread.colorName}`, 'aria-expanded': String(palettes.has(thread.id)) },
     );
     swatch.style.setProperty('--swatch', thread.color);
+    if (thread.todo) {
+      const done = thread.todo === 'done';
+      const check = iconButton(
+        done ? 'todoDone' : 'todoOpen',
+        done ? 'Mark as Open' : 'Mark as Completed',
+        () => {
+          // The box shows the new state at once; the state of the extension follows.
+          thread.todo = done ? 'todo' : 'done';
+          vscode.postMessage({ type: 'todo', id: thread.id, done: !done });
+          show();
+        },
+        { role: 'checkbox', 'aria-checked': String(done), 'aria-label': done ? 'Completed todo: mark as open' : 'Open todo: mark as completed' },
+      );
+      check.classList.add('todo');
+      header.append(check);
+    }
     const actions = element('span', 'actions');
     actions.append(
       iconButton(asText ? 'preview' : 'source', asText ? 'Show the Rendered Note' : 'Show as Text', () => {
@@ -531,7 +565,7 @@
    * newTitle returns the title of the editor of a new note: the text that the note highlights, or what to do without one
    * (Hannes, 2026-10-28: "there shall be no way to add a note without highlighting text").
    */
-  const newTitle = () => (state.highlight === undefined ? 'Select the text in the text editor that the new note is about' : `New note on “${state.highlight}”`);
+  const newTitle = () => (state.highlight === undefined ? 'Select the text in the text editor that the new note is about' : `New ${newTodo ? 'todo' : 'note'} on “${state.highlight}”`);
 
   /**
    * newNoteOf creates the elements of the editor of a new note, with the text that it highlights in its title, and its
@@ -546,7 +580,7 @@
         show();
       }),
     );
-    section.append(editorOf('new', 'Text of the new note, in Markdown', 'Add Note', (request, text) => ({ type: 'add', request, text, color: newColor })));
+    section.append(editorOf('new', 'Text of the new note, in Markdown', newTodo ? 'Add Todo' : 'Add Note', (request, text) => ({ type: 'add', request, text, color: newColor, todo: newTodo })));
     return section;
   };
 
@@ -685,6 +719,117 @@
   document.addEventListener('scroll', hideTooltip, true);
   window.addEventListener('blur', hideTooltip);
 
+  /**
+   * filter is the filter of the list (R-SIDE-008): the open and the completed todos, the names of the colors, and the
+   * text of the search field. A filter that is off lets every thread through, and the filters that are on combine. The
+   * state of the page keeps it while VS Code hides the view and after a reload of the view.
+   * @type {{ open: boolean, done: boolean, colors: string[], text: string }}
+   */
+  const filter = (() => {
+    const saved = vscode.getState()?.filter;
+    return {
+      open: saved?.open === true,
+      done: saved?.done === true,
+      colors: Array.isArray(saved?.colors) ? saved.colors.filter((name) => typeof name === 'string') : [],
+      text: typeof saved?.text === 'string' ? saved.text : '',
+    };
+  })();
+
+  /** filtering tells whether a filter is on. */
+  const filtering = () => filter.open || filter.done || filter.colors.length > 0 || filter.text.trim() !== '';
+
+  /**
+   * matches tells whether a thread matches each filter that is on: a todo in a chosen state, a note in a chosen color,
+   * and each word of the search field in the text or the author of an answer, without regard to case.
+   * @param {ThreadState} thread
+   */
+  const matches = (thread) => {
+    if ((filter.open || filter.done) && !((filter.open && thread.todo === 'todo') || (filter.done && thread.todo === 'done'))) {
+      return false;
+    }
+    if (filter.colors.length > 0 && !filter.colors.includes(thread.colorName)) {
+      return false;
+    }
+    const text = thread.answers.map((answer) => `${answer.author}\n${answer.body}`).join('\n').toLowerCase();
+    return filter.text.toLowerCase().split(/\s+/).filter(Boolean).every((word) => text.includes(word));
+  };
+
+  /** changed keeps the filter in the state of the page and shows the list anew. */
+  const changed = () => {
+    vscode.setState({ ...(vscode.getState() ?? {}), filter });
+    show();
+  };
+
+  /** header is the header of the view, which stays at the top while the list scrolls, with the name of the file and the filters. */
+  const header = element('header', 'top');
+  const fileName = element('div', 'file');
+  const openTodos = iconButton('todoOpen', 'Open Todos', () => {
+    filter.open = !filter.open;
+    changed();
+  });
+  const doneTodos = iconButton('todoDone', 'Completed Todos', () => {
+    filter.done = !filter.done;
+    changed();
+  });
+  const dots = element('span', 'dots', undefined, { role: 'group', 'aria-label': 'Colors of the notes' });
+  const search = element('input', 'search', undefined, { type: 'search', placeholder: 'Search the notes', 'aria-label': 'Search the notes', spellcheck: 'false' });
+  const clear = iconButton('close', 'Clear Filter', () => {
+    Object.assign(filter, { open: false, done: false, colors: [], text: '' });
+    search.value = '';
+    changed();
+  });
+  const firstRow = element('div', 'top-row');
+  firstRow.append(fileName, openTodos, doneTodos, dots, clear);
+  header.append(firstRow, search);
+  document.body.insertBefore(header, root);
+  search.addEventListener('input', () => {
+    filter.text = search.value;
+    changed();
+  });
+  // Escape in the search field clears its text.
+  search.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && search.value !== '') {
+      event.preventDefault();
+      search.value = '';
+      filter.text = '';
+      changed();
+    }
+  });
+  // A thread that scrolls to the top of the view stands below the header.
+  new ResizeObserver(() => document.documentElement.style.setProperty('--header', `${header.offsetHeight}px`)).observe(header);
+
+  /** showHeader shows the name of the file and the filters in the header. */
+  const showHeader = () => {
+    fileName.textContent = state.file ?? 'No Markdown file';
+    fileName.setAttribute('data-tooltip', state.file ?? '');
+    openTodos.setAttribute('aria-pressed', String(filter.open));
+    doneTodos.setAttribute('aria-pressed', String(filter.done));
+    if (dots.childElementCount !== state.colors.length) {
+      dots.replaceChildren(
+        ...state.colors.map(({ name, color }) => {
+          const dot = button(
+            '',
+            'swatch',
+            () => {
+              filter.colors = filter.colors.includes(name) ? filter.colors.filter((other) => other !== name) : [...filter.colors, name];
+              changed();
+            },
+            { 'data-tooltip': `Notes in ${name}`, 'aria-label': `Notes in ${name}`, 'data-color': name },
+          );
+          dot.style.setProperty('--swatch', color);
+          return dot;
+        }),
+      );
+    }
+    for (const dot of dots.children) {
+      dot.setAttribute('aria-pressed', String(filter.colors.includes(dot.getAttribute('data-color') ?? '')));
+    }
+    if (search.value !== filter.text) {
+      search.value = filter.text;
+    }
+    clear.disabled = !filtering();
+  };
+
   /** motion returns how the view scrolls itself: smoothly, unless the system asks for less motion. */
   const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
 
@@ -699,16 +844,14 @@
     const selection = active instanceof HTMLTextAreaElement ? [active.selectionStart, active.selectionEnd] : undefined;
     const scrolled = window.scrollY;
     root.replaceChildren();
-    const top = element('div', 'top');
-    top.append(element('div', 'file', state.file ?? 'No Markdown file', { 'data-tooltip': state.file ?? '' }));
+    showHeader();
     const account = element('div', 'account');
     if (state.account) {
       account.textContent = `Signed in to GitHub as ${state.account}`;
     } else {
       account.append(element('span', undefined, 'New notes and answers need a GitHub sign-in. '), button('Sign in with GitHub', 'link', () => vscode.postMessage({ type: 'signIn' })));
     }
-    top.append(account);
-    root.append(top);
+    root.append(account);
     if (state.file !== undefined && editors.has('new')) {
       root.append(newNoteOf());
     }
@@ -717,7 +860,12 @@
     } else if (state.threads.length === 0 && !editors.has('new')) {
       root.append(element('p', 'hint', 'This file has no notes yet. Select text in the text editor, then choose "Add Note" in the light bulb or the context menu of the text editor, or "Add Note" (+) in the title of the view.'));
     }
-    for (const thread of state.threads) {
+    // The selected thread shows also when the filter hides it.
+    const shown = state.threads.filter((thread) => thread.id === state.selected || matches(thread));
+    if (state.threads.length > 0 && shown.length === 0) {
+      root.append(element('p', 'hint', 'No note matches the filter.'));
+    }
+    for (const thread of shown) {
       root.append(threadOf(thread));
     }
     if (anchor && !anchor.isConnected) {
@@ -757,7 +905,7 @@
   // Escape outside an editor deselects the selected thread; in an editor it cancels the editor.
   document.addEventListener('keydown', (event) => {
     const target = event.target instanceof Element ? event.target : null;
-    if (event.key === 'Escape' && !event.defaultPrevented && state.selected !== undefined && !target?.closest('textarea, .editor')) {
+    if (event.key === 'Escape' && !event.defaultPrevented && state.selected !== undefined && !target?.closest('textarea, input, .editor')) {
       vscode.postMessage({ type: 'deselect' });
     }
   });
@@ -801,7 +949,8 @@
         scrollToSelected();
       }
     } else if (message.type === 'new') {
-      // An open editor of a new note keeps its text and its color.
+      // An open editor of a new note keeps its text and its color; `/todo` of the text editor makes the note a todo.
+      newTodo = message.todo === true;
       open('new', editors.get('new')?.text ?? '');
     } else if (message.type === 'line') {
       state.line = message.line;

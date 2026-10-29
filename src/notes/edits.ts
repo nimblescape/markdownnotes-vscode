@@ -20,7 +20,7 @@
 import { colorNames } from './colors';
 import { doctypeEdit, type Version } from './doctype';
 import { before, findNotes, type Note, type Position, type Range, read, type Reading, same, type TextBlock } from './notes';
-import { type AnswerText, type Header, markerText, newLabel, noteLines, referenceText, usedLabels } from './syntax';
+import { type AnswerText, type Header, markerText, newLabel, noteLines, referenceText, type TodoState, usedLabels } from './syntax';
 
 /** Edit replaces the text between two positions of the lines of a text. Its text has `\n` as line breaks. */
 export interface Edit {
@@ -52,7 +52,10 @@ export type Problem =
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };
 
-/** Fields are the author and the date of a new answer ([R-NOTE-002](../../docs/requirements.md#r-note-002)). */
+/**
+ * Fields are the author and the date of a new answer ([R-NOTE-002](../../docs/requirements.md#r-note-002)), and the
+ * state of a new todo note.
+ */
 export type Fields = Header;
 
 /**
@@ -147,11 +150,14 @@ export function editBetween(old: readonly string[], next: readonly string[]): Ed
     : { start: { line: first - 1, character: old[first - 1].length }, end: { line: first - 1, character: old[first - 1].length }, text: `\n${text}` };
 }
 
+/** DeepAnswer is the header, the body and the depth of an answer. */
+type DeepAnswer = AnswerText & { depth: number };
+
 /**
  * answersOf returns the headers and the bodies of the answers of a note.
  * @param note - The note.
  */
-const answersOf = (note: Note): Required<AnswerText>[] => note.answers.map(({ author, date, body, depth }) => ({ author, date, body, depth }));
+const answersOf = (note: Note): DeepAnswer[] => note.answers.map(({ author, date, todo, body, depth }) => ({ author, date, ...(todo ? { todo } : {}), body, depth }));
 
 /**
  * subtreeEnd returns the index after the last reply in the tree below an answer: after its replies, their replies, and
@@ -159,7 +165,7 @@ const answersOf = (note: Note): Required<AnswerText>[] => note.answers.map(({ au
  * @param answers - The answers in the order of the text.
  * @param index - The index of the answer.
  */
-function subtreeEnd(answers: readonly Required<AnswerText>[], index: number): number {
+function subtreeEnd(answers: readonly DeepAnswer[], index: number): number {
   let end = index + 1;
   while (end < answers.length && answers[end].depth > answers[index].depth) {
     end++;
@@ -180,7 +186,11 @@ function readsBack(lines: readonly string[], label: string, answers: readonly An
     note.answers.length === answers.length &&
     note.answers.every(
       (answer, index) =>
-        answer.body === answers[index].body && answer.author === answers[index].author && answer.date === answers[index].date && answer.depth === (answers[index].depth ?? (index === 0 ? 0 : 1)),
+        answer.body === answers[index].body &&
+        answer.author === answers[index].author &&
+        answer.date === answers[index].date &&
+        answer.todo === answers[index].todo &&
+        answer.depth === (answers[index].depth ?? (index === 0 ? 0 : 1)),
     )
   );
 }
@@ -261,6 +271,25 @@ export function deleteAnswer(lines: readonly string[], note: Note, index: number
     answers[other].depth--;
   }
   answers.splice(index, 1);
+  // The state of a todo note goes to the answer that takes the place of the first answer (R-NOTE-008).
+  if (index === 0 && note.answers[0].todo) {
+    answers[0] = { ...answers[0], todo: note.answers[0].todo };
+  }
+  return rewrite(lines, note, answers);
+}
+
+/**
+ * todoNote returns the edit that gives a note the state of a todo note in the header of its first answer
+ * ([R-NOTE-008](../../docs/requirements.md#r-note-008)): `todo` while it is open, `done` when it is completed, or no
+ * state for a note that is no todo.
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ * @param state - The state, or undefined.
+ */
+export function todoNote(lines: readonly string[], note: Note, state: TodoState | undefined): Result {
+  const answers = answersOf(note);
+  const { todo: _, ...first } = answers[0];
+  answers[0] = state ? { ...first, todo: state } : first;
   return rewrite(lines, note, answers);
 }
 
@@ -288,9 +317,28 @@ function spansOf(line: string): Span[] {
  * @param blocks - The text blocks of the text.
  * @param position - The position.
  */
-function blockAt(blocks: readonly TextBlock[], position: Position): TextBlock | undefined {
+export function blockAt(blocks: readonly TextBlock[], position: Position): TextBlock | undefined {
   const candidates = blocks.filter((block) => block.starts.has(position.line));
   return candidates.filter((block) => block.starts.get(position.line)!.character <= position.character).at(-1) ?? candidates[0];
+}
+
+/**
+ * referenceAllowed tells whether the reference of a standard footnote can stand at a position of a Markdown text
+ * ([R-EDIT-008](../../docs/requirements.md#r-edit-008), [R-FOOT-003](../../docs/requirements.md#r-foot-003)): in the
+ * text of a paragraph, a heading or a table cell, and not in a code span, a link, or a marker or a reference of a note.
+ * @param lines - The lines of the Markdown text.
+ * @param position - The position.
+ * @param reading - The reading of the lines.
+ */
+export function referenceAllowed(lines: readonly string[], position: Position, reading: Reading = read(lines)): boolean {
+  const block = blockAt(reading.blocks, position);
+  const start = block?.starts.get(position.line);
+  const end = block?.ends.get(position.line);
+  if (!start || !end || position.character < start.character || position.character > end.character) {
+    return false;
+  }
+  const inside = (range: Range): boolean => before(range.start, position) && !same(range.start, position) && before(position, range.end) && !same(position, range.end);
+  return !spansOf(lines[position.line]).some((span) => span.start < position.character && position.character < span.end) && ![...reading.markers, ...reading.references].some(inside);
 }
 
 /** Place is the place of a new note: its start marker, its reference, and the line before which its definition goes. */

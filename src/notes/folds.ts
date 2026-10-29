@@ -171,10 +171,10 @@ export interface Header {
 
 /**
  * headerText returns the rendered header of an answer: its author and its date in the local time of the reader, for
- * example `hannes · 2026-10-28 10:15`.
- * @param answer - The author and the date of the answer.
+ * example `hannes · 2026-10-28 10:15`, and the state of a todo note ([R-NOTE-008](../../docs/requirements.md#r-note-008)).
+ * @param answer - The author, the date and the state of the answer.
  */
-export const headerText = (answer: { author: string; date: string }): string => `${answer.author} · ${displayDate(answer.date)}`;
+export const headerText = (answer: { author: string; date: string; todo?: string }): string => `${answer.author} · ${displayDate(answer.date)}${answer.todo ? ` · ${answer.todo}` : ''}`;
 
 /**
  * headersOf returns the header lines of the answers of the notes of a text.

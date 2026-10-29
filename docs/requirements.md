@@ -64,6 +64,10 @@ as the highlights of a marker pen on paper.
 | 39 | The highlights without the side view (decision 28); a click on a thread selects it in the side view also in the clean editing view, and keeps the mode "Markdown Preview" or "Markdown Editor" of its tab; the icon of the Markdown preview on the button "Preview" of the editors of the side view | [R-GEN-011](#r-gen-011), [R-PREV-001](#r-prev-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | done |
 | 41 | A click on a highlight selects its note, a double click opens the side view; the cursor that leaves a highlight deselects its note; each thread that is not selected dimmed ([decision 29](#decisions)) | [R-SIDE-007](#r-side-007), [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006) | done |
+| 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
+| 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date` and `/time` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
+| 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
+| 45 | The slash commands `/research` and `/source` for the sources of a document, and the words for AI agents on `(RESEARCH)` in the comment of the format | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; the form of a source waits for Hannes |
 
 ## General
 
@@ -494,6 +498,31 @@ always knows it is a notes md document"). The
 - The text editor folds the comment into its first line, as it folds a note
   ([R-TEXT-005](#r-text-005)).
 
+### R-NOTE-008
+
+**Todo notes.** A note can be a todo, a task that the user marks completed
+(Hannes, 2026-10-29: "/todo in the text adds a special todo note", "a todo
+can be marked completed", [decision 30](#decisions)). The header of the first
+answer of a todo note ends with a middle dot and its state: `todo` while it
+is open, `done` when it is completed:
+
+```markdown
+[^note-7k2q]: **hannes** · 2026-10-29 18:30+01:00 · todo
+```
+
+- GitHub shows the header as it is, so a reader there sees the state too.
+- `/todo` in the text editor adds a todo note ([R-EDIT-008](#r-edit-008)).
+- The side view shows a check box at the start of the header of a todo
+  thread: empty while the todo is open, checked when it is completed. A click
+  on it changes the state, and the extension writes `done` or `todo` into the
+  header. The date of the answer stays.
+- Only the first answer holds the state. The extension writes no state into
+  the header of a reply, and keeps the header of a reply as the file holds
+  it. When the first answer goes, its state goes to the answer that takes its
+  place ([R-EDIT-004](#r-edit-004)).
+- The todo filter of the side view shows the open or the completed todos
+  ([R-SIDE-008](#r-side-008)).
+
 ## Text editor
 
 ### R-TEXT-001
@@ -733,8 +762,9 @@ the mode "Markdown Preview" or "Markdown Editor" of VS Code
 selected thread is the note at the cursor of the text editor, or the note
 that the user clicked in the preview ([R-PREV-003](#r-prev-003)).
 
-The view is a list of the threads in the order of the file, with the file
-and the GitHub account at its top, which the user scrolls on its own
+The view is a list of the threads in the order of the file, below a header
+with the name of the file and the filters ([R-SIDE-008](#r-side-008)), with
+the GitHub account at its top, which the user scrolls on its own
 ([R-SIDE-007](#r-side-007), [decision 25](#decisions)). It shows the
 selected thread at its top (Hannes, 2026-10-28: "selecting in the editor
 shall always scroll the side view so the selected note is on top"); an
@@ -908,6 +938,41 @@ are dropped, as the badges with the number of a note, the strip of the whole
 file and the funnels of earlier versions ([decision 12](#decisions)), with
 the setting `showFunnels`.
 
+### R-SIDE-008
+
+**Header with filters.** The top of the side view is a header that stays at
+the top while the list scrolls (Hannes, 2026-10-29: "all of this in the
+header which must be sticky on the top"). Its first row holds the name of
+the file, the two buttons of the todo filter, the colors of the notes as
+dots and the button "Clear Filter" at its right end; its second row is the
+search field over the full width (Hannes, 18:07: "filename [ ] [X] (R) (B)
+(G) X / [ filter ]"):
+
+- **Todo filter:** the button with an empty box shows the open todos, the
+  button with a checked box the completed todos (Hannes, 18:04: "the todo
+  filter is just a checked or unchecked box icon beneath the color
+  filter"); both together show all todo notes ([R-NOTE-008](#r-note-008)).
+- **Color filter:** a click on a dot shows the notes of its color; several
+  dots show the notes of each of their colors (Hannes, 17:56: "add a color
+  filter by showing all the colors").
+- **Search:** the search field shows the notes whose answers hold the typed
+  words in their text or their author, without regard to case; each word
+  must be in the note (17:56: "a search field to do a full text search in
+  the notes").
+- The filters combine (17:56: "the color filter, todo filter and text filter
+  are and"): the view shows the threads that match each filter that is on.
+  A filter that is off lets all notes through.
+- "Clear Filter" turns all filters off (17:56: "a clear filter button
+  exists"); it is disabled while no filter is on. Escape in the search field
+  clears its text.
+- The selected thread shows also when the filters hide it, so that the note
+  that the user selects in the text always shows. A hint shows when no
+  thread matches. The editor of a new note shows above the list, always.
+- The filters stay when the view shows another file, and when VS Code hides
+  and shows the view.
+- The GitHub account of the user stands below the header, at the top of the
+  list ([R-SIDE-001](#r-side-001)).
+
 ## Editing
 
 ### R-EDIT-001
@@ -963,7 +1028,8 @@ in the editor of a new note leaves the file as it is.
 another author ([decision 2](#decisions)). The extension removes the answer
 from the note. Its replies stay: they move up one level and reply to the
 answer that the removed answer replied to. After the first answer, its first
-reply becomes the first answer. Deleting the only answer, or the whole thread
+reply becomes the first answer, with the state of a todo note
+([R-NOTE-008](#r-note-008)). Deleting the only answer, or the whole thread
 with "Delete Thread", removes the note: its definition with one blank line,
 its reference and its start marker, and the last note also the comment of the
 format ([R-NOTE-007](#r-note-007)). The editor of the file can undo the
@@ -1022,6 +1088,51 @@ nothing and shows a message that asks the user to look at the note again.
 An open editor stays at its answer when an earlier answer goes, and closes
 when its own answer goes. A change of a setting keeps the open editors and
 the selected note.
+
+### R-EDIT-008
+
+**Slash commands.** A slash (`/`) at the start of a line or after a space
+offers commands in the text editor of a Markdown file, also in the clean
+editing view ([R-TEXT-009](#r-text-009)) (Hannes, 2026-10-29: "the / command
+allows tab completion", "all slash commands are intended for the text
+editor"). The list of suggestions of VS Code shows the commands that start
+with the typed letters; Tab or Enter takes the chosen one, and Escape closes
+the list. VS Code shows the list after a slash also in a Markdown file, where
+it shows no suggestions while the user types words.
+
+- `/note` adds a note to the selected text (Hannes, 18:30: "selecting and
+  /note creates a note", "/note is not available when no text is
+  selected"). VS Code replaces selected text with the slash that the user
+  types, so the list offers `/note` only right after a slash that replaced
+  selected text: `/note` puts that text back, selects it and opens the editor
+  of the new note in the side view, as "Add Note" does
+  ([R-SIDE-003](#r-side-003)).
+- `/todo` adds a todo note ([R-NOTE-008](#r-note-008)): to the text that
+  the slash replaced, as `/note`, or else to the sentence before the
+  command, from the end of the sentence before it (`.`, `!` or `?`) in the
+  same block, or from the start of the block. It removes the typed command
+  with the space before it, selects the text and opens the editor of the new
+  todo note ([decision 30](#decisions)). The list offers `/todo` only where a
+  note can highlight that text.
+- `/footnote` adds a standard footnote at the cursor (Hannes, 18:30:
+  "/footnote creates a footnote"): the reference with the next free number,
+  for example `[^3]`, as "Add Footnote" names it
+  ([R-FOOT-003](#r-foot-003)), and its definition after the last definition
+  of a standard footnote, or at the end of the file, with a blank line
+  before it. The cursor goes to the definition, where the user writes its
+  text. The list offers `/footnote` only after a word, where a reference can
+  stand: not in a code span, a code block, the text of a link or a marker of
+  a note.
+- `/date` inserts the current date, for example `2026-10-29` (Hannes, 18:29:
+  "date inserts the current date at the place where the cursor is").
+- `/time` inserts the current date and time in the local time, in minutes,
+  for example `2026-10-29 19:29` ("/time the date and time in local time
+  format").
+
+The editors of the side view have no slash commands (Hannes, 18:40), so
+`/todo` at the start of a new note, which [decision 30](#decisions) named,
+is dropped. `/research` and `/source` for the sources of a document (Hannes,
+18:33 to 18:39) wait for the decision on the form of a source.
 
 ## Markdown preview
 
@@ -1721,6 +1832,18 @@ requirements above follow them.
     selected note deselects it (17:48: "keeps it selected when the cursor
     goes out of it again"), and each thread that is not selected is dimmed
     (18:12). This replaces the last rule of [decision 28](#decisions).
+
+30. **Todo notes** ([R-NOTE-008](#r-note-008), [R-EDIT-008](#r-edit-008),
+    Hannes, 2026-10-29, 17:56: "/todo in the text adds a special todo note",
+    "a todo can be marked completed"; 17:58, decided with the option
+    "Both"): `/todo` works in the Markdown text, where it highlights the
+    sentence before it and opens the editor of a new todo note, and at the
+    start of the text of a new note in the side view. A todo note has its
+    state in the header of its first answer: `todo` while it is open, `done`
+    when it is completed; a check box in the side view changes it. The other
+    choices were `/todo` only in the text and only in the side view. At
+    18:40 Hannes wrote "all slash commands are intended for the text
+    editor", so the side view part is dropped.
 
 ---
 
