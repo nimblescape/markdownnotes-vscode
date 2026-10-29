@@ -6,15 +6,14 @@
  * The text of the slash commands of the text editor
  * ([R-EDIT-008](../../docs/requirements.md#r-edit-008)): the typed command
  * before the cursor, the sentence before the command, which `/todo`
- * highlights, the date and the time that `/date` and `/time` insert, and the
- * reference and the definition of the standard footnote that `/footnote`
- * adds ([R-FOOT-003](../../docs/requirements.md#r-foot-003)). The module uses
- * no API of VS Code.
+ * highlights, and the date and the time that `/date` and `/time` insert.
+ * `/footnote` opens the editor of a new standard footnote in the side view,
+ * whose text is in [footnotes.ts](footnotes.ts). The module uses no API of
+ * VS Code.
  */
 
 import { blockAt } from './edits';
 import { type Position, type Range, type Reading, read } from './notes';
-import { usedLabels } from './syntax';
 
 /** Typed is a slash command that the user types before the cursor. */
 export interface Typed {
@@ -120,69 +119,4 @@ export function sentenceBefore(lines: readonly string[], position: Position, rea
   }
   const first = block.starts.get(block.first)!;
   return { start: first, end };
-}
-
-/** standardDefinition matches the first line of the definition of a standard footnote, a footnote that is no note. */
-const standardDefinition = /^\[\^(?!note-[a-z0-9]{4}\])([^\]\s]+)\]:/;
-
-/**
- * nextFootnoteLabel returns the label of a new standard footnote ([R-FOOT-003](../../docs/requirements.md#r-foot-003)):
- * the next free number, one more than the highest label of the text that is a number, and never a label that the text
- * already uses.
- * @param lines - The lines of the Markdown text.
- */
-export function nextFootnoteLabel(lines: readonly string[]): string {
-  const used = usedLabels(lines);
-  let number = Math.max(0, ...[...used].filter((label) => /^\d+$/.test(label)).map(Number)) + 1;
-  while (used.has(String(number))) {
-    number++;
-  }
-  return String(number);
-}
-
-/** Definition is the text of the definition of a new footnote and its place. */
-export interface Definition {
-  /** at is the position where the text goes, and text the text: the line breaks, the label, a colon and a space. */
-  at: Position;
-  text: string;
-  /** cursor is the position after the space of the definition, where the user writes its text. */
-  cursor: Position;
-}
-
-/**
- * footnoteDefinition returns the definition of a new standard footnote and its place
- * ([R-FOOT-003](../../docs/requirements.md#r-foot-003)): after the last definition of a standard footnote, or at the end
- * of the text, with a blank line before it.
- * @param lines - The lines of the Markdown text.
- * @param label - The label of the footnote.
- */
-export function footnoteDefinition(lines: readonly string[], label: string): Definition {
-  const start = `[^${label}]: `;
-  let last = -1;
-  for (let line = lines.length - 1; line >= 0 && last < 0; line--) {
-    if (standardDefinition.test(lines[line])) {
-      // The definition goes on with the indented lines after it, and with each line right after a line of it.
-      last = line;
-      for (let next = line + 1; next < lines.length; next++) {
-        if (lines[next].trim() === '') {
-          continue;
-        }
-        if (!/^(?: {4}|\t)/.test(lines[next]) && lines[next - 1].trim() === '') {
-          break;
-        }
-        last = next;
-      }
-    }
-  }
-  if (last < 0) {
-    last = lines.length - 1;
-    while (last >= 0 && lines[last].trim() === '') {
-      last--;
-    }
-  }
-  if (last < 0) {
-    return { at: { line: 0, character: 0 }, text: start, cursor: { line: 0, character: start.length } };
-  }
-  // The line after the place is blank or the end of the text: a line right after a definition goes on with it.
-  return { at: { line: last, character: lines[last].length }, text: `\n\n${start}`, cursor: { line: last + 2, character: start.length } };
 }

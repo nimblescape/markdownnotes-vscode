@@ -78,7 +78,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
-      "description": "The extension reads the notes of open Markdown files and changes only the text of Markdown files: when you add, edit, answer or delete a note, and when you save a Markdown file with notes (settings formatOnSave and addFormatComment). A file that an editor only shows keeps its text. It runs no program of the workspace."
+      "description": "The extension reads the notes of open Markdown files and changes only the text of Markdown files: when you add, edit, answer or delete a note, when you add, edit or delete a footnote in the side view, and when you save a Markdown file with notes (settings formatOnSave and addFormatComment). A file that an editor only shows keeps its text. It runs no program of the workspace."
     },
     "virtualWorkspaces": {
       "supported": true
@@ -127,6 +127,12 @@
         "icon": "$(add)"
       },
       {
+        "command": "nimblescape.markdownNotes.addFootnote",
+        "title": "Add Footnote",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-footnote-add)"
+      },
+      {
         "command": "nimblescape.markdownNotes.showHighlights",
         "title": "Show Highlights",
         "category": "Markdown Notes",
@@ -137,6 +143,18 @@
         "title": "Hide Highlights",
         "category": "Markdown Notes",
         "icon": "$(nimblescape-highlights-hide)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showFootnotes",
+        "title": "Show Footnotes",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-footnotes-show)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideFootnotes",
+        "title": "Hide Footnotes",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-footnotes-hide)"
       },
       {
         "command": "nimblescape.markdownNotes.hideNotes",
@@ -190,6 +208,27 @@
           "fontPath": "resources/notes-icons.ttf",
           "fontCharacter": "\\E002"
         }
+      },
+      "nimblescape-footnote-add": {
+        "description": "Markdown Notes: the button Add Footnote, a plus sign with the number 1 of a footnote.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E003"
+        }
+      },
+      "nimblescape-footnotes-show": {
+        "description": "Markdown Notes: the button Show Footnotes, a numbered list.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E004"
+        }
+      },
+      "nimblescape-footnotes-hide": {
+        "description": "Markdown Notes: the button Hide Footnotes, the numbered list with a stroke.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E005"
+        }
       }
     },
     "menus": {
@@ -217,6 +256,21 @@
           "when": "view == nimblescape.markdownNotes.notes"
         },
         {
+          "command": "nimblescape.markdownNotes.addFootnote",
+          "group": "navigation@2",
+          "when": "view == nimblescape.markdownNotes.notes"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showFootnotes",
+          "group": "navigation@3",
+          "when": "view == nimblescape.markdownNotes.notes && !nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFootnotes",
+          "group": "navigation@3",
+          "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
+        },
+        {
           "command": "nimblescape.markdownNotes.hideNotes",
           "group": "navigation@9",
           "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdown-notes' && config.workbench.activityBar.location != 'default'"
@@ -228,12 +282,24 @@
           "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
         },
         {
+          "command": "nimblescape.markdownNotes.addFootnote",
+          "when": "editorLangId == markdown && !editorReadonly"
+        },
+        {
           "command": "nimblescape.markdownNotes.showHighlights",
           "when": "!nimblescape.markdownNotes.highlightsShown"
         },
         {
           "command": "nimblescape.markdownNotes.hideHighlights",
           "when": "nimblescape.markdownNotes.highlightsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showFootnotes",
+          "when": "!nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFootnotes",
+          "when": "nimblescape.markdownNotes.footnotesShown"
         },
         {
           "command": "nimblescape.markdownNotes.hideNotes",
@@ -265,6 +331,11 @@
           "command": "nimblescape.markdownNotes.newNote",
           "group": "nimblescape@1",
           "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addFootnote",
+          "group": "nimblescape@2",
+          "when": "editorLangId == markdown && !editorReadonly"
         }
       ]
     },
@@ -274,6 +345,12 @@
         "key": "shift+alt+n",
         "mac": "cmd+k n",
         "when": "editorTextFocus && editorLangId == markdown && editorHasSelection && !editorReadonly"
+      },
+      {
+        "command": "nimblescape.markdownNotes.addFootnote",
+        "key": "shift+alt+b",
+        "mac": "cmd+k b",
+        "when": "editorTextFocus && editorLangId == markdown && !editorReadonly"
       },
       {
         "command": "nimblescape.markdownNotes.deleteLeft",
@@ -306,6 +383,12 @@
           "default": true,
           "scope": "window",
           "markdownDescription": "Show the highlight of each note, the text from its start marker to its reference, in the color of the note in the text editor and in the Markdown preview, also while the side view \"Notes\" is closed. The value `false` hides the highlights; the highlight of the selected note of the side view still shows, and a hidden highlight shows while the pointer is on its text. The buttons \"Hide Highlights\" and \"Show Highlights\" in the title of the editor change this setting, and leave the side view as it is."
+        },
+        "nimblescape.markdownNotes.showFootnotes": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show the standard footnotes of a Markdown file in the side view \"Notes\", the footnotes that are no note, each at the place of its first reference, with \"Edit\", \"Go to Definition\" and \"Delete\". The value `false` shows only the notes. The buttons \"Hide Footnotes\" and \"Show Footnotes\" in the title of the side view change this setting."
         },
         "nimblescape.markdownNotes.addFormatComment": {
           "type": "boolean",

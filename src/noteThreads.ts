@@ -22,6 +22,13 @@
  * 2026-10-28: "we completely drop the inline view"). The decorations and the
  * folds of the notes are the overlay of [src/noteEditor.ts](noteEditor.ts).
  *
+ * The extension reads the standard footnotes of a document too, once for each
+ * version, for the side view ([R-FOOT-001](../docs/requirements.md#r-foot-001)):
+ * "Save" writes the text of a footnote, "Delete" removes it with its
+ * references, and "Add Footnote" adds one at the cursor
+ * ([R-FOOT-002](../docs/requirements.md#r-foot-002),
+ * [R-FOOT-003](../docs/requirements.md#r-foot-003)).
+ *
  * The threads follow the text: after each change of a document, and a pause
  * of changeDelay, the extension reads the notes again and keeps the thread of
  * each note whose text stayed the same, so that the side view keeps its
@@ -34,6 +41,7 @@ import * as vscode from 'vscode';
 import { appendAnswer, colorNote, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, replaceNoteText, type Result, todoNote, withDoctype } from './notes/edits';
 import { checksOf } from './notes/checks';
 import { formatVersion, newerFormat, versionText } from './notes/doctype';
+import { deleteFootnote, type Footnote, type FootnoteResult, insertFootnote, readFootnotes, replaceFootnote } from './notes/footnotes';
 import { findNotes, type Note, noteAt, type Position, type Reading, read, readNotes } from './notes/notes';
 import { formatDate, normalizeBody, type TodoState } from './notes/syntax';
 
@@ -119,8 +127,24 @@ export function problemMessage(problem: Problem): string {
       return 'The change was not saved: the note changed in the meantime. Look at the note again, and repeat the change if it is still needed.';
     case 'format':
       return `The change was not saved: the file uses version ${versionText(problem.format)} of the format of the notes, and this version of the extension knows only the versions ${formatVersion.major}.x. Update the extension.`;
+    case 'footnoteEmpty':
+      return 'The footnote was not saved: a footnote needs a text. To remove a footnote, use "Delete".';
+    case 'footnotePlace':
+      return 'The footnote was not added: its reference cannot stand at the cursor. Put the cursor into the text of a paragraph, a heading, a list item or a table cell, outside code, links and the markers of notes, then choose "Add Footnote" again.';
+    case 'footnoteStructure':
+      return 'The footnote was not saved: the text would change the footnote or the Markdown around it.';
+    case 'footnoteMissing':
+      return 'The change was not saved: the file no longer holds the footnote.';
+    case 'footnoteChanged':
+      return 'The change was not saved: the footnote changed in the meantime. Look at the footnote again, and repeat the change if it is still needed.';
   }
 }
+
+/** footnoteProblems are the problems of the changes of a standard footnote, by the problems of footnotes.ts. */
+const footnoteProblems = { empty: 'footnoteEmpty', structure: 'footnoteStructure', place: 'footnotePlace' } as const;
+
+/** definitionSearch matches a text with the definition of a footnote, so that a text without one needs no reading of its footnotes. */
+const definitionSearch = /^ {0,3}\[\^[^\]\s]+\]:/m;
 
 /**
  * isNoteDocument tells whether a document can have notes: a Markdown document that the extension can change, in a
@@ -156,6 +180,8 @@ export class NoteThreads implements vscode.Disposable {
   private readonly readings = new WeakMap<vscode.TextDocument, { version: number; reading: Reading }>();
   /** textReadings holds the reading with the blocks of text of each document without notes, for one version. */
   private readonly textReadings = new WeakMap<vscode.TextDocument, { version: number; reading: Reading }>();
+  /** footnotes holds the standard footnotes of each document, for one version. */
+  private readonly footnotes = new WeakMap<vscode.TextDocument, { version: number; footnotes: Footnote[] }>();
   /** listeners are the listeners of the changes of the notes of a document. */
   private readonly listeners = new Set<(document: vscode.Uri) => void>();
   /** changing holds the edits of the extension that VS Code did not apply yet, of each document by its URI. */
@@ -258,6 +284,25 @@ export class NoteThreads implements vscode.Disposable {
       this.textReadings.set(document, known);
     }
     return known.reading;
+  }
+
+  /**
+   * footnotesOf returns the standard footnotes of an open document ([R-FOOT-001](../docs/requirements.md#r-foot-001)),
+   * read once for each version; none for a document that is not open or that cannot have notes.
+   * @param uri - The URI of the document.
+   */
+  footnotesOf(uri: vscode.Uri): Footnote[] {
+    const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri.toString());
+    if (!document || !isNoteDocument(document)) {
+      return [];
+    }
+    let known = this.footnotes.get(document);
+    if (!known || known.version !== document.version) {
+      const text = document.getText();
+      known = { version: document.version, footnotes: definitionSearch.test(text) ? readFootnotes(linesOf(document), this.textReadingOf(document)) : [] };
+      this.footnotes.set(document, known);
+    }
+    return known.footnotes;
   }
 
   /**
@@ -601,6 +646,73 @@ export class NoteThreads implements vscode.Disposable {
     this.entries.set(uri.toString(), [...(this.entries.get(uri.toString()) ?? []), entry]);
     this.sync(document);
     return { id: entry.id };
+  }
+
+  /**
+   * changeFootnote writes the edits of a change of a standard footnote of a document. A footnote is no note, so the
+   * change writes no comment of the format ([R-FOOT-001](../docs/requirements.md#r-foot-001)).
+   * @param uri - The URI of the document.
+   * @param label - The label of the footnote.
+   * @param edit - Returns the edits for the lines of the document and the footnote.
+   */
+  private async changeFootnote(uri: vscode.Uri, label: string, edit: (lines: string[], footnote: Footnote) => FootnoteResult | { problem: Problem }): Promise<Problem | undefined> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    const footnote = this.footnotesOf(uri).find((candidate) => candidate.label === label);
+    if (!footnote) {
+      return { kind: 'footnoteMissing' };
+    }
+    const result = edit(linesOf(document), footnote);
+    if ('problem' in result) {
+      return typeof result.problem === 'string' ? { kind: footnoteProblems[result.problem] } : result.problem;
+    }
+    if (!(await this.apply(document, result.edits))) {
+      return { kind: 'footnoteStructure' };
+    }
+    this.sync(document);
+    return undefined;
+  }
+
+  /**
+   * saveFootnote writes a text into the definition of a standard footnote ([R-FOOT-002](../docs/requirements.md#r-foot-002)),
+   * only while the definition still holds the text that the editor started from.
+   * @param document - The URI of the document.
+   * @param label - The label of the footnote.
+   * @param text - The text of the editor.
+   * @param original - The text of the definition when the editor opened.
+   */
+  saveFootnote(document: vscode.Uri, label: string, text: string, original: string): Promise<Problem | undefined> {
+    return this.changeFootnote(document, label, (lines, footnote) => (footnote.text === original ? replaceFootnote(lines, footnote, text) : { problem: { kind: 'footnoteChanged' } }));
+  }
+
+  /**
+   * deleteFootnote removes a standard footnote: its definition and every reference to it, in one edit
+   * ([R-FOOT-002](../docs/requirements.md#r-foot-002)).
+   * @param document - The URI of the document.
+   * @param label - The label of the footnote.
+   */
+  deleteFootnote(document: vscode.Uri, label: string): Promise<Problem | undefined> {
+    return this.changeFootnote(document, label, (lines, footnote) => ({ edits: deleteFootnote(lines, footnote) }));
+  }
+
+  /**
+   * addFootnote adds a standard footnote with a text at a position of a document ([R-FOOT-003](../docs/requirements.md#r-foot-003)):
+   * its reference with the next free number and its definition, in one edit.
+   * @param uri - The URI of the document.
+   * @param position - The position of the cursor, or the end of the selected text.
+   * @param text - The text of the footnote.
+   * @returns The label of the new footnote, or the problem that prevents it.
+   */
+  async addFootnote(uri: vscode.Uri, position: Position, text: string): Promise<{ label: string } | { problem: Problem }> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    const result = insertFootnote(linesOf(document), position, text, this.textReadingOf(document));
+    if ('problem' in result) {
+      return { problem: { kind: footnoteProblems[result.problem] } };
+    }
+    if (!(await this.apply(document, result.edits))) {
+      return { problem: { kind: 'footnoteStructure' } };
+    }
+    this.sync(document);
+    return { label: result.label! };
   }
 
   /** dispose removes the threads and the warnings. */

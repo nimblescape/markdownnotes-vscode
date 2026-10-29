@@ -18,7 +18,7 @@ import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
 import { cleanCommands } from './cleanView';
-import { deselectPath, extensionId, highlightCommands, highlightsContext, openPath } from './extension';
+import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath } from './extension';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { defaultSettings, linkTargets, settingsSection } from './settings';
@@ -133,14 +133,16 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the side view, of the highlights and of the keys next to a hidden marker, and no other', () => {
+test('the manifest contributes the commands of the side view, of the highlights, of the footnotes and of the keys next to a hidden marker, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
-  expect([...contributed].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands)].sort());
+  expect([...contributed].sort()).toEqual(
+    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands)].sort(),
+  );
 });
 
 test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
   const base = 'editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections';
-  expect(manifest.contributes.keybindings.slice(1)).toEqual([
+  expect(manifest.contributes.keybindings.slice(2)).toEqual([
     { command: deleteCommands.left, key: 'backspace', when: `${base} && ${markerContexts.left}` },
     { command: deleteCommands.right, key: 'delete', when: `${base} && ${markerContexts.right}` },
     { command: deleteCommands.wordLeft, key: 'ctrl+backspace', mac: 'alt+backspace', when: `${base} && ${markerContexts.left}` },
@@ -154,7 +156,7 @@ test('Add Note is a button of the title of the side view, an item of the context
   // There is no way to add a note without highlighting text (Hannes, 2026-10-28 20:25).
   const editor = 'editorLangId == markdown && !editorReadonly && editorHasSelection';
   expect(menus['view/title']).toEqual(expect.arrayContaining([{ command: viewCommands.newNote, group: 'navigation@1', when: `view == ${notesViewId}` }]));
-  expect(menus['editor/context']).toEqual([{ command: viewCommands.newNote, group: 'nimblescape@1', when: editor }]);
+  expect(menus['editor/context']).toEqual(expect.arrayContaining([{ command: viewCommands.newNote, group: 'nimblescape@1', when: editor }]));
   expect(menus.commandPalette).toEqual(expect.arrayContaining([{ command: viewCommands.newNote, when: editor }]));
   const added = manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.newNote);
   expect(added).toMatchObject({ title: 'Add Note', icon: '$(add)' });
@@ -167,6 +169,38 @@ test('Add Note is a button of the title of the side view, an item of the context
     mac: 'cmd+k n',
     when: 'editorTextFocus && editorLangId == markdown && editorHasSelection && !editorReadonly',
   });
+});
+
+test('Add Footnote is a button of the title of the side view, an item of the context menu of the text editor, a command of the Command Palette and a shortcut, and needs no selected text (R-FOOT-003)', () => {
+  const menus = manifest.contributes.menus;
+  // A footnote names a place, not a passage.
+  const editor = 'editorLangId == markdown && !editorReadonly';
+  expect(menus['view/title']).toEqual(expect.arrayContaining([{ command: viewCommands.newFootnote, group: 'navigation@2', when: `view == ${notesViewId}` }]));
+  expect(menus['editor/context']).toEqual(expect.arrayContaining([{ command: viewCommands.newFootnote, group: 'nimblescape@2', when: editor }]));
+  expect(menus.commandPalette).toEqual(expect.arrayContaining([{ command: viewCommands.newFootnote, when: editor }]));
+  const added = manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.newFootnote);
+  expect(added).toMatchObject({ title: 'Add Footnote', icon: '$(nimblescape-footnote-add)' });
+  // The shortcut follows the rules of the shortcut of "Add Note" (decision 22); a test in VS Code checks that VS Code
+  // has no shortcut of its own on these keys.
+  expect(manifest.contributes.keybindings[1]).toEqual({ command: viewCommands.newFootnote, key: 'shift+alt+b', mac: 'cmd+k b', when: 'editorTextFocus && editorLangId == markdown && !editorReadonly' });
+});
+
+test('the title of the side view has the button "Show Footnotes" or "Hide Footnotes" after the context key of the shown footnotes (R-FOOT-001)', () => {
+  const view = `view == ${notesViewId}`;
+  expect(manifest.contributes.menus['view/title']).toEqual(
+    expect.arrayContaining([
+      { command: footnoteCommands.show, group: 'navigation@3', when: `${view} && !${footnotesContext}` },
+      { command: footnoteCommands.hide, group: 'navigation@3', when: `${view} && ${footnotesContext}` },
+    ]),
+  );
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: footnoteCommands.show, when: `!${footnotesContext}` },
+      { command: footnoteCommands.hide, when: footnotesContext },
+    ]),
+  );
+  const iconOf = (command: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === command).icon;
+  expect([footnoteCommands.show, footnoteCommands.hide].map(iconOf)).toEqual(['$(nimblescape-footnotes-show)', '$(nimblescape-footnotes-hide)']);
 });
 
 test('the title of the text editor and of the preview of a Markdown file has the button "Show Highlights" or "Hide Highlights" after the context key of the shown highlights (R-GEN-011)', () => {
@@ -229,29 +263,39 @@ const glyphOf = (font: Buffer, character: number): { glyph: number; size: number
   return { glyph, size: glyph ? offset(glyph + 1) - offset(glyph) : 0 };
 };
 
-test('the buttons "Show Highlights" and "Hide Highlights" show a highlighter pen of the icon font of the extension, which follows the icon color of the theme (R-GEN-011)', () => {
+test('the buttons of the highlights show a highlighter pen, and the buttons of the footnotes a plus with the number 1 and a numbered list, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001)', () => {
   // Hannes chose the highlighter pen on 2026-10-29 (decision 26); the eye stays for the icon of the hidden notes (R-HIDE-002).
   const font = 'resources/notes-icons.ttf';
-  expect(manifest.contributes.icons).toEqual({
-    'nimblescape-highlights-show': { description: expect.any(String), default: { fontPath: font, fontCharacter: '\\E001' } },
-    'nimblescape-highlights-hide': { description: expect.any(String), default: { fontPath: font, fontCharacter: '\\E002' } },
-  });
-  // The font maps both characters to a glyph with an outline; scripts/icon-font.py builds it from the image.
+  const icons = { 'highlights-show': 0xe001, 'highlights-hide': 0xe002, 'footnote-add': 0xe003, 'footnotes-show': 0xe004, 'footnotes-hide': 0xe005 };
+  expect(manifest.contributes.icons).toEqual(
+    Object.fromEntries(
+      Object.entries(icons).map(([name, character]) => [`nimblescape-${name}`, { description: expect.any(String), default: { fontPath: font, fontCharacter: `\\${character.toString(16).toUpperCase()}` } }]),
+    ),
+  );
+  // The font maps each character to a glyph of its own with an outline; scripts/icon-font.py builds it from the images.
   const bytes = fs.readFileSync(path.join(repository, font));
-  const glyphs = [0xe001, 0xe002].map((character) => glyphOf(bytes, character));
+  const glyphs = Object.values(icons).map((character) => glyphOf(bytes, character));
   for (const { glyph, size } of glyphs) {
     expect(glyph).toBeGreaterThan(0);
     expect(size).toBeGreaterThan(0);
   }
-  expect(glyphs[0].glyph).not.toBe(glyphs[1].glyph);
-  expect(read('scripts/icon-font.py')).toContain("SOURCE = ROOT / 'resources' / 'icons' / 'highlighter.svg'");
-  expect(fs.existsSync(path.join(repository, 'resources/icons/highlighter.svg'))).toBe(true);
+  expect(new Set(glyphs.map(({ glyph }) => glyph)).size).toBe(glyphs.length);
+  for (const image of ['highlighter.svg', 'footnote-add.svg', 'footnotes.svg']) {
+    expect(read('scripts/icon-font.py')).toContain(`'${image}'`);
+    expect(fs.existsSync(path.join(repository, 'resources/icons', image)), image).toBe(true);
+  }
 });
 
 test('the title of the side view has the button "Hide Notes" where VS Code shows none, and the Markdown editors the button "Show or Hide Notes" (R-SIDE-006)', () => {
   const [container] = manifest.contributes.viewsContainers.secondarySidebar;
   const item = manifest.contributes.menus['view/title'].find((candidate: { command: string }) => candidate.command === viewCommands.hide);
-  expect(manifest.contributes.menus['view/title'].map((candidate: { command: string }) => candidate.command)).toEqual([viewCommands.newNote, viewCommands.hide]);
+  expect(manifest.contributes.menus['view/title'].map((candidate: { command: string }) => candidate.command)).toEqual([
+    viewCommands.newNote,
+    viewCommands.newFootnote,
+    footnoteCommands.show,
+    footnoteCommands.hide,
+    viewCommands.hide,
+  ]);
   expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation@9' });
   // VS Code shows its own button "Hide Secondary Side Bar" in the title of the secondary side bar while the activity bar
   // has its default place, so the button of the view shows only for another place, and only while the view is there.

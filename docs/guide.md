@@ -46,10 +46,12 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
+| [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
+| Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
-| [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007) |
+| [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007), [R-FOOT-001](requirements.md#r-foot-001) |
 | Visual editing of an answer | side view | planned | [R-SIDE-004](requirements.md#r-side-004) |
 
 Earlier versions also showed the notes in boxes of the text editor, in the
@@ -468,7 +470,9 @@ text of the notes, and their editor:
   and "Delete" (a trash can). Each thread has its color, "Line N", "Show as
   Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can); a
   todo note has its check box before its color ([Todo notes](#todo-notes)).
-  The title of the view has "Add Note" (`+`).
+  The title of the view has "Add Note" (`+`), "Add Footnote" (`+¹`) and
+  "Hide Footnotes" or "Show Footnotes"
+  ([Footnotes in the side view](#footnotes-in-the-side-view)).
 - The view selects the thread at the cursor of the text editor, and the
   thread whose highlight you clicked in the preview. Each thread that is not
   selected is dimmed, also under the pointer.
@@ -664,7 +668,7 @@ commands.
 | --- | --- |
 | `/note` | Adds a note to the selected text. Select the text, type `/`: VS Code replaces the selected text with the slash, and `/note` puts the text back, selects it and opens the editor of the new note in the side view. The list shows `/note` only after a slash that replaced selected text. |
 | `/todo` | Adds a [todo note](#todo-notes): to the selected text, as `/note`, or else to the sentence before the command, from the end of the sentence before it (`.`, `!` or `?`) in the same paragraph, or from the start of the paragraph. It removes the command with the space before it. The list shows `/todo` only where a note can highlight the sentence. |
-| `/footnote` | Adds a standard footnote after the word before the command: the reference with the next free number, for example `[^3]`, and its definition `[^3]: ` after the last footnote of the file, or at the end of the file. The cursor goes to the definition, where you write the text of the footnote. |
+| `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
 
@@ -730,6 +734,80 @@ When a note goes, its definition goes with one blank line, and its reference
 and its start marker leave the text. Undo in the text editor of the file
 itself brings the answer or the note back; in the clean editing view, choose
 "Open File with Markup" first ([Limits](#limits)).
+
+## Footnotes in the side view
+
+The side view also shows the standard footnotes of the file, the footnotes
+that are no note, for example `[^1]` or `[^hong2024]`, so that you write and
+change them as the notes, with "Write" and "Preview". The file stays plain
+Markdown:
+
+```markdown
+Agents change the work of teams.[^1]
+
+[^1]: Hong et al. (2024) describe three ways.
+```
+
+- Each footnote is a thread of the list, at the place of its first
+  reference, in the order of the file, between the notes. A footnote without
+  a reference stands at the place of its definition.
+- The thread shows the label as the file holds it, for example `[^1]`,
+  "Line N" and the rendered text of the definition. It has no author, no
+  date, no color and no replies. The tooltip of the label tells the number
+  that GitHub and the Markdown preview show: GitHub numbers the notes and the
+  footnotes together, the preview only the footnotes, so the numbers can
+  differ.
+- The cursor on a reference or in a definition selects the footnote. A
+  reference may stand inside the highlight of a note, for example a
+  citation in the text that a note is about: the cursor on the reference
+  selects the footnote, and the cursor on the rest of the highlight selects
+  the note.
+- A click on the thread, or on "Line N", shows the first reference in the
+  text editor. "Go to Definition" (the arrow down) puts the cursor at the
+  definition.
+- "Edit" (the pencil) opens the editor with the text of the definition.
+  "Save" writes it back: the first line after `[^1]: `, each further line
+  indented by four spaces, as Markdown needs it for a footnote of several
+  paragraphs. When the footnote changed in the meantime, the extension
+  changes nothing and says so.
+- "Delete" (the trash can) asks first, then removes the definition and every
+  reference to it in one change. Undo in the text editor of the file takes
+  it back; in the clean editing view, choose "Open File with Markup" first
+  ([Limits](#limits)).
+- "Hide Footnotes" in the title of the side view hides the footnotes, and
+  "Show Footnotes" shows them again; the notes stay. Both change the setting
+  `nimblescape.markdownNotes.showFootnotes` ([Settings](#settings)).
+
+A change of a footnote adds no comment of the format, and a file without
+notes stays a file without notes.
+
+### Add a footnote
+
+Put the cursor where the reference goes, then choose "Add Footnote":
+
+- press Shift+Alt+B on Windows and Linux, or Cmd+K and then B on a Mac;
+- click "Add Footnote" (`+¹`) in the title of the side view;
+- choose "Add Footnote" in the context menu of the text editor or in the
+  Command Palette;
+- or type `/footnote` after a word ([Slash commands](#slash-commands)).
+
+The side view opens the editor of the new footnote. Its title shows the text
+before the place of the reference, for example "New footnote after “Agents
+change the work of teams.”".
+Write the text in Markdown and click "Add Footnote" (the check mark) or press
+Ctrl+Enter; "Cancel" or Escape writes nothing. The extension then writes, in
+one change:
+
+- the reference with the next free number, one more than the highest label
+  of the file that is a number, for example `[^3]`. It goes after the word
+  when the cursor stands in a word, after the text before the spaces before
+  the cursor, or at the end of the selected text;
+- the definition `[^3]: ` with your text after the last definition of a
+  standard footnote, or at the end of the file, with a blank line before it.
+
+No reference goes into a code span, a code block, the text of a link or a
+marker of a note; the editor then asks you to put the cursor into the text,
+and the extension writes nothing.
 
 ## Highlights in the Markdown preview
 
@@ -849,6 +927,7 @@ after a change of a file with notes.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
+| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. The buttons "Hide Footnotes" and "Show Footnotes" in the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens from the side view: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. A folder of a workspace can have its own value. |
@@ -862,8 +941,7 @@ you can remove them from your settings.
 
 - In the [clean editing view](#clean-editing-view), Undo takes back the
   changes of the view only, not a change of the side view, such as a new,
-  changed or deleted note, because that change leaves the text of the view as
-  it is. "Open File with Markup" and Undo there take it back. The warnings of
+  changed or deleted note or footnote. "Open File with Markup" and Undo there take it back. The warnings of
   the notes show in the Problems view only, the left edge shows no changes of
   git, and a hidden highlight does not show under the pointer. "Format Document"
   formats the text of the view; the save formats the whole file. An edit
@@ -892,6 +970,7 @@ you can remove them from your settings.
 - In the Markdown preview, the button above the selected text adds a note;
   the light bulb, the shortcut and the context menu work in the text editor
   only, because VS Code tells an extension no selected text of the preview.
+  "Add Footnote" works in the text editor only, for the same reason.
   A double click in the preview opens the text editor, so select the text
   with a drag.
 - The buttons "Show or Hide Notes" and "Hide Notes" close the secondary side

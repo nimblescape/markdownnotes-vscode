@@ -789,3 +789,139 @@ test('the palette of a thread colors its note in its start marker, and the text 
   await send(view, { type: 'saveText', request: 2, id: '1', original: view.state().threads[0].text, text: 'No header.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringContaining('the text must stay this one note') });
 });
+
+/**
+ * footnoted is a Markdown text with a note between standard footnotes (R-FOOT-001): `[^1]` before the highlight of the
+ * note, `[^src]` after it with a definition of two lines, and `[^alone]` without a reference.
+ */
+const footnoted = [
+  'One[^1] and <wbr><!--[note-aaaa-->the text[^note-aaaa] of the page[^src].',
+  '',
+  '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00',
+  '',
+  '    The note.',
+  '',
+  '[^1]: The **first** footnote.',
+  '',
+  '[^src]: A source,',
+  '    with a second line.',
+  '',
+  '[^alone]: Without a reference.',
+  '',
+].join('\n');
+
+test('the view shows the standard footnotes as threads at the place of their first reference, with the numbers of GitHub and of the preview, and the cursor on a reference or in a definition selects one (R-FOOT-001)', async () => {
+  const { editor, view } = await start(footnoted, 0);
+  const threads = view.state().threads;
+  expect(threads.map((thread) => [thread.id, thread.line])).toEqual([
+    ['footnote-1', 0],
+    ['1', 2],
+    ['footnote-src', 0],
+    ['footnote-alone', 11],
+  ]);
+  // GitHub counts the note of the visible form; the preview shows no note. A footnote without a reference has no number.
+  expect(threads.map((thread) => thread.footnote)).toEqual([
+    { label: '1', html: '<p>The <strong>first</strong> footnote.</p>\n', github: 1, preview: 1 },
+    undefined,
+    { label: 'src', html: '<p>A source,\nwith a second line.</p>\n', github: 3, preview: 2 },
+    { label: 'alone', html: '<p>Without a reference.</p>\n', github: undefined, preview: undefined },
+  ]);
+  expect(threads[0]).toMatchObject({ color: 'var(--vscode-descriptionForeground)', colorName: '', text: 'The **first** footnote.', answers: [] });
+  const select = async (line: number, character: number) => {
+    editor.selection = { active: new FakePosition(line, character) };
+    fake.fire('selection', { textEditor: editor });
+    await settle();
+    return view.state().selected;
+  };
+  expect(await select(0, 5)).toBe('footnote-1');
+  expect(await select(9, 2)).toBe('footnote-src');
+  expect(await select(0, 40)).toBe('1');
+  // The cursor that leaves the selected footnote deselects it, as for a note.
+  expect(await select(9, 2)).toBe('footnote-src');
+  expect(await select(0, 9)).toBeUndefined();
+  // "Hide Footnotes" turns the setting off: the view shows the notes only, and the cursor selects no footnote.
+  fake.settings.set('', { showFootnotes: false });
+  fake.fire('configuration', { affectsConfiguration: () => true });
+  await settle();
+  expect(view.state().threads.map((thread) => thread.id)).toEqual(['1']);
+  expect(await select(0, 5)).toBeUndefined();
+});
+
+test('Edit saves the text of a footnote, a click shows its first reference, "Go to Definition" its definition, and Delete asks first and removes it with its references (R-FOOT-002)', async () => {
+  const { document, view } = await start(footnoted, 0);
+  await send(view, { type: 'saveFootnote', request: 1, id: 'footnote-src', text: 'A new source.\n\nWith a paragraph.', original: 'A source,\nwith a second line.' });
+  expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
+  expect(document.text).toContain('\n[^src]: A new source.\n\n    With a paragraph.\n\n[^alone]');
+  // The file is no file with notes of its own: a change of a footnote writes no comment of the format.
+  expect(document.text.startsWith('One[^1]')).toBe(true);
+  // A footnote that changed after the editor opened, and an empty text, are not written.
+  await send(view, { type: 'saveFootnote', request: 2, id: 'footnote-src', text: 'Other.', original: 'A source,\nwith a second line.' });
+  await send(view, { type: 'saveFootnote', request: 3, id: 'footnote-1', text: ' \n', original: 'The **first** footnote.' });
+  await send(view, { type: 'saveFootnote', request: 4, id: 'footnote-gone', text: 'x', original: 'x' });
+  expect(results(view).slice(1).map((result) => result.message)).toEqual([
+    'The change was not saved: the footnote changed in the meantime. Look at the footnote again, and repeat the change if it is still needed.',
+    'The footnote was not saved: a footnote needs a text. To remove a footnote, use "Delete".',
+    'The change was not saved: the file no longer holds the footnote.',
+  ]);
+  await send(view, { type: 'reveal', id: 'footnote-src' });
+  expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(0, 66));
+  await send(view, { type: 'definition', id: 'footnote-src' });
+  expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(8, 0));
+  expect(view.state().selected).toBe('footnote-src');
+  // Delete asks first; without a yes, the file stays as it is.
+  const before = document.text;
+  await send(view, { type: 'deleteFootnote', id: 'footnote-1' });
+  expect(fake.warnings).toEqual(['Delete the footnote [^1]? This removes its definition and every reference to it from the file. Undo in the text editor of the file takes it back; in the clean editing view, choose "Open File with Markup" first.']);
+  expect(document.text).toBe(before);
+  fake.answer = 'Delete';
+  await send(view, { type: 'deleteFootnote', id: 'footnote-1' });
+  expect(document.text).toBe(before.replace('One[^1] and', 'One and').replace('[^1]: The **first** footnote.\n\n', ''));
+  expect(view.state().threads.map((thread) => thread.id)).toEqual(['1', 'footnote-src', 'footnote-alone']);
+});
+
+test('"Add Footnote" opens the editor of a new footnote, whose title follows the cursor, and Save writes the reference at the cursor and the definition (R-FOOT-003)', async () => {
+  const text = 'The agents change the work.\n\n`code`\n';
+  const { document, editor, view } = await start(text, 2);
+  editor.selection = { active: new FakePosition(2, 3) };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  await fake.run(viewCommands.newFootnote);
+  expect(fake.infos).toEqual([expect.stringMatching(/^The footnote was not added: its reference cannot stand at the cursor\./)]);
+  expect(view.messages.some((message) => message.type === 'newFootnote')).toBe(false);
+  editor.selection = { active: new FakePosition(0, 6) };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  await fake.run(viewCommands.newFootnote, document.uri);
+  expect(view.messages.at(-1)).toEqual({ type: 'newFootnote' });
+  // The reference goes after the word at the cursor, and the title names the text before it.
+  expect(view.state().footnotePlace).toBe('The agents');
+  editor.selection = { active: new FakePosition(0, 17) };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 0, highlight: undefined, footnotePlace: 'The agents change' });
+  await send(view, { type: 'addFootnote', request: 1, text: '' });
+  await send(view, { type: 'addFootnote', request: 2, text: 'A source.' });
+  expect(results(view).map((result) => result.message)).toEqual(['The footnote was not saved: a footnote needs a text. To remove a footnote, use "Delete".', undefined]);
+  expect(document.text).toBe('The agents change[^1] the work.\n\n`code`\n\n[^1]: A source.\n');
+  expect(view.state().selected).toBe('footnote-1');
+  // The closed editor stops the place in the messages of the cursor.
+  await send(view, { type: 'footnoteClosed' });
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 0, highlight: undefined });
+});
+
+test('a citation as a footnote in the highlight of a note selects its footnote, and the text around it the note (R-FOOT-001)', async () => {
+  const text = 'The <wbr><!--[note-aaaa-->work of teams (Hong et al., 2024)[^hong2024] changes[^note-aaaa].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    Which teams?\n\n[^hong2024]: Hong, S. (2024). A title.\n';
+  const { editor, view } = await start(text, 4);
+  expect(view.state().threads.map((thread) => thread.id)).toEqual(['1', 'footnote-hong2024']);
+  const select = async (character: number) => {
+    editor.selection = { active: new FakePosition(0, character) };
+    fake.fire('selection', { textEditor: editor });
+    await settle();
+    return view.state().selected;
+  };
+  expect(await select(30)).toBe('1');
+  expect(await select(text.indexOf('[^hong2024]') + 3)).toBe('footnote-hong2024');
+  expect(await select(text.indexOf(' changes') + 3)).toBe('1');
+});

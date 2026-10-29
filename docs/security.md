@@ -26,7 +26,9 @@ links to its details.
   files to find their notes. It changes the text of a file only when you
   save, add, answer or delete a note, and only the footnote of that note, its
   reference, its start marker and the comment of the format at the top of the
-  file. The file then has unsaved changes, which you save as usual. A file
+  file. A standard footnote, for example `[^1]`, changes only when you save,
+  add or delete it in the side view, and then only its definition and its
+  references. The file then has unsaved changes, which you save as usual. A file
   that an editor only shows keeps its text. The formatter of the extension
   formats a Markdown file with notes when you save it and adds a missing
   comment of the format (settings `nimblescape.markdownNotes.formatOnSave`
@@ -213,8 +215,12 @@ web page, so the extension:
 - The extension changes a document on a click on "Save", "Add Note",
   "Answer", "Reply", "Delete" or "Delete Thread" or on a color in the side
   view, and on "Save" of the text view of a note, with one edit of the
-  document (`vscode.workspace.applyEdit`),
-  and when it adds the comment of the format (below).
+  document (`vscode.workspace.applyEdit`). It changes a standard footnote on
+  "Save", "Add Footnote" or "Delete" at the footnote, also with one edit;
+  "Delete" asks first with a modal message, because it also removes the
+  references far from the view. A change of a footnote adds no comment of the
+  format. The extension also changes a document when it adds the comment of
+  the format (below).
   Backspace and Delete next to a hidden marker run a command of the
   extension instead of the command of VS Code, which deletes the character
   or the word on the other side of the marker in the active text editor
@@ -249,7 +255,12 @@ web page, so the extension:
   preview reads it (`src/notes/edits.ts`). So a saved note never ends early,
   never starts another answer and never changes the Markdown around it. The
   text view of a note must stay the definition of the same note, with its
-  label and header, and must add or remove no other note.
+  label and header, and must add or remove no other note. The text of a
+  standard footnote must read back as the definition of the same footnote at
+  the same line, with the same text, and the extension saves it only while
+  the definition still holds the text that the editor started from. A new
+  footnote gets a label that the file does not use, and its reference never
+  goes into code, the text of a link or a marker of a note.
 - The extension shows the notes in the text editor and the side view, and
   so writes, only for Markdown documents of a writable file system and for
   new documents that were not saved yet (`untitled`). A version of a file in

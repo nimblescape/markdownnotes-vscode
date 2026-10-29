@@ -473,6 +473,7 @@ export class FakeView {
       account: string | undefined;
       selected: string | undefined;
       highlight: string | undefined;
+      footnotePlace?: string;
       threads: {
         id: string;
         line: number;
@@ -481,6 +482,7 @@ export class FakeView {
         text: string;
         todo?: 'todo' | 'done';
         answers: { author: string; date: string; authorDate: string; written: string; body: string; html: string; depth: number; parent: number | undefined }[];
+        footnote?: { label: string; html: string; github?: number; preview?: number };
       }[];
     };
   }

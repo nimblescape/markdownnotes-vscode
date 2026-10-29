@@ -19,15 +19,18 @@
  * and /note creates a note", "/note is not available when no text is
  * selected"). `/todo` without such text takes the sentence before it. Both
  * open the editor of the new note in the side view
- * ([src/notesView.ts](notesView.ts)). `/footnote` writes the reference of a
- * new standard footnote at the end of the word before the command, then its
- * definition, and puts the cursor into the definition
- * ([src/notes/slash.ts](notes/slash.ts)).
+ * ([src/notesView.ts](notesView.ts)). `/footnote` removes the typed command
+ * with the spaces before it and opens the editor of a new standard footnote
+ * in the side view, as "Add Footnote" does: its reference goes at the end of
+ * the word before the command when the user saves it (Hannes, 2026-10-29:
+ * "since footnotes are also available in the side view, it just goes to the
+ * side view editor, similar to the /notes command").
  */
 
 import * as vscode from 'vscode';
 import { highlightFor, referenceAllowed } from './notes/edits';
-import { dateText, footnoteDefinition, nextFootnoteLabel, sentenceBefore, timeText, typedAt } from './notes/slash';
+import { nextFootnoteLabel } from './notes/footnotes';
+import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
 import type { CleanMirror } from './notesView';
 
@@ -73,11 +76,13 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   /**
    * @param threads - The threads of the notes, which read each document once for each version.
    * @param addNote - Opens the editor of a new note in the side view for text of a text editor.
+   * @param addFootnote - Opens the editor of a new standard footnote in the side view for the cursor of a text editor.
    * @param mirror - The link of the clean editing view (R-TEXT-009), whose text is text of its file.
    */
   constructor(
     private readonly threads: NoteThreads,
     private readonly addNote: (editor: vscode.TextEditor, range: vscode.Range, todo: boolean) => Promise<void>,
+    private readonly addFootnote: (editor: vscode.TextEditor) => Promise<void>,
     private readonly mirror?: CleanMirror,
   ) {}
 
@@ -89,7 +94,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       vscode.workspace.onDidChangeTextDocument((event) => this.replace(event)),
       vscode.workspace.onDidCloseTextDocument((document) => this.selections.delete(document.uri.toString())),
       vscode.commands.registerCommand(slashCommandIds.note, (uri: vscode.Uri, range: vscode.Range, todo: boolean) => this.note(uri, range, todo)),
-      vscode.commands.registerCommand(slashCommandIds.footnote, (uri: vscode.Uri, label: string) => this.footnote(uri, label)),
+      vscode.commands.registerCommand(slashCommandIds.footnote, (uri: vscode.Uri) => this.footnote(uri)),
     ];
   }
 
@@ -205,8 +210,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     // The reference of a footnote goes after a word: the slash stands after a space.
     if (!replaced && typed.start < typed.slash && this.fileOf(document) && referenceAllowed(lines, reference, this.threads.textReadingOf(document))) {
       const label = nextFootnoteLabel(lines);
-      const created = item('/footnote', 'Add Footnote', `The footnote [^${label}] and its definition`, vscode.CompletionItemKind.Reference, removed, `[^${label}]`);
-      created.command = { command: slashCommandIds.footnote, title: 'Add Footnote', arguments: [document.uri, label] };
+      const created = item('/footnote', 'Add Footnote', `The footnote [^${label}], in the editor of the side view`, vscode.CompletionItemKind.Reference, removed, '');
+      created.command = { command: slashCommandIds.footnote, title: 'Add Footnote', arguments: [document.uri] };
       items.push(created);
     }
     const now = new Date();
@@ -233,23 +238,14 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   }
 
   /**
-   * footnote writes the definition of the footnote whose reference `/footnote` wrote, in the same step of Undo, and puts
-   * the cursor into it.
+   * footnote opens the editor of a new standard footnote in the side view for the cursor of a text editor, for
+   * `/footnote`, after VS Code removed the typed command.
    * @param uri - The URI of the document.
-   * @param label - The label of the footnote.
    */
-  private async footnote(uri: vscode.Uri, label: string): Promise<void> {
+  private async footnote(uri: vscode.Uri): Promise<void> {
     const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
-    if (!editor) {
-      return;
+    if (editor) {
+      await this.addFootnote(editor);
     }
-    const definition = footnoteDefinition(linesOf(editor.document), label);
-    const at = new vscode.Position(definition.at.line, definition.at.character);
-    if (!(await editor.edit((builder) => builder.insert(at, definition.text), { undoStopBefore: false, undoStopAfter: true }))) {
-      return;
-    }
-    const cursor = new vscode.Position(definition.cursor.line, definition.cursor.character);
-    editor.selection = new vscode.Selection(cursor, cursor);
-    editor.revealRange(new vscode.Range(cursor, cursor), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
   }
 }

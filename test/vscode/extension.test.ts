@@ -254,8 +254,8 @@ describe('nimblescape Markdown Notes', () => {
     assert.deepEqual(await actionsAt(new vscode.Selection(16, 2, 16, 2)), []);
   });
 
-  it('runs "Add Note" with a shortcut that VS Code does not use itself (R-EDIT-006)', async () => {
-    const key = process.platform === 'darwin' ? 'cmd+k n' : 'shift+alt+n';
+  it('runs "Add Note" and "Add Footnote" with shortcuts that VS Code does not use itself (R-EDIT-006, R-FOOT-003)', async () => {
+    const mac = process.platform === 'darwin';
     const defaults = await vscode.workspace.openTextDocument(vscode.Uri.parse('vscode://defaultsettings/keybindings.json'));
     // The file of the default shortcuts holds comments, the shortcuts of VS Code and those of the extensions.
     const bindings = JSON.parse(
@@ -265,12 +265,19 @@ describe('nimblescape Markdown Notes', () => {
         .filter((line) => !line.trimStart().startsWith('//'))
         .join('\n'),
     ) as { key: string; command: string; when?: string }[];
-    const own = bindings.filter((binding) => binding.key === key);
-    assert.deepEqual(
-      own.map(({ command }) => command),
-      [commandOf('newNote')],
-    );
-    assert.match(own[0].when ?? '', /editorHasSelection/);
+    for (const [name, key] of [
+      ['newNote', mac ? 'cmd+k n' : 'shift+alt+n'],
+      ['addFootnote', mac ? 'cmd+k b' : 'shift+alt+b'],
+    ]) {
+      const own = bindings.filter((binding) => binding.key === key);
+      assert.deepEqual(
+        own.map(({ command }) => command),
+        [commandOf(name)],
+        key,
+      );
+      // "Add Note" needs selected text, and "Add Footnote" a place in the text.
+      assert.equal(/editorHasSelection/.test(own[0].when ?? ''), name === 'newNote', key);
+    }
   });
 
   it('formats a file and gives each start marker <wbr> before it (R-FMT-001)', async () => {

@@ -54,8 +54,8 @@ as the highlights of a marker pen on paper.
 | 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | planned; before the first release |
 | 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | planned; before the first release |
 | 31 | The text without notes for publishing: `markdown-notes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
-| 32 | The standard footnotes in the side view: show, edit, delete and reveal, the button "Show Footnotes"; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | planned |
-| 33 | "Add Footnote" at the cursor | [R-FOOT-003](#r-foot-003) | planned |
+| 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
+| 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
@@ -1130,19 +1130,18 @@ it shows no suggestions while the user types words.
   todo note ([decision 30](#decisions)). The list offers `/todo` only where a
   note can highlight that text.
 - `/footnote` adds a standard footnote at the cursor (Hannes, 18:30:
-  "/footnote creates a footnote"): the reference with the next free number,
-  for example `[^3]`, as "Add Footnote" names it
-  ([R-FOOT-003](#r-foot-003)), and its definition after the last definition
-  of a standard footnote, or at the end of the file, with a blank line
-  before it. The cursor goes to the definition, where the user writes its
-  text. The list offers `/footnote` only after a word, where a reference can
-  stand: not in a code span, a code block, the text of a link or a marker of
-  a note. When the side view shows the standard footnotes (step 32 of the
-  plan, [R-FOOT-001](#r-foot-001)), `/footnote` opens the editor of the new
-  footnote in the side view, as `/note` does (Hannes, 18:51: "since footnotes
-  are also available in the side view, it just goes to the side view editor,
-  similar to the /notes command"); until then the cursor goes to the
-  definition.
+  "/footnote creates a footnote"). It removes the typed command with the
+  spaces before it and opens the editor of the new footnote in the side
+  view, as `/note` does and as "Add Footnote" does
+  ([R-FOOT-003](#r-foot-003)) (Hannes, 18:51: "since footnotes are also
+  available in the side view, it just goes to the side view editor, similar
+  to the /notes command"). The list names the label of the new footnote, the
+  next free number, for example `[^3]`. "Add Footnote" in the editor writes
+  the reference after the word before the command, and the definition after
+  the last definition of a standard footnote, or at the end of the file. The
+  list offers `/footnote` only after a word, where a reference can stand:
+  not in a code span, a code block, the text of a link or a marker of a
+  note.
 - `/date` inserts the current date, for example `2026-10-29` (Hannes, 18:29:
   "date inserts the current date at the place where the cursor is").
 - `/time` inserts the current date and time in the local time, in minutes,
@@ -1396,12 +1395,18 @@ for editing footnotes", [decision 24](#decisions)):
 - It shows its label as the file holds it, for example `1`, and the
   rendered text of its definition. It has no author, no date, no replies, no
   color and no highlight. GitHub numbers all footnotes of a file in the
-  order of their first reference, also the notes of the visible form, so the
-  tooltip of the label gives the number that GitHub shows when it differs.
-  The step that builds this checks the numbers of GitHub and of the Markdown
-  preview first.
+  order of their first reference, also the notes of the visible form, and
+  the Markdown preview numbers only the standard footnotes, so the tooltip of
+  the label gives both numbers when they differ. In
+  [docs/example.md](example.md), GitHub shows `[^1]` as footnote 4 and the
+  preview as footnote 1. A footnote without a reference has no number.
 - The cursor on a reference or in a definition selects the footnote, as it
-  selects a note.
+  selects a note. A reference of a standard footnote may stand inside the
+  highlight of a note, for example a citation `[^hong2024]` in the
+  highlighted text (Hannes, 2026-10-29, 20:12: "these citations can be in a
+  highlight region with a note"): the reference belongs to the highlight, the
+  cursor on the reference selects the footnote, and the cursor on the rest
+  of the highlight selects the note.
 - The button "Show Footnotes" or "Hide Footnotes" in the title of the side
   view, and the setting `nimblescape.markdownNotes.showFootnotes` (on by
   default), show or hide the footnotes in the side view. The notes stay.
@@ -1438,11 +1443,16 @@ for editing footnotes", [decision 24](#decisions)):
 the cursor of the text editor. It is in the title of the side view, in the
 menu of the right mouse button of the text editor, and in the Command
 Palette, and it has a keyboard shortcut with the rules of the shortcut of
-"Add Note" ([R-EDIT-006](#r-edit-006)).
+"Add Note" ([R-EDIT-006](#r-edit-006)): Shift+Alt+B on Windows and Linux,
+Cmd+K B on a Mac, while the text editor of a Markdown file has the focus and
+the file can be changed. VS Code uses these keys for nothing else.
 
 - It needs no selected text: a footnote names a place, not a passage. The
-  reference goes at the cursor, or after the word when the cursor stands in
-  a word, or at the end of the selected text.
+  reference goes after the word when the cursor stands in a word, or else
+  after the text before the cursor without the spaces before the cursor,
+  and with selected text at the end of the selected text. The title of the
+  editor shows the text before that place, for example "New footnote after
+  “a second”".
 - It opens the editor of the new footnote in the side view. "Save" writes
   the reference and the definition in one edit; "Cancel" writes nothing.
 - The label is the next free number: one more than the highest label of the

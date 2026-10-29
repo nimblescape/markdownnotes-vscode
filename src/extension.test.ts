@@ -18,7 +18,7 @@
 import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanCommands } from './cleanView';
-import { highlightCommands, highlightsContext } from './extension';
+import { footnoteCommands, footnotesContext, highlightCommands, highlightsContext } from './extension';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
@@ -76,7 +76,14 @@ const closeView = (view: FakeView): void => {
 test('the activation registers the commands, the side view and the handler of links, and the disposal of the context removes every registration', async () => {
   const { context, extension } = await fake.activate();
   expect([...fake.commands.keys()].sort()).toEqual(
-    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), ...Object.values(slashCommandIds)].sort(),
+    [
+      ...Object.values(viewCommands),
+      ...Object.values(highlightCommands),
+      ...Object.values(footnoteCommands),
+      ...Object.values(deleteCommands),
+      ...Object.values(cleanCommands),
+      ...Object.values(slashCommandIds),
+    ].sort(),
   );
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
@@ -148,6 +155,20 @@ test('"Hide Highlights" turns the setting off in the settings that decide the va
   // highlights"), and closing the side view keeps them.
   expect(fake.executed).not.toContain(focus);
   closeView(fake.resolveView(notesViewId));
+  expect(contexts().at(-1)).toBe(true);
+});
+
+test('"Hide Footnotes" and "Show Footnotes" turn the setting showFootnotes off and on, and the buttons follow it (R-FOOT-001)', async () => {
+  await fake.activate();
+  const contexts = () => fake.calls.filter(({ command, args }) => command === 'setContext' && args[0] === footnotesContext).map(({ args }) => args[1]);
+  expect(contexts()).toEqual([true]);
+  await fake.run(footnoteCommands.show);
+  expect(fake.updates).toEqual([]);
+  await fake.run(footnoteCommands.hide);
+  expect(fake.updates).toEqual([{ key: 'showFootnotes', value: false, target: 1 }]);
+  expect(contexts().at(-1)).toBe(false);
+  await fake.run(footnoteCommands.show);
+  expect(fake.updates[1]).toEqual({ key: 'showFootnotes', value: true, target: 1 });
   expect(contexts().at(-1)).toBe(true);
 });
 

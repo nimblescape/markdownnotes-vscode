@@ -1,0 +1,7 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Made from the codicons "add" and "list-ordered" of VS Code (https://github.com/microsoft/vscode-codicons, version 0.0.46-24), © Microsoft Corporation, licensed under CC BY 4.0; changed: the plus sign smaller, with the number 1 of "list-ordered" larger at its top right, as the reference of a footnote. -->
+<!-- The source of the icon of the button "Add Footnote". The script scripts/icon-font.py builds it into the icon font resources/notes-icons.ttf. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+  <g transform="translate(0.5 4.2) scale(0.78)"><path d="M8 1.5C8 1.22386 7.77614 1 7.5 1C7.22386 1 7 1.22386 7 1.5V7H1.5C1.22386 7 1 7.22386 1 7.5C1 7.77614 1.22386 8 1.5 8H7V13.5C7 13.7761 7.22386 14 7.5 14C7.77614 14 8 13.7761 8 13.5V8H13.5C13.7761 8 14 7.77614 14 7.5C14 7.22386 13.7761 7 13.5 7H8V1.5Z"/></g>
+  <g transform="translate(8.6 -1.2) scale(1.45)"><path d="M3.68423 1.01091C3.87729 1.05479 4.01368 1.2207 4.01368 1.41166V4.70581C4.01368 4.93322 3.82219 5.11757 3.58596 5.11757C3.34974 5.11757 3.15825 4.93322 3.15825 4.70581V2.57963C2.97169 2.73831 2.75056 2.89181 2.49409 3.01526C2.28281 3.11697 2.02589 3.03452 1.92025 2.83112C1.81461 2.62771 1.90025 2.38037 2.11153 2.27867C2.46535 2.10836 2.74051 1.84713 2.93118 1.61767C3.02531 1.50441 3.09555 1.40286 3.1415 1.33097C3.1627 1.2978 3.18339 1.26423 3.20219 1.22973C3.29453 1.06158 3.48853 0.966435 3.68423 1.01091Z"/></g>
+</svg>

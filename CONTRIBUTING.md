@@ -12,7 +12,7 @@ describes its security model.
 
 | File | Purpose |
 | --- | --- |
-| `src/extension.ts` | The editor wiring: activation starts the threads of the notes, the overlay of the text editor, the side view and the light bulb action of the selected text, returns the markdown-it plugin for the Markdown preview with the settings, the selected note and the links of the rendered document, handles the links of the highlights of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open` and `/deselect`), the buttons "Show Highlights" and "Hide Highlights" with the context key `nimblescape.markdownNotes.highlightsShown`, and refreshes the previews and the threads when a setting of the extension or the visibility of the side view changes. |
+| `src/extension.ts` | The editor wiring: activation starts the threads of the notes, the overlay of the text editor, the side view and the light bulb action of the selected text, returns the markdown-it plugin for the Markdown preview with the settings, the selected note and the links of the rendered document, handles the links of the highlights of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open` and `/deselect`), the buttons "Show Highlights" and "Hide Highlights" with the context key `nimblescape.markdownNotes.highlightsShown`, the buttons "Show Footnotes" and "Hide Footnotes" with the context key `nimblescape.markdownNotes.footnotesShown`, and refreshes the previews and the threads when a setting of the extension or the visibility of the side view changes. |
 | `src/github.ts` | The GitHub sign-in: the login of the GitHub session of VS Code, the author of new notes and answers. |
 | `src/settings.ts` | The settings of the extension, their defaults, and the check of their values. It uses no API of VS Code. |
 | `src/notes/syntax.ts` | The syntax of one note: the label `note-` and four random small letters or digits, the header line of an answer (`**login** · date`), the start marker `<wbr><!--[note-7k2q-->` with the name of a color, and the reference `[^note-7k2q]`, the tree of answers with their depths and parents, the lines of a note for a list of answers, the dates of a header in the local time of the reader and of the author, and the rules of markdown-it 14 for the definitions, the references and the start markers of the notes. It uses no API of VS Code, so the extension and the plugin share it. |
@@ -29,21 +29,22 @@ describes its security model.
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
 | `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
-| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their colors and their whole texts, the places of the highlights beside the text editor, the actions of its script, and the commands "Add Note", "Hide Notes" and "Show or Hide Notes". |
+| `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their colors and their whole texts, the places of the highlights beside the text editor, the actions of its script, the threads of the standard footnotes, and the commands "Add Note", "Add Footnote", "Hide Notes" and "Show or Hide Notes". |
 | `src/addNoteAction.ts` | The light bulb action "Add Note" of the selected text in the text editor: a Code Action of the kind `quickfix.markdownNotes.addNote`, which runs "Add Note" of the side view. |
 | `src/slashCommands.ts` | The slash commands of the text editor: the suggestions `/note`, `/todo`, `/footnote`, `/date` and `/time` after a typed slash, the selected text that a slash replaced, and the commands that the suggestions run. |
-| `src/notes/slash.ts` | The text of the slash commands: the typed command, the sentence before it for `/todo`, the date and the time, and the label and the definition of the footnote of `/footnote`. It uses no API of VS Code. |
+| `src/notes/slash.ts` | The text of the slash commands: the typed command, the sentence before it for `/todo`, and the date and the time. It uses no API of VS Code. |
+| `src/notes/footnotes.ts` | The standard footnotes of a Markdown text, the footnotes that are no note: their definitions, read line by line as markdown-it-footnote and GitHub read them, their references, their order and the numbers that GitHub and the Markdown preview show, and the edits that save, delete and add a footnote, with the next free number, the place of a new reference at the cursor and the place of its definition. It uses no API of VS Code. |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
 | `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdown-notes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: takes the notes out of the page, writes the start marker and the first reference of each note as the empty start and end of its highlight, with the color, the link to the side view and the state of the highlight, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the highlights in the Markdown preview, in the colors of the notes, and the script that paints the highlights with the CSS Custom Highlight API, shows a hidden highlight under the pointer, selects and deselects a note on a click, scrolls to the selected note, and shows the button "Add Note" above selected text. |
-| `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the list that scrolls the selected thread to its top, the tooltips, and the messages to the extension. |
-| `resources/notes-icons.ttf`, `resources/icons/highlighter.svg`, `scripts/icon-font.py` | The icon font of the buttons "Show Highlights" (U+E001) and "Hide Highlights" (U+E002), its source image, a highlighter pen over its line, and the script that builds the font from the image ([Icon font](#icon-font)). |
+| `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the threads of the standard footnotes with their labels, the editor of a new footnote, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the list that scrolls the selected thread to its top, the tooltips, and the messages to the extension. |
+| `resources/notes-icons.ttf`, `resources/icons/*.svg`, `scripts/icon-font.py` | The icon font of the buttons "Show Highlights" (U+E001), "Hide Highlights" (U+E002), "Add Footnote" (U+E003), "Show Footnotes" (U+E004) and "Hide Footnotes" (U+E005), its source images, and the script that builds the font from the images ([Icon font](#icon-font)). |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
-| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`), the clean text (`src/notes/clean.test.ts`), the clean editing view (`src/cleanView.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
+| `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`), the clean text (`src/notes/clean.test.ts`), the standard footnotes (`src/notes/footnotes.test.ts`), the clean editing view (`src/cleanView.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
 | `test/cli/` | The tests of the built command `markdown-notes` (`cli/dist/markdown-notes.js`), with the Node.js of the tests in the temporary folder of the system. |
 | `test/vscode/` | The tests in a real VS Code: the highlights and the hidden markers in the text editor, the comment of the format, the collapse of the notes, the side view with the buttons "Show Highlights" and "Hide Highlights", the light bulb action and the shortcut of "Add Note", the formatter, and the highlights of the Markdown preview of VS Code (`markdown.api.render`). |
 | `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
@@ -141,11 +142,11 @@ commit of the build.
 - The command "Open File with Markup" (`nimblescape.markdownNotes.openWithMarkup`) shows in the Command Palette only for a document of the clean editing view (`resourceScheme == markdown-notes`).
 - The contributions `markdown.markdownItPlugins`, `markdown.previewStyles` and `markdown.previewScripts` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
 - `viewsContainers.secondarySidebar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`, in the secondary side bar only, so that the primary side bar stays free for the Explorer ([R-SIDE-001](docs/requirements.md#r-side-001)). VS Code 1.125, the oldest supported version, already knows this place. The section [Side view](#side-view) explains it.
-- The command "Add Note" is the button `+` in the title of the side view (`view/title`) and an entry of the context menu of the text editor (`editor/context`) while text is selected (`editorHasSelection`); the Command Palette shows it only then. The commands "Show Highlights" and "Hide Highlights" are buttons in the title of the text editor, of the preview of a Markdown file and of the modes "Markdown Preview" and "Markdown Editor" of VS Code (`editor/title`); the context key `nimblescape.markdownNotes.highlightsShown`, which the extension sets while the setting `showHighlights` is on, shows one of them. The command "Show or Hide Notes" is a button in the same titles (`activeCustomEditorId` for the modes). A test checks the commands and the menus against `src/notesView.ts`, `src/extension.ts` and `src/noteEditor.ts`.
+- The command "Add Note" is the button `+` in the title of the side view (`view/title`) and an entry of the context menu of the text editor (`editor/context`) while text is selected (`editorHasSelection`); the Command Palette shows it only then. The commands "Show Highlights" and "Hide Highlights" are buttons in the title of the text editor, of the preview of a Markdown file and of the modes "Markdown Preview" and "Markdown Editor" of VS Code (`editor/title`); the context key `nimblescape.markdownNotes.highlightsShown`, which the extension sets while the setting `showHighlights` is on, shows one of them. The command "Show or Hide Notes" is a button in the same titles (`activeCustomEditorId` for the modes). The command "Add Footnote" is a button in the title of the side view after "Add Note", an entry of the context menu of the text editor, and in the Command Palette for a Markdown file that can be changed (`editorLangId == markdown && !editorReadonly`), without a selection, because a footnote names a place; its keybinding is Shift+Alt+B, on a Mac Cmd+K B. The commands "Show Footnotes" and "Hide Footnotes" are buttons in the title of the side view; the context key `nimblescape.markdownNotes.footnotesShown`, which the extension sets while the setting `showFootnotes` is on, shows one of them. A test checks the commands and the menus against `src/notesView.ts`, `src/extension.ts` and `src/noteEditor.ts`.
 - The four commands "Delete Left of a Hidden Marker", "Delete Right of a Hidden Marker" and their word forms are the keybindings of Backspace, Delete, Ctrl+Backspace and Ctrl+Delete (on macOS Alt+Backspace and Alt+Delete) while the cursor is next to a hidden marker. The editor sets the context keys `nimblescape.markdownNotes.markerLeft` and `nimblescape.markdownNotes.markerRight` for this, only when their value changes. The Command Palette does not show them.
 - The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `openLinksIn` has the scope `resource`, so that a folder of a workspace can have its own value, and `showHighlights` and `addFormatComment` the scope `window`. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
 - `configurationDefaults` turns on `editor.smoothScrolling` for `[markdown]`, because VS Code scrolls a text editor to the note of a thread smoothly only with it ([R-SIDE-007](docs/requirements.md#r-side-007)). It makes the extension the default formatter of Markdown files (`editor.defaultFormatter` for `[markdown]`), and turns on no `editor.formatOnSave`, because VS Code would then format every Markdown file on a save ([R-FMT-001](docs/requirements.md#r-fmt-001), decision 19). The extension formats a file with notes itself before its save: `changesOnSave` of `src/formatter.ts` decides and `saveEdits` returns the edits in `waitUntil` of `onWillSaveTextDocument`. It formats a Markdown file with notes or with the comment of the format while the setting `formatOnSave` is on, and not for an automatic save after a delay, nor when `editor.formatOnSave` is on for the document (VS Code runs the formatter then) or another default formatter is set. In the same edit it adds a missing comment of the format to a file with notes while the setting `addFormatComment` is on, also when another formatter formats the file, and not for an automatic save after a delay ([R-NOTE-007](docs/requirements.md#r-note-007), decision 20). The settings of the user and of a workspace for `[markdown]` win over these defaults. A test checks them.
-- `icons` contributes the icons `nimblescape-highlights-show` and `nimblescape-highlights-hide`, the characters U+E001 and U+E002 of the icon font `resources/notes-icons.ttf`, and the commands "Show Highlights" and "Hide Highlights" show them as `$(nimblescape-highlights-show)` and `$(nimblescape-highlights-hide)` ([R-GEN-011](docs/requirements.md#r-gen-011), decision 26). VS Code draws an icon of a font in the icon color of the theme, as its codicons; an SVG file as the icon of a command would need a file for the light and one for the dark themes, with fixed colors. VS Code 1.125 already knows the contribution. A test checks the icons and that the font has both characters ([Icon font](#icon-font)).
+- `icons` contributes the icons `nimblescape-highlights-show` and `nimblescape-highlights-hide`, the characters U+E001 and U+E002 of the icon font `resources/notes-icons.ttf`, and the commands "Show Highlights" and "Hide Highlights" show them as `$(nimblescape-highlights-show)` and `$(nimblescape-highlights-hide)` ([R-GEN-011](docs/requirements.md#r-gen-011), decision 26). The icons `nimblescape-footnote-add` (U+E003), `nimblescape-footnotes-show` (U+E004) and `nimblescape-footnotes-hide` (U+E005) are the icons of "Add Footnote", "Show Footnotes" and "Hide Footnotes". VS Code draws an icon of a font in the icon color of the theme, as its codicons; an SVG file as the icon of a command would need a file for the light and one for the dark themes, with fixed colors. VS Code 1.125 already knows the contribution. A test checks the icons and that the font has each character ([Icon font](#icon-font)).
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
 - The package has no runtime dependency: the bundle contains markdown-it. The development dependencies are the build, test and packaging tools. `allowScripts` lists the install scripts of dependencies that npm 11.19 and later may run: those of esbuild and `@vscode/vsce-sign` in every version, because the build and the packaging (`npm run package`) run the code of both packages anyway and Dependabot updates them, and not the one of fsevents, an optional package for macOS that already contains its built binary.
 
@@ -161,14 +162,21 @@ test checks that the package script keeps the checks of vsce.
 The buttons "Show Highlights" and "Hide Highlights" show a highlighter pen
 over its line, and the same pen with a stroke from the top left to the
 bottom right. `resources/icons/highlighter.svg` is the image of the pen, on
-16 × 16 pixels with strokes of 1 pixel, as the codicons. The script
-`scripts/icon-font.py` builds the font `resources/notes-icons.ttf` from it: it
-turns the strokes into outlines, adds the stroke of "Hide Highlights" with a
-gap of 1 pixel on both sides, and writes the font with the metrics of the
-codicon font (300 units for 16 pixels). The font is in the repository, and
-the package holds the font and not the image. After a change of the image,
-build the font again and check both icons in VS Code, in a dark and in a
-light theme:
+16 × 16 pixels with strokes of 1 pixel, as the codicons. "Add Footnote"
+shows a plus with a small 1 (`resources/icons/footnote-add.svg`), and "Show
+Footnotes" and "Hide Footnotes" the codicon "list-ordered", the numbered list
+of the footnotes at the end of a page, without and with the stroke
+(`resources/icons/footnotes.svg`). The images of the footnotes are made from
+the codicons of VS Code, © Microsoft Corporation, under CC BY 4.0: each
+image names its source in its header, and the font names it in its
+copyright. The script `scripts/icon-font.py` builds the font
+`resources/notes-icons.ttf` from the images, one glyph for each entry of its
+list `GLYPHS`: it turns the strokes into outlines, adds the stroke of a
+"Hide" button with a gap of 1 pixel on both sides, and writes the font with
+the metrics of the codicon font (300 units for 16 pixels). The font is in
+the repository, and the package holds the font and not the images. After a
+change of an image, build the font again and check the icons in VS Code, in
+a dark and in a light theme:
 
 ```sh
 python3 -m pip install fonttools picosvg skia-pathops
@@ -399,11 +407,11 @@ with `/` in the next version makes the text that `/note` and `/todo` put
 back. `/todo` and `/note` run `nimblescape.markdownNotes.slashNote`, which
 calls `NotesView.addFromText`: it selects the text in the text editor and
 opens the editor of the new note, as `addFromPreview` does, through
-`newNoteAt`. `/footnote` writes the reference with its range and runs
-`nimblescape.markdownNotes.slashFootnote`, which writes the definition with
-`TextEditor.edit` without an undo stop before it, so that one Undo takes
-both back, and puts the cursor into it. The two commands are in no menu and
-not in the manifest.
+`newNoteAt`. `/footnote` removes the typed command with the spaces before
+it and runs `nimblescape.markdownNotes.slashFootnote`, which calls
+`NotesView.addFootnoteFrom`: it opens the editor of the new footnote for the
+cursor, as "Add Footnote" does. The two commands are in no menu and not in
+the manifest.
 
 `src/addNoteAction.ts` gives the selected text the Code Action "Add Note"
 ([R-EDIT-006](docs/requirements.md#r-edit-006), decision 22). VS Code asks
@@ -426,7 +434,10 @@ for each version.
 
 The operations `saveAnswer`, `answer` (with the parent of a reply),
 `addNote`, `colorNote`, `saveNoteText`, `deleteAnswer` and `deleteNote` of
-`NoteThreads` write the changes of the side view. Each one reads the notes of
+`NoteThreads` write the changes of the side view, and `saveFootnote`,
+`deleteFootnote` and `addFootnote` the changes of a standard footnote, which
+add no comment of the format and need no check of its version, because a
+footnote is no note. Each one reads the notes of
 the document first, so that the edit fits the current text, and returns the
 problem of a refused text, whose message `problemMessage` gives. The side view
 names an answer with an `AnswerRef`: its index, and its author, its date and
@@ -537,7 +548,9 @@ the preview does, and keeps up to 200 rendered texts.
   `deleteAnswer` (with the `AnswerRef`),
   `deleteNote`, `reveal`, `render` (the preview of an editor), `openLink` (a
   click on a link of a rendered text, which `src/links.ts` opens),
-  `deselect`, `signIn` and `ready`. A message of an editor has the number of
+  `deselect`, `signIn` and `ready`, and for a standard footnote
+  `saveFootnote` (with the text that the editor started with), `definition`,
+  `deleteFootnote`, `addFootnote` and `footnoteClosed`. A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
   refused text, or with `rendered`. The script keeps the open editors and the
   focus when a new state arrives. The key of the editor of an answer holds
@@ -565,6 +578,24 @@ the preview does, and keeps up to 200 rendered texts.
   changes while the view is hidden (`scrollPending`), the extension sends
   `scroll` after the view shows again, and the script scrolls the thread to
   the top.
+- **The standard footnotes** ([R-FOOT-001](docs/requirements.md#r-foot-001)
+  to [R-FOOT-003](docs/requirements.md#r-foot-003)): `NoteThreads.footnotesOf`
+  reads the footnotes of a document once for each version, and only when a
+  line starts a definition (`definitionSearch`), because the reading of a
+  long file takes some milliseconds. `NotesView.state` puts each footnote as
+  a thread with the identifier `footnote-` and its label into the list, before
+  the first note whose key place comes later: its first reference, or its
+  definition. A footnote thread has the field `footnote` (the label, the
+  rendered text and the numbers of GitHub and of the preview) and no answers
+  and no color, so the filters of the colors and of the todos hide it.
+  `NotesView.follow` selects the footnote of a reference at the cursor before
+  the note of a highlight around it, so that a citation in a highlight
+  selects the footnote. "Add Footnote" (`newFootnote`) sets
+  `footnoteEditor`, sends the state with `footnotePlace`, the text before the
+  place of the new reference, while the editor is open, and then
+  `newFootnote`; the message `addFootnote` writes the footnote at the cursor
+  of the last selection of the document. "Delete" asks with a modal message
+  of VS Code first.
 - **The header with the filters** ([R-SIDE-008](docs/requirements.md#r-side-008)):
   the script builds the header (`header.top`, `position: sticky`) once,
   outside the element of the list that it builds anew for each state, so

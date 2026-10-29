@@ -5,13 +5,12 @@
 /**
  * These tests check the text of the slash commands of the text editor
  * (R-EDIT-008): the typed command, the sentence that `/todo` highlights, the
- * date and the time, and the label and the definition of the footnote of
- * `/footnote` (R-FOOT-003), with the places where its reference can stand.
+ * date and the time. The footnote of `/footnote` (R-FOOT-003) is in
+ * footnotes.test.ts.
  */
 
 import { describe, expect, test } from 'vitest';
-import { referenceAllowed } from './edits';
-import { dateText, footnoteDefinition, nextFootnoteLabel, sentenceBefore, timeText, typedAt } from './slash';
+import { dateText, sentenceBefore, timeText, typedAt } from './slash';
 
 /**
  * sentence returns the text of the sentence before the end of a line, or undefined.
@@ -81,41 +80,5 @@ describe('the date and the time', () => {
     expect(dateText(now)).toBe('2026-10-29');
     expect(timeText(now)).toBe('2026-10-29 09:05');
     expect(timeText(new Date(2026, 0, 2, 19, 29))).toBe('2026-01-02 19:29');
-  });
-});
-
-describe('the footnote of /footnote', () => {
-  test('the label is the next free number (R-FOOT-003)', () => {
-    expect(nextFootnoteLabel(['Text[^1] and[^3] and[^note-7k2q].', '', '[^own]: x'])).toBe('4');
-    expect(nextFootnoteLabel(['No footnote.'])).toBe('1');
-  });
-
-  test('the definition goes after the last definition of a standard footnote, or at the end of the text, with a blank line before it', () => {
-    expect(footnoteDefinition(['# T', '', 'Text[^1].', ''], '1')).toEqual({ at: { line: 2, character: 9 }, text: '\n\n[^1]: ', cursor: { line: 4, character: 6 } });
-    expect(footnoteDefinition(['Text[^2] more.', '', '[^1]: One.', '', '    Second paragraph.', '', 'Later text.'], '2')).toEqual({
-      at: { line: 4, character: 21 },
-      text: '\n\n[^2]: ',
-      cursor: { line: 6, character: 6 },
-    });
-    // A line right after the definition goes on with it, and the text after the place keeps its blank line.
-    expect(footnoteDefinition(['[^1]: One.', 'lazy line', 'Text.'], '2')).toEqual({ at: { line: 2, character: 5 }, text: '\n\n[^2]: ', cursor: { line: 4, character: 6 } });
-    expect(footnoteDefinition(['[^1]: One.', '', 'Text[^2].'], '2')).toEqual({ at: { line: 0, character: 10 }, text: '\n\n[^2]: ', cursor: { line: 2, character: 6 } });
-    // The definition of a note is no standard footnote.
-    expect(footnoteDefinition(['Text[^1].', '', '[^note-7k2q]: **a** · 2026-10-28 10:15Z', '', '    x'], '1')).toEqual({ at: { line: 4, character: 5 }, text: '\n\n[^1]: ', cursor: { line: 6, character: 6 } });
-    expect(footnoteDefinition([''], '1')).toEqual({ at: { line: 0, character: 0 }, text: '[^1]: ', cursor: { line: 0, character: 6 } });
-  });
-
-  test('a reference stands in the text of a block, and not in a code span, a code block, a link or a marker of a note', () => {
-    const line = 'Text with `code` and [a link](x) here.';
-    expect(referenceAllowed([line], { line: 0, character: 9 })).toBe(true);
-    expect(referenceAllowed([line], { line: 0, character: line.length })).toBe(true);
-    expect(referenceAllowed([line], { line: 0, character: 12 })).toBe(false);
-    expect(referenceAllowed([line], { line: 0, character: 24 })).toBe(false);
-    expect(referenceAllowed(['```', 'code', '```'], { line: 1, character: 2 })).toBe(false);
-    expect(referenceAllowed([''], { line: 0, character: 0 })).toBe(false);
-    const note = ['The <wbr><!--[note-7k2q-->text[^note-7k2q].', '', '[^note-7k2q]: **a** · 2026-10-28 10:15Z', '', '    x'];
-    expect(referenceAllowed(note, { line: 0, character: 12 })).toBe(false);
-    expect(referenceAllowed(note, { line: 0, character: 33 })).toBe(false);
-    expect(referenceAllowed(note, { line: 0, character: 3 })).toBe(true);
   });
 });

@@ -30,6 +30,8 @@ export interface Settings {
   addFormatComment: boolean;
   /** formatOnSave formats a Markdown file with notes when it is saved ([R-FMT-001](../docs/requirements.md#r-fmt-001)). */
   formatOnSave: boolean;
+  /** showFootnotes shows the standard footnotes of a file in the side view ([R-FOOT-001](../docs/requirements.md#r-foot-001)). */
+  showFootnotes: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
@@ -38,6 +40,7 @@ export const defaultSettings: Readonly<Settings> = {
   openLinksIn: 'newWindow',
   addFormatComment: true,
   formatOnSave: true,
+  showFootnotes: true,
 };
 
 /**
@@ -45,7 +48,7 @@ export const defaultSettings: Readonly<Settings> = {
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave'): boolean => {
+  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave' | 'showFootnotes'): boolean => {
     const raw = read(key);
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
@@ -55,5 +58,6 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     openLinksIn: linkTargets.find((value) => value === raw) ?? defaultSettings.openLinksIn,
     addFormatComment: flag('addFormatComment'),
     formatOnSave: flag('formatOnSave'),
+    showFootnotes: flag('showFootnotes'),
   };
 }

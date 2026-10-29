@@ -81,6 +81,18 @@ export const highlightCommands = {
 /** highlightsContext is the context key that tells the menus whether the highlights show. */
 export const highlightsContext = 'nimblescape.markdownNotes.highlightsShown';
 
+/**
+ * footnoteCommands are the commands of the buttons in the title of the side view that show and hide the standard
+ * footnotes in the side view ([R-FOOT-001](../docs/requirements.md#r-foot-001)).
+ */
+export const footnoteCommands = {
+  show: 'nimblescape.markdownNotes.showFootnotes',
+  hide: 'nimblescape.markdownNotes.hideFootnotes',
+};
+
+/** footnotesContext is the context key that tells the menus whether the side view shows the footnotes. */
+export const footnotesContext = 'nimblescape.markdownNotes.footnotesShown';
+
 /** Api is the export of the extension. */
 export interface Api {
   /** extendMarkdownIt adds the notes to the markdown-it instance of the Markdown preview. */
@@ -219,11 +231,12 @@ async function renderMarkdown(text: string): Promise<string> {
 /**
  * setSetting turns a setting of the extension on or off, in the settings that decide the value for the window: the
  * settings of the workspace when they hold a value, else the settings of the user. The change of the setting
- * showHighlights renders the previews again and changes the highlights of the text editors.
- * @param key - The setting: showHighlights.
+ * showHighlights renders the previews again and changes the highlights of the text editors; the change of the setting
+ * showFootnotes shows the side view again.
+ * @param key - The setting: showHighlights or showFootnotes.
  * @param value - The new value.
  */
-async function setSetting(key: 'showHighlights', value: boolean): Promise<void> {
+async function setSetting(key: 'showHighlights' | 'showFootnotes', value: boolean): Promise<void> {
   const configuration = vscode.workspace.getConfiguration(settingsSection);
   const inWorkspace = configuration.inspect(key)?.workspaceValue !== undefined;
   await configuration.update(key, value, inWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
@@ -275,9 +288,14 @@ export function activate(context: vscode.ExtensionContext): Api {
     const notes = threads.notesOf(document).length > 0;
     return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined), comment: settings.addFormatComment && notes };
   };
+  /** contextsChanged shows the buttons that fit the settings showHighlights and showFootnotes. */
+  const contextsChanged = (): void => {
+    void vscode.commands.executeCommand('setContext', highlightsContext, showsHighlights(undefined));
+    void vscode.commands.executeCommand('setContext', footnotesContext, readSettings(undefined).showFootnotes);
+  };
   /** showsChanged shows or hides the highlights in the text editors and the previews, and the buttons that fit. */
   const showsChanged = (): void => {
-    void vscode.commands.executeCommand('setContext', highlightsContext, showsHighlights(undefined));
+    contextsChanged();
     editor.showsChanged();
     clean.showsChanged();
     refreshMarkdownPreviews();
@@ -292,13 +310,19 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     ...registerFormatter(extensionId, saveChangesOf),
     new AddNoteAction(threads, viewCommands.newNote, clean).register(),
-    ...new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), clean).register(),
+    ...new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);
       }
     }),
     vscode.commands.registerCommand(highlightCommands.hide, () => setSetting('showHighlights', false)),
+    vscode.commands.registerCommand(footnoteCommands.show, async () => {
+      if (!readSettings(undefined).showFootnotes) {
+        await setSetting('showFootnotes', true);
+      }
+    }),
+    vscode.commands.registerCommand(footnoteCommands.hide, () => setSetting('showFootnotes', false)),
     // The preview shows the selected note with a strong highlight, and scrolls to it on a request.
     selected.onDidChange(() => refreshMarkdownPreviews()),
     // The preview of a clean editing view renders the text of its file, which can change while the clean text stays.
@@ -311,7 +335,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       }
     }),
   );
-  void vscode.commands.executeCommand('setContext', highlightsContext, showsHighlights(undefined));
+  contextsChanged();
   return {
     extendMarkdownIt: (md) =>
       extendMarkdownIt(md, {

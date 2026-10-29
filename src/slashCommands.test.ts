@@ -7,8 +7,8 @@
  * fake of the editor API: the suggestions after a typed slash, `/todo` for the
  * sentence before it and `/note` for the text that the slash replaced, which
  * open the editor of a new note in the side view, the todo notes that the side
- * view adds and completes (R-NOTE-008), `/footnote` with its definition, and
- * `/date` and `/time`.
+ * view adds and completes (R-NOTE-008), `/footnote`, which opens the editor of
+ * a new footnote in the side view, and `/date` and `/time`.
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -86,8 +86,8 @@ test('a slash after a space offers /todo for the sentence before it, /footnote, 
   const { document, editor, view } = await start('Fix the bug. Write the tests /\n', 0, 30);
   const items = fake.complete(document, new FakePosition(0, 30));
   expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time']);
-  expect(items.map((item) => item.insertText)).toEqual(['', '[^1]', '2026-10-29', '2026-10-29 19:29']);
-  // /todo removes the command with the space before it, /date and /time keep the space.
+  expect(items.map((item) => item.insertText)).toEqual(['', '', '2026-10-29', '2026-10-29 19:29']);
+  // /todo and /footnote remove the command with the space before it, /date and /time keep the space.
   expect(items.map((item) => [item.range!.start.character, item.range!.end.character])).toEqual([
     [28, 30],
     [28, 30],
@@ -120,14 +120,21 @@ test('/todo shows only where a note can highlight the sentence, and a slash in a
   expect(fake.complete(document, new FakePosition(6, 4))).toEqual([]);
 });
 
-test('/footnote writes the reference at the end of the word, and the definition after the last footnote, with the cursor in it (R-EDIT-008, R-FOOT-003)', async () => {
-  const { document, editor } = await start('One sentence /\n\nMore[^1].\n\n[^1]: A source.\n\nThe end.\n', 0, 14);
+test('/footnote removes the command and opens the editor of a new footnote in the side view, which writes the reference at the end of the word and the definition after the last footnote (R-EDIT-008, R-FOOT-003)', async () => {
+  const { document, editor, view } = await start('One sentence /\n\nMore[^1].\n\n[^1]: A source.\n\nThe end.\n', 0, 14);
   const items = fake.complete(document, new FakePosition(0, 14));
   const footnote = items.find((item) => labels([item])[0] === '/footnote')!;
-  expect(footnote.insertText).toBe('[^2]');
-  await accept(editor, footnote);
-  expect(document.text).toBe('One sentence[^2]\n\nMore[^1].\n\n[^1]: A source.\n\n[^2]: \n\nThe end.\n');
-  expect(editor.selection.active).toEqual(new FakePosition(6, 6));
+  expect(footnote.detail).toBe('The footnote [^2], in the editor of the side view');
+  // VS Code puts the cursor after the text of the suggestion: where the command started.
+  await editor.edit((builder) => builder.replace(footnote.range!, footnote.insertText!));
+  editor.selection = { active: new FakePosition(0, 12) };
+  await fake.run(footnote.command!.command, ...(footnote.command!.arguments ?? []));
+  await settle();
+  expect(document.text).toBe('One sentence\n\nMore[^1].\n\n[^1]: A source.\n\nThe end.\n');
+  expect(view.messages.filter((message) => message.type === 'newFootnote')).toEqual([{ type: 'newFootnote' }]);
+  expect(view.state().footnotePlace).toBe('One sentence');
+  await send(view, { type: 'addFootnote', request: 1, text: 'Another source.' });
+  expect(document.text).toBe('One sentence[^2]\n\nMore[^1].\n\n[^1]: A source.\n\n[^2]: Another source.\n\nThe end.\n');
 });
 
 test('a slash that replaced selected text offers /note and /todo, which put the text back and open the editor of a new note for it (R-EDIT-008)', async () => {

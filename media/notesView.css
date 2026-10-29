@@ -9,7 +9,8 @@
  * the font and the colors of the theme of VS Code. Each thread is a box with
  * the color of its note at its left side and a round button of this color;
  * the selected thread has a frame in this color, and each other thread is
- * dimmed (R-SIDE-007). The replies to a reply are indented below it. The
+ * dimmed (R-SIDE-007). A standard footnote has the color of the descriptions
+ * of the theme, and its label the background of code (R-FOOT-001). The replies to a reply are indented below it. The
  * buttons are small icons, as the buttons in the title of an editor, and the
  * text view of a note has the font of the text editor. The view is a list
  * that scrolls (decision 25), below a header with the filters that stays at
@@ -256,6 +257,15 @@ textarea:focus {
   gap: 8px;
   align-items: center;
   margin-bottom: 2px;
+}
+
+/* The label of a standard footnote, as the file holds it, in the font of the text editor (R-FOOT-001). */
+.footnote-label {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.12));
 }
 
 .answer {

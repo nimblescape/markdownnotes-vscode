@@ -12,17 +12,17 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 85 requested features, 59 are built, among them the clean editing view
+Of 86 requested features, 63 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
-breaks and the cursor next to the hidden markers in the text editor. 13
-features are planned but not built: the features of the section
+breaks and the cursor next to the hidden markers in the text editor, and
+the standard footnotes in the side view. 10 features are planned but not built: the features of the section
 [Planned features](#planned-features). Two need Hannes: the npm package with
 the first release, and a setting of VS Code for the width of the text editor
 in Zen Mode. 11 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
-notes, the standard footnotes in the side view, and the citations and sources
+notes, the checks of the footnotes, and the citations and sources
 in the style of the PHT (APA 7) with the slash commands `/research` and
 `/source`, which wait for the answer of Hannes on the form of the citations.
 
@@ -110,7 +110,7 @@ breaks and the cursor next to the hidden markers.
 | Todo notes: "/todo in the text adds a special todo note", "a todo can be marked completed" | 10-29 17:56 | [R-NOTE-008](requirements.md#r-note-008) | Built | [Decision 30](requirements.md#decisions) (10-29 17:58). The state `todo` or `done` stands in the header of the first answer; a check box in the side view marks a todo completed or open again |
 | Slash commands in the text editor with completion: "the / command allows tab completion" | 10-29 18:28 | [R-EDIT-008](requirements.md#r-edit-008) | Built | A slash at the start of a line or after a space shows the list of VS Code; Tab or Enter takes a command. "all slash commands are intended for the text editor" (18:40) |
 | `/date` and `/time` | 10-29 18:29 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The local date `2026-10-29`, and the local date and time in minutes `2026-10-29 19:29` |
-| "/footnote creates a footnote" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | After a word: the reference with the next free number, the definition after the last standard footnote, and the cursor in the definition. The command "Add Footnote" (step 33) stays planned |
+| "/footnote creates a footnote" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | After a word: the reference with the next free number and the definition after the last standard footnote. Since step 32, through the editor of the side view ([Footnotes](#footnotes)) |
 | "selecting and /note creates a note", "/note is not available when no text is selected" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The slash that replaced the selected text offers `/note` and `/todo`; the text comes back and the side view opens the editor of the new note. `/todo` without selected text takes the sentence before the slash |
 | `/todo` at the start of the text of a new note in the side view | 10-29 17:58 | [R-NOTE-008](requirements.md#r-note-008) | Dropped | The part "in the side view" of [decision 30](requirements.md#decisions): "all slash commands are intended for the text editor" (18:40) |
 
@@ -154,9 +154,23 @@ need Hannes after the merge of
 | The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdown-notes format` |
 | The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | After the merge; the thread "Publish formatter to npmjs" has the steps |
 
+## Footnotes
+
+The side view is also the editor of the standard footnotes of a file, the
+footnotes that are no note, since the evening of 2026-10-29 (steps 32 and 33
+of the plan). The checks of the footnotes, "Renumber Footnotes" and "Make
+Footnote" are in the section [Planned features](#planned-features).
+
+| Request | Asked | Spec | State | Detail |
+| --- | --- | --- | --- | --- |
+| Standard footnotes in the side view: "the extension could serve as a rich ui for editing footnotes"; show, edit, delete, go to the definition | 10-29 07:48 | [R-FOOT-001](requirements.md#r-foot-001), [R-FOOT-002](requirements.md#r-foot-002) | Built | Each footnote at the place of its first reference, with its label and the numbers of GitHub and of the preview in the tooltip; "Delete" asks first and removes the definition and every reference. Setting `showFootnotes` and the buttons "Hide Footnotes" and "Show Footnotes" in the title of the view |
+| "Add Footnote" at the cursor | 10-29 08:01 | [R-FOOT-003](requirements.md#r-foot-003) | Built | Shift+Alt+B (Cmd+K B on macOS), the title of the side view, the context menu and the Command Palette; the editor of the new footnote in the side view, with the text before the place in its title |
+| `/footnote` opens the editor of the new footnote in the side view: "it just goes to the side view editor, similar to the /notes command" | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | The command leaves the text, and "Add Footnote" in the editor writes the reference and the definition |
+| Citations as footnotes inside the highlight of a note: "these citations can be in a highlight region with a note. does that work?" | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. The form of the citations waits for Hannes (step 45) |
+
 ## Planned features
 
-13 features are in the specification and the plan, but not built. Steps 29
+10 features are in the specification and the plan, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -166,12 +180,9 @@ hidden form changes the markup that the clean view leaves out.
 | The hidden form of the notes, which every viewer hides, also GitHub: "when the users decides to hide the notes that also GitHub shall hide the notes" | 10-29 08:01 | [R-HIDE-001](requirements.md#r-hide-001), [R-HIDE-003](requirements.md#r-hide-003) | 29, before the first release | Planned |
 | An icon at the top of the side view that hides the notes from other viewers | 10-29 08:02 | [R-HIDE-002](requirements.md#r-hide-002) | 30, before the first release | Planned |
 | The text without notes for publishing: `markdown-notes strip`, "Copy without Notes" | 10-29 08:01 | [R-HIDE-004](requirements.md#r-hide-004) | 31 | Planned |
-| Standard footnotes in the side view: show, edit, delete, go to the definition | 10-29 07:48 | [R-FOOT-001](requirements.md#r-foot-001), [R-FOOT-002](requirements.md#r-foot-002) | 32 | Planned |
-| "Add Footnote" at the cursor | 10-29 08:01 | [R-FOOT-003](requirements.md#r-foot-003) | 33 | Planned |
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| `/footnote` opens the editor of the new footnote in the side view: "it just goes to the side view editor, similar to the /notes command" | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-001](requirements.md#r-foot-001) | 32 | Planned |
 | A metadata format for the sources: "we need to find a suitable bibliography metadata definition, as we have with the note tags" | 10-29 18:55 | [R-EDIT-008](requirements.md#r-edit-008) | 45, waits for Hannes | Planned |
 | A render hint in the comment of the format, with a link to an instruction file of the style: "we use PHT style", "for now we only support this APA 7" | 10-29 19:18 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
 | "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it; the comment of the format explains to an agent what to do with it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
@@ -195,8 +206,8 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 3. Step 45: the citations and sources in the style of the PHT (APA 7), the
    render hint, and the slash commands `/research` and `/source`, after the
    answer of Hannes on the form of the citations.
-4. Steps 31 to 35: the text without notes, and the standard footnotes in the
-   side view.
+4. Steps 31, 34 and 35: the text without notes, the checks of the
+   footnotes, "Renumber Footnotes" and "Make Footnote".
 5. Step 14: the visual editing in the side view.
 
 ---

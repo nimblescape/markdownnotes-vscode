@@ -30,7 +30,9 @@ the file, with the GitHub login of the author.
   `nimblescape.markdownNotes.addFormatComment` turn these off. A file that an
   editor only shows keeps its text, and a Markdown file without notes changes
   only with "Format Document".
-  Other footnotes, for example `[^1]`, stay as they are.
+  Other footnotes, for example `[^1]`, change only when you add, edit or
+  delete one in the side view, and then only its definition and its
+  references.
 - **GitHub sign-in.** New notes and answers need a sign-in with GitHub, so
   that the author is always known. The extension uses the GitHub sign-in of
   VS Code (the scope `read:user`) and reads only the login of your account.
@@ -90,10 +92,17 @@ describes each step and where its protection ends.
 - **Todo notes.** A note can be a task: ` · todo` at the end of the header of
   its first answer, ` · done` when it is completed. A check box in the side
   view marks it completed.
+- **Footnotes.** The side view also shows the standard footnotes of the
+  file, for example `[^1]`, at the place of their first reference, where you
+  edit and delete them and go to their definition. "Add Footnote" (Shift+Alt+B,
+  Cmd+K B on a Mac) opens the editor of a new footnote for the place of the
+  cursor and writes its reference with the next free number and its
+  definition. "Hide Footnotes" in the title of the side view shows the notes
+  only.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
-  sentence before it), `/footnote`, `/date` and `/time`; Tab takes the
-  chosen command.
+  sentence before it), `/footnote` (the editor of a new footnote in the side
+  view), `/date` and `/time`; Tab takes the chosen command.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
@@ -176,6 +185,8 @@ you add or answer a note. In the side view "Notes":
 | Change the color | Click the color at the left of the thread, then a new color. |
 | See the whole note | Click "Show as Text" at the thread. |
 | Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor of the file itself ("Open File with Markup") brings it back. |
+| Add a footnote | Put the cursor where the reference goes, then press Shift+Alt+B (Cmd+K B on a Mac), click "Add Footnote" (`+¹`) in the title of the side view, or type `/footnote` after the word. Write the text, then click "Add Footnote". |
+| Edit or delete a footnote | Click "Edit" (pencil) or "Delete" (trash can) at the footnote; "Go to Definition" (arrow down) shows its definition. |
 
 In the text editor or in the Markdown preview (Ctrl+K V opens it to the
 side), click a highlight to select its note, and double-click it to open the
@@ -193,6 +204,7 @@ extension to everyone who opens it.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
+| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. The buttons "Hide Footnotes" and "Show Footnotes" in the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |
@@ -219,7 +231,7 @@ on a save; "Save without Formatting" saves a file without the formatter.
   text. Where lines wrap, the heights of the threads are estimates.
 - In the Markdown preview, the button above the selected text adds a note;
   the light bulb, the shortcut and the context menu work in the text editor
-  only.
+  only. "Add Footnote" works in the text editor only.
 - GitHub shows the notes as footnotes at the end of the page, numbered
   together with the other footnotes. GitHub shows no footnote in a block
   quote, so the extension writes each note after the outermost block.

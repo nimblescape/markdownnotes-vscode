@@ -13,7 +13,7 @@ The first version.
   the date with the offset of the time zone, for example
   `**hannes** · 2026-10-28 10:15+01:00`. The body is Markdown, indented by
   four spaces. GitHub shows each note as a footnote at the end of the page.
-  Other footnotes stay footnotes.
+  Other footnotes stay footnotes, which the side view edits too.
 - Threads: each note is a thread with a tree of replies. A reply is a block
   quote with its own header, and a reply to a reply stands in the block quote
   of the answer it replies to.
@@ -53,13 +53,28 @@ The first version.
   in Zen Mode. Its header stays at the top, with the name of the file, the
   todo filter, the colors as dots, "Clear Filter" and a search field for the
   text and the authors of the answers; the filters that are on combine.
+- Standard footnotes in the side view: each footnote that is no note, for
+  example `[^1]`, is a thread of the list at the place of its first
+  reference, with its label, the numbers that GitHub and the Markdown
+  preview show in the tooltip of the label, and its rendered text. "Edit"
+  writes its definition, "Go to Definition" shows the definition, and
+  "Delete" asks first and then removes the definition and every reference.
+  The cursor on a reference or in a definition selects the footnote, also a
+  reference inside the highlight of a note. "Add Footnote" (Shift+Alt+B,
+  Cmd+K B on a Mac, in the title of the side view, the context menu and the
+  Command Palette) opens the editor of a new footnote for the place of the
+  cursor, and writes its reference with the next free number and its
+  definition after the last footnote. "Hide Footnotes" and "Show Footnotes"
+  in the title of the side view change the setting
+  `nimblescape.markdownNotes.showFootnotes`. A change of a footnote adds no
+  comment of the format.
 - Todo notes: the header of the first answer of a note ends with ` · todo`
   for an open task and ` · done` for a completed one; a check box in the side
   view changes it.
 - Slash commands in the text editor: a `/` at the start of a line or after a
   space offers `/note` for the text that the slash replaced, `/todo` for that
-  text or the sentence before it, `/footnote` for a standard footnote with
-  the next free number and its definition, `/date` and `/time`, in the list
+  text or the sentence before it, `/footnote` for a standard footnote after
+  the word before it, in the editor of the side view, `/date` and `/time`, in the list
   of suggestions of VS Code; Tab or Enter takes the chosen command.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
@@ -127,6 +142,7 @@ The first version.
   footnotes, checkboxes and the GitHub styles. A footnote in a note is a
   footnote of the page.
 - The settings `nimblescape.markdownNotes.showHighlights`,
+  `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,
   `nimblescape.markdownNotes.addFormatComment` and
   `nimblescape.markdownNotes.formatOnSave`.

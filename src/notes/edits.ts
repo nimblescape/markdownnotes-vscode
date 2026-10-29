@@ -36,7 +36,10 @@ export interface Edit {
  * ([R-GEN-006](../../docs/requirements.md#r-gen-006)), `missing` for a note that the document no longer holds, and
  * `noText` for a new note without highlighted text, `format` for a document whose comment of the format names a newer version than the extension knows
  * ([R-NOTE-007](../../docs/requirements.md#r-note-007)), and `text` for a text of the text view that is not the
- * definition of the same note.
+ * definition of the same note. The kinds that start with `footnote` are the problems of a standard footnote
+ * ([R-FOOT-002](../../docs/requirements.md#r-foot-002), [R-FOOT-003](../../docs/requirements.md#r-foot-003)): an empty
+ * text, a cursor where no reference can stand, a text that Markdown would not read back as the footnote, a footnote
+ * that the document no longer holds, and a footnote that changed after the editor opened.
  */
 export type Problem =
   | { kind: 'empty' }
@@ -47,7 +50,12 @@ export type Problem =
   | { kind: 'signIn' }
   | { kind: 'missing' }
   | { kind: 'changed' }
-  | { kind: 'format'; format: Version };
+  | { kind: 'format'; format: Version }
+  | { kind: 'footnoteEmpty' }
+  | { kind: 'footnotePlace' }
+  | { kind: 'footnoteStructure' }
+  | { kind: 'footnoteMissing' }
+  | { kind: 'footnoteChanged' };
 
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };

@@ -71,6 +71,15 @@
 // its text and the focus while the list changes; the filters stay in the state
 // of the page. A todo note (R-NOTE-008) has a check box at the start of its
 // header, which marks it completed or open.
+//
+// The standard footnotes of the file (R-FOOT-001) stand in the list as
+// threads too, at the place of their first reference, in a neutral color:
+// the label as the file holds it, whose tooltip gives the numbers of GitHub
+// and of the Markdown preview, and the rendered text of the definition, with
+// "Edit", "Go to Definition" and "Delete" (R-FOOT-002). The filters of the
+// todos and of the colors hide them, and the search finds their text. The
+// editor of a new footnote (R-FOOT-003) names in its title the text before
+// the place of its reference, which follows the cursor of the text editor.
 
 (() => {
   'use strict';
@@ -80,8 +89,9 @@
 
   /**
    * @typedef {{ author: string, date: string, authorDate: string, written: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
-   * @typedef {{ id: string, line: number, color: string, colorName: string, text: string, todo?: 'todo' | 'done', answers: AnswerState[] }} ThreadState
-   * @typedef {{ file: string | undefined, line: number | undefined, highlight: string | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], colors: { name: string, color: string }[] }} State
+   * @typedef {{ label: string, html: string, github?: number, preview?: number }} FootnoteState
+   * @typedef {{ id: string, line: number, color: string, colorName: string, text: string, todo?: 'todo' | 'done', answers: AnswerState[], footnote?: FootnoteState }} ThreadState
+   * @typedef {{ file: string | undefined, line: number | undefined, highlight: string | undefined, footnotePlace?: string, account: string | undefined, selected: string | undefined, threads: ThreadState[], colors: { name: string, color: string }[] }} State
    * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined, original?: string }} Editor
    */
 
@@ -93,7 +103,8 @@
   /**
    * editors holds the open editors by their keys: `new`, `answer:<thread>:<answer>`, `reply:<thread>` for a reply to the
    * note, `reply:<thread>:<answer>` for a reply to an answer, and `text:<thread>` for the changed text of the text view
-   * of a thread, with `original`, the text of the note when the change started. `<answer>` names an answer by its author
+   * of a thread, with `original`, the text of the note when the change started; `edit:<thread>` for the text of a
+   * standard footnote, with its text when the editor opened, and `newFootnote` for a new footnote. `<answer>` names an answer by its author
    * and its date (answerKeyOf), so that an open editor stays with its answer when an answer before it goes away.
    * @type {Map<string, Editor>}
    */
@@ -114,8 +125,8 @@
   /**
    * icons are the paths of the codicons of VS Code that the buttons show (https://github.com/microsoft/vscode-codicons,
    * CC BY 4.0, version 0.0.46-24, which VS Code 1.144 shows), each drawn in a square of 16 units: "reply", "edit",
-   * "trash", "comment", "check", "close", "preview" (the button of the mode "Markdown Preview" of VS Code) and
-   * "go-to-file"; and the boxes of the todo notes, drawn for the view: an empty box for an open todo, and a box with a
+   * "trash", "comment", "check", "close", "preview" (the button of the mode "Markdown Preview" of VS Code),
+   * "go-to-file" and "arrow-down"; and the boxes of the todo notes, drawn for the view: an empty box for an open todo, and a box with a
    * check mark for a completed one.
    */
   const icons = {
@@ -133,6 +144,8 @@
       'M8.70701 8.00001L12.353 4.35401C12.548 4.15901 12.548 3.84201 12.353 3.64701C12.158 3.45201 11.841 3.45201 11.646 3.64701L8.00001 7.29301L4.35401 3.64701C4.15901 3.45201 3.84201 3.45201 3.64701 3.64701C3.45201 3.84201 3.45201 4.15901 3.64701 4.35401L7.29301 8.00001L3.64701 11.646C3.45201 11.841 3.45201 12.158 3.64701 12.353C3.74501 12.451 3.87301 12.499 4.00101 12.499C4.12901 12.499 4.25701 12.45 4.35501 12.353L8.00101 8.70701L11.647 12.353C11.745 12.451 11.873 12.499 12.001 12.499C12.129 12.499 12.257 12.45 12.355 12.353C12.55 12.158 12.55 11.841 12.355 11.646L8.70901 8.00001H8.70701Z',
     preview:
       'M12.5 1H3.5C2.122 1 1 2.122 1 3.5V12.5C1 13.878 2.122 15 3.5 15H12.5C13.878 15 15 13.878 15 12.5V3.5C15 2.122 13.878 1 12.5 1ZM14 12.5C14 13.327 13.327 14 12.5 14H3.5C2.673 14 2 13.327 2 12.5V3.5C2 2.673 2.673 2 3.5 2H12.5C13.327 2 14 2.673 14 3.5V12.5ZM12 3H4C3.448 3 3 3.448 3 4V6C3 6.552 3.448 7 4 7H12C12.552 7 13 6.552 13 6V4C13 3.448 12.552 3 12 3ZM12 6H4V4H12V6ZM12 8H9C8.448 8 8 8.448 8 9V12C8 12.552 8.448 13 9 13H12C12.552 13 13 12.552 13 12V9C13 8.448 12.552 8 12 8ZM12 12H9V9H12V12ZM7 8.5C7 8.776 6.776 9 6.5 9H3.5C3.224 9 3 8.776 3 8.5C3 8.224 3.224 8 3.5 8H6.5C6.776 8 7 8.224 7 8.5ZM7 10.5C7 10.776 6.776 11 6.5 11H3.5C3.224 11 3 10.776 3 10.5C3 10.224 3.224 10 3.5 10H6.5C6.776 10 7 10.224 7 10.5ZM7 12.5C7 12.776 6.776 13 6.5 13H3.5C3.224 13 3 12.776 3 12.5C3 12.224 3.224 12 3.5 12H6.5C6.776 12 7 12.224 7 12.5Z',
+    arrowDown:
+      'M13.854 8.146C13.659 7.951 13.342 7.951 13.147 8.146L9.00096 12.292V2.5C9.00096 2.224 8.77696 2 8.50096 2C8.22496 2 8.00096 2.224 8.00096 2.5V12.293L3.85496 8.147C3.65996 7.952 3.34296 7.952 3.14796 8.147C2.95296 8.342 2.95296 8.659 3.14796 8.854L8.14796 13.854C8.24596 13.952 8.37396 14 8.50196 14C8.62996 14 8.75796 13.951 8.85596 13.854L13.856 8.854C14.051 8.659 14.051 8.342 13.856 8.147L13.854 8.146Z',
     source:
       'M8.58594 1.00098C8.98394 1.00098 9.36646 1.15943 9.64746 1.44043L12.5605 4.35352C12.8415 4.63552 13.001 5.01704 13.001 5.41504V13.001C13.001 14.106 12.106 15.001 11.001 15.001H5.00098C3.89599 15.001 3.00098 14.106 3.00098 13.001V6.00098H4.00098V13.001C4.00098 13.553 4.44899 14.001 5.00098 14.001H11.001C11.553 14.001 12.001 13.553 12.001 13.001V6.00098H9.50098C8.67299 6.00096 8.00098 5.32897 8.00098 4.50098V2.00098C7.99198 1.97699 7.98265 1.9527 7.97266 1.92871C7.89674 1.74704 7.78717 1.5812 7.64746 1.44238L7.20605 1.00098H8.58594ZM9 4.5C9 4.776 9.224 5 9.5 5H11.793L9 2.20703V4.5Z M4.5 0C4.63299 0 4.75952 0.0534683 4.85352 0.147461L6.85352 2.14746C6.90042 2.19336 6.93789 2.24775 6.96289 2.30859C6.98789 2.36959 7.00097 2.43498 7.00098 2.50098C7.00098 2.56698 6.98789 2.63236 6.96289 2.69336C6.93789 2.75323 6.90043 2.80956 6.85352 2.85547L4.85352 4.85547C4.75956 4.94917 4.63278 5.00195 4.5 5.00195C4.36722 5.00195 4.24044 4.94917 4.14648 4.85547C4.05248 4.76147 3.99902 4.63398 3.99902 4.50098C3.99903 4.36799 4.05249 4.24146 4.14648 4.14746L5.29297 3.00098H2.5C2.10201 3.00098 1.72045 3.15944 1.43945 3.44043C1.15846 3.72242 1.00001 4.10298 1 4.50098V5.50098C1 5.63398 0.947516 5.76147 0.853516 5.85547C0.759563 5.94817 0.632774 6.00098 0.5 6.00098C0.367225 6.00098 0.240437 5.94917 0.146484 5.85547C0.0534844 5.76147 0 5.63398 0 5.50098V4.50098C6.17892e-06 3.83799 0.263427 3.20239 0.732422 2.7334C1.20142 2.26441 1.83701 2.00098 2.5 2.00098H5.29297L4.14648 0.855469C4.05248 0.761469 3.99902 0.633977 3.99902 0.500977C3.99903 0.367985 4.05249 0.241455 4.14648 0.147461C4.24048 0.0534683 4.36701 0 4.5 0Z',
   };
@@ -256,10 +269,11 @@
    * open opens an editor with a text.
    * @param {string} key
    * @param {string} text
+   * @param {string} [original] - The text of the file that the editor started from, which a save of the editor names.
    */
-  const open = (key, text) => {
+  const open = (key, text, original) => {
     if (!editors.has(key)) {
-      editors.set(key, { text, tab: 'write', preview: undefined, problem: undefined, request: undefined });
+      editors.set(key, { text, tab: 'write', preview: undefined, problem: undefined, request: undefined, ...(original === undefined ? {} : { original }) });
     }
     show(key);
   };
@@ -273,6 +287,9 @@
     if (key === 'new') {
       newColor = undefined;
       newTodo = false;
+    } else if (key === 'newFootnote') {
+      // The extension stops following the place of the reference for the title of the editor.
+      vscode.postMessage({ type: 'footnoteClosed' });
     }
     show();
   };
@@ -474,17 +491,15 @@
   };
 
   /**
-   * threadOf creates the elements of a thread.
+   * sectionOf creates the box of a thread, which a click outside its buttons, links and editors selects: the focus stays
+   * in the view, the thread shows its frame at once, and the state of the extension follows.
    * @param {ThreadState} thread
+   * @param {string} className
+   * @param {string} label - The name of the box for a screen reader.
    */
-  const threadOf = (thread) => {
-    const section = element('section', `thread${thread.id === state.selected ? ' selected' : ''}`, undefined, {
-      'data-id': thread.id,
-      'aria-label': `Note at line ${thread.line + 1}`,
-    });
+  const sectionOf = (thread, className, label) => {
+    const section = element('section', `${className}${thread.id === state.selected ? ' selected' : ''}`, undefined, { 'data-id': thread.id, 'aria-label': label });
     section.style.setProperty('--note-color', thread.color);
-    // A click on the thread outside its buttons, links and editors selects its note, and the focus stays in the view.
-    // The thread shows its frame at once; the state of the extension follows.
     section.addEventListener('click', (event) => {
       if (!(event.target instanceof Element) || !event.target.closest('button, a, textarea, .editor')) {
         if (state.selected !== thread.id) {
@@ -494,6 +509,69 @@
         vscode.postMessage({ type: 'reveal', id: thread.id, focus: false });
       }
     });
+    return section;
+  };
+
+  /**
+   * labelTooltipOf returns the tooltip of the label of a standard footnote: the numbers that GitHub and the Markdown
+   * preview show for it, or that neither shows a footnote without a reference (R-FOOT-001).
+   * @param {FootnoteState} footnote
+   */
+  const labelTooltipOf = (footnote) => {
+    if (footnote.github === undefined) {
+      return 'No reference in the text: GitHub and the Markdown preview do not show this footnote';
+    }
+    if (footnote.github === footnote.preview) {
+      return String(footnote.github) === footnote.label ? `Footnote ${footnote.label} on GitHub and in the Markdown preview` : `GitHub and the Markdown preview show it as footnote ${footnote.github}`;
+    }
+    return `GitHub shows it as footnote ${footnote.github}, because GitHub counts the notes too; the Markdown preview shows it as footnote ${footnote.preview}`;
+  };
+
+  /**
+   * footnoteOf creates the elements of the thread of a standard footnote (R-FOOT-001, R-FOOT-002): its label, the
+   * line of its first reference, "Edit", "Go to Definition" and "Delete", and its rendered text or its editor.
+   * @param {ThreadState} thread
+   * @param {FootnoteState} footnote
+   */
+  const footnoteOf = (thread, footnote) => {
+    const section = sectionOf(thread, 'thread footnote', `Footnote ${footnote.label} at line ${thread.line + 1}`);
+    const key = `edit:${thread.id}`;
+    const header = element('div', 'thread-header');
+    header.append(
+      element('span', 'footnote-label', `[^${footnote.label}]`, { 'data-tooltip': labelTooltipOf(footnote) }),
+      button(`Line ${thread.line + 1}`, 'link reveal', () => vscode.postMessage({ type: 'reveal', id: thread.id }), {
+        'data-tooltip': footnote.github === undefined ? 'Show the definition in the text editor' : 'Show the first reference in the text editor',
+      }),
+    );
+    if (!editors.has(key)) {
+      const actions = element('span', 'actions');
+      actions.append(
+        iconButton('edit', 'Edit', () => open(key, thread.text, thread.text), { 'aria-label': `Edit the footnote ${footnote.label}` }),
+        iconButton('arrowDown', 'Go to Definition', () => vscode.postMessage({ type: 'definition', id: thread.id }), { 'aria-label': `Go to the definition of the footnote ${footnote.label}` }),
+        iconButton('trash', 'Delete', () => vscode.postMessage({ type: 'deleteFootnote', id: thread.id }), { 'aria-label': `Delete the footnote ${footnote.label}` }),
+      );
+      header.append(actions);
+    }
+    section.append(header);
+    if (editors.has(key)) {
+      section.append(editorOf(key, 'Text of the footnote, in Markdown', 'Save', (request, text) => ({ type: 'saveFootnote', request, id: thread.id, text, original: editors.get(key)?.original ?? thread.text })));
+    } else {
+      const body = element('div', 'answer-body markdown-body');
+      body.replaceChildren(safeHtml(footnote.html));
+      section.append(body);
+    }
+    return section;
+  };
+
+  /**
+   * threadOf creates the elements of a thread.
+   * @param {ThreadState} thread
+   */
+  const threadOf = (thread) => {
+    if (thread.footnote) {
+      return footnoteOf(thread, thread.footnote);
+    }
+    const section = sectionOf(thread, 'thread', `Note at line ${thread.line + 1}`);
     const header = element('div', 'thread-header');
     const asText = texts.has(thread.id);
     const swatch = button(
@@ -583,6 +661,25 @@
       }),
     );
     section.append(editorOf('new', 'Text of the new note, in Markdown', newTodo ? 'Add Todo' : 'Add Note', (request, text) => ({ type: 'add', request, text, color: newColor, todo: newTodo })));
+    return section;
+  };
+
+  /**
+   * newFootnoteTitle returns the title of the editor of a new standard footnote: the text before the place of its
+   * reference at the cursor of the text editor, or what to do where no reference can stand (R-FOOT-003).
+   */
+  const newFootnoteTitle = () => {
+    if (state.footnotePlace === undefined) {
+      return 'Put the cursor into the text where the footnote goes';
+    }
+    return state.footnotePlace === '' ? 'New footnote at the start of the line' : `New footnote after “${state.footnotePlace}”`;
+  };
+
+  /** newFootnoteOf creates the elements of the editor of a new standard footnote, with the place of its reference in its title. */
+  const newFootnoteOf = () => {
+    const section = element('section', 'new-note new-footnote', undefined, { 'data-id': 'newFootnote' });
+    section.append(element('h2', 'new-title', newFootnoteTitle()));
+    section.append(editorOf('newFootnote', 'Text of the new footnote, in Markdown', 'Add Footnote', (request, text) => ({ type: 'addFootnote', request, text })));
     return section;
   };
 
@@ -742,7 +839,8 @@
 
   /**
    * matches tells whether a thread matches each filter that is on: a todo in a chosen state, a note in a chosen color,
-   * and each word of the search field in the text or the author of an answer, without regard to case.
+   * and each word of the search field in the text or the author of an answer, or in the label or the text of a
+   * footnote, without regard to case. A footnote has no state of a todo and no color.
    * @param {ThreadState} thread
    */
   const matches = (thread) => {
@@ -752,7 +850,7 @@
     if (filter.colors.length > 0 && !filter.colors.includes(thread.colorName)) {
       return false;
     }
-    const text = thread.answers.map((answer) => `${answer.author}\n${answer.body}`).join('\n').toLowerCase();
+    const text = (thread.footnote ? `[^${thread.footnote.label}]\n${thread.text}` : thread.answers.map((answer) => `${answer.author}\n${answer.body}`).join('\n')).toLowerCase();
     return filter.text.toLowerCase().split(/\s+/).filter(Boolean).every((word) => text.includes(word));
   };
 
@@ -857,9 +955,12 @@
     if (state.file !== undefined && editors.has('new')) {
       root.append(newNoteOf());
     }
+    if (state.file !== undefined && editors.has('newFootnote')) {
+      root.append(newFootnoteOf());
+    }
     if (state.file === undefined) {
       root.append(element('p', 'hint', 'Open a Markdown file to see its notes.'));
-    } else if (state.threads.length === 0 && !editors.has('new')) {
+    } else if (state.threads.length === 0 && !editors.has('new') && !editors.has('newFootnote')) {
       root.append(element('p', 'hint', 'This file has no notes yet. Select text in the text editor, then choose "Add Note" in the light bulb or the context menu of the text editor, or "Add Note" (+) in the title of the view.'));
     }
     // The selected thread shows also when the filter hides it.
@@ -935,7 +1036,7 @@
         const [kind, id, answer] = key.split(':');
         const thread = state.threads.find((candidate) => candidate.id === id);
         const hasAnswer = thread !== undefined && thread.answers.some((_, index) => answerKeyOf(thread, index) === answer);
-        if (((kind === 'answer' || (kind === 'reply' && answer !== undefined)) && !hasAnswer) || ((kind === 'reply' || kind === 'text') && !thread)) {
+        if (((kind === 'answer' || (kind === 'reply' && answer !== undefined)) && !hasAnswer) || ((kind === 'reply' || kind === 'text' || kind === 'edit') && !thread)) {
           editors.delete(key);
         }
       }
@@ -957,12 +1058,20 @@
       // An open editor of a new note keeps its text and its color; `/todo` of the text editor makes the note a todo.
       newTodo = message.todo === true;
       open('new', editors.get('new')?.text ?? '');
+    } else if (message.type === 'newFootnote') {
+      // An open editor of a new footnote keeps its text.
+      open('newFootnote', editors.get('newFootnote')?.text ?? '');
     } else if (message.type === 'line') {
       state.line = message.line;
       state.highlight = message.highlight;
-      const title = root.querySelector('.new-title');
+      state.footnotePlace = message.footnotePlace;
+      const title = root.querySelector('.new-note:not(.new-footnote) .new-title');
       if (title) {
         title.textContent = newTitle();
+      }
+      const footnoteTitle = root.querySelector('.new-footnote .new-title');
+      if (footnoteTitle) {
+        footnoteTitle.textContent = newFootnoteTitle();
       }
     } else if (message.type === 'result') {
       const key = requests.get(message.request);
