@@ -109,9 +109,12 @@ connection of VS Code, as the text of an open file does.
   passes the click to the extension
   ([Links to the extension](#links-to-the-extension)). It gives only a link
   to the extension, with the scheme of VS Code, the host
-  `nimblescape.nimblescape-markdown-notes` and the path `/open` or
-  `/deselect`, because a document can write an element with the same classes
-  in raw HTML. It reads no text of the page and sends no message.
+  `nimblescape.nimblescape-markdown-notes` and the path `/open`, `/deselect`
+  or `/add`, because a document can write an element with the same classes
+  in raw HTML. It sends no message. It reads the text of the page only for
+  "Add Note" of the preview: a click on the button "Add Note" above selected
+  text puts the selected text and the text of its block before it into the
+  link to the extension.
 - **The light bulb action of the selected text.** The Code Action "Add
   Note" has a fixed title and runs the command "Add Note" of the extension
   without arguments, which opens the editor of a new note in the side view;
@@ -180,11 +183,15 @@ open it. Such a link can also come from outside VS Code, for example from a
 web page, so the extension:
 
 - handles only the path `/open` with a document and the index of a line,
-  and the path `/deselect` with a document;
+  the path `/deselect` with a document, and the path `/add` with a document,
+  the index of a line and two texts;
 - opens only a document that is open in VS Code, or a file of a folder of the
   workspace, and only when it is a Markdown document that can have notes;
-- only shows the notes of the document in the side view, or deselects its
-  selected note. A link changes no file and runs no command.
+  `/deselect` and `/add` take only a document that is open;
+- only shows the notes of the document in the side view, deselects its
+  selected note, or opens the editor of a new note in the side view, which
+  adds the note only when the user writes its text and clicks "Add Note". A
+  link changes no file and runs no command.
 
 ## Changes of a file
 

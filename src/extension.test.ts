@@ -108,6 +108,20 @@ test('the export renders the highlights with the link of the rendered document, 
   expect(md.render(note, { currentDocument: document })).not.toContain('An answer');
 });
 
+test('the export ends the page of an open document that can have notes with the link of "Add Note" of the preview (R-PREV-008)', async () => {
+  const document = fake.open(note);
+  const { api, extension } = await fake.activate();
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  const link = `vscode://${extension.extensionId}${extension.addPath}?${new URLSearchParams({ document: document.uri.toString() }).toString()}`;
+  const html = md.render('Text.\n', { currentDocument: document.uri });
+  expect(html).toBe(`<p>Text.</p>\n<div class="nimblescape-note-page" data-add="${link.replace(/&/g, '&amp;')}" hidden></div>\n`);
+  // A rendering without a document, of a document that is not open, or of a document that can have no notes has none.
+  expect(md.render('Text.\n')).toBe('<p>Text.</p>\n');
+  expect(md.render('Text.\n', { currentDocument: new FakeUri('file', '/folder/b.md') })).toBe('<p>Text.</p>\n');
+  const version = fake.open('Text.\n', '/folder/a.md', { scheme: 'git' });
+  expect(md.render('Text.\n', { currentDocument: version.uri })).toBe('<p>Text.</p>\n');
+});
+
 test('"Hide Highlights" turns the setting off in the settings that decide the value, and "Show Highlights" turns it on without opening the side view (R-GEN-011)', async () => {
   await fake.activate();
   const contexts = () => fake.calls.filter(({ command, args }) => command === 'setContext' && args[0] === highlightsContext).map(({ args }) => args[1]);

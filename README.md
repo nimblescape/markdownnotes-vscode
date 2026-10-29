@@ -8,7 +8,8 @@ answer a note and each other, so each note is a thread with a tree of
 replies. The side view "Notes" shows the threads next to their highlights in
 the text editor, and is the editor of the notes. You add a note by selecting
 text and choosing "Add Note": in the light bulb at the selected text, with a
-shortcut, or in the context menu. Every change goes back into the footnote in
+shortcut, in the context menu, or with the button above the selected text of
+the Markdown preview. Every change goes back into the footnote in
 the file, with the GitHub login of the author.
 
 ![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the list of the two threads, the selected blue thread at its top with a frame, and the dimmed green thread](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
@@ -85,8 +86,10 @@ describes each step and where its protection ends.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
-  editor, or with "Add Note" (`+`) in the title of the side view. Each opens
-  the editor of the new note in the side view, where you choose its color.
+  editor, or with "Add Note" (`+`) in the title of the side view. In the
+  Markdown preview, the button "Add Note" shows above the selected text. Each
+  opens the editor of the new note in the side view, where you choose its
+  color.
   Nothing shows by itself over the selected text, and there is no note
   without highlighted text.
 - **The text stays readable.** A Markdown file with notes opens in the clean
@@ -155,7 +158,7 @@ you add or answer a note. In the side view "Notes":
 
 | Action | How |
 | --- | --- |
-| Add a note | Select the text in the text editor, then choose "Add Note" in the light bulb at the selected text (Ctrl+.), press Shift+Alt+N (Cmd+K N on a Mac), or click "Add Note" (`+`) in the title of the side view. Choose a color, write the text, then click "Add Note" (check mark) or press Ctrl+Enter. |
+| Add a note | Select the text in the text editor, then choose "Add Note" in the light bulb at the selected text (Ctrl+.), press Shift+Alt+N (Cmd+K N on a Mac), or click "Add Note" (`+`) in the title of the side view. In the Markdown preview, select the text, then click the button "Add Note" above it. Choose a color, write the text, then click "Add Note" (check mark) or press Ctrl+Enter. |
 | Edit an answer | Click "Edit" (pencil) at the answer, change the text, then click "Save" (check mark) or press Ctrl+Enter. "Cancel" keeps the answer as it is. |
 | Answer a note | Click "Answer" (speech bubble) at the thread, write the text, then click "Answer". |
 | Reply to an answer | Click "Reply" (arrow) at the answer, write the text, then click "Reply". |
@@ -202,6 +205,9 @@ on a save; "Save without Formatting" saves a file without the formatter.
 - The side view stands next to the text editor only; next to the preview it
   lists the threads, because the preview tells an extension no place of its
   text. Where lines wrap, the heights of the threads are estimates.
+- In the Markdown preview, the button above the selected text adds a note;
+  the light bulb, the shortcut and the context menu work in the text editor
+  only.
 - GitHub shows the notes as footnotes at the end of the page, numbered
   together with the other footnotes. GitHub shows no footnote in a block
   quote, so the extension writes each note after the outermost block.

@@ -18,7 +18,8 @@
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
-import { markdownModes, notesViewId, viewCommands } from './notesView';
+import { addPath, extensionId } from './extension';
+import { markdownModes, notesViewId, previewTextMissing, viewCommands } from './notesView';
 import { Fake, FakeEditor, FakePosition, FakeRange, FakeTabInputText, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
@@ -657,6 +658,57 @@ test('"Add Note" opens the editor of a new note for the selected text, and witho
   // The context menu of the text editor passes the URI of the document, which changes nothing.
   await fake.run(viewCommands.newNote, editor.document.uri);
   expect(view.messages.at(-1)).toEqual({ type: 'new' });
+});
+
+/**
+ * addLink returns the link of "Add Note" of the preview of a document, for text that the user selected in the preview
+ * (R-PREV-008).
+ * @param document - The URI of the rendered document.
+ * @param line - The line of the block, which the preview names.
+ * @param before - The text of the block before the selected text, as the page shows it.
+ * @param text - The selected text, as the page shows it.
+ */
+const addLink = (document: FakeUri, line: number, before: string, text: string): FakeUri =>
+  FakeUri.parse(`vscode://${extensionId}${addPath}?${new URLSearchParams({ document: document.toString(), line: String(line), before, text }).toString()}`);
+
+test('"Add Note" of the preview opens the editor of a new note for the selected text of the preview, which the new note highlights (R-PREV-008)', async () => {
+  const { document, view } = await start(note, 0);
+  fake.signIn = 'carl';
+  const before = view.messages.length;
+  await fake.uriHandler!.handleUri(addLink(document.uri, 2, 'The text of ', 'the page.'));
+  await settle();
+  // The title of the editor names the text at once, before the new state of the view.
+  expect(view.messages.slice(before).filter((message) => message.type !== 'state')).toEqual([{ type: 'line', line: 2, highlight: 'the page.' }, { type: 'new' }]);
+  expect(view.state().highlight).toBe('the page.');
+  await send(view, { type: 'add', request: 1, text: 'A new note.' });
+  expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
+  expect(document.text).toMatch(/^The text\[\^note-aaaa\] of <wbr><!--\[(note-[a-z0-9]{4})-->the page\.\[\^\1\]$/m);
+  expect(view.state().threads).toHaveLength(2);
+  // Text that the file does not hold, such as the text of a note, which the preview never shows, or text that a note
+  // cannot highlight, over two cells of a table, opens no editor and tells what to select.
+  const count = view.messages.length;
+  await fake.uriHandler!.handleUri(addLink(document.uri, 0, '', 'Other'));
+  await fake.uriHandler!.handleUri(addLink(document.uri, 4, '', 'carl'));
+  const table = fake.open('| A | B |\n|---|---|\n| one | two |\n', '/folder/table.md');
+  await fake.uriHandler!.handleUri(addLink(table.uri, 2, '', 'onetwo'));
+  await settle();
+  expect(fake.infos).toEqual([previewTextMissing, previewTextMissing, expect.stringMatching(/^The note was not added: a note highlights text of a paragraph/)]);
+  // A link of a document that is not open changes nothing.
+  await fake.uriHandler!.handleUri(addLink(new FakeUri('file', '/folder/other.md'), 0, '', 'Title'));
+  await settle();
+  expect(view.messages.length).toBe(count);
+});
+
+test('"Add Note" of the preview of the clean editing view adds the note to the file, at the place of the selected text (R-PREV-008, R-TEXT-009)', async () => {
+  const { clean, document, view } = await inCleanView(twoNotes);
+  fake.signIn = 'carl';
+  await fake.uriHandler!.handleUri(addLink(clean.document.uri, 0, 'The agents ', 'change'));
+  await settle();
+  expect(view.messages.filter((message) => message.type === 'new')).toEqual([{ type: 'new' }]);
+  expect(view.state().highlight).toBe('change');
+  await send(view, { type: 'add', request: 1, text: 'A new note.' });
+  expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
+  expect(document.text).toMatch(/^The <wbr><!--\[note-aaaa-->agents\[\^note-aaaa\] <wbr><!--\[(note-[a-z0-9]{4})-->change\[\^\1\] <wbr><!--\[note-bbbb green-->the work\[\^note-bbbb\]\.$/m);
 });
 
 test('"Add Note" opens the hidden view, and a view that opens just now gets the request when its script starts (R-EDIT-006)', async () => {

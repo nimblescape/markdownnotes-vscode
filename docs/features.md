@@ -12,9 +12,9 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 62 requested features, 44 are built, among them the clean editing view
+Of 62 requested features, 45 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
-breaks and the cursor next to the hidden markers in the text editor. 9
+breaks and the cursor next to the hidden markers in the text editor. 8
 features are planned but not built: the features of the section
 [Planned features](#planned-features). The npm package with the first release
 needs Hannes. 8 requests were replaced or dropped by later decisions of
@@ -94,7 +94,8 @@ breaks and the cursor next to the hidden markers.
 
 ## Markdown preview and the modes of VS Code
 
-The preview shows the highlights and selects a note on a click. A line from a
+The preview shows the highlights, selects a note on a click, and adds a note
+to selected text. A line from a
 highlight in the preview to its note is not possible: the preview tells an
 extension no place of its text, and Hannes chose the list
 ([decision 25](requirements.md#decisions)).
@@ -103,6 +104,7 @@ extension no place of its text, and Hannes chose the list
 | --- | --- | --- | --- | --- |
 | The highlights in the preview, faint, strong under the pointer | 10-28 16:36, 20:00 | [R-PREV-001](requirements.md#r-prev-001) | Built | |
 | A click on a highlight selects its note in the side view and opens the view; a click outside deselects it | 10-28 | [R-PREV-003](requirements.md#r-prev-003) | Built | |
+| "Add Note" for selected text in the Markdown preview: "notes cannot be added in the preview view, but this should be possible as well" | 10-29 16:38 | [R-PREV-008](requirements.md#r-prev-008) | Built | A button "Add Note" above the selected text, in the preview to the side and in the mode "Markdown Preview" |
 | The buttons "Show Highlights" and "Hide Highlights" in the title of the preview | 10-28 20:00 | [R-PREV-005](requirements.md#r-prev-005) | Built | |
 | The text without the notes; other footnotes as before | 10-28 | [R-PREV-004](requirements.md#r-prev-004) | Built | Markdown Footnotes in the extension pack ([R-GEN-008](requirements.md#r-gen-008)) |
 | The side view follows the modes "Markdown Preview" and "Markdown Editor": "it shall stay in the mode the view is" | 10-28 | [R-PREV-006](requirements.md#r-prev-006) | Built | The mode "Markdown Editor" shows no highlights: it has no API for extensions |
@@ -146,7 +148,6 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| "Add Note" for selected text in the Markdown preview: "notes cannot be added in the preview view, but this should be possible as well" | 10-29 16:38 | [R-PREV-008](requirements.md#r-prev-008) | 40, in work | Planned |
 
 The later fixes of the code review of 2026-10-28 are not in the
 specification: a queue of writes for each file, tests of the script of the

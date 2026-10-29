@@ -25,6 +25,7 @@ describes its security model.
 | `src/noteEditor.ts` | The overlay of the notes in the text editor: the folding ranges of the notes, their collapse and the collapse again of a note that VS Code opens, the highlights in the colors of the notes, the strong highlight of the selected note, the hidden highlight under the pointer, the hidden start markers and references, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
 | `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdown-notes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, and the text of the file for the Markdown preview of the view. |
 | `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
+| `src/notes/rendered.ts` | The place in the Markdown text of text that the user selected in the Markdown preview, for "Add Note" of the preview: the letters and digits of the text of the block without the parts that the page does not show, and the selected text after as many of them as the text before it holds, or the nearest occurrence. It uses no API of VS Code. |
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
 | `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
@@ -35,7 +36,7 @@ describes its security model.
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
 | `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdown-notes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: takes the notes out of the page, writes the start marker and the first reference of each note as the empty start and end of its highlight, with the color, the link to the side view and the state of the highlight, and leaves every other token, also every other footnote, as it is. |
-| `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the highlights in the Markdown preview, in the colors of the notes, and the script that paints the highlights with the CSS Custom Highlight API, shows a hidden highlight under the pointer, selects and deselects a note on a click, and scrolls to the selected note. |
+| `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the highlights in the Markdown preview, in the colors of the notes, and the script that paints the highlights with the CSS Custom Highlight API, shows a hidden highlight under the pointer, selects and deselects a note on a click, scrolls to the selected note, and shows the button "Add Note" above selected text. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the list that scrolls the selected thread to its top, the tooltips, and the messages to the extension. |
 | `resources/notes-icons.ttf`, `resources/icons/highlighter.svg`, `scripts/icon-font.py` | The icon font of the buttons "Show Highlights" (U+E001) and "Hide Highlights" (U+E002), its source image, a highlighter pen over its line, and the script that builds the font from the image ([Icon font](#icon-font)). |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
@@ -588,6 +589,11 @@ plugins:
   note and a start marker that is no start of a highlight show nothing. The
   notes never show as footnotes ([R-PREV-004](docs/requirements.md#r-prev-004)).
 - Every other footnote renders as without the plugin.
+- The core rule `nimblescape_page` adds a block token at the end of the
+  page: a hidden element `div.nimblescape-note-page` with the link of "Add
+  Note" of the preview (`data-add`, `vscode://nimblescape.nimblescape-markdown-notes/add`
+  with the rendered document, [R-PREV-008](docs/requirements.md#r-prev-008)),
+  for a document that is open and can have notes; else it renders nothing.
 
 The script `media/markdownPreview.js` paints the text between the start and
 the end of each highlight, or from the start of the block of the end when a
@@ -603,13 +609,29 @@ content of the page into a link of an open shadow tree of the body, with the
 CSS `display: contents`, and gives it the address of `data-href` or of
 `data-deselect` only for the time of a click, and only when the address is a
 link to the extension (`ownLink`: the scheme of VS Code, the host
-`nimblescape.nimblescape-markdown-notes` and the path `/open` or `/deselect`),
+`nimblescape.nimblescape-markdown-notes` and the path `/open`, `/deselect` or `/add`),
 because a document can write such an element in raw HTML
 ([docs/security.md](docs/security.md#links-to-the-extension)). The preview
 loads the scripts of the extensions with `async` and adds its content to the
 page with a script of its own when the page is parsed, so the script paints
 at its start, at `DOMContentLoaded`, at `load` and after each update of the
 content (`vscode.markdown.updateContent`).
+
+For selected text of one block (the closest table cell or element with
+`data-line`; not in `pre`), the script shows the button
+`div.nimblescape-note-add` above the selected text after the release of the
+mouse button and after each change of the selection. Its press keeps the
+selection (`preventDefault`), and its click gives the link of the page the
+address of `data-add` of the last `div.nimblescape-note-page` with the
+`data-line` of the block, the text of the block before the selected text and
+the selected text (`Range.toString`, without the transform of CSS). The URI
+handler (`openFromLink` of `src/extension.ts`) takes only an open document
+and calls `addFromPreview` of the side view, which finds the text in the
+rendered document with `renderedRange` of `src/notes/rendered.ts`, maps a
+place of the clean editing view to the file, checks it with `highlightFor`
+and opens the editor of the new note. The preview of the clean editing view
+names the lines of the view in `data-line`, and its page shows the text of
+the view, so the extension reads the text of the view.
 
 `src/markdown/compatibility.test.ts` renders the notes together with the
 markdown-it plugins of other Markdown extensions
@@ -628,7 +650,7 @@ document, so the scrolling uses only the elements of the document.
 The preview parses a document once for each version, without the document in
 the environment of the parsing, and renders it again for each change of a
 setting. So the core rule does the same for every document, and the render
-rules read the setting `showHighlights` with the visibility of the side view
+rules read the setting `showHighlights`
 ([R-PREV-005](docs/requirements.md#r-prev-005)), the selected note and the
 links for the document
 that the preview names in `currentDocument` of the render environment. The

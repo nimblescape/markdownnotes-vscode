@@ -531,7 +531,7 @@ for example with "Hide Highlights", keeps the open editors and their texts.
 ## Add a note
 
 Every note highlights text, so you first select the text that the note is
-about in the text editor. Then:
+about in the text editor or in the Markdown preview. In the text editor:
 
 - **With the light bulb:** VS Code shows a light bulb at the selected text.
   Click it, or press Ctrl+. (Cmd+. on a Mac), and choose "Add Note", the
@@ -545,8 +545,17 @@ about in the text editor. Then:
 - **With "Add Note" in a menu:** click "Add Note" (`+`) in the title of the
   side view, or choose "Add Note" in the context menu of the text editor.
 
-Nothing shows by itself over the selected text, so a selection for a copy or
-a change of the text stays as it is.
+Nothing shows by itself over the selected text of the text editor, so a
+selection for a copy or a change of the text stays as it is.
+
+In the Markdown preview, to the side or in the mode "Markdown Preview":
+select the text with the mouse. When you release the mouse button, a button
+"Add Note" shows above the selected text; click it. The selected text must
+stay in one paragraph, heading, list item or table cell, and text in a code
+block shows no button. The preview shows the text without the markup of
+Markdown, so the extension finds the selected text in the file by its letters
+and digits. For text that it does not find, such as a formula, it adds no
+note and asks you to select the text in the text editor.
 
 The editor of the new note shows the selected text in its title, and the
 colors, where you can change the color. Write the text of the note in
@@ -646,6 +655,8 @@ the text.
 - A click on a highlight selects its note in the side view, and opens the
   side view when it is closed, where you can edit and answer the note.
 - A click on the text outside the highlights deselects the note.
+- Selected text gets the button "Add Note" above it, which adds a note to it
+  ([Add a note](#add-a-note)).
 - A click on a link of the text, a drag that selects text and a double click,
   which opens the text editor, work as without the extension.
 - The note that is selected in the side view has a strong highlight with a
@@ -786,6 +797,11 @@ you can remove them from your settings.
   estimates.
 - A hidden highlight in the text editor stays visible after the pointer left
   it, until the pointer rests on other text or the cursor moves.
+- In the Markdown preview, the button above the selected text adds a note;
+  the light bulb, the shortcut and the context menu work in the text editor
+  only, because VS Code tells an extension no selected text of the preview.
+  A double click in the preview opens the text editor, so select the text
+  with a drag.
 - The buttons "Show or Hide Notes" and "Hide Notes" close the secondary side
   bar. When you move the view to the primary side bar or to the panel, close
   it there as any other view.

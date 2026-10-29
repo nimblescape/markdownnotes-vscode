@@ -56,6 +56,12 @@
  * Markdown preview shows the file and no text editor does keeps the preview,
  * which scrolls to the note (Hannes, 2026-10-28: the editor area stays in its
  * mode).
+ *
+ * "Add Note" of the Markdown preview opens the editor of a new note for the
+ * text that the user selected in the preview
+ * ([R-PREV-008](../docs/requirements.md#r-prev-008)), as for the selected text
+ * of the text editor: the view finds the selected text in the file
+ * ([src/notes/rendered.ts](notes/rendered.ts)).
  */
 
 import * as vscode from 'vscode';
@@ -63,7 +69,8 @@ import { githubProvider } from './github';
 import { openLink } from './links';
 import { hiddenText } from './format/format';
 import { colorIndexOf, colorNames, colorOf, noteColors } from './notes/colors';
-import { placeFor } from './notes/edits';
+import { highlightFor, placeFor } from './notes/edits';
+import { renderedRange } from './notes/rendered';
 import { authorDate, displayDate } from './notes/syntax';
 import { type AnswerRef, isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
 import type { SelectedNotes } from './selectedNotes';
@@ -206,6 +213,13 @@ export interface CleanMirror {
   toClean(real: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
 }
 
+/**
+ * previewTextMissing is the message for text of the Markdown preview that the view did not find in the file, such as a
+ * formula, which the preview shows in another form.
+ */
+export const previewTextMissing =
+  'The note was not added: the selected text of the preview was not found in the Markdown text. Select the text in the text editor, then choose "Add Note" again.';
+
 /** NotesView is the provider of the side view. */
 export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable {
   private view: vscode.WebviewView | undefined;
@@ -326,6 +340,50 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     } else {
       this.chosen.select(document, undefined);
     }
+  }
+
+  /**
+   * addFromPreview opens the editor of a new note in the view for text that the user selected in the Markdown preview of
+   * a document ([R-PREV-008](../docs/requirements.md#r-prev-008)): the document of a clean editing view stands for its
+   * file. The text must be text that a note can highlight, as for "Add Note" of the text editor; for other text the view
+   * opens nothing and tells the user what to select.
+   * @param rendered - The document that the preview renders.
+   * @param line - The line of the block of the selected text, which the preview names.
+   * @param before - The text of the block before the selected text, as the preview shows it.
+   * @param text - The selected text, as the preview shows it.
+   */
+  async addFromPreview(rendered: vscode.TextDocument, line: number, before: string, text: string): Promise<void> {
+    const real = this.mirror?.realOf(rendered.uri);
+    const file = real ? vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === real.toString()) : rendered;
+    if (!file || !isNoteDocument(file)) {
+      return;
+    }
+    const range = renderedRange(linesOf(rendered), line, before, text);
+    if (!range) {
+      void vscode.window.showInformationMessage(previewTextMissing);
+      return;
+    }
+    const place = (position: { line: number; character: number }): vscode.Position | undefined => {
+      const at = new vscode.Position(position.line, position.character);
+      return real ? this.mirror!.toReal(rendered.uri, at) : at;
+    };
+    const start = place(range.start);
+    const end = place(range.end);
+    if (!start || !end || highlightFor(linesOf(file), new vscode.Range(start, end), this.threads.textReadingOf(file)) === undefined) {
+      void vscode.window.showInformationMessage(problemMessage({ kind: 'place' }));
+      return;
+    }
+    const key = file.uri.toString();
+    this.document = file.uri;
+    this.clean = real !== undefined;
+    this.lines.set(key, start.line);
+    this.selections.set(key, new vscode.Range(start, end));
+    // The title of the editor of the new note names the text at once, before the new state of the view.
+    void this.refresh();
+    if (this.ready) {
+      await this.view?.webview.postMessage({ type: 'line', line: start.line, highlight: this.highlightOf(file.uri) });
+    }
+    await this.newNote();
   }
 
   /**

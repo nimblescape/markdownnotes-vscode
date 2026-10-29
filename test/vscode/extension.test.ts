@@ -293,7 +293,7 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(plain.document.getText(), '# Title\nThe One\ntwo\n');
   });
 
-  it('the Markdown preview shows the highlight of each note in its color with its link, and never the text of a note or a footnote (R-PREV-001 to R-PREV-004)', async () => {
+  it('the Markdown preview shows the highlight of each note in its color with its link, and never the text of a note or a footnote, and has the link of "Add Note" (R-PREV-001 to R-PREV-004, R-PREV-008)', async () => {
     const { document } = await open(note, 2);
     const html = await vscode.commands.executeCommand<string>('markdown.api.render', document);
     const link = (line: number) => `${vscode.env.uriScheme}://${extensionId}/open?${new URLSearchParams({ document: document.uri.toString(), line: String(line) }).toString().replace(/&/g, '&amp;')}`;
@@ -303,6 +303,9 @@ describe('nimblescape Markdown Notes', () => {
     assert.ok(html.includes(`The text${end(1, 1, 'note-aaaa', 4)}`), html);
     assert.ok(html.includes(`and ${start(2)}a highlight${end(2, 2, 'note-bbbb', 12)}`), html);
     assert.doesNotMatch(html, /\[\^note-|&lt;!--|<!--\[note|footnote|An answer|Inline/);
+    // The page ends with the link of "Add Note" for selected text of the preview (R-PREV-008).
+    const add = `${vscode.env.uriScheme}://${extensionId}/add?${new URLSearchParams({ document: document.uri.toString() }).toString()}`;
+    assert.ok(html.includes(`<div class="nimblescape-note-page" data-add="${add}" hidden></div>`), html);
   });
 
   it('finds the heading of a link of a note in the HTML of the Markdown preview of VS Code (R-SIDE-005)', async () => {

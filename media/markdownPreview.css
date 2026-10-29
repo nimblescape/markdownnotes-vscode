@@ -78,3 +78,37 @@
 html[data-nimblescape-highlight] {
   cursor: pointer;
 }
+
+/*
+ * The button "Add Note" above the selected text (R-PREV-008), in the colors of
+ * the buttons of VS Code, with the icon "comment" of the codicons.
+ */
+.nimblescape-note-add {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 4px;
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nimblescape-note-add:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.nimblescape-note-add svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}

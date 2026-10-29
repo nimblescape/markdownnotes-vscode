@@ -19,9 +19,11 @@
  * selected text, which adds a note
  * ([src/addNoteAction.ts](addNoteAction.ts)). It handles the links of the
  * highlights of the preview, which select a note in the side view, and the
- * links of the preview that deselect the selected note, and the buttons "Show
- * Highlights" and "Hide Highlights", and refreshes the previews and the notes
- * when a setting of the extension changes.
+ * links of the preview that deselect the selected note, and the links of the
+ * button "Add Note" at the selected text of the preview, which add a note to
+ * that text ([R-PREV-008](../docs/requirements.md#r-prev-008)), and the
+ * buttons "Show Highlights" and "Hide Highlights", and refreshes the previews
+ * and the notes when a setting of the extension changes.
  *
  * The highlights show while the setting `showHighlights` is on, also while
  * the side view is closed (Hannes, 2026-10-29: "clicking the highlight button
@@ -54,6 +56,9 @@ export const openPath = '/open';
 
 /** deselectPath is the path of the links of the preview that deselect the selected note, for a click outside its highlight. */
 export const deselectPath = '/deselect';
+
+/** addPath is the path of the links of the preview that add a note to the text that the user selected in the preview. */
+export const addPath = '/add';
 
 /**
  * highlightCommands are the commands of the buttons in the title of the text editor and of the Markdown preview of a
@@ -131,15 +136,42 @@ function deselectLink(env: unknown): string | undefined {
 }
 
 /**
+ * addLink returns the link of the button "Add Note" of the preview, which adds a note to the text that the user selects
+ * in the preview ([R-PREV-008](../docs/requirements.md#r-prev-008)): a URI of VS Code for the extension, with the
+ * rendered document, to which the script of the preview adds the line of the block, the text before the selected text
+ * and the selected text. A rendering without a document, or of a document that can have no notes, has none.
+ * @param env - The environment of the rendering.
+ */
+function addLink(env: unknown): string | undefined {
+  const document = renderedOf(env);
+  const file = document && (fileOf(document) ?? document);
+  const open = file && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === file.toString());
+  if (!document || !open || !isNoteDocument(open)) {
+    return undefined;
+  }
+  return `${vscode.env.uriScheme}://${extensionId}${addPath}?${new URLSearchParams({ document: document.toString() }).toString()}`;
+}
+
+/**
  * openFromLink selects the note of a link of the preview in the side view. The link names a document and a line. A
  * link can also come from outside VS Code, so the extension opens only a Markdown document that is open or that belongs
  * to the workspace, and only shows its notes. A link that deselects the selected note of an open document deselects
- * it.
+ * it. A link of "Add Note" of an open document opens the editor of a new note in the side view, which the user writes
+ * and adds.
  * @param uri - The URI that VS Code passes to the extension.
  * @param view - The side view.
  */
 async function openFromLink(uri: vscode.Uri, view: NotesView): Promise<void> {
   const query = new URLSearchParams(uri.query);
+  if (uri.path === addPath) {
+    const target = query.get('document');
+    const line = Number(query.get('line'));
+    const document = target && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === vscode.Uri.parse(target).toString());
+    if (document && Number.isInteger(line) && line >= 0) {
+      await view.addFromPreview(document, line, query.get('before') ?? '', query.get('text') ?? '');
+    }
+    return;
+  }
   if (uri.path === deselectPath) {
     const target = query.get('document');
     const document = target && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === vscode.Uri.parse(target).toString());
@@ -280,6 +312,7 @@ export function activate(context: vscode.ExtensionContext): Api {
           return document && { label: selected.labelOf(document), reveal: selected.revealOf(document) };
         },
         deselectLinkOf: deselectLink,
+        addLinkOf: addLink,
         sourceOf: (text) => clean.sourceOf(text),
       }),
     notesOf: (document) => threads.entriesOf(document).map((entry) => entry.note),

@@ -62,7 +62,7 @@ as the highlights of a marker pen on paper.
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
 | 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
 | 39 | The highlights without the side view (decision 28); a click on a thread selects it in the side view also in the clean editing view, and keeps the mode "Markdown Preview" or "Markdown Editor" of its tab; the icon of the Markdown preview on the button "Preview" of the editors of the side view | [R-GEN-011](#r-gen-011), [R-PREV-001](#r-prev-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
-| 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | in work |
+| 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | done |
 
 ## General
 
@@ -918,8 +918,9 @@ undo the change.
 editor and adds the note: with the light bulb action or the shortcut of the
 selected text ([R-EDIT-006](#r-edit-006)), or with "Add Note" in the title of
 the side view or in the context menu of the text editor
-([R-SIDE-003](#r-side-003)). The user chooses its color in the editor of the
-new note. The
+([R-SIDE-003](#r-side-003)). In the Markdown preview, the button "Add Note"
+above the selected text adds it ([R-PREV-008](#r-prev-008)). The user
+chooses its color in the editor of the new note. The
 note belongs to exactly this text, its highlight ([R-NOTE-006](#r-note-006)):
 the extension writes the start marker with `<wbr>` and the color before it,
 the reference after it, and the definition after the outermost block of the
@@ -1102,12 +1103,26 @@ the mode ([R-SIDE-007](#r-side-007)).
 
 **Add a note in the preview.** The user adds a note to selected text also in
 the Markdown preview, in the preview to the side and in the mode "Markdown
-Preview" of VS Code (Hannes, 2026-10-29: "notes cannot be added in the
-preview view, but this should be possible as well"). The selected text must
-stay in one block of text, as in the text editor
-([R-EDIT-003](#r-edit-003)). The extension finds the selected text in the
-file, and the editor of the new note opens in the side view, as for "Add
-Note" in the text editor ([R-EDIT-006](#r-edit-006)). Planned in step 40.
+Preview" of VS Code, also of the clean editing view
+([R-TEXT-009](#r-text-009); Hannes, 2026-10-29: "notes cannot be added in
+the preview view, but this should be possible as well"):
+
+- When the user releases the mouse button after selecting text of one
+  paragraph, heading, list item or table cell, a button "Add Note" shows above
+  the selected text. Selected text over two blocks, or in a code block, shows
+  no button. The press on the button keeps the selection.
+- A click on the button opens the editor of the new note in the side view,
+  as "Add Note" of the text editor does ([R-EDIT-003](#r-edit-003),
+  [R-EDIT-006](#r-edit-006)), with the selected text in its title. The tab of
+  the preview keeps its mode. The button stays hidden until the user selects
+  other text.
+- The preview shows the text without the markup of Markdown and HTML, so the
+  extension finds the selected text in the file by its letters and digits,
+  after the text of its block before it (`src/notes/rendered.ts`). Text that
+  the extension does not find in the file, such as a formula, adds no note,
+  and a message tells the user to select the text in the text editor.
+
+Built in step 40.
 
 ## Formatter
 

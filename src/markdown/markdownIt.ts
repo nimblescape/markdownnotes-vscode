@@ -19,6 +19,11 @@
  * side view for a click on the highlight
  * ([R-PREV-003](../../docs/requirements.md#r-prev-003)).
  *
+ * The page also holds the link of the button "Add Note" of the script, which
+ * adds a note to the text that the user selects in the preview
+ * ([R-PREV-008](../../docs/requirements.md#r-prev-008)): a hidden element at
+ * the end of the page.
+ *
  * The plugin adds the rules of the notes ([syntax.ts](../notes/syntax.ts)),
  * which take the notes before the rules of footnotes of other plugins, and a
  * core rule after the rules of markdown-it and of the other plugins. The core
@@ -49,12 +54,14 @@ export const noteClass = 'nimblescape-note';
 /** edgeTokenType is the type of the inline token of the start or the end of a highlight: an empty element. */
 const edgeTokenType = 'nimblescape_note_edge';
 
+/** pageTokenType is the type of the block token at the end of the page that holds the link of "Add Note": a hidden element. */
+const pageTokenType = 'nimblescape_note_page';
+
 /** PreviewSettings are the settings of the extension that change the preview. */
 export interface PreviewSettings {
   /**
    * showHighlights shows the highlights of the notes ([R-PREV-005](../../docs/requirements.md#r-prev-005)): while the
-   * setting is on and the side view is open. Without it, only the highlight of the selected note shows, and the
-   * highlight under the pointer.
+   * setting is on. Without it, only the highlight of the selected note shows, and the highlight under the pointer.
    */
   showHighlights: boolean;
 }
@@ -94,6 +101,13 @@ export interface PreviewOptions {
    * @param text - The text that the preview parses.
    */
   sourceOf?(text: string): { text: string; lines: readonly number[] } | undefined;
+  /**
+   * addLinkOf returns the link that adds a note to the text that the user selects in the preview of the rendered
+   * document ([R-PREV-008](../../docs/requirements.md#r-prev-008)), or undefined for a rendering that can have no
+   * notes.
+   * @param env - The environment of the rendering.
+   */
+  addLinkOf?(env: unknown): string | undefined;
 }
 
 /** PreviewNote is what the preview needs of a note: its label, its color, the ID of its highlight, and the line of its definition. */
@@ -249,6 +263,13 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
     }
   });
   md.core.ruler.push('nimblescape_notes', transform);
+  if (options.addLinkOf) {
+    md.core.ruler.push('nimblescape_page', (state) => {
+      const page = new state.Token(pageTokenType, '', 0);
+      page.block = true;
+      state.tokens.push(page);
+    });
+  }
   // The lines of the tokens of the text of a file name the lines of its clean editing view, after the notes took theirs.
   md.core.ruler.push('nimblescape_lines', (state) => {
     const lines = (state.env as { nimblescapeLines?: readonly number[] }).nimblescapeLines;
@@ -262,6 +283,10 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
     }
   });
   md.renderer.rules[edgeTokenType] = (tokens, index, _options, env) => edgeHtml(md, tokens[index].meta as EdgeMeta, env, options);
+  md.renderer.rules[pageTokenType] = (_tokens, _index, _options, env) => {
+    const link = options.addLinkOf?.(env);
+    return link === undefined ? '' : `<div class="${noteClass}-page" data-add="${md.utils.escapeHtml(link)}" hidden></div>\n`;
+  };
   // A reference that the core rule did not reach, such as one in the body of a note that the side view renders, shows
   // as written, and a start marker nothing.
   md.renderer.rules[referenceType] = (tokens, index) => md.utils.escapeHtml(referenceText((tokens[index].meta as InlineMeta).label));

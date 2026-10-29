@@ -38,6 +38,15 @@
 // path of an event, where VS Code looks for the link, holds no element of a
 // closed shadow tree, so the shadow tree is open.
 //
+// Selected text that a note can highlight, text of one block, gets the button
+// "Add Note" above it (R-PREV-008; Hannes, 2026-10-29: "notes cannot be added
+// in the preview view, but this should be possible as well"). Its click goes
+// to the extension through the link of the page as well: the address of the
+// hidden element of the plugin at the end of the page, with the line of the
+// block, the text of the block before the selected text, and the selected
+// text. The extension finds the text in the file and opens the editor of the
+// new note in the side view. The press on the button keeps the selection.
+//
 // The end of the highlight of the selected note of the side view has the
 // attribute data-selected: its highlight is strong with a frame of thin lines
 // in the color of the note, one for each line of the text, and the highlights
@@ -57,6 +66,12 @@
   /** blockSelector finds the block of the end of a highlight without a start. */
   const blockSelector = 'p, li, h1, h2, h3, h4, h5, h6, td, th, dd, dt';
 
+  /** pageSelector finds the hidden element of the plugin that holds the address of "Add Note" for the page. */
+  const pageSelector = '.nimblescape-note-page';
+
+  /** textSelector finds the element of the text that a note can highlight: a table cell, or a block with its line. */
+  const textSelector = 'td, th, [data-line]';
+
   /** controlSelector finds the elements whose click is their own: links and form controls. */
   const controlSelector = 'a, button, input, textarea, select, summary, label, [contenteditable]';
 
@@ -75,8 +90,39 @@
   /** @type {HTMLAnchorElement | undefined} the link of the script around the content of the page, in the shadow tree of the body. */
   let pageLink;
 
-  /** @type {boolean} whether the address of the link of the page deselects the selected note. */
-  let deselects = false;
+  /** @type {'open' | 'deselect' | 'add' | undefined} what the address of the link of the page does. */
+  let armed;
+
+  /** @type {string | undefined} the address of the button "Add Note": the address of the page with the selected text. */
+  let addHref;
+
+  /** @type {string | undefined} the address of the last click on "Add Note": its button stays hidden until the selection changes. */
+  let added;
+
+  /** @type {boolean} whether the user holds the mouse button down, for example while selecting text. */
+  let pressed = false;
+
+  /** addButton is the button "Add Note" above the selected text. */
+  const addButton = (() => {
+    const button = document.createElement('div');
+    button.className = 'nimblescape-note-add';
+    button.setAttribute('role', 'button');
+    button.title = 'Add a note to the selected text';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    // The icon "comment" of the codicons 0.0.46-24.
+    path.setAttribute(
+      'd',
+      'M1 4.5C1 3.11929 2.11929 2 3.5 2H12.5C13.8807 2 15 3.11929 15 4.5V9.5C15 10.8807 13.8807 12 12.5 12H8.68787L5.62533 14.6797C4.99168 15.2342 4 14.7842 4 13.9422V12H3.5C2.11929 12 1 10.8807 1 9.5V4.5ZM3.5 3C2.67157 3 2 3.67157 2 4.5V9.5C2 10.3284 2.67157 11 3.5 11H5V13.8981L8.31213 11H12.5C13.3284 11 14 10.3284 14 9.5V4.5C14 3.67157 13.3284 3 12.5 3H3.5Z',
+    );
+    svg.append(path);
+    const label = document.createElement('span');
+    label.textContent = 'Add Note';
+    button.append(svg, label);
+    return button;
+  })();
 
   /** frames holds the frame of the highlight of the selected note: one element for each line of its text. */
   const frames = document.createElement('div');
@@ -143,7 +189,7 @@
       dismissed = undefined;
     }
     // The link of the page exists before the first click, so that a click changes nothing of the page.
-    if (document.body && highlights.size > 0) {
+    if (document.body && (highlights.size > 0 || document.querySelector(pageSelector))) {
       linkOfPage();
     }
     hovered = undefined;
@@ -289,26 +335,118 @@
     return pageLink;
   };
 
-  /** ownLink matches the addresses of the extension that the plugin writes: a URI of VS Code for the extension that opens or deselects a note. */
-  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes\/(open|deselect)(\?|$)/;
+  /**
+   * ownLink matches the addresses of the extension that the plugin writes: a URI of VS Code for the extension that opens
+   * or deselects a note, or adds one.
+   */
+  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes\/(open|deselect|add)(\?|$)/;
 
   /**
    * arm gives the link of the page an address of the extension for the time of a click.
    * @param {string} href - The address.
-   * @param {boolean} deselecting - Whether the address deselects the selected note.
+   * @param {'open' | 'deselect' | 'add'} kind - What the address does.
    */
-  const arm = (href, deselecting) => {
+  const arm = (href, kind) => {
     const link = linkOfPage();
     if (link && ownLink.test(href)) {
       link.href = href;
-      deselects = deselecting;
+      armed = kind;
     }
   };
 
   /** disarm takes the address from the link of the page, so that a click opens no address of the script. */
   const disarm = () => {
     pageLink?.removeAttribute('href');
-    deselects = false;
+    armed = undefined;
+  };
+
+  /**
+   * elementOf returns the element of a node: the node, or the element that holds it.
+   * @param {Node} node
+   * @returns {Element | null}
+   */
+  const elementOf = (node) => (node instanceof Element ? node : node.parentElement);
+
+  /**
+   * selectedText returns the address of "Add Note" for the selected text of the page, and the rectangles of its lines;
+   * or undefined when no text is selected, the text is not in one block, or the page can have no notes. A selection to
+   * the start of the next block, as of a triple click, holds the text to the end of its block.
+   * @returns {{ href: string, rects: DOMRect[] } | undefined}
+   */
+  const selectedText = () => {
+    const base = [...document.querySelectorAll(pageSelector)].at(-1)?.getAttribute('data-add');
+    const selection = document.getSelection();
+    if (!base || !ownLink.test(base) || !selection || selection.rangeCount !== 1 || selection.isCollapsed) {
+      return undefined;
+    }
+    const range = selection.getRangeAt(0).cloneRange();
+    const block = elementOf(range.startContainer)?.closest(textSelector);
+    if (!block || block.closest('pre') || addButton.contains(range.startContainer) || frames.contains(range.startContainer)) {
+      return undefined;
+    }
+    if (elementOf(range.endContainer)?.closest(textSelector) !== block) {
+      const own = document.createRange();
+      own.setStart(range.startContainer, range.startOffset);
+      own.setEnd(block, block.childNodes.length);
+      if (own.toString().trim() !== range.toString().trim()) {
+        return undefined;
+      }
+      range.setEnd(block, block.childNodes.length);
+    }
+    const text = range.toString();
+    const lined = block.closest('[data-line]');
+    const line = lined?.getAttribute('data-line');
+    if (text.trim() === '' || !lined || !line) {
+      return undefined;
+    }
+    const before = document.createRange();
+    before.setStart(lined, 0);
+    before.setEnd(range.startContainer, range.startOffset);
+    const query = new URLSearchParams({ line, before: before.toString(), text }).toString();
+    return { href: `${base}&${query}`, rects: [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0) };
+  };
+
+  /** hideAdd takes the button "Add Note" from the page. */
+  const hideAdd = () => {
+    addHref = undefined;
+    addButton.remove();
+  };
+
+  /**
+   * showAdd shows the button "Add Note" above the first line of the selected text that a note can highlight, or below
+   * its last line at the top of the page, and else hides it. It waits while the user holds the mouse button down, and
+   * after a click on the button it waits for another selection.
+   */
+  const showAdd = () => {
+    const place = pressed ? undefined : selectedText();
+    const first = place?.rects[0];
+    const last = place?.rects.at(-1);
+    if (place?.href !== added) {
+      added = undefined;
+    }
+    if (!place || !first || !last || added !== undefined) {
+      hideAdd();
+      return;
+    }
+    addHref = place.href;
+    document.body.append(addButton);
+    addButton.style.left = '0px';
+    addButton.style.top = '0px';
+    const origin = addButton.getBoundingClientRect();
+    const above = first.top - origin.height - 4;
+    const top = above >= 0 ? above : last.bottom + 4;
+    const left = Math.max(0, Math.min(above >= 0 ? first.left : last.left, document.documentElement.clientWidth - origin.width));
+    addButton.style.left = `${left - origin.left}px`;
+    addButton.style.top = `${top - origin.top}px`;
+  };
+
+  /** @type {number | undefined} the timer of showAdd after a change of the selection. */
+  let addTimer;
+
+  /** showAddLater shows or hides the button "Add Note" after the changes of the selection of this moment. */
+  const showAddLater = () => {
+    clearTimeout(addTimer);
+    addTimer = setTimeout(showAdd, 50);
   };
 
   /** dismiss deselects the selected note in the preview, until the side view selects a note again. */
@@ -322,7 +460,7 @@
 
   document.addEventListener('mousemove', (event) => {
     const target = targetOf(event);
-    const end = target && !target.closest(controlSelector) ? highlightAt(event.clientX, event.clientY) : undefined;
+    const end = target && !target.closest(controlSelector) && !addButton.contains(target) ? highlightAt(event.clientX, event.clientY) : undefined;
     if (end !== hovered) {
       hovered = end;
       document.documentElement.toggleAttribute('data-nimblescape-highlight', end !== undefined);
@@ -342,6 +480,17 @@
     (event) => {
       disarm();
       const target = targetOf(event);
+      // The press on "Add Note" keeps the selection and the focus.
+      if (target && addButton.contains(target)) {
+        event.preventDefault();
+        if (event.button === 0 && addHref) {
+          arm(addHref, 'add');
+        }
+        return;
+      }
+      if (event.button === 0) {
+        pressed = true;
+      }
       // The second press of a double click opens no address, so that the double click opens the text editor.
       if (event.button !== 0 || event.detail > 1 || !target || target === document.body || target === document.documentElement || target.closest(controlSelector) || frames.contains(target)) {
         return;
@@ -350,9 +499,9 @@
       const href = end?.getAttribute('data-href');
       const deselect = end ? undefined : chosen()?.getAttribute('data-deselect');
       if (href) {
-        arm(href, false);
+        arm(href, 'open');
       } else if (deselect) {
-        arm(deselect, true);
+        arm(deselect, 'deselect');
       }
     },
     true,
@@ -366,19 +515,47 @@
       // The page never follows the address itself; VS Code opens it, also after preventDefault. The address goes after
       // the click, when VS Code has read it.
       event.preventDefault();
+      const kind = armed;
       setTimeout(disarm, 0);
-      if (!document.getSelection()?.isCollapsed) {
+      if (kind === 'add') {
+        added = addHref;
+        setTimeout(hideAdd, 0);
+      } else if (!document.getSelection()?.isCollapsed) {
         event.stopImmediatePropagation();
-      } else if (deselects) {
+      } else if (kind === 'deselect') {
         dismiss();
       }
     },
     true,
   );
-  window.addEventListener('mouseup', () => setTimeout(disarm, 0), true);
+  window.addEventListener(
+    'mouseup',
+    () => {
+      setTimeout(disarm, 0);
+      if (pressed) {
+        pressed = false;
+        showAddLater();
+      }
+    },
+    true,
+  );
   window.addEventListener('dragstart', disarm, true);
-  window.addEventListener('resize', paint);
-  window.addEventListener('vscode.markdown.updateContent', highlight);
+  window.addEventListener('blur', () => {
+    pressed = false;
+  });
+  document.addEventListener('selectionchange', () => {
+    if (!pressed) {
+      showAddLater();
+    }
+  });
+  window.addEventListener('resize', () => {
+    paint();
+    showAddLater();
+  });
+  window.addEventListener('vscode.markdown.updateContent', () => {
+    highlight();
+    showAddLater();
+  });
   // The preview loads this script with `async`, and its own script adds the content to the page when the page is
   // parsed. This script can run before or after that, so it highlights now, when the page is parsed and when it is
   // loaded; highlight replaces the highlights of before.

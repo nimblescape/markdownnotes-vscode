@@ -50,8 +50,9 @@ The first version.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side
-  view; the editor of the new note opens in the side view, with the colors of
-  the notes. Nothing shows by itself over the selected text. There is no note
+  view, and in the Markdown preview with the button "Add Note" above the
+  selected text; the editor of the new note opens in the side view, with the
+  colors of the notes. Nothing shows by itself over the selected text. There is no note
   without highlighted text.
 - New notes and answers need a GitHub sign-in of VS Code, and name the GitHub
   login of the user as their author. VS Code shows each date in the local
