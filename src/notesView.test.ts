@@ -847,7 +847,7 @@ test('the view shows the standard footnotes as threads at the place of their fir
   expect(await select(0, 5)).toBeUndefined();
 });
 
-test('Edit saves the text of a footnote, a click shows its first reference, "Go to Definition" its definition, and Delete asks first and removes it with its references (R-FOOT-002)', async () => {
+test('Edit saves the text of a footnote, a click shows its first reference, or its definition without one, and Delete asks first and removes it with its references (R-FOOT-002)', async () => {
   const { document, view } = await start(footnoted, 0);
   await send(view, { type: 'saveFootnote', request: 1, id: 'footnote-src', text: 'A new source.\n\nWith a paragraph.', original: 'A source,\nwith a second line.' });
   expect(results(view)).toEqual([{ type: 'result', request: 1, message: undefined }]);
@@ -865,9 +865,9 @@ test('Edit saves the text of a footnote, a click shows its first reference, "Go 
   ]);
   await send(view, { type: 'reveal', id: 'footnote-src' });
   expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(0, 66));
-  await send(view, { type: 'definition', id: 'footnote-src' });
-  expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(8, 0));
   expect(view.state().selected).toBe('footnote-src');
+  await send(view, { type: 'reveal', id: 'footnote-alone' });
+  expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(12, 0));
   // Delete asks first; without a yes, the file stays as it is.
   const before = document.text;
   await send(view, { type: 'deleteFootnote', id: 'footnote-1' });

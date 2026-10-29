@@ -31,7 +31,7 @@ describes its security model.
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their colors and their whole texts, the places of the highlights beside the text editor, the actions of its script, the threads of the standard footnotes, and the commands "Add Note", "Add Footnote", "Hide Notes" and "Show or Hide Notes". |
 | `src/addNoteAction.ts` | The light bulb action "Add Note" of the selected text in the text editor: a Code Action of the kind `quickfix.markdownNotes.addNote`, which runs "Add Note" of the side view. |
-| `src/slashCommands.ts` | The slash commands of the text editor: the suggestions `/note`, `/todo`, `/footnote`, `/date` and `/time` after a typed slash, the selected text that a slash replaced, and the commands that the suggestions run. |
+| `src/slashCommands.ts` | The slash commands of the text editor: the suggestions `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` after a typed slash, the selected text that a slash replaced, and the commands that the suggestions run. |
 | `src/notes/slash.ts` | The text of the slash commands: the typed command, the sentence before it for `/todo`, and the date and the time. It uses no API of VS Code. |
 | `src/notes/footnotes.ts` | The standard footnotes of a Markdown text, the footnotes that are no note: their definitions, read line by line as markdown-it-footnote and GitHub read them, their references, their order and the numbers that GitHub and the Markdown preview show, and the edits that save, delete and add a footnote, with the next free number, the place of a new reference at the cursor and the place of its definition. It uses no API of VS Code. |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
@@ -410,8 +410,13 @@ opens the editor of the new note, as `addFromPreview` does, through
 `newNoteAt`. `/footnote` removes the typed command with the spaces before
 it and runs `nimblescape.markdownNotes.slashFootnote`, which calls
 `NotesView.addFootnoteFrom`: it opens the editor of the new footnote for the
-cursor, as "Add Footnote" does. The two commands are in no menu and not in
-the manifest.
+cursor, as "Add Footnote" does. `/user` inserts the GitHub login, which the
+provider reads without a sign-in (`githubLogin(false)`) at the start and
+after each change of the GitHub sessions, so that the list shows it at
+once; without a session, it inserts nothing and runs
+`nimblescape.markdownNotes.slashUser`, which asks for the sign-in and
+inserts the login at the cursor. The three commands are in no menu and not
+in the manifest.
 
 `src/addNoteAction.ts` gives the selected text the Code Action "Add Note"
 ([R-EDIT-006](docs/requirements.md#r-edit-006), decision 22). VS Code asks
@@ -549,7 +554,7 @@ the preview does, and keeps up to 200 rendered texts.
   `deleteNote`, `reveal`, `render` (the preview of an editor), `openLink` (a
   click on a link of a rendered text, which `src/links.ts` opens),
   `deselect`, `signIn` and `ready`, and for a standard footnote
-  `saveFootnote` (with the text that the editor started with), `definition`,
+  `saveFootnote` (with the text that the editor started with),
   `deleteFootnote`, `addFootnote` and `footnoteClosed`. A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
   refused text, or with `rendered`. The script keeps the open editors and the

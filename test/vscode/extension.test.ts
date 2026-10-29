@@ -280,6 +280,14 @@ describe('nimblescape Markdown Notes', () => {
     }
   });
 
+  it('offers the slash commands in the list of suggestions of a Markdown file (R-EDIT-008)', async () => {
+    const { document } = await open('Written by /\n', 0);
+    const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', document.uri, new vscode.Position(0, 12), '/');
+    const own = list.items.map((item) => (typeof item.label === 'string' ? item.label : item.label.label)).filter((label) => label.startsWith('/'));
+    // The test has no GitHub session: /user offers the sign-in.
+    assert.deepEqual(own, ['/todo', '/footnote', '/date', '/time', '/user']);
+  });
+
   it('formats a file and gives each start marker <wbr> before it (R-FMT-001)', async () => {
     const { document } = await open('One <!--[note-aaaa-->line[^note-aaaa]\nof text.\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n', 1);
     const edits = await vscode.commands.executeCommand<vscode.TextEdit[]>('vscode.executeFormatDocumentProvider', document.uri, { tabSize: 4, insertSpaces: true });

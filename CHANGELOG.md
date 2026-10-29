@@ -57,7 +57,7 @@ The first version.
   example `[^1]`, is a thread of the list at the place of its first
   reference, with its label, the numbers that GitHub and the Markdown
   preview show in the tooltip of the label, and its rendered text. "Edit"
-  writes its definition, "Go to Definition" shows the definition, and
+  writes its definition, and
   "Delete" asks first and then removes the definition and every reference.
   The cursor on a reference or in a definition selects the footnote, also a
   reference inside the highlight of a note. "Add Footnote" (Shift+Alt+B,
@@ -74,7 +74,8 @@ The first version.
 - Slash commands in the text editor: a `/` at the start of a line or after a
   space offers `/note` for the text that the slash replaced, `/todo` for that
   text or the sentence before it, `/footnote` for a standard footnote after
-  the word before it, in the editor of the side view, `/date` and `/time`, in the list
+  the word before it, in the editor of the side view, `/date`, `/time` and
+  `/user` for the GitHub login of the user, in the list
   of suggestions of VS Code; Tab or Enter takes the chosen command.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a

@@ -76,7 +76,7 @@
 // threads too, at the place of their first reference, in a neutral color:
 // the label as the file holds it, whose tooltip gives the numbers of GitHub
 // and of the Markdown preview, and the rendered text of the definition, with
-// "Edit", "Go to Definition" and "Delete" (R-FOOT-002). The filters of the
+// "Edit" and "Delete", as a note (R-FOOT-002). The filters of the
 // todos and of the colors hide them, and the search finds their text. The
 // editor of a new footnote (R-FOOT-003) names in its title the text before
 // the place of its reference, which follows the cursor of the text editor.
@@ -126,7 +126,7 @@
    * icons are the paths of the codicons of VS Code that the buttons show (https://github.com/microsoft/vscode-codicons,
    * CC BY 4.0, version 0.0.46-24, which VS Code 1.144 shows), each drawn in a square of 16 units: "reply", "edit",
    * "trash", "comment", "check", "close", "preview" (the button of the mode "Markdown Preview" of VS Code),
-   * "go-to-file" and "arrow-down"; and the boxes of the todo notes, drawn for the view: an empty box for an open todo, and a box with a
+   * and "go-to-file"; and the boxes of the todo notes, drawn for the view: an empty box for an open todo, and a box with a
    * check mark for a completed one.
    */
   const icons = {
@@ -144,8 +144,6 @@
       'M8.70701 8.00001L12.353 4.35401C12.548 4.15901 12.548 3.84201 12.353 3.64701C12.158 3.45201 11.841 3.45201 11.646 3.64701L8.00001 7.29301L4.35401 3.64701C4.15901 3.45201 3.84201 3.45201 3.64701 3.64701C3.45201 3.84201 3.45201 4.15901 3.64701 4.35401L7.29301 8.00001L3.64701 11.646C3.45201 11.841 3.45201 12.158 3.64701 12.353C3.74501 12.451 3.87301 12.499 4.00101 12.499C4.12901 12.499 4.25701 12.45 4.35501 12.353L8.00101 8.70701L11.647 12.353C11.745 12.451 11.873 12.499 12.001 12.499C12.129 12.499 12.257 12.45 12.355 12.353C12.55 12.158 12.55 11.841 12.355 11.646L8.70901 8.00001H8.70701Z',
     preview:
       'M12.5 1H3.5C2.122 1 1 2.122 1 3.5V12.5C1 13.878 2.122 15 3.5 15H12.5C13.878 15 15 13.878 15 12.5V3.5C15 2.122 13.878 1 12.5 1ZM14 12.5C14 13.327 13.327 14 12.5 14H3.5C2.673 14 2 13.327 2 12.5V3.5C2 2.673 2.673 2 3.5 2H12.5C13.327 2 14 2.673 14 3.5V12.5ZM12 3H4C3.448 3 3 3.448 3 4V6C3 6.552 3.448 7 4 7H12C12.552 7 13 6.552 13 6V4C13 3.448 12.552 3 12 3ZM12 6H4V4H12V6ZM12 8H9C8.448 8 8 8.448 8 9V12C8 12.552 8.448 13 9 13H12C12.552 13 13 12.552 13 12V9C13 8.448 12.552 8 12 8ZM12 12H9V9H12V12ZM7 8.5C7 8.776 6.776 9 6.5 9H3.5C3.224 9 3 8.776 3 8.5C3 8.224 3.224 8 3.5 8H6.5C6.776 8 7 8.224 7 8.5ZM7 10.5C7 10.776 6.776 11 6.5 11H3.5C3.224 11 3 10.776 3 10.5C3 10.224 3.224 10 3.5 10H6.5C6.776 10 7 10.224 7 10.5ZM7 12.5C7 12.776 6.776 13 6.5 13H3.5C3.224 13 3 12.776 3 12.5C3 12.224 3.224 12 3.5 12H6.5C6.776 12 7 12.224 7 12.5Z',
-    arrowDown:
-      'M13.854 8.146C13.659 7.951 13.342 7.951 13.147 8.146L9.00096 12.292V2.5C9.00096 2.224 8.77696 2 8.50096 2C8.22496 2 8.00096 2.224 8.00096 2.5V12.293L3.85496 8.147C3.65996 7.952 3.34296 7.952 3.14796 8.147C2.95296 8.342 2.95296 8.659 3.14796 8.854L8.14796 13.854C8.24596 13.952 8.37396 14 8.50196 14C8.62996 14 8.75796 13.951 8.85596 13.854L13.856 8.854C14.051 8.659 14.051 8.342 13.856 8.147L13.854 8.146Z',
     source:
       'M8.58594 1.00098C8.98394 1.00098 9.36646 1.15943 9.64746 1.44043L12.5605 4.35352C12.8415 4.63552 13.001 5.01704 13.001 5.41504V13.001C13.001 14.106 12.106 15.001 11.001 15.001H5.00098C3.89599 15.001 3.00098 14.106 3.00098 13.001V6.00098H4.00098V13.001C4.00098 13.553 4.44899 14.001 5.00098 14.001H11.001C11.553 14.001 12.001 13.553 12.001 13.001V6.00098H9.50098C8.67299 6.00096 8.00098 5.32897 8.00098 4.50098V2.00098C7.99198 1.97699 7.98265 1.9527 7.97266 1.92871C7.89674 1.74704 7.78717 1.5812 7.64746 1.44238L7.20605 1.00098H8.58594ZM9 4.5C9 4.776 9.224 5 9.5 5H11.793L9 2.20703V4.5Z M4.5 0C4.63299 0 4.75952 0.0534683 4.85352 0.147461L6.85352 2.14746C6.90042 2.19336 6.93789 2.24775 6.96289 2.30859C6.98789 2.36959 7.00097 2.43498 7.00098 2.50098C7.00098 2.56698 6.98789 2.63236 6.96289 2.69336C6.93789 2.75323 6.90043 2.80956 6.85352 2.85547L4.85352 4.85547C4.75956 4.94917 4.63278 5.00195 4.5 5.00195C4.36722 5.00195 4.24044 4.94917 4.14648 4.85547C4.05248 4.76147 3.99902 4.63398 3.99902 4.50098C3.99903 4.36799 4.05249 4.24146 4.14648 4.14746L5.29297 3.00098H2.5C2.10201 3.00098 1.72045 3.15944 1.43945 3.44043C1.15846 3.72242 1.00001 4.10298 1 4.50098V5.50098C1 5.63398 0.947516 5.76147 0.853516 5.85547C0.759563 5.94817 0.632774 6.00098 0.5 6.00098C0.367225 6.00098 0.240437 5.94917 0.146484 5.85547C0.0534844 5.76147 0 5.63398 0 5.50098V4.50098C6.17892e-06 3.83799 0.263427 3.20239 0.732422 2.7334C1.20142 2.26441 1.83701 2.00098 2.5 2.00098H5.29297L4.14648 0.855469C4.05248 0.761469 3.99902 0.633977 3.99902 0.500977C3.99903 0.367985 4.05249 0.241455 4.14648 0.147461C4.24048 0.0534683 4.36701 0 4.5 0Z',
   };
@@ -529,7 +527,7 @@
 
   /**
    * footnoteOf creates the elements of the thread of a standard footnote (R-FOOT-001, R-FOOT-002): its label, the
-   * line of its first reference, "Edit", "Go to Definition" and "Delete", and its rendered text or its editor.
+   * line of its first reference, "Edit" and "Delete", and its rendered text or its editor.
    * @param {ThreadState} thread
    * @param {FootnoteState} footnote
    */
@@ -547,7 +545,6 @@
       const actions = element('span', 'actions');
       actions.append(
         iconButton('edit', 'Edit', () => open(key, thread.text, thread.text), { 'aria-label': `Edit the footnote ${footnote.label}` }),
-        iconButton('arrowDown', 'Go to Definition', () => vscode.postMessage({ type: 'definition', id: thread.id }), { 'aria-label': `Go to the definition of the footnote ${footnote.label}` }),
         iconButton('trash', 'Delete', () => vscode.postMessage({ type: 'deleteFootnote', id: thread.id }), { 'aria-label': `Delete the footnote ${footnote.label}` }),
       );
       header.append(actions);

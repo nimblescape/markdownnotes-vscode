@@ -94,7 +94,7 @@ describes each step and where its protection ends.
   view marks it completed.
 - **Footnotes.** The side view also shows the standard footnotes of the
   file, for example `[^1]`, at the place of their first reference, where you
-  edit and delete them and go to their definition. "Add Footnote" (Shift+Alt+B,
+  edit and delete them. "Add Footnote" (Shift+Alt+B,
   Cmd+K B on a Mac) opens the editor of a new footnote for the place of the
   cursor and writes its reference with the next free number and its
   definition. "Hide Footnotes" in the title of the side view shows the notes
@@ -102,7 +102,8 @@ describes each step and where its protection ends.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
   sentence before it), `/footnote` (the editor of a new footnote in the side
-  view), `/date` and `/time`; Tab takes the chosen command.
+  view), `/date`, `/time` and `/user` (your GitHub login); Tab takes the
+  chosen command.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
@@ -186,7 +187,7 @@ you add or answer a note. In the side view "Notes":
 | See the whole note | Click "Show as Text" at the thread. |
 | Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor of the file itself ("Open File with Markup") brings it back. |
 | Add a footnote | Put the cursor where the reference goes, then press Shift+Alt+B (Cmd+K B on a Mac), click "Add Footnote" (`+¹`) in the title of the side view, or type `/footnote` after the word. Write the text, then click "Add Footnote". |
-| Edit or delete a footnote | Click "Edit" (pencil) or "Delete" (trash can) at the footnote; "Go to Definition" (arrow down) shows its definition. |
+| Edit or delete a footnote | Click "Edit" (pencil) or "Delete" (trash can) at the footnote. |
 
 In the text editor or in the Markdown preview (Ctrl+K V opens it to the
 side), click a highlight to select its note, and double-click it to open the

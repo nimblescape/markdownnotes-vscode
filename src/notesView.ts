@@ -68,7 +68,7 @@
  * thread at the place of its first reference, while the setting
  * `nimblescape.markdownNotes.showFootnotes` is on: its label, with the numbers
  * of GitHub and of the Markdown preview in its tooltip, and its rendered text,
- * with "Edit", "Go to Definition" and "Delete"
+ * with "Edit" and "Delete", as a note
  * ([R-FOOT-002](../docs/requirements.md#r-foot-002)). The cursor on a
  * reference or in a definition selects the footnote. "Add Footnote" and
  * `/footnote` open the editor of a new footnote, whose reference goes at the
@@ -121,7 +121,6 @@ export type Message =
   | { type: 'saveText'; request: number; id: string; text: string; original: string }
   | { type: 'render'; request: number; text: string }
   | { type: 'openLink'; href: string }
-  | { type: 'definition'; id: string }
   | { type: 'saveFootnote'; request: number; id: string; text: string; original: string }
   | { type: 'deleteFootnote'; id: string }
   | { type: 'addFootnote'; request: number; text: string }
@@ -935,17 +934,15 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * targetOf returns the text of a thread that "reveal" shows: the highlight of a note, or the note without one; the first
-   * reference of a standard footnote, or its definition without one; and the definition of a footnote for "Go to
-   * Definition".
+   * reference of a standard footnote, or its definition without one.
    * @param uri - The URI of the document.
    * @param id - The identifier of the thread.
-   * @param definition - Whether the target is the definition of a footnote.
    */
-  private targetOf(uri: vscode.Uri, id: string, definition: boolean): { start: vscode.Position; end: vscode.Position } | undefined {
+  private targetOf(uri: vscode.Uri, id: string): { start: vscode.Position; end: vscode.Position } | undefined {
     const label = footnoteLabelOf(id);
     if (label !== undefined) {
       const footnote = this.threads.footnotesOf(uri).find((candidate) => candidate.label === label);
-      const range = definition ? undefined : footnote?.references[0];
+      const range = footnote?.references[0];
       if (range) {
         return { start: new vscode.Position(range.start.line, range.start.character), end: new vscode.Position(range.end.line, range.end.character) };
       }
@@ -965,11 +962,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * note, and a standard footnote at its first reference or at its definition.
    * @param id - The identifier of the thread.
    * @param focus - Whether the text editor gets the focus; a click on a thread leaves the focus in the view.
-   * @param definition - Whether the text editor shows the definition of a footnote, for "Go to Definition".
    */
-  private async reveal(id: string, focus: boolean, definition = false): Promise<void> {
+  private async reveal(id: string, focus: boolean): Promise<void> {
     const uri = this.document;
-    const target = uri && this.targetOf(uri, id, definition);
+    const target = uri && this.targetOf(uri, id);
     if (!uri || !target) {
       return;
     }
@@ -1030,9 +1026,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       case 'reveal':
         await this.reveal(message.id, message.focus ?? true);
-        return;
-      case 'definition':
-        await this.reveal(message.id, true, true);
         return;
       case 'footnoteClosed':
         this.footnoteEditor = false;

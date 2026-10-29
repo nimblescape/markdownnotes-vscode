@@ -12,7 +12,7 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 86 requested features, 63 are built, among them the clean editing view
+Of 87 requested features, 64 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, and
 the standard footnotes in the side view. 10 features are planned but not built: the features of the section
@@ -110,6 +110,7 @@ breaks and the cursor next to the hidden markers.
 | Todo notes: "/todo in the text adds a special todo note", "a todo can be marked completed" | 10-29 17:56 | [R-NOTE-008](requirements.md#r-note-008) | Built | [Decision 30](requirements.md#decisions) (10-29 17:58). The state `todo` or `done` stands in the header of the first answer; a check box in the side view marks a todo completed or open again |
 | Slash commands in the text editor with completion: "the / command allows tab completion" | 10-29 18:28 | [R-EDIT-008](requirements.md#r-edit-008) | Built | A slash at the start of a line or after a space shows the list of VS Code; Tab or Enter takes a command. "all slash commands are intended for the text editor" (18:40) |
 | `/date` and `/time` | 10-29 18:29 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The local date `2026-10-29`, and the local date and time in minutes `2026-10-29 19:29` |
+| "/user insert the current user name" | 10-29 20:26 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The GitHub login of the user, the author of the notes; without a session, the sign-in of VS Code first |
 | "/footnote creates a footnote" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | After a word: the reference with the next free number and the definition after the last standard footnote. Since step 32, through the editor of the side view ([Footnotes](#footnotes)) |
 | "selecting and /note creates a note", "/note is not available when no text is selected" | 10-29 18:30 | [R-EDIT-008](requirements.md#r-edit-008) | Built | The slash that replaced the selected text offers `/note` and `/todo`; the text comes back and the side view opens the editor of the new note. `/todo` without selected text takes the sentence before the slash |
 | `/todo` at the start of the text of a new note in the side view | 10-29 17:58 | [R-NOTE-008](requirements.md#r-note-008) | Dropped | The part "in the side view" of [decision 30](requirements.md#decisions): "all slash commands are intended for the text editor" (18:40) |
@@ -163,7 +164,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
-| Standard footnotes in the side view: "the extension could serve as a rich ui for editing footnotes"; show, edit, delete, go to the definition | 10-29 07:48 | [R-FOOT-001](requirements.md#r-foot-001), [R-FOOT-002](requirements.md#r-foot-002) | Built | Each footnote at the place of its first reference, with its label and the numbers of GitHub and of the preview in the tooltip; "Delete" asks first and removes the definition and every reference. Setting `showFootnotes` and the buttons "Hide Footnotes" and "Show Footnotes" in the title of the view |
+| Standard footnotes in the side view: "the extension could serve as a rich ui for editing footnotes"; show, edit, delete | 10-29 07:48 | [R-FOOT-001](requirements.md#r-foot-001), [R-FOOT-002](requirements.md#r-foot-002) | Built | Each footnote at the place of its first reference, with its label and the numbers of GitHub and of the preview in the tooltip; "Delete" asks first and removes the definition and every reference; no "Go to Definition", as for a note ("why go to definition? we do not have that for notes", 20:26). Setting `showFootnotes` and the buttons "Hide Footnotes" and "Show Footnotes" in the title of the view |
 | "Add Footnote" at the cursor | 10-29 08:01 | [R-FOOT-003](requirements.md#r-foot-003) | Built | Shift+Alt+B (Cmd+K B on macOS), the title of the side view, the context menu and the Command Palette; the editor of the new footnote in the side view, with the text before the place in its title |
 | `/footnote` opens the editor of the new footnote in the side view: "it just goes to the side view editor, similar to the /notes command" | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | The command leaves the text, and "Add Footnote" in the editor writes the reference and the definition |
 | Citations as footnotes inside the highlight of a note: "these citations can be in a highlight region with a note. does that work?" | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. The form of the citations waits for Hannes (step 45) |

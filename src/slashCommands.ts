@@ -5,8 +5,8 @@
 /**
  * The slash commands of the text editor
  * ([R-EDIT-008](../docs/requirements.md#r-edit-008)). A slash at the start of
- * a line or after a space offers `/note`, `/todo`, `/footnote`, `/date` and
- * `/time` in the list of suggestions of VS Code (Hannes, 2026-10-29: "the /
+ * a line or after a space offers `/note`, `/todo`, `/footnote`, `/date`,
+ * `/time` and `/user` in the list of suggestions of VS Code (Hannes, 2026-10-29: "the /
  * command allows tab completion", "all slash commands are intended for the
  * text editor"), in the text editors of Markdown files, also of the clean
  * editing view. VS Code shows the list after a trigger character also in a
@@ -24,10 +24,14 @@
  * in the side view, as "Add Footnote" does: its reference goes at the end of
  * the word before the command when the user saves it (Hannes, 2026-10-29:
  * "since footnotes are also available in the side view, it just goes to the
- * side view editor, similar to the /notes command").
+ * side view editor, similar to the /notes command"). `/user` inserts the
+ * GitHub login of the user, the name that the notes give their author
+ * (Hannes, 2026-10-29: "/user insert the current user name"); without a
+ * sign-in, it asks for the sign-in first.
  */
 
 import * as vscode from 'vscode';
+import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
@@ -38,6 +42,7 @@ import type { CleanMirror } from './notesView';
 export const slashCommandIds = {
   note: 'nimblescape.markdownNotes.slashNote',
   footnote: 'nimblescape.markdownNotes.slashFootnote',
+  user: 'nimblescape.markdownNotes.slashUser',
 };
 
 /** Replaced is the selected text that a typed slash replaced, at the version of the document after the slash. */
@@ -72,6 +77,11 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   /** selections holds the selected text of each document, at the version of the document. */
   private readonly selections = new Map<string, { range: vscode.Range; text: string; version: number }>();
   private replaced: Replaced | undefined;
+  /**
+   * login is the GitHub login of the user for `/user`, read without a sign-in at the start and after each change of the
+   * sessions, because the list of suggestions shows it at once.
+   */
+  private login: string | undefined;
 
   /**
    * @param threads - The threads of the notes, which read each document once for each version.
@@ -88,6 +98,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
 
   /** register registers the suggestions for the Markdown files, and the commands that they run. */
   register(): vscode.Disposable[] {
+    void this.readLogin();
     return [
       vscode.languages.registerCompletionItemProvider('markdown', this, '/'),
       vscode.window.onDidChangeTextEditorSelection((event) => this.remember(event.textEditor)),
@@ -95,7 +106,18 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       vscode.workspace.onDidCloseTextDocument((document) => this.selections.delete(document.uri.toString())),
       vscode.commands.registerCommand(slashCommandIds.note, (uri: vscode.Uri, range: vscode.Range, todo: boolean) => this.note(uri, range, todo)),
       vscode.commands.registerCommand(slashCommandIds.footnote, (uri: vscode.Uri) => this.footnote(uri)),
+      vscode.commands.registerCommand(slashCommandIds.user, (uri: vscode.Uri) => this.user(uri)),
+      vscode.authentication.onDidChangeSessions((event) => {
+        if (event.provider.id === githubProvider) {
+          void this.readLogin();
+        }
+      }),
     ];
+  }
+
+  /** readLogin reads the GitHub login of the user without a sign-in. */
+  private async readLogin(): Promise<void> {
+    this.login = await githubLogin(false);
   }
 
   /**
@@ -219,6 +241,13 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       item('/date', dateText(now), 'Insert the current date', vscode.CompletionItemKind.Value, range, dateText(now)),
       item('/time', timeText(now), 'Insert the current date and time, in the local time', vscode.CompletionItemKind.Value, range, timeText(now)),
     );
+    if (this.login) {
+      items.push(item('/user', this.login, 'Insert your GitHub login', vscode.CompletionItemKind.Value, range, this.login));
+    } else {
+      const created = item('/user', 'Sign in with GitHub', 'Sign in with GitHub, then insert your GitHub login', vscode.CompletionItemKind.Value, range, '');
+      created.command = { command: slashCommandIds.user, title: 'Insert User', arguments: [document.uri] };
+      items.push(created);
+    }
     // The list keeps the order of the commands.
     items.forEach((created, index) => (created.sortText = String(index).padStart(2, '0')));
     return items;
@@ -246,6 +275,23 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
     if (editor) {
       await this.addFootnote(editor);
+    }
+  }
+
+  /**
+   * user inserts the GitHub login of the user at the cursor of a text editor for `/user` without a sign-in, after VS
+   * Code removed the typed command: it asks for the sign-in first.
+   * @param uri - The URI of the document.
+   */
+  private async user(uri: vscode.Uri): Promise<void> {
+    const login = await githubLogin(true);
+    this.login = login;
+    const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
+    if (!login) {
+      void vscode.window.showInformationMessage('/user inserts your GitHub login after a sign-in with GitHub.');
+    } else if (editor) {
+      const at = editor.selection.active;
+      await editor.edit((builder) => builder.insert(at, login));
     }
   }
 }

@@ -41,7 +41,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Filters of the side view](#filters-of-the-side-view) | side view | available | [R-SIDE-008](requirements.md#r-side-008) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-SIDE-003](requirements.md#r-side-003), [R-EDIT-003](requirements.md#r-edit-003), [R-EDIT-006](requirements.md#r-edit-006) |
 | [Todo notes](#todo-notes) | text editor, side view | available | [R-NOTE-008](requirements.md#r-note-008) |
-| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/date`, `/time`: available; `/research`, `/source`: planned | [R-EDIT-008](requirements.md#r-edit-008) |
+| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/date`, `/time`, `/user`: available; `/research`, `/source`: planned | [R-EDIT-008](requirements.md#r-edit-008) |
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
@@ -671,6 +671,7 @@ commands.
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
+| `/user` | Inserts your GitHub login, for example `hannes`, the name that your notes give their author. The list shows the login. Without a sign-in, the list shows "Sign in with GitHub": VS Code asks you to sign in, and the login follows ([GitHub sign-in](#github-sign-in)). |
 
 `/research` and `/source`, for the sources of a document, are planned.
 
@@ -763,8 +764,7 @@ Agents change the work of teams.[^1]
   selects the footnote, and the cursor on the rest of the highlight selects
   the note.
 - A click on the thread, or on "Line N", shows the first reference in the
-  text editor. "Go to Definition" (the arrow down) puts the cursor at the
-  definition.
+  text editor, or the definition of a footnote without a reference.
 - "Edit" (the pencil) opens the editor with the text of the definition.
   "Save" writes it back: the first line after `[^1]: `, each further line
   indented by four spaces, as Markdown needs it for a footnote of several

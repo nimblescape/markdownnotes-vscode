@@ -65,7 +65,7 @@ as the highlights of a marker pen on paper.
 | 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | done |
 | 41 | A click on a highlight selects its note, a double click opens the side view; the cursor that leaves a highlight deselects its note; each thread that is not selected dimmed ([decision 29](#decisions)) | [R-SIDE-007](#r-side-007), [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006) | done |
 | 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
-| 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date` and `/time` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
+| 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
 | 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; the form of the citations waits for Hannes |
 | 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
@@ -1147,6 +1147,12 @@ it shows no suggestions while the user types words.
 - `/time` inserts the current date and time in the local time, in minutes,
   for example `2026-10-29 19:29` ("/time the date and time in local time
   format").
+- `/user` inserts the GitHub login of the user, for example `hannes`, the
+  name that the notes give their author ([R-GEN-006](#r-gen-006)) (Hannes,
+  2026-10-29, 20:26: "/user insert the current user name"). The list shows
+  the login. Without a GitHub session, the list shows "Sign in with GitHub":
+  `/user` then asks for the sign-in of VS Code and inserts the login after
+  it, and inserts nothing when the user cancels the sign-in.
 
 The editors of the side view have no slash commands (Hannes, 18:40), so
 `/todo` at the start of a new note, which [decision 30](#decisions) named,
@@ -1421,8 +1427,8 @@ for editing footnotes", [decision 24](#decisions)):
 
 ### R-FOOT-002
 
-**Edit a footnote.** Each footnote in the side view has the buttons "Edit",
-"Delete" and "Go to Definition":
+**Edit a footnote.** Each footnote in the side view has the buttons "Edit"
+and "Delete", as a note:
 
 - "Edit" opens the editor of the side view with "Write" and "Preview"
   ([R-SIDE-002](#r-side-002)) with the text of the definition. "Save" writes
@@ -1434,8 +1440,11 @@ for editing footnotes", [decision 24](#decisions)):
 - "Delete" asks first, because it changes the text of the document, and then
   removes the definition and every reference to it, in one edit that Undo
   takes back.
-- A click on the footnote shows its first reference in the text editor, and
-  "Go to Definition" shows its definition.
+- A click on the footnote shows its first reference in the text editor, or
+  its definition when it has no reference. The view has no button "Go to
+  Definition", because it shows and edits the whole text of the footnote, as
+  the text of a note (Hannes, 2026-10-29, 20:26: "why go to definition? we
+  do not have that for notes").
 
 ### R-FOOT-003
 

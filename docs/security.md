@@ -89,7 +89,7 @@ A note from a stranger can still:
 | --- | --- | --- |
 | The extension (`dist/extension.js`) | Your user, in the extension host of VS Code, where the workspace is | VS Code. It reads the documents only as text. |
 | The light bulb action "Add Note" (`src/addNoteAction.ts`) | The Code Actions of VS Code, in the VS Code window | A fixed title and the command "Add Note" of the extension, without arguments; it holds no text of the file |
-| The slash commands (`src/slashCommands.ts`) | The suggestions of VS Code, in the VS Code window | Fixed labels, the date and the time, the text that the typed slash replaced, and commands of the extension with the document, a range and a label as arguments |
+| The slash commands (`src/slashCommands.ts`) | The suggestions of VS Code, in the VS Code window | Fixed labels, the date and the time, the GitHub login of the user, the text that the typed slash replaced, and commands of the extension with the document, a range and a label as arguments |
 | The side view (`media/notesView.js`) | A webview of VS Code, in the VS Code window | The state that the extension sends: the answers and their HTML, which the Markdown preview renderer made from the text of the file |
 | The markdown-it plugin, the styles and the script of the preview (`media/markdownPreview.css`, `media/markdownPreview.js`) | The Markdown extension of VS Code, which renders the page of the Markdown preview, with the security policy of the Markdown preview | The Markdown text of the document |
 
@@ -132,7 +132,7 @@ connection of VS Code, as the text of an open file does.
   it changes no text by itself and holds no text of the file. The extension
   shows no hover with HTML or command links over the selected text.
 - **The slash commands.** The suggestions after a typed slash are plain
-  text: the labels of the commands, the date and the time, and for `/note`
+  text: the labels of the commands, the date, the time and the GitHub login, and for `/note`
   and `/todo` the text that the slash replaced, which goes back to its place.
   Their commands are no links of a page; only the list of suggestions runs
   them, for the document of the text editor. The extension keeps the last
@@ -278,6 +278,9 @@ of VS Code with the scope `read:user`
   session, the extension writes nothing.
 - The side view asks only for an existing session (`silent`), to show the
   account, and asks for a sign-in only on a click on "Sign in with GitHub".
+  The slash commands ask for an existing session too, so that `/user` shows
+  the login, and ask for a sign-in only when you choose `/user` without a
+  session.
 - The extension reads only the name of the account (`account.label`), which
   is the GitHub login. It does not read or store the access token of the
   session, and sends no request to GitHub. VS Code stores the session.
