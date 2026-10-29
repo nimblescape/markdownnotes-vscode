@@ -7,11 +7,11 @@ highlight, as the highlight of a marker pen on paper. Several authors can
 answer a note and each other, so each note is a thread with a tree of
 replies. The side view "Notes" shows the threads next to their highlights in
 the text editor, and is the editor of the notes. You add a note by selecting
-text: a hover over the selected text offers a color for the new note. Every
-change goes back into the footnote in the file, with the GitHub login of the
-author.
+text and choosing "Add Note": in the light bulb at the selected text, with a
+shortcut, or in the context menu. Every change goes back into the footnote in
+the file, with the GitHub login of the author.
 
-![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the hover over the selected text with Add Note and six colors; on the right, the side view Notes with the two threads, each at the height of its highlight, and the selected blue thread with its line to its highlight](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
+![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the two threads, each at the height of its highlight, and the selected blue thread with its line to its highlight](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
 
 ## What the extension does on your computer
 
@@ -81,11 +81,13 @@ describes each step and where its protection ends.
   Explorer stays usable; the button "Show or Hide Notes" in the title of the
   Markdown editors opens and closes it with one click, also in Zen Mode and
   in the modes "Markdown Preview" and "Markdown Editor" of VS Code.
-- **New notes.** Select the text that the note is about: a hover over the
-  selected text shows "Add Note" and the six colors, and a click on a color
-  opens the editor of the new note in the side view. "Add Note" in the title
-  of the side view and in the context menu of the text editor does the same.
-  There is no note without highlighted text.
+- **New notes.** Select the text that the note is about, then choose "Add
+  Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
+  Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
+  editor, or with "Add Note" (`+`) in the title of the side view. Each opens
+  the editor of the new note in the side view, where you choose its color.
+  Nothing shows by itself over the selected text, and there is no note
+  without highlighted text.
 - **The text stays readable.** The text editor never shows the text of a note
   and its markers: the notes are collapsed, the cursor steps over a hidden
   marker, and Backspace and Delete never change it. Where a header line
@@ -149,7 +151,7 @@ you add or answer a note. In the side view "Notes":
 
 | Action | How |
 | --- | --- |
-| Add a note | Select the text in the text editor, then click a color in the hover over it, or "Add Note" (`+`) in the title of the side view. Write the text, then click "Add Note" (check mark) or press Ctrl+Enter. |
+| Add a note | Select the text in the text editor, then choose "Add Note" in the light bulb at the selected text (Ctrl+.), press Shift+Alt+N (Cmd+K N on a Mac), or click "Add Note" (`+`) in the title of the side view. Choose a color, write the text, then click "Add Note" (check mark) or press Ctrl+Enter. |
 | Edit an answer | Click "Edit" (pencil) at the answer, change the text, then click "Save" (check mark) or press Ctrl+Enter. "Cancel" keeps the answer as it is. |
 | Answer a note | Click "Answer" (speech bubble) at the thread, write the text, then click "Answer". |
 | Reply to an answer | Click "Reply" (arrow) at the answer, write the text, then click "Reply". |

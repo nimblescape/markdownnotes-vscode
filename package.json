@@ -243,6 +243,12 @@
     },
     "keybindings": [
       {
+        "command": "nimblescape.markdownNotes.newNote",
+        "key": "shift+alt+n",
+        "mac": "cmd+k n",
+        "when": "editorTextFocus && editorLangId == markdown && editorHasSelection && !editorReadonly"
+      },
+      {
         "command": "nimblescape.markdownNotes.deleteLeft",
         "key": "backspace",
         "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerLeft"

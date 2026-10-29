@@ -46,10 +46,11 @@ as the highlights of a marker pen on paper.
 | 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
 | 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
-| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done |
+| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28 |
 | 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 | 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
+| 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
 
 ## General
 
@@ -544,8 +545,8 @@ after the first collapse.
 **Color of a note.** Every note has the same color by default, and the user
 gives a note another color in the side view (Hannes, 2026-10-28: "notes can
 be colored in the notes editor, by default they get all the same color"):
-the button with the color of a thread opens the colors, and the hover over
-the selected text offers them for a new note ([R-EDIT-006](#r-edit-006)).
+the button with the color of a thread opens the colors, and the editor of a
+new note offers them for the new note ([R-SIDE-003](#r-side-003)).
 The six colors are blue (the default), green, orange, purple, red and teal,
 which show on light and on dark themes. The file keeps the
 color in the start marker of the note, after its label, for example
@@ -676,9 +677,8 @@ selected text, "Add Note" opens no editor and shows a message that asks the
 user to select the text that the note is about (Hannes, 2026-10-28: "there
 shall be no way to add a note without highlighting text"); when the user
 removes the selection while the editor is open, its title asks for it, and
-"Add Note" of the editor adds no note. The hover over the selected text opens
-the same editor with the color that the user chose there
-([R-EDIT-006](#r-edit-006)).
+"Add Note" of the editor adds no note. The light bulb action and the shortcut
+of the selected text open the same editor ([R-EDIT-006](#r-edit-006)).
 
 ### R-SIDE-004
 
@@ -817,9 +817,11 @@ undo the change.
 ### R-EDIT-003
 
 **Add a note.** The user selects the text that the note is about in the text
-editor and adds the note: with a color of the hover over the selected text
-([R-EDIT-006](#r-edit-006)), or with "Add Note" in the title of the side view
-or in the context menu of the text editor ([R-SIDE-003](#r-side-003)). The
+editor and adds the note: with the light bulb action or the shortcut of the
+selected text ([R-EDIT-006](#r-edit-006)), or with "Add Note" in the title of
+the side view or in the context menu of the text editor
+([R-SIDE-003](#r-side-003)). The user chooses its color in the editor of the
+new note. The
 note belongs to exactly this text, its highlight ([R-NOTE-006](#r-note-006)):
 the extension writes the start marker with `<wbr>` and the color before it,
 the reference after it, and the definition after the outermost block of the
@@ -859,30 +861,34 @@ header: the GitHub login of the author and the date and time
 
 ### R-EDIT-006
 
-**Hover over the selected text.** When the user selects text in the text
-editor, a hover over the selected text offers to add a note (Hannes,
-2026-10-28: "selecting text shows a hover over the selected text with color
-icons that allow to create the note"):
+**Light bulb and shortcut of the selected text.** The selected text offers
+"Add Note" in the standard ways of VS Code, which show only when the user
+asks for them, and nothing shows by itself over the selected text
+([decision 22](#decisions), Hannes, 2026-10-29: "Is there a better mechanism
+we could use to add a note?", "go with your proposal"):
 
-- The hover shows "Add Note" and an icon of each color of the notes
-  ([R-TEXT-006](#r-text-006)), each with the name of its color as its
-  tooltip. A click on an icon opens the editor of a new note in the side view
-  in this color, and opens the side view when it is closed
-  ([R-SIDE-003](#r-side-003)); the note is added when the user saves its
-  text.
-- The hover shows 600 milliseconds after the user stopped selecting the text
-  with the mouse or the keys, at the cursor, which stands at an edge of the
-  selection, and also while the pointer rests on the selected text.
-- It shows only for one selection that starts and ends in one block of text
-  that a note can highlight, in a Markdown file that the extension can
-  change, and not after a command or an edit changed the selection, so that
-  "Select All" shows no hover.
-- The hover takes no focus, so the keys keep working in the text editor, and
-  Escape or a move of the cursor closes it as any hover of VS Code.
-
-The hover is a hover of VS Code, which shows only Markdown: each icon is a
-codicon in the color of its note, and a link that runs the command "Add
-Note" with the name of the color.
+- **Light bulb:** "Add Note" is a Code Action of the selected text, so VS
+  Code shows its light bulb at the selection. A click on the light bulb, or
+  Ctrl+. (Cmd+. on a Mac), lists "Add Note" as the first entry, under "Quick
+  Fix": its kind is `quickfix.markdownNotes.addNote`, and VS Code lists the
+  quick fixes before its own actions for selected text, such as "Rewrite" and
+  "Surround With".
+- **Shortcut:** Shift+Alt+N on Windows and Linux, Cmd+K N on a Mac, while
+  the text editor of a Markdown file has the focus, text is selected and the
+  file can be changed. VS Code uses these keys for nothing else, also in VS
+  Code for the Web. The shortcut has no Ctrl+Alt on Windows and Linux,
+  because Ctrl+Alt is AltGr there, which types characters such as @ or µ on
+  a German keyboard, and no Option without Cmd on a Mac, which types
+  characters too.
+- Both open the editor of a new note in the side view, as "Add Note" of the
+  side view does, and open the side view when it is closed
+  ([R-SIDE-003](#r-side-003)); the user chooses the color there, and the
+  note is added when the user saves its text.
+- The light bulb offers "Add Note" only for one selection that starts and
+  ends in one block of text that a note can highlight, in a Markdown file
+  that the extension can change. Without selected text, the shortcut does
+  nothing; "Add Note" of a menu shows the message of
+  [R-SIDE-003](#r-side-003).
 
 ### R-EDIT-007
 
@@ -1234,7 +1240,8 @@ requirements above follow them.
     highlights show only while the side view is open ("closing the side view,
     also hides the highlights"); a hidden highlight shows under the pointer,
     and a click on it opens the side view; the hover over the selected text
-    offers the colors for a new note. Closing the side view keeps the
+    offered the colors for a new note (replaced by
+    [decision 22](#decisions)). Closing the side view keeps the
     setting, and "Show Highlights" also opens the side view, so that one
     click shows the highlights.
 19. **Format on save only for files with notes** ([R-FMT-001](#r-fmt-001),
@@ -1262,6 +1269,16 @@ requirements above follow them.
     writes a comment anew, and only a higher major version stops the changes
     of the notes. Before, each change of the words of the comment wrote the
     comment anew in every file, also back to the words of an older version.
+22. **The light bulb and a shortcut in place of the hover over the selected
+    text** ([R-EDIT-006](#r-edit-006), Hannes, 2026-10-29, D4 of the code
+    review: "Is there a better mechanism we could use to add a note?", "go
+    with your proposal"): "Add Note" is a Code Action of the selected text,
+    which the light bulb and Ctrl+. list, and has the shortcut Shift+Alt+N
+    (Cmd+K N on a Mac); the color is chosen in the editor of the new note.
+    VS Code has no toolbar that floats over selected text. Before, a hover
+    with the colors showed by itself over each selection in each Markdown
+    file, also when the user selected text only to copy or change it. The
+    other choice was the hover only while the side view is open.
 
 ---
 

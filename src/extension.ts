@@ -15,12 +15,13 @@
  * the notes (Hannes, 2026-10-28: "we completely drop the inline view"), with
  * the GitHub login of the user as the author of new notes
  * ([src/github.ts](github.ts)), and the formatter of Markdown documents
- * ([src/formatter.ts](formatter.ts)), and the hover of the selected text,
- * which adds a note ([src/selectionHover.ts](selectionHover.ts)). It handles
- * the links of the highlights of the preview, which select a note in the side
- * view, and the links of the preview that deselect the selected note, and the
- * buttons "Show Highlights" and "Hide Highlights", and refreshes the previews
- * and the notes when a setting of the extension changes.
+ * ([src/formatter.ts](formatter.ts)), and the light bulb action of the
+ * selected text, which adds a note
+ * ([src/addNoteAction.ts](addNoteAction.ts)). It handles the links of the
+ * highlights of the preview, which select a note in the side view, and the
+ * links of the preview that deselect the selected note, and the buttons "Show
+ * Highlights" and "Hide Highlights", and refreshes the previews and the notes
+ * when a setting of the extension changes.
  *
  * The highlights show while the setting `showHighlights` is on and the side
  * view is open (Hannes, 2026-10-28: "closing the side view, also hides the
@@ -31,6 +32,7 @@
 
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
+import { AddNoteAction } from './addNoteAction';
 import { registerFormatter, type SaveChanges } from './formatter';
 import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
@@ -40,7 +42,6 @@ import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
-import { SelectionHover } from './selectionHover';
 import { checkedSettings, type Settings, settingsSection } from './settings';
 
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
@@ -231,7 +232,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     view.onDidChangeVisibility(showsChanged),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     ...registerFormatter(extensionId, saveChangesOf),
-    ...new SelectionHover(threads, viewCommands.newNote).register(),
+    new AddNoteAction(threads, viewCommands.newNote).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);

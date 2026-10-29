@@ -27,7 +27,7 @@
 //
 // The editor of a new note shows in its title the text that the note
 // highlights, the selected text of the text editor, and the colors of the
-// notes, with the color that the hover of the selected text chose.
+// notes, from which the user chooses the color of the note.
 //
 // The rendered HTML of a text can hold the HTML of the text itself. The
 // policy of the page runs no script of it; the script also removes the
@@ -605,7 +605,7 @@
     if (state.file === undefined) {
       root.append(element('p', 'hint', 'Open a Markdown file to see its notes.'));
     } else if (state.threads.length === 0 && !editors.has('new')) {
-      root.append(element('p', 'hint', 'This file has no notes yet. Select text in the text editor, then choose a color in the hover over the selected text, or "Add Note" (+) in the title of the view.'));
+      root.append(element('p', 'hint', 'This file has no notes yet. Select text in the text editor, then choose "Add Note" in the light bulb or the context menu of the text editor, or "Add Note" (+) in the title of the view.'));
     }
     for (const thread of state.threads) {
       root.append(threadOf(thread));
@@ -813,7 +813,7 @@
         drawLater();
       }
     } else if (message.type === 'new') {
-      newColor = message.color;
+      // An open editor of a new note keeps its text and its color.
       open('new', editors.get('new')?.text ?? '');
     } else if (message.type === 'line') {
       state.line = message.line;

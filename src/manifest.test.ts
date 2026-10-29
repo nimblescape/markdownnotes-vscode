@@ -137,7 +137,7 @@ test('the manifest contributes the commands of the side view, of the highlights 
 
 test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
   const base = 'editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections';
-  expect(manifest.contributes.keybindings).toEqual([
+  expect(manifest.contributes.keybindings.slice(1)).toEqual([
     { command: deleteCommands.left, key: 'backspace', when: `${base} && ${markerContexts.left}` },
     { command: deleteCommands.right, key: 'delete', when: `${base} && ${markerContexts.right}` },
     { command: deleteCommands.wordLeft, key: 'ctrl+backspace', mac: 'alt+backspace', when: `${base} && ${markerContexts.left}` },
@@ -146,7 +146,7 @@ test('Backspace and Delete next to a hidden marker run the commands of the exten
   expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining(Object.values(deleteCommands).map((command) => ({ command, when: 'false' }))));
 });
 
-test('Add Note is a button of the title of the side view and an item of the context menu of the text editor, and needs selected text (R-EDIT-003, R-EDIT-006)', () => {
+test('Add Note is a button of the title of the side view, an item of the context menu of the text editor and a shortcut, and needs selected text (R-EDIT-003, R-EDIT-006)', () => {
   const menus = manifest.contributes.menus;
   // There is no way to add a note without highlighting text (Hannes, 2026-10-28 20:25).
   const editor = 'editorLangId == markdown && !editorReadonly && editorHasSelection';
@@ -155,6 +155,15 @@ test('Add Note is a button of the title of the side view and an item of the cont
   expect(menus.commandPalette).toEqual(expect.arrayContaining([{ command: viewCommands.newNote, when: editor }]));
   const added = manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.newNote);
   expect(added).toMatchObject({ title: 'Add Note', icon: '$(add)' });
+  // The shortcut works only with selected text too. It has no Ctrl+Alt on Windows and Linux, which is AltGr there and
+  // types characters such as @ or µ on a German keyboard, and no Option on a Mac, which types characters too
+  // (decision 22). A test in VS Code checks that VS Code has no shortcut of its own on these keys.
+  expect(manifest.contributes.keybindings[0]).toEqual({
+    command: viewCommands.newNote,
+    key: 'shift+alt+n',
+    mac: 'cmd+k n',
+    when: 'editorTextFocus && editorLangId == markdown && editorHasSelection && !editorReadonly',
+  });
 });
 
 test('the title of the text editor and of the preview of a Markdown file has the button "Show Highlights" or "Hide Highlights" after the context key of the shown highlights (R-GEN-011)', () => {

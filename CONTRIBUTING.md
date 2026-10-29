@@ -11,7 +11,7 @@ describes its security model.
 
 | File | Purpose |
 | --- | --- |
-| `src/extension.ts` | The editor wiring: activation starts the threads of the notes, the overlay of the text editor, the side view and the hover over the selected text, returns the markdown-it plugin for the Markdown preview with the settings, the selected note and the links of the rendered document, handles the links of the highlights of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open` and `/deselect`), the buttons "Show Highlights" and "Hide Highlights" with the context key `nimblescape.markdownNotes.highlightsShown`, and refreshes the previews and the threads when a setting of the extension or the visibility of the side view changes. |
+| `src/extension.ts` | The editor wiring: activation starts the threads of the notes, the overlay of the text editor, the side view and the light bulb action of the selected text, returns the markdown-it plugin for the Markdown preview with the settings, the selected note and the links of the rendered document, handles the links of the highlights of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open` and `/deselect`), the buttons "Show Highlights" and "Hide Highlights" with the context key `nimblescape.markdownNotes.highlightsShown`, and refreshes the previews and the threads when a setting of the extension or the visibility of the side view changes. |
 | `src/github.ts` | The GitHub sign-in: the login of the GitHub session of VS Code, the author of new notes and answers. |
 | `src/settings.ts` | The settings of the extension, their defaults, and the check of their values. It uses no API of VS Code. |
 | `src/notes/syntax.ts` | The syntax of one note: the label `note-` and four random small letters or digits, the header line of an answer (`**login** · date`), the start marker `<wbr><!--[note-7k2q-->` with the name of a color, and the reference `[^note-7k2q]`, the tree of answers with their depths and parents, the lines of a note for a list of answers, the dates of a header in the local time of the reader and of the author, and the rules of markdown-it 14 for the definitions, the references and the start markers of the notes. It uses no API of VS Code, so the extension and the plugin share it. |
@@ -26,7 +26,7 @@ describes its security model.
 | `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their colors and their whole texts, the places of the highlights beside the text editor, the actions of its script, and the commands "Add Note", "Hide Notes" and "Show or Hide Notes". |
-| `src/selectionHover.ts` | The hover over the selected text in the text editor: "Add Note" and an icon of each color, which runs "Add Note" of the side view with the color, shown 600 ms after the selection with the command `editor.action.showHover`. |
+| `src/addNoteAction.ts` | The light bulb action "Add Note" of the selected text in the text editor: a Code Action of the kind `quickfix.markdownNotes.addNote`, which runs "Add Note" of the side view. |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
@@ -39,7 +39,7 @@ describes its security model.
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
 | `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
 | `test/cli/` | The tests of the built command `markdown-notes` (`cli/dist/markdown-notes.js`), with the Node.js of the tests in the temporary folder of the system. |
-| `test/vscode/` | The tests in a real VS Code: the highlights and the hidden markers in the text editor, the comment of the format, the collapse of the notes, the side view with the buttons "Show Highlights" and "Hide Highlights", the hover over the selected text, the formatter, and the highlights of the Markdown preview of VS Code (`markdown.api.render`). |
+| `test/vscode/` | The tests in a real VS Code: the highlights and the hidden markers in the text editor, the comment of the format, the collapse of the notes, the side view with the buttons "Show Highlights" and "Hide Highlights", the light bulb action and the shortcut of "Add Note", the formatter, and the highlights of the Markdown preview of VS Code (`markdown.api.render`). |
 | `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
 | `cli/package.json`, `cli/package-lock.json`, `cli/README.md` | The npm package `@nimblescape/markdown-notes`: its manifest, its lock file without dependencies and its page on npmjs.com. The build writes `cli/dist/markdown-notes.js` and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`, all kept out of Git. The section [npm package](#npm-package) explains it. |
 | `out/`, `.vscode-test/` | The bundled tests in VS Code (`scripts/build-vscode-tests.mjs`) and the VS Code that `@vscode/test-cli` downloads for them, kept out of Git. |
@@ -48,7 +48,7 @@ describes its security model.
 | `docs/example.md` | A document with notes of each kind: a tree of replies, code blocks, a task list, highlights in three colors, and a footnote that is no note. GitHub shows it as the readers of a repository see the notes. |
 | `docs/requirements.md` | The requirements, each with an ID as its heading, and the plan of the steps. |
 | `docs/security.md` | The security model: what the extension does on your computer, what it protects, and where its protection ends. The section "What the extension does on your computer" at the top of the README lists the same behaviors in short. |
-| `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with the highlights of two notes and the hover over the selected text, and the side view "Notes" beside it in the secondary side bar. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
+| `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with the highlights of two notes and the list of the light bulb at the selected text (Ctrl+.), and the side view "Notes" beside it in the secondary side bar. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
 | `THIRD-PARTY-NOTICES.md` | The packages that the bundle contains, their licenses and the places of their source code. |
 | `SUPPORT.md` | Where to ask questions and report problems, and what a report contains. |
 | `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for the Node.js of VS Code, and `src/cli/main.ts` with markdown-it into `cli/dist/markdown-notes.js` for Node.js 22 or later, and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`. The editor API stays outside the bundles. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
@@ -355,20 +355,24 @@ the other extensions of Markdown stay as they are
   the direction of its move, and Backspace or Delete that would join a line
   with a header line does nothing.
 
-`src/selectionHover.ts` gives the selected text its hover
-([R-EDIT-006](docs/requirements.md#r-edit-006)). After a change of the
-selection with the mouse or the keys, and a pause of `showTime` (600 ms), it
-runs `editor.action.showHover` with `focus: 'noAutoFocus'` for one selection
-that `highlightFor` of `src/notes/edits.ts` accepts: a selection in one block
-of text. The hover is a `MarkdownString` with `supportHtml` and
-`isTrusted: { enabledCommands: [...] }` for the command "Add Note" only. VS Code
-keeps the color of an element `span` only in the form `style="color:#rrggbb;"`,
-and a class of a codicon, so each icon is the codicon
-`circle-large-filled` in the color of its note, in a link
-`command:nimblescape.markdownNotes.newNote?["green"]`. `readNotes` reads a
-text without a note without markdown-it and has no blocks for it, so the
-hover and the side view use `textReadingOf` of `NoteThreads`, which reads the
-blocks of such a text once for each version.
+`src/addNoteAction.ts` gives the selected text the Code Action "Add Note"
+([R-EDIT-006](docs/requirements.md#r-edit-006), decision 22). VS Code asks
+the provider with the selection of a text editor, for the light bulb after
+each change of the selection and for Ctrl+.; the provider returns the action
+for one selection of a visible text editor that `highlightFor` of
+`src/notes/edits.ts` accepts, a selection in one block of text, and nothing
+for another range, because the command adds the note to the selection. The
+light bulb lists every kind but `source`, in groups by kind with the quick
+fixes first, so the kind `quickfix.markdownNotes.addNote` puts "Add Note" at
+the top, before "Rewrite" and "Surround With", which VS Code offers itself
+for selected Markdown text (seen in VS Code 1.144). The keybinding of the
+manifest runs the same command with Shift+Alt+N, on a Mac with Cmd+K N; a
+test in VS Code checks against the default keybindings
+(`vscode://defaultsettings/keybindings.json`) that VS Code binds no other
+command to the key. `readNotes` reads a text without a note without
+markdown-it and has no blocks for it, so the action and the side view use
+`textReadingOf` of `NoteThreads`, which reads the blocks of such a text once
+for each version.
 
 The operations `saveAnswer`, `answer` (with the parent of a reply),
 `addNote`, `colorNote`, `saveNoteText`, `deleteAnswer` and `deleteNote` of
@@ -471,13 +475,14 @@ the preview does, and keeps up to 200 rendered texts.
   text editor of the file, the state has no placement, and the script lists
   the threads. A click on a thread sends `reveal` with `focus: false`, which
   shows the note with `preserveFocus`.
-- **New note** ([R-SIDE-003](docs/requirements.md#r-side-003)): "Add Note"
-  and the hover over the selected text run the command
-  `nimblescape.markdownNotes.newNote`, with the name of a color from the
-  hover. Without selected text, the command shows a message and opens no
-  editor. Else it focuses the view and sends `new` with the color to the
-  script, or keeps the request until the script of a view that opens just now
-  sends `ready`.
+- **New note** ([R-SIDE-003](docs/requirements.md#r-side-003)): "Add Note",
+  the light bulb action and the shortcut run the command
+  `nimblescape.markdownNotes.newNote`, which ignores its arguments, such as
+  the URI that a menu passes. Without selected text, the command shows a
+  message and opens no editor. Else it focuses the view and sends `new` to
+  the script, or keeps the request until the script of a view that opens
+  just now sends `ready`. The editor of the new note starts in the default
+  color, and an open editor keeps its text and color.
 - **Highlights with the view** ([R-GEN-011](docs/requirements.md#r-gen-011)):
   `onDidChangeVisibility` of the view tells `src/extension.ts` when the view
   shows or hides, which sets the context key of the buttons, decorates the

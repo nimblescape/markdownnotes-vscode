@@ -46,10 +46,11 @@ The first version.
   heading. The view is in the secondary side bar, and the button "Show or
   Hide Notes" in the title of the Markdown editors opens and closes it, also
   in Zen Mode.
-- New notes: the user selects text, and a hover over the selected text shows
-  "Add Note" and the six colors; a click on a color opens the editor of the
-  new note in the side view. "Add Note" in the title of the side view and in
-  the context menu of the text editor does the same. There is no note
+- New notes: the user selects text and chooses "Add Note" in the light bulb
+  at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
+  Mac), in the context menu of the text editor, or in the title of the side
+  view; the editor of the new note opens in the side view, with the colors of
+  the notes. Nothing shows by itself over the selected text. There is no note
   without highlighted text.
 - New notes and answers need a GitHub sign-in of VS Code, and name the GitHub
   login of the user as their author. VS Code shows each date in the local

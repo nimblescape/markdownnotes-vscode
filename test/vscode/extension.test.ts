@@ -2,10 +2,10 @@
 // Tests in a real VS Code (npm run test:vscode, .vscode-test.mjs): mocha runs them in the extension host. They open
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
-// (R-SIDE-001, R-GEN-011), the hover over the selected text (R-EDIT-006), the formatter and its format on save of a file
-// with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to R-PREV-004) with the
-// markdown-it plugin of the extension, and the headings of the links of the side view in the HTML of the preview
-// (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
+// (R-SIDE-001, R-GEN-011), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
+// format on save of a file with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
+// of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
 
 import * as assert from 'node:assert/strict';
@@ -193,26 +193,44 @@ describe('nimblescape Markdown Notes', () => {
     }
   });
 
-  it('gives the selected text of a paragraph a hover with "Add Note" and an icon of each color, and the text of a note none (R-EDIT-006)', async () => {
+  it('gives the selected text of a paragraph the light bulb action "Add Note", and the text of a note none (R-EDIT-006)', async () => {
     const { document, editor } = await open(note, 2);
-    const hoverAt = async (line: number, character: number) =>
-      (await vscode.commands.executeCommand<vscode.Hover[]>('vscode.executeHoverProvider', document.uri, new vscode.Position(line, character)))
-        .flatMap((hover) => hover.contents)
-        .map((content) => (typeof content === 'string' ? content : content.value))
-        .filter((value) => value.startsWith('Add Note'));
-    editor.selection = new vscode.Selection(16, 0, 16, 4);
-    let text: string | undefined;
-    for (let tries = 0; tries < 100 && text === undefined; tries++) {
-      [text] = await hoverAt(16, 2);
-      if (text === undefined) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-    }
-    assert.ok(text, 'the hover of the selected text');
-    assert.equal(text.match(/codicon-circle-large-filled/g)?.length, 6);
-    assert.match(text, /\(command:nimblescape\.markdownNotes\.newNote\?%5B%22green%22%5D "Add a note in green"\)/);
-    editor.selection = new vscode.Selection(6, 4, 6, 8);
-    assert.deepEqual(await hoverAt(6, 6), []);
+    const actionsAt = async (selection: vscode.Selection) => {
+      editor.selection = selection;
+      return (await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', document.uri, selection)).filter(
+        (action) => action.title === 'Add Note',
+      );
+    };
+    const [action] = await actionsAt(new vscode.Selection(16, 0, 16, 4));
+    assert.ok(action, 'the action of the selected text');
+    assert.equal(action.kind?.value, 'quickfix.markdownNotes.addNote');
+    assert.equal(action.command?.command, commandOf('newNote'));
+    // The light bulb and Ctrl+. list every kind but the source actions, which VS Code shows only on request, and the
+    // quick fixes first.
+    assert.ok(vscode.CodeActionKind.QuickFix.contains(action.kind));
+    const quickFixes = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', document.uri, editor.selection, vscode.CodeActionKind.QuickFix.value);
+    assert.ok(quickFixes.some((candidate) => candidate.title === 'Add Note'));
+    assert.deepEqual(await actionsAt(new vscode.Selection(6, 4, 6, 8)), []);
+    assert.deepEqual(await actionsAt(new vscode.Selection(16, 2, 16, 2)), []);
+  });
+
+  it('runs "Add Note" with a shortcut that VS Code does not use itself (R-EDIT-006)', async () => {
+    const key = process.platform === 'darwin' ? 'cmd+k n' : 'shift+alt+n';
+    const defaults = await vscode.workspace.openTextDocument(vscode.Uri.parse('vscode://defaultsettings/keybindings.json'));
+    // The file of the default shortcuts holds comments, the shortcuts of VS Code and those of the extensions.
+    const bindings = JSON.parse(
+      defaults
+        .getText()
+        .split('\n')
+        .filter((line) => !line.trimStart().startsWith('//'))
+        .join('\n'),
+    ) as { key: string; command: string; when?: string }[];
+    const own = bindings.filter((binding) => binding.key === key);
+    assert.deepEqual(
+      own.map(({ command }) => command),
+      [commandOf('newNote')],
+    );
+    assert.match(own[0].when ?? '', /editorHasSelection/);
   });
 
   it('formats a file and gives each start marker <wbr> before it (R-FMT-001)', async () => {

@@ -587,23 +587,19 @@ test('a link of another scheme opens only after a question, and a link that runs
   expect(fake.external).toHaveLength(2);
 });
 
-test('"Add Note" opens the editor of a new note for the selected text in the color of the hover, and without selected text tells to select text (R-EDIT-003, R-EDIT-006)', async () => {
+test('"Add Note" opens the editor of a new note for the selected text, and without selected text tells to select text (R-EDIT-003, R-EDIT-006)', async () => {
   const { editor, view } = await start(note, 12);
-  await fake.run(viewCommands.newNote, 'green');
-  expect(fake.infos).toEqual([expect.stringMatching(/^The note was not added: select the text in the text editor/)]);
+  await fake.run(viewCommands.newNote);
+  expect(fake.infos).toEqual(['The note was not added: select the text in the text editor that the note is about, then choose "Add Note" again.']);
   expect(view.messages.some((message) => message.type === 'new')).toBe(false);
   editor.selection = { anchor: new FakePosition(2, 4), active: new FakePosition(2, 8) };
   fake.fire('selection', { textEditor: editor, kind: 1 });
   await settle();
-  await fake.run(viewCommands.newNote, 'green');
-  expect(view.messages.at(-1)).toEqual({ type: 'new', color: 'green' });
-  // The default color and an unknown name open the editor in the default color, which the start marker does not name.
-  await fake.run(viewCommands.newNote, 'blue');
-  await fake.run(viewCommands.newNote, { name: 'green' });
-  expect(view.messages.slice(-2)).toEqual([
-    { type: 'new', color: undefined },
-    { type: 'new', color: undefined },
-  ]);
+  await fake.run(viewCommands.newNote);
+  expect(view.messages.at(-1)).toEqual({ type: 'new' });
+  // The context menu of the text editor passes the URI of the document, which changes nothing.
+  await fake.run(viewCommands.newNote, editor.document.uri);
+  expect(view.messages.at(-1)).toEqual({ type: 'new' });
 });
 
 test('"Add Note" opens the hidden view, and a view that opens just now gets the request when its script starts (R-EDIT-006)', async () => {
@@ -615,13 +611,14 @@ test('"Add Note" opens the hidden view, and a view that opens just now gets the 
   editor.selection = { anchor: new FakePosition(2, 4), active: new FakePosition(2, 8) };
   fake.fire('selection', { textEditor: editor, kind: 1 });
   await settle();
-  await fake.run(viewCommands.newNote, 'red');
+  await fake.run(viewCommands.newNote);
   expect(fake.calls.map(({ command }) => command)).toContain(`${notesViewId}.focus`);
   // VS Code resolves the view, and its script starts.
   const view = fake.resolveView(notesViewId);
   expect(view.messages.some((message) => message.type === 'new')).toBe(false);
   await send(view, { type: 'ready' });
-  expect(view.messages.at(-1)).toEqual({ type: 'new', color: 'red' });
+  expect(view.messages.at(-1)).toEqual({ type: 'new' });
+  expect(view.messages.filter((message) => message.type === 'new')).toHaveLength(1);
   expect(view.state().highlight).toBe('text');
 });
 

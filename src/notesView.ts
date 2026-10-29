@@ -23,8 +23,8 @@
  * icons"): each answer has "Reply", "Edit" and "Delete", each thread "Color",
  * "Show as Text", "Answer" and "Delete Thread", and the title of the view
  * "Add Note", which adds a note to the selected text of the text editor, as
- * the hover of the selected text does
- * ([src/selectionHover.ts](selectionHover.ts)). "Color" gives the note one of the colors of
+ * the light bulb action of the selected text does
+ * ([src/addNoteAction.ts](addNoteAction.ts)). "Color" gives the note one of the colors of
  * [src/notes/colors.ts](notes/colors.ts); every note has the same color by
  * default. "Show as Text" switches the thread to its text view: the whole
  * text of the note, as the text editor shows the file, which "Save" writes
@@ -285,8 +285,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private height: number | undefined;
   /** ready tells whether the script of the view started and receives messages. */
   private ready = false;
-  /** newColor holds the request of "Add Note" for a script that did not start yet: the name of the color, or null for the default. */
-  private newColor: string | null | undefined;
+  /** newPending tells whether "Add Note" waits for a script that did not start yet. */
+  private newPending = false;
   /** columns holds the estimated number of columns of the rows of the text editor of each document, by its URI. */
   private readonly columns = new Map<string, number>();
   private readonly registrations: vscode.Disposable[];
@@ -343,7 +343,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
           void this.refresh();
         }
       }),
-      vscode.commands.registerCommand(viewCommands.newNote, (color?: unknown) => this.newNote(color)),
+      vscode.commands.registerCommand(viewCommands.newNote, () => this.newNote()),
       vscode.commands.registerCommand(viewCommands.hide, () => this.hide()),
       vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
     ];
@@ -428,14 +428,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * newNote opens the editor of a new note in the view, for the selected text of the text editor, in a color: the color
-   * of the icon of the hover of the selection ([src/selectionHover.ts](selectionHover.ts)), or the default color. Without
-   * selected text it opens nothing and tells the user to select text (Hannes, 2026-10-28: "there shall be no way to add
-   * a note without highlighting text").
-   * @param color - The name of the color; another value, such as the URI that a menu of VS Code passes, means the
-   * default color.
+   * newNote opens the editor of a new note in the view, for the selected text of the text editor, in the default color,
+   * which the editor changes. Without selected text it opens nothing and tells the user to select text (Hannes,
+   * 2026-10-28: "there shall be no way to add a note without highlighting text"). It ignores the arguments, such as the
+   * URI that a menu of VS Code passes.
    */
-  private async newNote(color?: unknown): Promise<void> {
+  private async newNote(): Promise<void> {
     const document = this.document;
     const selection = document && this.selections.get(document.toString());
     if (!selection || selection.isEmpty) {
@@ -445,12 +443,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     if (!this.view?.visible) {
       await vscode.commands.executeCommand(`${notesViewId}.focus`);
     }
-    const named = colorNames.find((name) => name === color && name !== colorNames[0]);
     if (this.ready) {
-      await this.view?.webview.postMessage({ type: 'new', color: named });
+      await this.view?.webview.postMessage({ type: 'new' });
     } else {
       // The script of a view that opens just now gets the request when it starts.
-      this.newColor = named ?? null;
+      this.newPending = true;
     }
   }
 
@@ -787,9 +784,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       case 'ready':
         this.ready = true;
         await this.refresh();
-        if (this.newColor !== undefined) {
-          await this.view?.webview.postMessage({ type: 'new', color: this.newColor ?? undefined });
-          this.newColor = undefined;
+        if (this.newPending) {
+          this.newPending = false;
+          await this.view?.webview.postMessage({ type: 'new' });
         }
         return;
       case 'size':

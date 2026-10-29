@@ -220,8 +220,8 @@ in the start marker, after the label; blue has no name there:
 The agents <wbr><!--[note-7k2q green-->change the work of teams[^note-7k2q] in three ways.
 ```
 
-You choose the color of a new note in the hover over the selected text or in
-the editor of the new note ([Add a note](#add-a-note)). The button with the
+You choose the color of a new note in the editor of the new note
+([Add a note](#add-a-note)). The button with the
 color of a thread in the side view, at its left, opens the colors; a click on
 a color gives it to the note.
 
@@ -496,13 +496,20 @@ for example with "Hide Highlights", keeps the open editors and their texts.
 Every note highlights text, so you first select the text that the note is
 about in the text editor. Then:
 
-- **With the hover:** a short time after you selected the text, a hover over
-  it shows "Add Note" and a dot in each color. The hover also shows when the
-  pointer rests on the selected text. A click on a color opens the editor of
-  a new note in the side view, in this color. The hover takes no focus, so
-  you can go on typing; Escape closes it.
-- **With "Add Note":** click "Add Note" (`+`) in the title of the side view,
-  or choose "Add Note" in the context menu of the text editor.
+- **With the light bulb:** VS Code shows a light bulb at the selected text.
+  Click it, or press Ctrl+. (Cmd+. on a Mac), and choose "Add Note", the
+  first entry of the list, under "Quick Fix". VS Code lists its own actions
+  for the selected text below it, for example "Surround With".
+- **With the shortcut:** press Shift+Alt+N on Windows and Linux, or Cmd+K
+  and then N on a Mac. The shortcut works while the text editor of a Markdown
+  file has the focus and text is selected. VS Code uses these keys for
+  nothing else; the keyboard shortcuts of VS Code (Ctrl+K Ctrl+S) change
+  them.
+- **With "Add Note" in a menu:** click "Add Note" (`+`) in the title of the
+  side view, or choose "Add Note" in the context menu of the text editor.
+
+Nothing shows by itself over the selected text, so a selection for a copy or
+a change of the text stays as it is.
 
 The editor of the new note shows the selected text in its title, and the
 colors, where you can change the color. Write the text of the note in
@@ -516,8 +523,8 @@ The extension writes the new note:
   and the definition after the outermost block of the text
   ([Place of a note](#place-of-a-note)).
 - A selection that spans several blocks belongs to the block of its end, and
-  the highlight starts at the start of the text of that block. The hover
-  shows only for a selection in one block.
+  the highlight starts at the start of the text of that block. The light
+  bulb offers "Add Note" only for a selection in one block.
 - The reference never stands in the text of a link or in a code span: the
   extension writes it after the link or the code span.
 - Without selected text, or for a selection without text of a paragraph, a

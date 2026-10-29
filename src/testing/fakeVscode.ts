@@ -137,6 +137,37 @@ export class FakeHover {
   ) {}
 }
 
+/** FakeCodeActionKind stands for a vscode.CodeActionKind: a name of parts that `.` separates. */
+export class FakeCodeActionKind {
+  static readonly Empty = new FakeCodeActionKind('');
+  static readonly QuickFix = new FakeCodeActionKind('quickfix');
+
+  constructor(readonly value: string) {}
+
+  append(part: string): FakeCodeActionKind {
+    return new FakeCodeActionKind(this.value ? `${this.value}.${part}` : part);
+  }
+
+  contains(other: FakeCodeActionKind): boolean {
+    return this.value === '' || other.value === this.value || other.value.startsWith(`${this.value}.`);
+  }
+}
+
+/** FakeCodeAction stands for a vscode.CodeAction. */
+export class FakeCodeAction {
+  command: { command: string; title: string; arguments?: unknown[] } | undefined;
+
+  constructor(
+    readonly title: string,
+    readonly kind?: FakeCodeActionKind,
+  ) {}
+}
+
+/** FakeCodeActionProvider stands for a vscode.CodeActionProvider. */
+interface FakeCodeActionProvider {
+  provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: [] }): FakeCodeAction[];
+}
+
 /** FakeWorkspaceEdit stands for a vscode.WorkspaceEdit. */
 export class FakeWorkspaceEdit {
   readonly replacements: { uri: FakeUri; range: FakeRange; text: string }[] = [];
@@ -225,8 +256,9 @@ export class FakeDocument {
 export class FakeEditor {
   /** decorations holds the ranges, or the options with their ranges, of each decoration type. */
   readonly decorations = new Map<object, (FakeRange | { range: FakeRange })[]>();
-  /** current is the selection of the editor: the fake has one cursor. */
+  /** current is the primary selection of the editor, and others are the further selections of several cursors. */
   private current: FakeSelection;
+  private others: FakeSelection[] = [];
   /** visibleRanges are the visible lines; VS Code splits them at a collapsed fold. */
   visibleRanges: FakeRange[];
 
@@ -246,14 +278,16 @@ export class FakeEditor {
   /** A test can set only the cursor, which is then also the anchor. */
   set selection(value: { active: FakePosition; anchor?: FakePosition }) {
     this.current = value instanceof FakeSelection ? value : new FakeSelection(value.anchor ?? value.active, value.active);
+    this.others = [];
   }
 
   get selections(): FakeSelection[] {
-    return [this.current];
+    return [this.current, ...this.others];
   }
 
   set selections(values: FakeSelection[]) {
     this.selection = values[0];
+    this.others = values.slice(1);
   }
 
   /**
@@ -399,6 +433,8 @@ export class Fake {
   folding = new Map<string, { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }>();
   /** hovers holds the providers of the hovers of each language, in the order of their registration. */
   hovers = new Map<string, { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }[]>();
+  /** codeActions holds the providers of the Code Actions of each language, with the kinds that they provide. */
+  codeActions = new Map<string, { provider: FakeCodeActionProvider; kinds: readonly FakeCodeActionKind[] }[]>();
   /** formatters holds the provider of "Format Document" of each language. */
   formatters = new Map<string, { provideDocumentFormattingEdits(document: FakeDocument): FakeTextEdit[] }>();
   listeners = new Map<string, ((event: unknown) => void)[]>();
@@ -441,6 +477,9 @@ export class Fake {
       Selection: FakeSelection,
       MarkdownString: FakeMarkdownString,
       Hover: FakeHover,
+      CodeAction: FakeCodeAction,
+      CodeActionKind: FakeCodeActionKind,
+      CodeActionTriggerKind: { Invoke: 1, Automatic: 2 },
       WorkspaceEdit: FakeWorkspaceEdit,
       TextEdit: FakeTextEdit,
       Diagnostic: FakeDiagnostic,
@@ -470,6 +509,10 @@ export class Fake {
           }),
         registerFoldingRangeProvider: (language: string, provider: { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }) => {
           this.folding.set(language, provider);
+          return this.registration();
+        },
+        registerCodeActionsProvider: (language: string, provider: FakeCodeActionProvider, metadata: { providedCodeActionKinds: readonly FakeCodeActionKind[] }) => {
+          this.codeActions.set(language, [...(this.codeActions.get(language) ?? []), { provider, kinds: metadata.providedCodeActionKinds }]);
           return this.registration();
         },
         registerHoverProvider: (language: string, provider: { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }) => {
@@ -691,6 +734,19 @@ export class Fake {
    */
   hover(document: FakeDocument, position: FakePosition): FakeHover[] {
     return (this.hovers.get(document.languageId) ?? []).flatMap((provider) => provider.provideHover(document, position) ?? []);
+  }
+
+  /**
+   * codeActionsAt asks the providers of the Code Actions of a document for a range, as VS Code does for the light bulb
+   * after a change of the selection, and returns the titles and kinds of their actions with their commands.
+   * @param document - The document.
+   * @param range - The range, the selection of the text editor for the light bulb.
+   * @param only - The kind that VS Code asks for, or undefined for every kind.
+   */
+  codeActionsAt(document: FakeDocument, range: FakeRange, only?: FakeCodeActionKind): { title: string; kind: string | undefined; command: string | undefined }[] {
+    return (this.codeActions.get(document.languageId) ?? []).flatMap(({ provider }) =>
+      provider.provideCodeActions(document, range, { only, triggerKind: 2, diagnostics: [] }).map((action) => ({ title: action.title, kind: action.kind?.value, command: action.command?.command })),
+    );
   }
 
   /**

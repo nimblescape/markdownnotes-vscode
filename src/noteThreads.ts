@@ -106,7 +106,7 @@ export function problemMessage(problem: Problem): string {
     case 'place':
       return 'The note was not added: a note highlights text of a paragraph, a heading, a list item or a table cell. Select the text there.';
     case 'noText':
-      return 'The note was not added: select the text in the text editor that the note is about, then choose a color in the hover over the selected text, or "Add Note".';
+      return 'The note was not added: select the text in the text editor that the note is about, then choose "Add Note" again.';
     case 'structure':
       return 'The change was not saved: the text would change the note or the Markdown around it. A block quote whose first line is a header (**login** · date) starts a new answer.';
     case 'text':
@@ -242,8 +242,8 @@ export class NoteThreads implements vscode.Disposable {
 
   /**
    * textReadingOf returns the reading of a document with its blocks of text, read once for each version. The reading of
-   * readingOf skips the blocks of a document without notes, but the hover of the selected text and the title of a new
-   * note need them also for the first note of a file.
+   * readingOf skips the blocks of a document without notes, but the light bulb action of the selected text and the title
+   * of a new note need them also for the first note of a file.
    * @param document - The document.
    */
   textReadingOf(document: vscode.TextDocument): Reading {

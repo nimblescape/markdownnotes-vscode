@@ -13,18 +13,16 @@
  * (R-FMT-001); the buttons of the side view (R-SIDE-006); the links of the
  * preview; the comment of the format (R-NOTE-007); the reading of the notes
  * after a change; the warnings (R-TEXT-008); the folds (R-TEXT-005); and the
- * hover over the selected text that adds a note in a color (R-EDIT-006).
+ * light bulb action of the selected text that adds a note (R-EDIT-006).
  */
 
 import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { highlightCommands, highlightsContext } from './extension';
-import { noteColors } from './notes/colors';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
-import { showTime } from './selectionHover';
 import { settingsSection } from './settings';
-import { Fake, FakeDocument, FakeEditor, FakeFoldingRange, type FakeMarkdownString, FakePosition, FakeRange, type FakeTextEdit, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
+import { Fake, FakeCodeActionKind, FakeDocument, FakeEditor, FakeFoldingRange, FakePosition, FakeRange, FakeSelection, type FakeTextEdit, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -79,9 +77,10 @@ test('the activation registers the commands, the side view and the handler of li
   expect([...fake.commands.keys()].sort()).toEqual([...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(deleteCommands)].sort());
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
-  // The overlay of the text editor learns the place of the pointer from a hover provider, and the hover of the selected
-  // text has one of its own.
-  expect(fake.hovers.get('markdown')).toHaveLength(2);
+  // The overlay of the text editor learns the place of the pointer from a hover provider, and the selected text has the
+  // light bulb action "Add Note".
+  expect(fake.hovers.get('markdown')).toHaveLength(1);
+  expect(fake.codeActions.get('markdown')).toHaveLength(1);
   expect(typeof extension.deactivate).toBe('function');
   expect(fake.registrations.length).toBeGreaterThan(0);
   for (const subscription of context.subscriptions) {
@@ -375,10 +374,9 @@ const paragraphs = 'The agents change the work of teams.\n\nA second paragraph.\
  * select opens a text in the active editor, activates the extension, and selects text as the user does.
  * @param anchor - The anchor of the selection.
  * @param active - The cursor, the active end of the selection.
- * @param kind - How the user selected the text: 1 with the keys, 2 with the mouse, 3 by a command.
  * @param text - The text of the document.
  */
-const select = async (anchor: FakePosition, active: FakePosition, kind = 2, text = paragraphs) => {
+const select = async (anchor: FakePosition, active: FakePosition, text = paragraphs) => {
   const editor = new FakeEditor(fake.open(text), 0);
   fake.editors.push(editor);
   fake.activeEditor = editor;
@@ -386,85 +384,56 @@ const select = async (anchor: FakePosition, active: FakePosition, kind = 2, text
   await settle();
   fake.calls.length = 0;
   editor.selection = { anchor, active };
-  fake.fire('selection', { textEditor: editor, kind });
+  fake.fire('selection', { textEditor: editor, kind: 2 });
   return editor;
 };
 
-/** hovers returns the calls of the command of VS Code that shows the hover at the cursor. */
-const hovers = () => fake.calls.filter(({ command }) => command === 'editor.action.showHover');
-
-test('a short time after the user selected text with the mouse or the keys, a hover over the selected text shows "Add Note" and an icon of each color, which adds a note in this color (R-EDIT-006)', async () => {
+test('the selected text of a paragraph gets the light bulb action "Add Note", which opens the editor of a new note in the side view, and no hover (R-EDIT-006)', async () => {
   const editor = await select(new FakePosition(0, 4), new FakePosition(0, 10));
-  await vi.advanceTimersByTimeAsync(showTime - 1);
-  expect(hovers()).toEqual([]);
-  await vi.advanceTimersByTimeAsync(1);
-  // The hover takes no focus, so the keys keep working in the text editor.
-  expect(hovers()).toEqual([{ command: 'editor.action.showHover', args: [{ focus: 'noAutoFocus' }] }]);
-  // VS Code asks the hover providers at the cursor, and also when the pointer rests on the selected text.
-  const [hover] = fake.hover(editor.document, new FakePosition(0, 7)) as { contents: FakeMarkdownString; range: FakeRange }[];
-  expect(hover.range).toMatchObject({ start: new FakePosition(0, 4), end: new FakePosition(0, 10) });
-  expect(hover.contents).toMatchObject({ supportHtml: true, isTrusted: { enabledCommands: [viewCommands.newNote] } });
-  const links = [...hover.contents.value.matchAll(/\[<span style="color:(#[0-9a-f]{6});" class="codicon codicon-circle-large-filled"><\/span>\]\(command:([^?]+)\?([^ ]+) "Add a note in (\w+)"\)/g)];
-  expect(hover.contents.value.startsWith('Add Note')).toBe(true);
-  expect(links.map(([, color, command, query, name]) => [color, command, JSON.parse(decodeURIComponent(query)), name])).toEqual(
-    ['blue', 'green', 'orange', 'purple', 'red', 'teal'].map((name, index) => [noteColors[index], viewCommands.newNote, [name], name]),
-  );
-  // The pointer outside the selected text gets no hover.
-  expect(fake.hover(editor.document, new FakePosition(2, 3))).toEqual([]);
-  // A click on an icon runs "Add Note" with the name of its color, which opens the editor of a new note in the side view.
+  // VS Code asks the providers of the Code Actions with the selection, for the light bulb and for Ctrl+.
+  const addNote = { title: 'Add Note', kind: 'quickfix.markdownNotes.addNote', command: viewCommands.newNote };
+  expect(fake.codeActionsAt(editor.document, editor.selection)).toEqual([addNote]);
+  expect(fake.codeActions.get('markdown')?.map(({ kinds }) => kinds.map((kind) => kind.value))).toEqual([['quickfix.markdownNotes.addNote']]);
+  // A request for the quick fixes gets it, so it stands at the top of the list; a request for the refactorings gets
+  // nothing.
+  expect(fake.codeActionsAt(editor.document, editor.selection, FakeCodeActionKind.QuickFix)).toEqual([addNote]);
+  expect(fake.codeActionsAt(editor.document, editor.selection, FakeCodeActionKind.Empty.append('refactor'))).toEqual([]);
+  // No hover shows by itself over the selected text (Hannes, 2026-10-29, decision D4 of the code review).
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(fake.calls.filter(({ command }) => command === 'editor.action.showHover')).toEqual([]);
+  expect(fake.hover(editor.document, new FakePosition(0, 7))).toEqual([]);
+  // The action runs "Add Note", which opens the editor of a new note in the side view.
   const view = fake.resolveView(notesViewId);
   await view.send({ type: 'ready' });
   // The file has no notes yet, and the title of the new note names the selected text.
   expect(view.state()).toMatchObject({ threads: [], highlight: 'agents' });
-  await fake.run(viewCommands.newNote, 'teal');
-  expect(view.messages.at(-1)).toEqual({ type: 'new', color: 'teal' });
+  await fake.run(addNote.command);
+  expect(view.messages.at(-1)).toEqual({ type: 'new' });
 });
 
-test('the hover of the selected text shows only for one selection in one block of text that stays for a short time, and not after a command (R-EDIT-006)', async () => {
-  // A selection by a command, for example "Select All", gets no hover.
-  let editor = await select(new FakePosition(0, 0), new FakePosition(2, 19), 3);
-  await vi.advanceTimersByTimeAsync(showTime);
-  expect(hovers()).toEqual([]);
+test('the light bulb action "Add Note" is only for one selection in one block of text that a note can highlight, in a file that the extension can change (R-EDIT-006)', async () => {
+  const editor = await select(new FakePosition(0, 4), new FakePosition(2, 3));
+  const { document } = editor;
   // A selection over two paragraphs holds no text that one note can highlight.
-  fake = new Fake();
-  vi.resetModules();
-  vi.doMock('vscode', () => fake.api);
-  editor = await select(new FakePosition(0, 4), new FakePosition(2, 3), 1);
-  await vi.advanceTimersByTimeAsync(showTime);
-  expect(hovers()).toEqual([]);
-  expect(fake.hover(editor.document, new FakePosition(0, 7))).toEqual([]);
-  // A selection that changes again before the time ends gets the hover only after its own time.
-  editor.selection = { anchor: new FakePosition(2, 0), active: new FakePosition(2, 8) };
-  fake.fire('selection', { textEditor: editor, kind: 1 });
-  await vi.advanceTimersByTimeAsync(showTime / 2);
-  editor.selection = { anchor: new FakePosition(2, 0), active: new FakePosition(2, 10) };
-  fake.fire('selection', { textEditor: editor, kind: 1 });
-  await vi.advanceTimersByTimeAsync(showTime / 2);
-  expect(hovers()).toEqual([]);
-  await vi.advanceTimersByTimeAsync(showTime / 2);
-  expect(hovers()).toHaveLength(1);
-  // An empty selection, and a selection in another editor than the active one, get none.
+  expect(fake.codeActionsAt(document, editor.selection)).toEqual([]);
+  // An empty selection gets nothing, and neither does a range that is not the selection.
   editor.selection = { active: new FakePosition(2, 4) };
-  fake.fire('selection', { textEditor: editor, kind: 2 });
-  await vi.advanceTimersByTimeAsync(showTime);
-  editor.selection = { anchor: new FakePosition(0, 0), active: new FakePosition(0, 3) };
-  fake.fire('selection', { textEditor: editor, kind: 2 });
-  fake.activeEditor = undefined;
-  await vi.advanceTimersByTimeAsync(showTime);
-  expect(hovers()).toHaveLength(1);
-});
-
-test('the hover of the selected text does not show in a file that the extension cannot change, nor on the text of a note (R-EDIT-006)', async () => {
-  const editor = await select(new FakePosition(6, 4), new FakePosition(6, 8), 2, note);
-  await vi.advanceTimersByTimeAsync(showTime);
-  expect(hovers()).toEqual([]);
+  expect(fake.codeActionsAt(document, editor.selection)).toEqual([]);
+  expect(fake.codeActionsAt(document, new FakeRange(2, 0, 2, 8))).toEqual([]);
+  editor.selection = { anchor: new FakePosition(2, 0), active: new FakePosition(2, 8) };
+  expect(fake.codeActionsAt(document, editor.selection)).toHaveLength(1);
+  // Several selections get nothing.
+  editor.selections = [editor.selection, new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 3))];
+  expect(fake.codeActionsAt(document, editor.selections[0])).toEqual([]);
+  // The text of a note gets nothing.
+  const noted = new FakeEditor(fake.open(note, '/folder/noted.md'), 0);
+  fake.editors.push(noted);
+  noted.selection = { anchor: new FakePosition(6, 4), active: new FakePosition(6, 8) };
+  expect(fake.codeActionsAt(noted.document, noted.selection)).toEqual([]);
+  // A file that the extension cannot change, for example an older version of a file in Git, gets nothing.
   const old = new FakeEditor(fake.open(paragraphs, '/folder/a.md', { scheme: 'git' }));
   fake.editors.push(old);
-  fake.activeEditor = old;
   old.selection = { anchor: new FakePosition(0, 4), active: new FakePosition(0, 10) };
-  fake.fire('selection', { textEditor: old, kind: 2 });
-  await vi.advanceTimersByTimeAsync(showTime);
-  expect(hovers()).toEqual([]);
-  expect(fake.hover(old.document, new FakePosition(0, 5))).toEqual([]);
-  expect(editor.document.text).toBe(note);
+  expect(fake.codeActionsAt(old.document, old.selection)).toEqual([]);
+  expect(noted.document.text).toBe(note);
 });

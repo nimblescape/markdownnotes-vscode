@@ -85,7 +85,7 @@ A note from a stranger can still:
 | Part | Runs as | Trusts |
 | --- | --- | --- |
 | The extension (`dist/extension.js`) | Your user, in the extension host of VS Code, where the workspace is | VS Code. It reads the documents only as text. |
-| The hover over the selected text | The hovers of VS Code, in the VS Code window | A fixed Markdown text of the extension, which holds no text of the file and may run only the command "Add Note" |
+| The light bulb action "Add Note" (`src/addNoteAction.ts`) | The Code Actions of VS Code, in the VS Code window | A fixed title and the command "Add Note" of the extension, without arguments; it holds no text of the file |
 | The side view (`media/notesView.js`) | A webview of VS Code, in the VS Code window | The state that the extension sends: the answers and their HTML, which the Markdown preview renderer made from the text of the file |
 | The markdown-it plugin, the styles and the script of the preview (`media/markdownPreview.css`, `media/markdownPreview.js`) | The Markdown extension of VS Code, which renders the page of the Markdown preview, with the security policy of the Markdown preview | The Markdown text of the document |
 
@@ -112,12 +112,11 @@ connection of VS Code, as the text of an open file does.
   `nimblescape.nimblescape-markdown-notes` and the path `/open` or
   `/deselect`, because a document can write an element with the same classes
   in raw HTML. It reads no text of the page and sends no message.
-- **The hover over the selected text.** The hover is a Markdown string of the
-  extension (`vscode.MarkdownString`) with HTML on (`supportHtml`) and a
-  trust that allows only the command "Add Note"
-  (`isTrusted: { enabledCommands: [...] }`). Its text is fixed in the code:
-  "Add Note" and a link for each color, which runs "Add Note" with the name
-  of the color. It holds no text of the file.
+- **The light bulb action of the selected text.** The Code Action "Add
+  Note" has a fixed title and runs the command "Add Note" of the extension
+  without arguments, which opens the editor of a new note in the side view;
+  it changes no text by itself and holds no text of the file. The extension
+  shows no hover with HTML or command links over the selected text.
 - **No network.** The extension has no network code and starts no program.
 
 ## Side view
