@@ -69,8 +69,10 @@ The first version.
   cursor, and writes its reference with the next free number and its
   definition after the last footnote. "Hide Footnotes" and "Show Footnotes"
   in the title of the side view change the setting
-  `nimblescape.markdownNotes.showFootnotes`. A change of a footnote adds no
-  comment of the format.
+  `nimblescape.markdownNotes.showFootnotes`. While the side view shows the
+  footnotes, the clean editing view of a file with notes hides the
+  definitions of the footnotes that have a reference, as the definitions of
+  the notes. A change of a footnote adds no comment of the format.
 - Todo notes: the header of the first answer of a note ends with ` · todo`
   for an open task and ` · done` for a completed one; a check box in the side
   view changes it.

@@ -355,6 +355,12 @@ the file. The line breaks, the cursor, the word moves, the search, the copy
 and Undo count only the characters of the text. Each change in the view goes
 into the file at once, and each note stays at its text:
 
+- While the side view shows the footnotes, the view also hides the
+  definition of each standard footnote that has a reference
+  ([Footnotes in the side view](#footnotes-in-the-side-view)); the reference,
+  for example `[^1]`, stays in the text. A definition that you type in the
+  view stays there until the view reads the file anew, for example after a
+  change in the side view.
 - Text typed at the start or the end of a highlight stays outside of it;
   text typed inside a highlight stays in it, also when you type over its
   first or its last word.
@@ -782,6 +788,11 @@ Agents change the work of teams.[^1]
 - "Hide Footnotes" in the title of the side view hides the footnotes, and
   "Show Footnotes" shows them again; the notes stay. Both change the setting
   `nimblescape.markdownNotes.showFootnotes` ([Settings](#settings)).
+- In the [clean editing view](#clean-editing-view) of a file with notes, the
+  definitions of the footnotes that have a reference are hidden while the
+  side view shows the footnotes, as the definitions of the notes; "Hide
+  Footnotes" shows them in the text again. A file without notes shows its
+  definitions in its own text editor.
 
 A change of a footnote adds no comment of the format, and a file without
 notes stays a file without notes.

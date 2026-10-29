@@ -53,14 +53,16 @@ const clean = 'The agents change the work of teams.\n\nThe next paragraph.\n';
 /**
  * opened returns the clean view, the file and the clean document of the file in a visible text editor, as VS Code
  * opens it: it reads the clean text from the file system of the view.
+ * @param file - The text of the file.
+ * @param showsFootnotes - Tells whether the side view shows the standard footnotes.
  */
-async function opened(): Promise<{ view: CleanView; selected: SelectedNotes; real: FakeDocument; document: FakeDocument; editor: FakeEditor }> {
+async function opened(file = text, showsFootnotes?: () => boolean): Promise<{ view: CleanView; selected: SelectedNotes; real: FakeDocument; document: FakeDocument; editor: FakeEditor }> {
   const { CleanView, cleanUriOf } = await import('./cleanView');
   const { SelectedNotes } = await import('./selectedNotes');
   const selected = new SelectedNotes();
-  const view = new CleanView(() => true, selected);
+  const view = new CleanView(() => true, selected, showsFootnotes);
   view.register();
-  const real = fake.open(text);
+  const real = fake.open(file);
   const uri = cleanUriOf(real.uri as never);
   const content = new TextDecoder().decode(await view.readFile(uri));
   const document = new FakeDocument(uri as never, content);
@@ -215,6 +217,29 @@ test('shows a change of the file from elsewhere, for example a new note of the s
   await fake.applyEdit(edit as never);
   await settle();
   expect(document.getText()).toBe(`${clean}\nAn added line.\n`);
+});
+
+test('hides the definitions of the standard footnotes while the side view shows them, keeps one typed in the view, and shows them when the side view does not (R-TEXT-009, R-FOOT-001)', async () => {
+  let shows = true;
+  const footnoted = text.replace('The next paragraph.\n', 'The next paragraph.[^1]\n\n[^1]: A source.\n');
+  const { view, real, document } = await opened(footnoted, () => shows);
+  expect(document.getText()).toBe('The agents change the work of teams.\n\nThe next paragraph.[^1]\n');
+  // A footnote typed in the view stays there, as the user types it, and goes into the file.
+  typeIn(document, document.text.length, document.text.length, '\nAlso.[^2]\n\n[^2]: Typed.\n');
+  await settle();
+  expect(document.getText()).toContain('[^2]: Typed.');
+  expect(real.text).toContain('[^1]: A source.\n');
+  expect(real.text).toContain('[^2]: Typed.\n');
+  // Without the footnotes in the side view, the view shows their definitions.
+  shows = false;
+  view.showsChanged();
+  await settle();
+  expect(document.getText()).toContain('[^1]: A source.');
+  shows = true;
+  view.showsChanged();
+  await settle();
+  expect(document.getText()).toBe('The agents change the work of teams.\n\nThe next paragraph.[^1]\n\nAlso.[^2]\n');
+  expect(real.text).toContain('[^2]: Typed.\n');
 });
 
 test('saves the file for a save of the view, with each note', async () => {

@@ -271,7 +271,7 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const editor = new NoteEditor(threads, showsHighlights, selected);
-  const clean = new CleanView(showsHighlights, selected);
+  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the

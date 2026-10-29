@@ -679,6 +679,19 @@ search, the copy and Undo count only the characters of the text, as in a file
 without notes. The extension writes each change of the view into the file at
 once, and keeps each note at its text:
 
+- While the side view shows the standard footnotes
+  ([R-FOOT-001](#r-foot-001)), the view also leaves out the definition of each
+  standard footnote that has a reference, as the definitions of the notes
+  (Hannes, 2026-10-29 20:42: "the definition can even be hidden, same as for
+  the note, it does not make sense to show it"); the side view shows and
+  edits it. The references stay in the text, and a definition without a
+  reference stays too, so that the user sees it. A definition that the user
+  types in the view, or that gets its first reference there, stays in the
+  view until the view reads the file anew: when it opens, after a change of
+  the file from elsewhere, for example in the side view, and after a change
+  of the setting `showFootnotes`. A file with standard footnotes and no notes
+  opens in its own text editor, with its definitions.
+
 - Text typed at the start or the end of a highlight stays outside of it; text
   typed inside a highlight stays in it, also when it replaces the first or the
   last word of the highlight, letter by letter.
@@ -1437,6 +1450,9 @@ for editing footnotes", [decision 24](#decisions)):
   ([R-FMT-002](#r-fmt-002)).
 - A footnote stays visible in a file whose notes are hidden
   ([R-HIDE-001](#r-hide-001)): it is a part of the text.
+- The clean editing view of a file with notes hides the definitions of the
+  footnotes that have a reference while the side view shows the footnotes
+  ([R-TEXT-009](#r-text-009)).
 
 ### R-FOOT-002
 

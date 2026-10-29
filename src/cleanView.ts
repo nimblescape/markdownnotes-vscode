@@ -28,7 +28,7 @@
 
 import * as vscode from 'vscode';
 import { highlightStyles } from './noteEditor';
-import { applyClean, cleanLines, endsHighlight, type Projection, project } from './notes/clean';
+import { applyClean, cleanLines, editOptions, endsHighlight, type Options, type Projection, project } from './notes/clean';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
@@ -131,9 +131,10 @@ interface Mirror {
   shown: boolean;
   /**
    * history holds the texts of the file of the last clean texts since the last change of the file from elsewhere, so
-   * that Undo and Redo of the view bring back the file as it was, with its notes at the same places.
+   * that Undo and Redo of the view bring back the file as it was, with its notes at the same places, and the options of
+   * their projections.
    */
-  history: { clean: string; text: string }[];
+  history: Entry[];
   /**
    * typing is the text of the clean text that the last edits typed at the end of a highlight, from its start to the
    * offset after it, where the next typed text stays in the highlight, until the cursor goes out of it. VS Code reports
@@ -141,6 +142,19 @@ interface Mirror {
    */
   typing?: { from: number; to: number };
 }
+
+/** Entry is a clean text of the history of a view, with the text of its file and the options of its projection. */
+interface Entry {
+  clean: string;
+  text: string;
+  options: Options;
+}
+
+/**
+ * entryOf returns the entry of the history of a projection.
+ * @param projection - The projection.
+ */
+const entryOf = (projection: Projection): Entry => ({ clean: projection.clean, text: projection.text, options: projection.options });
 
 /** historySize is the number of the texts that the history of a view keeps. */
 const historySize = 200;
@@ -241,11 +255,24 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   /**
    * @param showsHighlights - Tells whether the highlights of a file show.
    * @param selected - The selected note of each file, whose highlight is strong.
+   * @param showsFootnotes - Tells whether the side view shows the standard footnotes of a file, whose definitions the
+   * view then hides.
    */
   constructor(
     private readonly showsHighlights: (document: vscode.Uri) => boolean,
     private readonly selected: SelectedNotes,
+    private readonly showsFootnotes: (document: vscode.Uri) => boolean = () => false,
   ) {}
+
+  /**
+   * optionsOf returns the options of the projection of a file that the view reads anew: the definitions of the
+   * standard footnotes that have a reference are hidden while the side view shows the footnotes (Hannes, 2026-10-29:
+   * "the definition can even be hidden, same as for the note, it does not make sense to show it").
+   * @param file - The URI of the file.
+   */
+  private optionsOf(file: vscode.Uri): Options {
+    return this.showsFootnotes(file) ? { footnotes: true } : {};
+  }
 
   /** register registers the file system, the command and the listeners of the view, and makes the text editors of files with notes the view. */
   register(): vscode.Disposable[] {
@@ -613,8 +640,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     }
     const mirror = Promise.resolve(vscode.workspace.openTextDocument(file)).then((real) => {
       const model = real.getText();
-      const projection = project(model);
-      const opened: Mirror = { file, model, projection, queue: Promise.resolve(), writing: 0, mtime: Date.now(), shown: false, history: [{ clean: projection.clean, text: model }] };
+      const projection = project(model, this.optionsOf(file));
+      const opened: Mirror = { file, model, projection, queue: Promise.resolve(), writing: 0, mtime: Date.now(), shown: false, history: [entryOf(projection)] };
       this.ready.set(key, opened);
       if (vscode.workspace.textDocuments.some((document) => document.uri.toString() === key)) {
         // VS Code read the document before as a file that is no Markdown file, as it is; it reads the clean text now.
@@ -650,8 +677,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private takeText(mirror: Mirror, text: string): void {
     const change = replacement(mirror.projection.clean, text);
     mirror.model = applyClean(mirror.projection, change.start, change.end, change.text).text;
-    mirror.projection = project(mirror.model);
-    mirror.history = [{ clean: mirror.projection.clean, text: mirror.model }];
+    mirror.projection = project(mirror.model, editOptions(mirror.projection));
+    mirror.history = [entryOf(mirror.projection)];
     this.writeReal(mirror);
   }
 
@@ -729,8 +756,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       if (mirror.file.toString() === key && mirror.writing === 0 && event.document.getText() !== mirror.model) {
         // A change of the file from elsewhere, for example a note of the side view or a save with the formatter.
         mirror.model = event.document.getText();
-        mirror.projection = project(mirror.model);
-        mirror.history = [{ clean: mirror.projection.clean, text: mirror.model }];
+        mirror.projection = project(mirror.model, this.optionsOf(mirror.file));
+        mirror.history = [entryOf(mirror.projection)];
         await this.writeClean(vscode.Uri.parse(clean), mirror);
         this.fileChanges.fire(mirror.file);
       }
@@ -754,7 +781,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // Undo or Redo: the file as it was with this clean text.
       mirror.typing = undefined;
       mirror.model = earlier.text;
-      mirror.projection = project(earlier.text);
+      mirror.projection = project(earlier.text, earlier.options);
       this.writeReal(mirror);
       this.decorateAll();
       return;
@@ -769,14 +796,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         this.log.appendLine(`${new Date().toISOString()} ${result.way}: ${JSON.stringify(clean.slice(start, end))} → ${JSON.stringify(change.text)} at ${start}`);
       }
       mirror.model = result.text;
-      mirror.projection = project(result.text);
+      mirror.projection = project(result.text, editOptions(mirror.projection));
       // Text typed into the end of a highlight, also over its last word, or deleted there while typing: the next
       // letters stay in it.
       const after = start + change.text.length;
       const from = continues ? Math.min(mirror.typing!.from, start) : start;
       mirror.typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(mirror.projection, after) ? { from, to: after } : undefined;
     }
-    mirror.history = [...mirror.history, { clean: mirror.projection.clean, text: mirror.model }].slice(-historySize);
+    mirror.history = [...mirror.history, entryOf(mirror.projection)].slice(-historySize);
     this.writeReal(mirror);
     if (document.getText() !== mirror.projection.clean) {
       // The edit changed how the file reads, for example a code block that it opened: the view shows the file again.
@@ -853,8 +880,19 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     }
   }
 
-  /** showsChanged shows or hides the highlights after a change of the setting or of the side view. */
+  /**
+   * showsChanged shows or hides the highlights after a change of the setting or of the side view, and shows or hides
+   * the definitions of the standard footnotes after a change of the setting `showFootnotes`.
+   */
   showsChanged(): void {
+    for (const [key, mirror] of this.ready) {
+      if (this.showsFootnotes(mirror.file) !== (mirror.projection.options.footnotes === true)) {
+        mirror.typing = undefined;
+        mirror.projection = project(mirror.model, this.optionsOf(mirror.file));
+        mirror.history = [entryOf(mirror.projection)];
+        void this.writeClean(vscode.Uri.parse(key), mirror);
+      }
+    }
     this.decorateAll();
   }
 
@@ -967,7 +1005,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     // The formatter can change the file on its save; the clean document follows after its own save.
     if (real.getText() !== mirror.model) {
       mirror.model = real.getText();
-      mirror.projection = project(mirror.model);
+      mirror.projection = project(mirror.model, editOptions(mirror.projection));
       setTimeout(() => void this.writeClean(uri, mirror).then(() => vscode.workspace.textDocuments.find((document) => document.uri.toString() === uri.toString())?.save()), 0);
     }
   }

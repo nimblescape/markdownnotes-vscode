@@ -9,7 +9,11 @@
  * markup at all in the document". VS Code counts every character of a line
  * for the line breaks and the cursor, also a hidden one, so the text editor
  * edits a text without the markup: without the start markers, the references,
- * the definitions of the notes and the comment of the format. This module
+ * the definitions of the notes and the comment of the format. While the side
+ * view shows the standard footnotes, the definitions of those that have a
+ * reference are left out too, as the definitions of the notes (Hannes,
+ * 2026-10-29: "the definition can even be hidden, same as for the note, it
+ * does not make sense to show it"); their references stay. This module
  * makes that text from the text of the file, and turns each edit of the clean
  * text into an edit of the file that keeps every note at its text. The module
  * uses no API of VS Code.
@@ -22,13 +26,25 @@
  */
 
 import { findDoctype, frontMatterEnd } from './doctype';
+import { firstReferences, readFootnotes } from './footnotes';
 import { type Note, type Range, read, readNotes } from './notes';
 
 /**
  * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note are in a line of
- * text, the definition of a note and the comment of the format are whole lines.
+ * text, the definition of a note, the definition of a standard footnote and the comment of the format are whole lines.
  */
-export type HiddenKind = 'marker' | 'reference' | 'definition' | 'doctype';
+export type HiddenKind = 'marker' | 'reference' | 'definition' | 'footnote' | 'doctype';
+
+/** Options are the choices of a projection: whether, and which, definitions of standard footnotes it leaves out. */
+export interface Options {
+  /** footnotes leaves out the definitions of the standard footnotes that have a reference, which the side view shows. */
+  footnotes?: boolean;
+  /**
+   * only leaves out only the definitions of the standard footnotes of these labels: an edit of the clean text hides no
+   * definition that the clean text shows, for example one that the user types there.
+   */
+  only?: readonly string[];
+}
 
 /** Hidden is a part of the file that the clean text leaves out, from its start to its end, as offsets in the file. */
 export interface Hidden {
@@ -57,7 +73,18 @@ export interface Projection {
   at: number[];
   /** highlights are the highlights of the notes in the clean text. */
   highlights: Highlight[];
+  /** options are the options of the projection. */
+  options: Options;
+  /** footnotes are the labels of the standard footnotes whose definitions the clean text leaves out. */
+  footnotes: string[];
 }
+
+/**
+ * editOptions returns the options of the projection of a file after an edit of its clean text: the edit hides no
+ * definition of a standard footnote that the clean text shows.
+ * @param projection - The projection of the file before the edit.
+ */
+export const editOptions = (projection: Projection): Options => (projection.options.footnotes ? { footnotes: true, only: projection.footnotes } : {});
 
 /**
  * lineStarts returns the offset of the first character of each line of a text.
@@ -73,13 +100,15 @@ const lineStarts = (text: string): number[] => {
 
 /**
  * project returns the clean text of the text of a file: without the start markers, the references and the definitions
- * of its notes, and without the comment of the format. A definition goes with one blank line after it, so that the
- * blocks around it keep one blank line between them; at the end of the file it goes with the blank lines before it.
- * Only a note with a reference is hidden: the other parts of the form of a note stay in the text, where the user sees
- * them.
+ * of its notes, and without the comment of the format; with the option `footnotes`, also without the definitions of
+ * the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
+ * around it keep one blank line between them; at the end of the file it goes with the blank lines before it. Only a
+ * note or a footnote with a reference is hidden: the other parts of the form of a note, and a definition without a
+ * reference, stay in the text, where the user sees them.
  * @param text - The text of the file.
+ * @param options - The options of the projection.
  */
-export function project(text: string): Projection {
+export function project(text: string, options: Options = {}): Projection {
   const lines = text.split('\n');
   const starts = lineStarts(text);
   const offset = (position: { line: number; character: number }): number => starts[position.line] + position.character;
@@ -87,8 +116,15 @@ export function project(text: string): Projection {
   const reading = readNotes(lines);
   const notes = reading.notes.filter((note): note is Note & { reference: Range } => note.reference !== undefined && !note.duplicate);
   const doctype = findDoctype(lines);
+  const footnotes = options.footnotes
+    ? readFootnotes(lines, reading.blocks.length > 0 ? reading : undefined).filter((footnote) => footnote.references.length > 0 && (!options.only || options.only.includes(footnote.label)))
+    : [];
   /** wholes are the lines of the definitions and of the comment of the format, which the clean text leaves out. */
-  const wholes = [...notes.map((note) => [note.start.line, note.end.line]), ...(doctype ? [[doctype.start, doctype.end]] : [])];
+  const wholes = [
+    ...notes.map((note) => [note.start.line, note.end.line]),
+    ...footnotes.map(({ definition }) => [definition.first, definition.last]),
+    ...(doctype ? [[doctype.start, doctype.end]] : []),
+  ];
   /** blank tells whether a line is blank or left out, so that definitions that follow each other go as one. */
   const blank = (line: number): boolean => lines[line].trim() === '' || wholes.some(([first, last]) => first <= line && line <= last);
   /** block returns the hidden part of whole lines, from the first to the last line. */
@@ -120,6 +156,9 @@ export function project(text: string): Projection {
       highlights.push({ label: note.label, color: note.color, start: offset(note.selection.start), end: offset(note.selection.end) });
     }
   }
+  for (const { definition } of footnotes) {
+    parts.push(block('footnote', definition.first, definition.last));
+  }
   if (doctype) {
     parts.push(block('doctype', doctype.start, doctype.end));
   }
@@ -129,7 +168,7 @@ export function project(text: string): Projection {
     const last = hidden.at(-1);
     if (last && part.start < last.end) {
       last.end = Math.max(last.end, part.end);
-      last.kind = last.kind === 'doctype' || part.kind === 'doctype' ? 'doctype' : 'definition';
+      last.kind = last.kind === 'doctype' || part.kind === 'doctype' ? 'doctype' : last.kind === 'footnote' && part.kind === 'footnote' ? 'footnote' : 'definition';
     } else {
       hidden.push({ ...part });
     }
@@ -143,7 +182,7 @@ export function project(text: string): Projection {
     from = part.end;
   }
   clean += text.slice(from);
-  const projection: Projection = { text, clean, hidden, at, highlights: [] };
+  const projection: Projection = { text, clean, hidden, at, highlights: [], options, footnotes: footnotes.map((footnote) => footnote.label) };
   projection.highlights = highlights.map((highlight) => ({ ...highlight, start: toClean(projection, highlight.start), end: toClean(projection, highlight.end) }));
   return projection;
 }
@@ -263,14 +302,15 @@ export function applyClean(projection: Projection, start: number, end: number, i
   // A replacement takes the place of the old text: after the parts at its start and before the parts at its end.
   const preferred = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
   const places = [...Array(kept.length + 1).keys()].sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred) || a - b);
+  const options = editOptions(projection);
   for (const place of places) {
     const candidate = prefix + pieces.slice(0, place).join('') + insert + pieces.slice(place).join('') + suffix;
-    if (project(candidate).clean === expected) {
+    if (project(candidate, options).clean === expected) {
       return { text: candidate, way: 'direct' };
     }
   }
   const rebuilt = rebuild(projection, start, end, insert);
-  if (rebuilt !== undefined && project(rebuilt).clean === expected) {
+  if (rebuilt !== undefined && project(rebuilt, options).clean === expected) {
     return { text: rebuilt, way: 'rebuilt' };
   }
   return { text: prefix + pieces.slice(0, preferred).join('') + insert + pieces.slice(preferred).join('') + suffix, way: 'none' };
@@ -302,6 +342,7 @@ const moved = (offset: number, kind: 'marker' | 'reference', start: number, end:
  * rebuild returns the text of a file written anew from its clean text with an edit: the start marker and the reference
  * of each note at their places in the new clean text, a highlight that a paragraph break splits ending before the
  * break, and the definitions of the notes after the outermost block of their references, in the order of the
+ * references, and then the hidden definitions of the standard footnotes after the outermost block of their first
  * references; the comment of the format stays at its place at the top. A highlight whose text the edit replaces
  * becomes the new text; one whose text the edit deletes becomes a point, which the checks report.
  * @param projection - The projection of the file.
@@ -342,6 +383,14 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     }
     definitions.set(note.label, lines.slice(note.start.line, note.end.line + 1).join('\n'));
   }
+  const footnotes = new Map<string, string>();
+  if (projection.footnotes.length > 0) {
+    for (const footnote of readFootnotes(lines)) {
+      if (projection.footnotes.includes(footnote.label)) {
+        footnotes.set(footnote.label, lines.slice(footnote.definition.first, footnote.definition.last + 1).join('\n'));
+      }
+    }
+  }
   // From the end of the text: a part written at the place of another one stands before it.
   inline.sort((a, b) => b.at - a.at || b.order - a.order);
   let text = clean;
@@ -353,13 +402,17 @@ export function rebuild(projection: Projection, start: number, end: number, inse
   // The definitions after the outermost block of their references, from the last block to the first.
   const reading = read(output);
   const groups = new Map<number, string[]>();
-  for (const reference of reading.references) {
-    const definition = definitions.get(reference.label);
+  const references = [
+    ...reading.references.map((reference) => ({ reference, definitions })),
+    ...firstReferences(output, reading).map((reference) => ({ reference, definitions: footnotes })),
+  ];
+  for (const { reference, definitions: from } of references) {
+    const definition = from.get(reference.label);
     const block = reading.blocks.find((candidate) => candidate.first <= reference.start.line && reference.start.line <= candidate.last);
     if (definition === undefined || !block) {
       continue;
     }
-    definitions.delete(reference.label);
+    from.delete(reference.label);
     // The map of a list can hold the blank lines after it.
     let line = block.outerEnd;
     while (line - 1 > block.last && output[line - 1].trim() === '') {
@@ -367,7 +420,7 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     }
     groups.set(line, [...(groups.get(line) ?? []), definition]);
   }
-  if (definitions.size > 0) {
+  if (definitions.size > 0 || footnotes.size > 0) {
     return undefined;
   }
   // Each definition with a blank line after it, which the clean text leaves out with it: after the blank line that ends

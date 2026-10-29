@@ -238,6 +238,31 @@ export function readFootnotes(lines: readonly string[], reading: Reading = read(
 }
 
 /**
+ * firstReferences returns the first reference of each standard footnote in the text of the blocks of a text, in the
+ * order of the text, also when the text holds no definition: the clean editing view puts the definitions that it hides
+ * after the blocks of these references when it writes a file anew
+ * ([R-TEXT-009](../../docs/requirements.md#r-text-009)).
+ * @param lines - The lines of the text.
+ * @param reading - The reading of the lines, with their blocks of text.
+ */
+export function firstReferences(lines: readonly string[], reading: Reading = read(lines)): { label: string; start: Position }[] {
+  const firsts = new Map<string, Position>();
+  for (const block of reading.blocks) {
+    for (const [line, start] of block.starts) {
+      for (const reference of referencesIn(lines, line, start.character, block.ends.get(line)?.character ?? lines[line].length)) {
+        const known = firsts.get(reference.label);
+        if (!noteLabel.test(reference.label) && (!known || before(reference.range.start, known))) {
+          firsts.set(reference.label, reference.range.start);
+        }
+      }
+    }
+  }
+  return [...firsts]
+    .map(([label, start]) => ({ label, start }))
+    .sort((a, b) => (same(a.start, b.start) ? 0 : before(a.start, b.start) ? -1 : 1));
+}
+
+/**
  * referenceAt returns the footnote of the reference that holds a position, also in the highlight of a note, for example
  * a citation in the text that a note highlights.
  * @param footnotes - The footnotes of the text.

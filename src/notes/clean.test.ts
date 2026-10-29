@@ -9,13 +9,14 @@
  * it, and the edits of the file for the edits of the clean text: typed text at
  * the edge of a highlight stays outside, deleted text never deletes a note, a
  * paragraph break ends a highlight, and random edits keep the clean text and
- * every note.
+ * every note. While the side view shows the standard footnotes, the clean text
+ * also leaves out their definitions.
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, cleanLines, endsHighlight, labelsOf, project } from './clean';
+import { applyClean, cleanLines, editOptions, endsHighlight, labelsOf, project } from './clean';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
 const example = fs.readFileSync(path.resolve(__dirname, '../../docs/example.md'), 'utf8');
@@ -164,5 +165,99 @@ describe('an edit of the clean text', () => {
     }
     expect(lost).toBe(0);
     expect(kept).toBeGreaterThan(700);
+  });
+});
+
+describe('the definitions of the standard footnotes', () => {
+  /** footnoted is a file with a note, two standard footnotes with references and one without a reference. */
+  const footnoted = [
+    'The agents <wbr><!--[note-7k2q-->change the work[^note-7k2q] of teams.[^1] Other work.[^src]',
+    '',
+    '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+    '',
+    '    Which work?',
+    '',
+    '[^1]: A source,',
+    'with a second line.',
+    '',
+    '    And a second paragraph.',
+    '',
+    'The next paragraph.',
+    '',
+    '[^src]: Another source.',
+    '',
+    '[^alone]: A footnote without a reference.',
+    '',
+  ].join('\n');
+
+  test('are left out with the option footnotes, while the side view shows them; their references and a definition without a reference stay (R-TEXT-009)', () => {
+    expect(project(footnoted).clean).toContain('[^1]: A source,');
+    const projection = project(footnoted, { footnotes: true });
+    expect(projection.clean).toBe('The agents change the work of teams.[^1] Other work.[^src]\n\nThe next paragraph.\n\n[^alone]: A footnote without a reference.\n');
+    expect(projection.footnotes).toEqual(['1', 'src']);
+    expect(projection.hidden.filter((part) => part.kind === 'footnote')).toHaveLength(2);
+    // A file with standard footnotes and no note has no markup of the notes: it opens as it is.
+    expect(project('Text.[^1]\n\n[^1]: A source.\n').hidden).toEqual([]);
+  });
+
+  test('stay in the clean text when an edit there makes one, and go when the view reads the file anew (R-TEXT-009)', () => {
+    const projection = project(footnoted, { footnotes: true });
+    const start = projection.clean.indexOf('[^alone]');
+    const insert = '[^2]: A new source.\n\n';
+    // The text gets a reference [^2] first, then its definition, as the user types them.
+    const reference = applyClean(projection, projection.clean.indexOf(' Other'), projection.clean.indexOf(' Other'), '[^2]');
+    const referenced = project(reference.text, editOptions(projection));
+    const typed = applyClean(referenced, start + 4, start + 4, insert);
+    expect(typed.way).toBe('direct');
+    const after = project(typed.text, editOptions(referenced));
+    expect(after.clean).toContain('[^2]: A new source.');
+    expect(after.footnotes).toEqual(['1', 'src']);
+    expect(project(typed.text, { footnotes: true }).clean).not.toContain('[^2]: A new source.');
+  });
+
+  test('come back into the clean text when an edit deletes the last reference, and the file keeps them (R-TEXT-009)', () => {
+    const projection = project(footnoted, { footnotes: true });
+    const at = projection.clean.indexOf('[^src]');
+    const result = applyClean(projection, at, at + '[^src]'.length, '');
+    expect(result.way).toBe('none');
+    expect(result.text).toContain('[^src]: Another source.');
+    expect(project(result.text, editOptions(projection)).clean).toContain('[^src]: Another source.');
+  });
+
+  test('are kept for random edits, also when the file is written anew (R-TEXT-009)', () => {
+    let seed = 7;
+    const random = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)];
+    let kept = 0;
+    let rebuilt = 0;
+    for (let round = 0; round < 40; round++) {
+      let file = footnoted;
+      let projection = project(file, { footnotes: true });
+      for (let step = 0; step < 10; step++) {
+        const start = random() < 0.6 ? pick(projection.at) : Math.floor(random() * (projection.clean.length + 1));
+        const end = Math.min(projection.clean.length, start + pick([0, 0, 1, 5]));
+        const insert = pick(['', 'x', ' ', '\n', '\n\n', 'pasted\n\nparagraph']);
+        if (/\[\^[^\]]*\]/.test(projection.clean.slice(Math.max(0, start - 8), end + 8))) {
+          // An edit at a reference can change the footnotes; the test above checks that.
+          continue;
+        }
+        const result = applyClean(projection, start, end, insert);
+        if (result.way === 'none') {
+          continue;
+        }
+        const next = project(result.text, editOptions(projection));
+        expect(next.clean).toBe(projection.clean.slice(0, start) + insert + projection.clean.slice(end));
+        rebuilt += result.way === 'rebuilt' ? 1 : 0;
+        kept++;
+        file = result.text;
+        projection = next;
+      }
+      // The hidden definitions stay as they are; the visible one can change with the edits.
+      expect(file).toContain('[^1]: A source,\nwith a second line.\n\n    And a second paragraph.\n');
+      expect(file).toContain('[^src]: Another source.\n');
+      expect(labelsOf(file)).toEqual(['note-7k2q']);
+    }
+    expect(kept).toBeGreaterThan(200);
+    expect(rebuilt).toBeGreaterThan(0);
   });
 });

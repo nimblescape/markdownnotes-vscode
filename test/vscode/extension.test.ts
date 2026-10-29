@@ -220,6 +220,21 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
+  it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nMore.[^1]\n\n[^1]: A source.\n'));
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    assert.equal(view.document.getText(), '# Title\n\nThe text of the page and a highlight here.\n\nMore.[^1]\n');
+    try {
+      await settings().update('showFootnotes', false, vscode.ConfigurationTarget.Global);
+      await waitFor(() => (view.document.getText().endsWith('More.[^1]\n\n[^1]: A source.\n') ? true : undefined), 'the definition in the view');
+    } finally {
+      await settings().update('showFootnotes', undefined, vscode.ConfigurationTarget.Global);
+    }
+    await waitFor(() => (view.document.getText().endsWith('More.[^1]\n') ? true : undefined), 'the hidden definition');
+  });
+
   it('opens the side view "Notes", and "Hide Highlights" and "Show Highlights" change the setting showHighlights (R-SIDE-001, R-GEN-011)', async () => {
     await open(note, 2);
     await vscode.commands.executeCommand(`${commandOf('notes')}.focus`);

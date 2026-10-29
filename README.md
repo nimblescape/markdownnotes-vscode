@@ -97,8 +97,10 @@ describes each step and where its protection ends.
   edit and delete them. "Add Footnote" (Shift+Alt+B,
   Cmd+K B on a Mac) opens the editor of a new footnote for the place of the
   cursor and writes its reference with the next free number and its
-  definition. "Hide Footnotes" in the title of the side view shows the notes
-  only.
+  definition. In the clean editing view of a file with notes, the
+  definitions of the footnotes are hidden, as the notes. "Hide Footnotes" in
+  the title of the side view shows the notes only, and the definitions in
+  the text.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
   sentence before it), `/footnote` (the editor of a new footnote in the side

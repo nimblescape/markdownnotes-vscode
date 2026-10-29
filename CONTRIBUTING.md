@@ -24,7 +24,7 @@ describes its security model.
 | `src/noteThreads.ts` | The notes of the open Markdown documents: one thread for each note with an identifier that stays while the document is open, the reading of the notes after a change, the warnings of the notes as diagnostics, and the operations that write the changes of the side view. |
 | `src/noteEditor.ts` | The overlay of the notes in the text editor: the folding ranges of the notes, their collapse and the collapse again of a note that VS Code opens, the highlights in the colors of the notes, the strong highlight of the selected note, the hidden highlight under the pointer, the hidden start markers and references, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
 | `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdown-notes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, the text of the file for the Markdown preview of the view, and the files of that preview as they are. |
-| `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
+| `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, and with the option `footnotes` without the definitions of the standard footnotes that have a reference, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
 | `src/notes/rendered.ts` | The place in the Markdown text of text that the user selected in the Markdown preview, for "Add Note" of the preview: the letters and digits of the text of the block without the parts that the page does not show, and the selected text after as many of them as the text before it holds, or the nearest occurrence. It uses no API of VS Code. |
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
 | `src/scrolling.ts` | The smooth scroll of a visible text editor to the note of a thread: small steps of `revealRange` that start and end slowly. |
@@ -491,6 +491,21 @@ a highlight (`typing`), where the next letters stay in the highlight. Undo
 and Redo of the view find the text of the file of the clean text in a
 history. A save of the view saves the document of the file, so that the
 format on save and the comment of the format run on the file.
+
+While the setting `showFootnotes` is on for the file, the view projects with
+the option `footnotes` (`optionsOf`): the definitions of the standard
+footnotes that have a reference are hidden parts of the kind `footnote`
+([R-TEXT-009](docs/requirements.md#r-text-009)). An edit of the clean text
+projects with `editOptions`, which hides only the definitions that the
+projection before it hid (`only`), so that a definition the user types, or
+one that gets its first reference, does not vanish while the user types;
+the projection after a change of the file from elsewhere, and after a change
+of the setting (`showsChanged`), hides all of them again. `rebuild` puts the
+hidden definitions after the outermost block of the first reference of their
+footnote (`firstReferences` of `src/notes/footnotes.ts`), and gives up, as
+for a note, when a reference is gone. `hasMarkup` projects without the
+option, so that a file with only standard footnotes opens in its own text
+editor. The history keeps the options of each projection, for Undo.
 
 The extension switches each visible text editor of a Markdown file with notes
 to the view, in its group, when the active tab of the group shows the file:

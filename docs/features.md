@@ -12,7 +12,7 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 90 requested features, 67 are built, among them the clean editing view
+Of 91 requested features, 68 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, and
 the standard footnotes in the side view. 10 features are planned but not built: the features of the section
@@ -172,7 +172,8 @@ Footnote" are in the section [Planned features](#planned-features).
 | Standard footnotes in the side view: "the extension could serve as a rich ui for editing footnotes"; show, edit, delete | 10-29 07:48 | [R-FOOT-001](requirements.md#r-foot-001), [R-FOOT-002](requirements.md#r-foot-002) | Built | Each footnote at the place of its first reference, with its label and the numbers of GitHub and of the preview in the tooltip; "Delete" asks first and removes the definition and every reference; no "Go to Definition", as for a note ("why go to definition? we do not have that for notes", 20:26). Setting `showFootnotes` and the buttons "Hide Footnotes" and "Show Footnotes" in the title of the view |
 | "Add Footnote" at the cursor | 10-29 08:01 | [R-FOOT-003](requirements.md#r-foot-003) | Built | Shift+Alt+B (Cmd+K B on macOS), the title of the side view, the context menu and the Command Palette; the editor of the new footnote in the side view, with the text before the place in its title |
 | `/footnote` opens the editor of the new footnote in the side view: "it just goes to the side view editor, similar to the /notes command" | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | The command leaves the text, and "Add Footnote" in the editor writes the reference and the definition |
-| Citations as footnotes inside the highlight of a note: "these citations can be in a highlight region with a note. does that work?" | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. The form of the citations waits for Hannes (step 45) |
+| Citations as footnotes inside the highlight of a note: "these citations can be in a highlight region with a note. does that work?" | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. Hannes chose the form of the citations at 20:48: footnotes with CSL ([decision 31](requirements.md#decisions), step 45) |
+| The definitions of the footnotes hidden in the text: "the definition can even be hidden, same as for the note, it does not make sense to show it" | 10-29 20:42 | [R-TEXT-009](requirements.md#r-text-009), [R-FOOT-001](requirements.md#r-foot-001) | Built | In the clean editing view of a file with notes, while the side view shows the footnotes; the references stay, and a definition without a reference too. A definition typed in the view stays until the view reads the file anew. A file with only standard footnotes opens in its own text editor, with its definitions |
 
 ## Planned features
 
