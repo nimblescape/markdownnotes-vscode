@@ -1,7 +1,7 @@
 /// <reference types="mocha" />
 // Tests in a real VS Code (npm run test:vscode, .vscode-test.mjs): mocha runs them in the extension host. They open
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
-// of the format (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
+// of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
 // (R-SIDE-001, R-GEN-011), the hover over the selected text (R-EDIT-006), the formatter and its format on save of a file
 // with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to R-PREV-004) with the
 // markdown-it plugin of the extension, and the headings of the links of the side view in the HTML of the preview
@@ -87,7 +87,7 @@ describe('nimblescape Markdown Notes', () => {
 
   before(async () => {
     folder = fs.mkdtempSync(path.join(os.tmpdir(), 'markdown-notes-'));
-    // The files of the tests keep their lines; one test turns the comment of the format on.
+    // A save of a file of the tests writes no comment of the format; one test turns it on.
     await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
   });
 
@@ -133,16 +133,21 @@ describe('nimblescape Markdown Notes', () => {
     );
   });
 
-  it('adds the comment of the format at the top of a file with notes as soon as the editor shows it (R-NOTE-007)', async () => {
+  it('writes the comment of the format at the top of a file with notes on a save, and changes nothing when an editor only shows the file (R-NOTE-007)', async () => {
     await settings().update('addFormatComment', true, vscode.ConfigurationTarget.Global);
+    // The format on save has a test of its own.
+    await settings().update('formatOnSave', false, vscode.ConfigurationTarget.Global);
     try {
-      const { document } = await open(note, 2);
-      // VS Code can send the changed text of a document to the extension host before its dirty state, in a second
-      // message ($acceptDirtyStateChanged), so the test waits for both.
-      await waitFor(() => (document.getText() === marked(note) && document.isDirty ? true : undefined), 'the comment of the format as an unsaved change');
-      assert.equal(document.getText(), marked(note));
+      const { document, editor } = await open(note, 2);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      assert.equal(document.getText(), note);
+      assert.equal(document.isDirty, false);
+      await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), '\nEnd.\n'));
+      assert.ok(await document.save(), 'the save of the file');
+      assert.equal(document.getText(), marked(`${note}\nEnd.\n`));
     } finally {
       await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
+      await settings().update('formatOnSave', undefined, vscode.ConfigurationTarget.Global);
     }
   });
 

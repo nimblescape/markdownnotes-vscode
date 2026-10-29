@@ -26,13 +26,13 @@ links to its details.
   files to find their notes. It changes the text of a file only when you
   save, add, answer or delete a note, and only the footnote of that note, its
   reference, its start marker and the comment of the format at the top of the
-  file. An editor that shows a file with notes without that comment gets it
-  (setting `nimblescape.markdownNotes.addFormatComment`). The file then has unsaved
-  changes, which you save as usual. The formatter of the extension formats a
-  Markdown file with notes when you save it (setting
-  `nimblescape.markdownNotes.formatOnSave`), and every Markdown file when
-  you run "Format Document", because the manifest makes it the default
-  formatter of Markdown. See [Changes of a file](#changes-of-a-file).
+  file. The file then has unsaved changes, which you save as usual. A file
+  that an editor only shows keeps its text. The formatter of the extension
+  formats a Markdown file with notes when you save it and adds a missing
+  comment of the format (settings `nimblescape.markdownNotes.formatOnSave`
+  and `nimblescape.markdownNotes.addFormatComment`). It formats every
+  Markdown file when you run "Format Document", because the manifest makes
+  it the default formatter of Markdown. See [Changes of a file](#changes-of-a-file).
 - **GitHub sign-in.** New notes and answers need a GitHub session of VS Code
   with the scope `read:user`. The extension reads only the name of the
   account, the GitHub login, and sends no request to GitHub. See
@@ -201,13 +201,14 @@ web page, so the extension:
   a selection, while the cursor is next to a hidden marker.
   The comment of the format at the top of a file with notes
   (`src/notes/doctype.ts`) comes in the same edit as the change of a note:
-  the first note brings it, and the last note removes it. An editor that
-  shows a file with notes without the comment also gets it, once after the
-  file opens, in an edit of its own (`vscode.workspace.applyEdit`), unless
-  the setting `nimblescape.markdownNotes.addFormatComment` is `false`. Its text is fixed
-  in the code; it holds the address of the specification, which the
-  extension never opens. A file whose comment names a newer version of the
-  format gets no change of a note and no comment.
+  the first note brings it, and the last note removes it. The save of a file
+  with notes without the comment adds it in the edit of the save, unless the
+  setting `nimblescape.markdownNotes.addFormatComment` is `false`; an editor
+  that only shows a file never changes it. Its text is fixed in the code; it
+  holds the address of the specification, which the extension never opens.
+  The extension writes a comment anew only when its own version is higher
+  than the version in the file. A file whose comment names a higher major
+  version of the format gets no change of a note and no comment.
   The formatter (`src/format/format.ts`, `src/formatter.ts`) gives VS Code
   one edit of the lines that it formats, on "Format Document", and before
   the save of a Markdown file with notes or with the comment of the format
@@ -255,9 +256,10 @@ The manifest declares `untrustedWorkspaces` and `virtualWorkspaces` as
 supported. In Restricted Mode and in a virtual workspace, the extension
 activates with all features, because it only reads and changes the text of
 the open Markdown documents and runs no program of the workspace. It changes
-the text of a document on an action of a note, when an editor shows a file
-with notes without the comment of the format, and on a save with its
-formatter ([Changes of a file](#changes-of-a-file)). The settings
+the text of a document on an action of a note and on a save of a file with
+notes, with its formatter and the comment of the format
+([Changes of a file](#changes-of-a-file)). A file that an editor only shows
+keeps its text. The settings
 of the extension can come from the settings of a workspace
 (`.vscode/settings.json`): `showHighlights` hides the highlights, and
 `openLinksIn` chooses where a link to a file opens; a link of another scheme

@@ -31,7 +31,7 @@
 
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
-import { registerFormatter } from './formatter';
+import { registerFormatter, type SaveChanges } from './formatter';
 import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
@@ -195,7 +195,7 @@ function refreshMarkdownPreviews(): void {
  * @returns The export of the extension, which the Markdown extension of VS Code reads.
  */
 export function activate(context: vscode.ExtensionContext): Api {
-  const threads = new NoteThreads(readSettings, () => githubLogin(true));
+  const threads = new NoteThreads(() => githubLogin(true));
   context.subscriptions.push(threads, ...threads.register());
   const selected = new SelectedNotes();
   /**
@@ -207,12 +207,16 @@ export function activate(context: vscode.ExtensionContext): Api {
   const editor = new NoteEditor(threads, showsHighlights, selected);
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, (document) => editor.hiddenLinesOf(document));
   /**
-   * formatsWithNotes tells whether the settings and the notes of a document ask for its format on save: the setting
-   * formatOnSave is on, and the document has notes or the comment of the format (R-FMT-001).
+   * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the
+   * format while the setting formatOnSave is on and the document has notes or the comment of the format (R-FMT-001),
+   * and the comment of the format while the setting addFormatComment is on and the document has notes (R-NOTE-007).
    * @param document - The document.
    */
-  const formatsWithNotes = (document: vscode.TextDocument): boolean =>
-    readSettings(document.uri).formatOnSave && (threads.notesOf(document).length > 0 || findDoctype(linesOf(document)) !== undefined);
+  const saveChangesOf = (document: vscode.TextDocument): SaveChanges => {
+    const settings = readSettings(document.uri);
+    const notes = threads.notesOf(document).length > 0;
+    return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined), comment: settings.addFormatComment && notes };
+  };
   /** showsChanged shows or hides the highlights in the text editors and the previews, and the buttons that fit. */
   const showsChanged = (): void => {
     void vscode.commands.executeCommand('setContext', highlightsContext, showsHighlights(undefined));
@@ -226,7 +230,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     view.onDidChangeVisibility(showsChanged),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
-    ...registerFormatter(extensionId, formatsWithNotes),
+    ...registerFormatter(extensionId, saveChangesOf),
     ...new SelectionHover(threads, viewCommands.newNote).register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
@@ -243,7 +247,6 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
         showsChanged();
-        threads.markAll();
         view.settingsChanged();
       }
     }),

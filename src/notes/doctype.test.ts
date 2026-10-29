@@ -12,7 +12,7 @@
 
 import MarkdownIt from 'markdown-it';
 import { describe, expect, test } from 'vitest';
-import { doctypeEdit, doctypeLines, findDoctype, formatVersion, frontMatterEnd, newerFormat, specUrl } from './doctype';
+import { compareVersions, doctypeEdit, doctypeLines, findDoctype, formatVersion, frontMatterEnd, newerFormat, specUrl, versionText } from './doctype';
 import { applyEdit, type Edit, insertNote, withDoctype } from './edits';
 import { findNotes } from './notes';
 
@@ -41,7 +41,8 @@ const noted = 'Text[^note-aaaa].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01
 
 describe('the comment of the format', () => {
   test('names the format, its version and its specification in its first line, and ends only in its last line', () => {
-    expect(doctypeLines[0]).toBe(`<!-- nimblescape-markdown-notes format=${formatVersion} spec=${specUrl}`);
+    expect(doctypeLines[0]).toBe(`<!-- nimblescape-markdown-notes v1.0.0 spec=${specUrl}`);
+    expect(versionText(formatVersion)).toBe('1.0.0');
     expect(specUrl).toBe('https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md');
     expect(doctypeLines.slice(0, -1).some((line) => line.includes('-->') || line.includes('<!--', 4))).toBe(false);
     expect(doctypeLines.at(-1)).toBe('-->');
@@ -58,18 +59,30 @@ describe('the comment of the format', () => {
   });
 
   test('is found at the start of a line outside code blocks, with its version', () => {
-    expect(findDoctype(lines(`# T\n\n${comment}\n`))).toEqual({ start: 2, end: 2 + doctypeLines.length - 1, format: 1 });
-    expect(findDoctype(['<!-- nimblescape-markdown-notes format=2 spec=x -->'])).toEqual({ start: 0, end: 0, format: 2 });
-    expect(findDoctype(['<!-- nimblescape-markdown-notes', '-->'])).toEqual({ start: 0, end: 1, format: undefined });
+    expect(findDoctype(lines(`# T\n\n${comment}\n`))).toEqual({ start: 2, end: 2 + doctypeLines.length - 1, version: { major: 1, minor: 0, patch: 0 } });
+    expect(findDoctype(['<!-- nimblescape-markdown-notes v2.10.3 spec=x -->'])).toEqual({ start: 0, end: 0, version: { major: 2, minor: 10, patch: 3 } });
+    expect(findDoctype(['<!-- nimblescape-markdown-notes', '-->'])).toEqual({ start: 0, end: 1, version: undefined });
+    // The first form of the comment named the version as format=1, which reads as no version.
+    expect(findDoctype(['<!-- nimblescape-markdown-notes format=1 spec=x -->'])).toEqual({ start: 0, end: 0, version: undefined });
     expect(findDoctype(lines(`\`\`\`markdown\n${comment}\n\`\`\`\n`))).toBeUndefined();
     expect(findDoctype(['Text <!-- nimblescape-markdown-notes -->'])).toBeUndefined();
   });
 
-  test('names a newer version of the format than the extension knows, so that the extension changes no note', () => {
-    expect(newerFormat(['<!-- nimblescape-markdown-notes format=2 -->'])).toBe(2);
+  test('names a newer major version of the format than the extension knows, so that the extension changes no note', () => {
+    expect(newerFormat(['<!-- nimblescape-markdown-notes v2.0.0 -->'])).toEqual({ major: 2, minor: 0, patch: 0 });
+    // A newer minor or patch version adds only what the extension reads and keeps.
+    expect(newerFormat(['<!-- nimblescape-markdown-notes v1.4.2 -->'])).toBeUndefined();
     expect(newerFormat(lines(`${comment}\n`))).toBeUndefined();
     expect(newerFormat(['<!-- nimblescape-markdown-notes', '-->'])).toBeUndefined();
     expect(newerFormat(['# Title'])).toBeUndefined();
+  });
+
+  test('compares semantic versions by their major, minor and patch numbers', () => {
+    const version = (major: number, minor: number, patch: number) => ({ major, minor, patch });
+    expect(compareVersions(version(1, 0, 0), version(1, 0, 0))).toBe(0);
+    expect(compareVersions(version(1, 0, 1), version(1, 0, 0))).toBeGreaterThan(0);
+    expect(compareVersions(version(1, 10, 0), version(1, 9, 9))).toBeGreaterThan(0);
+    expect(compareVersions(version(1, 9, 9), version(2, 0, 0))).toBeLessThan(0);
   });
 
   test('knows the end of a YAML or TOML front matter', () => {
@@ -95,10 +108,15 @@ describe('the edit of the comment', () => {
     expect(after('---\ntitle: A\n---', [doctypeEdit(['---', 'title: A', '---'], true)!])).toBe(`---\ntitle: A\n---\n${comment}`);
   });
 
-  test('keeps a current comment, writes an older one anew, and removes the comment from a text without notes', () => {
+  test('keeps a comment of the same or a higher version also with another text, writes an older one anew, and removes the comment from a text without notes', () => {
     expect(doctypeEdit(lines(`${comment}\n\n${noted}`), true)).toBeUndefined();
-    const old = `<!-- nimblescape-markdown-notes format=0 -->\n\n${noted}`;
-    expect(after(old, [doctypeEdit(lines(old), true)!])).toBe(`${comment}\n\n${noted}`);
+    // Hannes, 2026-10-29: "only if the format version I would write is higher then mine one".
+    for (const kept of ['<!-- nimblescape-markdown-notes v1.0.0 spec=x\nOther words.\n-->', '<!-- nimblescape-markdown-notes v1.0.1 -->', '<!-- nimblescape-markdown-notes v1.2.0 -->', '<!-- nimblescape-markdown-notes v2.0.0 -->']) {
+      expect(doctypeEdit(lines(`${kept}\n\n${noted}`), true), kept).toBeUndefined();
+    }
+    for (const old of ['<!-- nimblescape-markdown-notes v0.9.9 -->', '<!-- nimblescape-markdown-notes format=1 spec=x\n-->', '<!-- nimblescape-markdown-notes\n-->']) {
+      expect(after(`${old}\n\n${noted}`, [doctypeEdit(lines(`${old}\n\n${noted}`), true)!]), old).toBe(`${comment}\n\n${noted}`);
+    }
     expect(after(`${comment}\n\n# Title\n`, [doctypeEdit(lines(`${comment}\n\n# Title\n`), false)!])).toBe('# Title\n');
     expect(after(`# Title\n\n${comment}`, [doctypeEdit(lines(`# Title\n\n${comment}`), false)!])).toBe('# Title\n');
     expect(doctypeEdit(['# Title'], false)).toBeUndefined();

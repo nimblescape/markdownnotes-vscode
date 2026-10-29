@@ -18,7 +18,7 @@
  */
 
 import { colorNames } from './colors';
-import { doctypeEdit } from './doctype';
+import { doctypeEdit, type Version } from './doctype';
 import { before, findNotes, type Note, type Position, type Range, read, type Reading, same, type TextBlock } from './notes';
 import { type AnswerText, type Header, markerText, newLabel, noteLines, referenceText, usedLabels } from './syntax';
 
@@ -47,7 +47,7 @@ export type Problem =
   | { kind: 'signIn' }
   | { kind: 'missing' }
   | { kind: 'changed' }
-  | { kind: 'format'; format: number };
+  | { kind: 'format'; format: Version };
 
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };

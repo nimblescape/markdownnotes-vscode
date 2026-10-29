@@ -6,10 +6,10 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 
 # Format of the notes
 
-This document specifies format 1 of the notes in Markdown files, which the
-VS Code extension nimblescape Markdown Notes reads and writes. It is for
-people and for programs, for example AI agents, that read, change or add
-notes without the extension. A file that follows it stays plain Markdown:
+This document specifies version 1.0.0 of the format of the notes in Markdown
+files, which the VS Code extension nimblescape Markdown Notes reads and
+writes. It is for people and for programs, for example AI agents, that read,
+change or add notes without the extension. A file that follows it stays plain Markdown:
 GitHub shows each note as a footnote at the end of the page.
 
 The [requirements](requirements.md) define how the extension shows the notes;
@@ -20,7 +20,7 @@ or GitHub does not show as intended.
 ## Example
 
 ```markdown
-<!-- nimblescape-markdown-notes format=1 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].
@@ -59,9 +59,9 @@ and Hannes replied to Anna.
 A file with notes starts with a comment that names the format, like a
 DOCTYPE. GitHub and the Markdown preview do not show it.
 
-- The first line is exactly `<!-- nimblescape-markdown-notes format=1
+- The first line is exactly `<!-- nimblescape-markdown-notes v1.0.0
   spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`,
-  on one line. `format=1` is the version of this format, and `spec=` is the
+  on one line. `v1.0.0` is the version of this format, and `spec=` is the
   address of this document.
 - The lines after it are a short hint in words. They must not hold `-->`,
   because `-->` ends the comment, and they hold no blank line.
@@ -71,11 +71,32 @@ DOCTYPE. GitHub and the Markdown preview do not show it.
   after the line that ends the front matter (`---` or `...` for YAML, `+++`
   for TOML). A blank line follows the comment.
 - A file has one such comment. A program that adds the first note of a file
-  adds the comment; a program that removes the last note removes it. Other
-  programs keep it as it is.
+  adds the comment; a program that removes the last note removes it.
 - A file without the comment can have notes too, for example an older file:
-  the rules below find them. A program that knows only an older version than
-  the `format=` of a file must not change its notes.
+  the rules below find them.
+
+### 1.1 The version of the format
+
+The version is a semantic version, `v` and three numbers MAJOR.MINOR.PATCH:
+
+- **MAJOR** grows with a form of the notes that a program of a lower major
+  version would read wrongly. Each major version has its own specification,
+  and its comment names that document in `spec=`. A program must not change
+  the notes of a file whose major version is higher than its own; it can
+  still read the file as Markdown.
+- **MINOR** grows with optional elements that a program of a lower minor
+  version reads as notes and keeps as they are when it changes the file.
+- **PATCH** grows with a change of only the words of the comment or of this
+  document.
+- After the first release of the extension, each change of the form of the
+  notes raises the version.
+
+A program writes the comment anew only when the version that it writes is
+higher than the version in the file. When the version in the file is equal or
+higher, the program keeps the comment as it is, also when its words differ, so
+that two programs of different versions do not change the comment back and
+forth. A first line without a version, for example from a version before
+1.0.0, counts as lower than every version.
 
 ## 2. The label of a note
 
@@ -173,7 +194,8 @@ A program, for example an AI agent, follows these steps:
   `<wbr><!--[note-7k2q-->` before the highlight and the reference after it;
   write the definition after the outermost block of the highlight, with the
   login of the author and the current local time with the offset; add the
-  comment of the format when the file has none.
+  comment of the format when the file has none, or write it anew when its
+  version is lower than yours ([1.1](#11-the-version-of-the-format)).
 - **Color a note:** write the name of the color after the label in its start
   marker, or remove the name for the default color.
 - **Answer:** write the reply at its place in the tree, with its own header.

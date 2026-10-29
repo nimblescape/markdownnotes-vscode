@@ -77,7 +77,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
-      "description": "The extension reads the notes of open Markdown files and changes only the text of Markdown files: when you add, edit, answer or delete a note, when an editor shows a file with notes without the comment of the format (setting addFormatComment), and when you save a Markdown file with notes (setting formatOnSave). It runs no program of the workspace."
+      "description": "The extension reads the notes of open Markdown files and changes only the text of Markdown files: when you add, edit, answer or delete a note, and when you save a Markdown file with notes (settings formatOnSave and addFormatComment). A file that an editor only shows keeps its text. It runs no program of the workspace."
     },
     "virtualWorkspaces": {
       "supported": true
@@ -278,7 +278,7 @@
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "markdownDescription": "Add the comment of the format of the notes, their \"DOCTYPE\" with the link to the specification for AI agents, at the top of a file with notes as soon as an editor shows the file. The file then has an unsaved change. When off, the comment comes only with a change of a note that the extension writes."
+          "markdownDescription": "Add the comment of the format of the notes, their \"DOCTYPE\" with the link to the specification for AI agents, at the top of a file with notes when you save it. When off, the comment comes only with a change of a note that the extension writes. An editor that only shows a file never adds it."
         },
         "nimblescape.markdownNotes.formatOnSave": {
           "type": "boolean",

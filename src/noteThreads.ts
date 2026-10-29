@@ -33,10 +33,9 @@
 import * as vscode from 'vscode';
 import { appendAnswer, colorNote, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, replaceNoteText, type Result, withDoctype } from './notes/edits';
 import { checksOf } from './notes/checks';
-import { doctypeEdit, formatVersion, newerFormat } from './notes/doctype';
+import { formatVersion, newerFormat, versionText } from './notes/doctype';
 import { findNotes, type Note, noteAt, type Position, type Reading, read, readNotes } from './notes/notes';
 import { formatDate, normalizeBody } from './notes/syntax';
-import type { Settings } from './settings';
 
 /** changeDelay is the pause, in milliseconds, after the last change of a document before its notes are read again. */
 const changeDelay = 300;
@@ -119,21 +118,8 @@ export function problemMessage(problem: Problem): string {
     case 'changed':
       return 'The change was not saved: the note changed in the meantime. Look at the note again, and repeat the change if it is still needed.';
     case 'format':
-      return `The change was not saved: the file uses version ${problem.format} of the format of the notes, and this version of the extension knows only version ${formatVersion}. Update the extension.`;
+      return `The change was not saved: the file uses version ${versionText(problem.format)} of the format of the notes, and this version of the extension knows only the versions ${formatVersion.major}.x. Update the extension.`;
   }
-}
-
-/**
- * isShown tells whether an editor shows a document: a text editor, also a side of a diff, or the tab of a custom
- * editor such as the modes "Markdown Preview" and "Markdown Editor".
- * @param document - The document.
- */
-function isShown(document: vscode.TextDocument): boolean {
-  const key = document.uri.toString();
-  return (
-    vscode.window.visibleTextEditors.some((editor) => editor.document === document) ||
-    vscode.window.tabGroups.all.some((group) => group.tabs.some((tab) => (tab.input as { uri?: unknown } | undefined)?.uri?.toString() === key))
-  );
 }
 
 /**
@@ -171,21 +157,15 @@ export class NoteThreads implements vscode.Disposable {
   private readonly textReadings = new WeakMap<vscode.TextDocument, { version: number; reading: Reading }>();
   /** listeners are the listeners of the changes of the notes of a document. */
   private readonly listeners = new Set<(document: vscode.Uri) => void>();
-  /** marked holds the documents with notes whose comment of the format the extension checked since they opened, by their URIs. */
-  private readonly marked = new Set<string>();
   /** changing holds the edits of the extension that VS Code did not apply yet, of each document by its URI. */
   private readonly changing = new Map<string, Set<Promise<boolean>>>();
   /** count is the number of threads that the extension created, for their identifiers. */
   private count = 0;
 
   /**
-   * @param settingsOf - Returns the settings of a document.
    * @param authorOf - Returns the GitHub login of the user after a sign-in, or undefined without one.
    */
-  constructor(
-    private readonly settingsOf: (document: vscode.Uri) => Settings,
-    private readonly authorOf: () => Promise<string | undefined>,
-  ) {
+  constructor(private readonly authorOf: () => Promise<string | undefined>) {
     this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNotes');
   }
 
@@ -194,13 +174,7 @@ export class NoteThreads implements vscode.Disposable {
     const registrations = [
       vscode.workspace.onDidOpenTextDocument((document) => this.sync(document)),
       vscode.workspace.onDidChangeTextDocument((event) => this.syncLater(event.document)),
-      vscode.workspace.onDidCloseTextDocument((document) => {
-        this.marked.delete(document.uri.toString());
-        this.forget(document.uri);
-      }),
-      // A document that an editor shows gets the comment of the format.
-      vscode.window.onDidChangeVisibleTextEditors(() => this.markAll()),
-      vscode.window.tabGroups.onDidChangeTabs(() => this.markAll()),
+      vscode.workspace.onDidCloseTextDocument((document) => this.forget(document.uri)),
     ];
     this.syncAll();
     return registrations;
@@ -342,39 +316,6 @@ export class NoteThreads implements vscode.Disposable {
     );
     for (const listener of this.listeners) {
       listener(document.uri);
-    }
-    this.mark(document);
-  }
-
-  /**
-   * markAll writes the comment of the format into each open document that needs it, also after a change of the setting
-   * addFormatComment. A change of a setting keeps the threads, so that the side view keeps its open editors and its
-   * selected note.
-   */
-  markAll(): void {
-    for (const document of vscode.workspace.textDocuments) {
-      this.mark(document);
-    }
-  }
-
-  /**
-   * mark writes the comment of the format into a document with notes that an editor shows, when the document has no
-   * comment or one of an older text ([R-NOTE-007](../docs/requirements.md#r-note-007); Hannes, 2026-10-28: "as soon as
-   * a note is detected, the "DOCTYPE" is written"). The document then has an unsaved change. The extension checks each
-   * document once after it opens, so that Undo removes the comment for good; a later change of a note writes it again.
-   * A document whose comment names a newer version of the format stays as it is.
-   * @param document - The document.
-   */
-  private mark(document: vscode.TextDocument): void {
-    const key = document.uri.toString();
-    if (this.marked.has(key) || document.isClosed || !this.entries.get(key)?.length || !this.settingsOf(document.uri).addFormatComment || !isShown(document)) {
-      return;
-    }
-    this.marked.add(key);
-    const lines = linesOf(document);
-    const edit = newerFormat(lines) === undefined ? doctypeEdit(lines, true) : undefined;
-    if (edit) {
-      void this.apply(document, [edit]);
     }
   }
 

@@ -8,14 +8,15 @@
  * accessible for agents"). It is the npm package @nimblescape/markdown-notes of cli/.
  * The command `format` formats each file as the formatter of the extension does on save
  * ([src/format/format.ts](../format/format.ts)), with the line breaks of the file; `-` formats the standard input to
- * the standard output. With `--check` it changes no file and lists the files that are not formatted. The exit code is
- * 0 when all files are formatted, 1 when `--check` found a file to format, and 2 for a wrong command or a file that
- * cannot be read or written. The module uses no API of VS Code, and main.ts runs it in Node.js.
+ * the standard output. With `--check` it changes no file and lists the files that are not formatted. A file whose
+ * comment of the format names a higher major version stays as it is, as in the extension. The exit code is 0 when all
+ * files are formatted, 1 when `--check` found a file to format, and 2 for a wrong command, a file that cannot be read
+ * or written, or a file of a higher major version. The module uses no API of VS Code, and main.ts runs it in Node.js.
  */
 
 import { version } from '../../package.json';
 import { formatMarkdown } from '../format/format';
-import { formatVersion } from '../notes/doctype';
+import { formatVersion, newerFormat, type Version, versionText } from '../notes/doctype';
 
 /** command is the name of the command, the `bin` of cli/package.json, as the shell calls it. */
 export const command = 'markdown-notes';
@@ -60,6 +61,13 @@ export function formatText(text: string): string {
 }
 
 /**
+ * newerMessage returns the message for a text whose comment of the format names a higher major version.
+ * @param newer - The version of the comment.
+ */
+const newerMessage = (newer: Version): string =>
+  `the file uses version ${versionText(newer)} of the format of the notes, and this version of ${command} knows only the versions ${formatVersion.major}.x, so the file stays as it is. Run the newest version: npx -y @nimblescape/markdown-notes@latest format`;
+
+/**
  * messageOf returns the message of an error.
  * @param error - The error.
  */
@@ -81,7 +89,7 @@ export function run(args: readonly string[], io: Io): number {
     return 0;
   }
   if (name === '--version') {
-    io.out(`${command} ${version} (format ${formatVersion})`);
+    io.out(`${command} ${version} (format ${versionText(formatVersion)})`);
     return 0;
   }
   if (name !== 'format') {
@@ -100,6 +108,16 @@ export function run(args: readonly string[], io: Io): number {
   for (const file of files) {
     try {
       const text = file === '-' ? io.readStdin() : io.readFile(file);
+      const newer = newerFormat(text.split(/\r\n|\r|\n/));
+      if (newer !== undefined) {
+        // The text stays as it is, also on the standard output.
+        if (file === '-' && !check) {
+          io.writeStdout(text);
+        }
+        io.err(`${file}: ${newerMessage(newer)}`);
+        failed = true;
+        continue;
+      }
       const formatted = formatText(text);
       if (file === '-') {
         unformatted ||= formatted !== text;

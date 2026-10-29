@@ -233,34 +233,38 @@ notes, and links to the [specification of the format](format.md), so that an
 agent can read, answer and add notes itself:
 
 ```markdown
-<!-- nimblescape-markdown-notes format=1 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 …
 -->
 ```
 
-- The first line names the format, its version `format=1` and the address of
+- The first line names the format, its version `v1.0.0` and the address of
   the specification `spec=`. Short lines of words follow, and `-->` ends the
   comment. GitHub and the Markdown preview do not show it, and the text
   editor folds it into its first line.
 - The comment stands at the top of the file with a blank line after it. A
   front matter stays the first block of the file: the comment follows the
   line `---` or `+++` that ends it.
-- The extension adds the comment as soon as it finds a note in a file that an
-  editor shows, also in the modes "Markdown Preview" and "Markdown Editor":
-  when the file opens, or when you write a note into it. The file then has an
-  unsaved change, which you save as usual. Undo removes the comment, and the
-  extension adds it again only after the file opens again. The setting
-  `nimblescape.markdownNotes.addFormatComment` set to `false` keeps the files
-  as they are when they open.
-- A change of a note brings the comment too: the first note of a file brings
-  it, and the last note takes it away. Undo removes the comment with the
-  note.
+- A change of a note brings the comment: the first note of a file brings it,
+  and the last note takes it away. Undo removes the comment with the note.
+- When you save a file with notes without the comment, for example a file
+  into which you wrote a note yourself, the save adds it. The auto save after
+  a delay and "Save without Formatting" do not add it. An editor, a diff view
+  or the Markdown preview that only shows a file never changes it.
+- The setting `nimblescape.markdownNotes.addFormatComment` set to `false`
+  keeps the files as they are on a save; a change of a note still brings the
+  comment.
 - A file without the comment, for example an older file, has notes too.
-- When the comment names a newer version of the format than the extension
-  knows, the extension changes no note of the file and says that you update
-  the extension.
+- The version is a semantic version, MAJOR.MINOR.PATCH. The extension writes
+  the comment anew only when its own version is higher than the version in
+  the file, so that an older version of the extension never changes the
+  comment of a newer one back. When the comment names a higher major version
+  of the format than the extension knows, the extension changes no note of
+  the file, its formatter keeps the file as it is, and it says that you
+  update the extension. The
+  [specification](format.md#11-the-version-of-the-format) has the rules.
 
 ### Footnotes in the preview
 
@@ -697,7 +701,7 @@ after a change of a file with notes.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, while the side view "Notes" is open. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
-| `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes as soon as an editor shows it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. |
+| `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens from the side view: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. A folder of a workspace can have its own value. |
 

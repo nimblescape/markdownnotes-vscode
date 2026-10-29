@@ -21,13 +21,14 @@ author.
 - **Markdown files.** The extension reads the open Markdown files to find
   their notes. It changes the text of a file only when you save, add, answer
   or delete a note, and only the footnote of that note, its reference, its
-  start marker and the comment of the format at the top of the file. When an
-  editor shows a file with notes without that comment, the extension adds
-  it; the setting `nimblescape.markdownNotes.addFormatComment` turns this off. You save the
-  file as usual, and Undo takes the change back. When you save a Markdown
-  file with notes, the formatter of the extension formats it; the setting
-  `nimblescape.markdownNotes.formatOnSave` turns this off. A Markdown file
-  without notes changes only with "Format Document".
+  start marker and the comment of the format at the top of the file. You
+  save the file as usual, and Undo takes the change back. When you save a
+  Markdown file with notes, the formatter of the extension formats it and
+  adds a missing comment of the format; the settings
+  `nimblescape.markdownNotes.formatOnSave` and
+  `nimblescape.markdownNotes.addFormatComment` turn these off. A file that an
+  editor only shows keeps its text, and a Markdown file without notes changes
+  only with "Format Document".
   Other footnotes, for example `[^1]`, stay as they are.
 - **GitHub sign-in.** New notes and answers need a sign-in with GitHub, so
   that the author is always known. The extension uses the GitHub sign-in of
@@ -101,8 +102,7 @@ describes each step and where its protection ends.
   `npx -y @nimblescape/markdown-notes format paper.md`, or with `--check`,
   which changes nothing and exits with 1 when a file is not formatted.
 - **For AI agents.** A comment at the top of each file with notes names the
-  format of the notes, like a DOCTYPE, as soon as an editor shows the file,
-  and links to its
+  format of the notes and its version, like a DOCTYPE, and links to its
   [specification](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md),
   so that an AI agent can read, answer and add notes itself. A front matter
   stays the first block of the file.
@@ -172,7 +172,7 @@ extension to everyone who opens it.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview while the side view "Notes" is open. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
-| `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes as soon as an editor shows it. The value `false` adds it only with a change of a note. |
+| `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |
 

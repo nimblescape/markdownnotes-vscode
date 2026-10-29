@@ -32,9 +32,6 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 9, 28, 10, 15));
   fake = new Fake();
-  // The tests of the side view keep their lines: the comment of the format, which an editor of a file with notes gets,
-  // has tests of its own in src/extension.test.ts.
-  fake.settings.set('workspace', { addFormatComment: false });
   fake.rendered = (text) => `<p>${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>\n`;
   vi.resetModules();
   vi.doMock('vscode', () => fake.api);
@@ -470,7 +467,7 @@ test('a mouse click outside the notes deselects the selected note, a move with t
 
 test('the view sends the layout of the threads beside the text editor: the rows of the highlight of each note and of the cursor, which follow the scrolling of the editor (R-SIDE-007, decision 14)', async () => {
   // Rows of 20 pixels; the text of the editor starts 26 pixels below the top of the view, below the tabs and the breadcrumbs.
-  fake.settings.set('workspace', { addFormatComment: false, lineHeight: 20 });
+  fake.settings.set('workspace', { lineHeight: 20 });
   const { editor, view } = await start(note, 12);
   const placement = () => view.messages.filter((message) => message.type === 'placement' || message.type === 'state').at(-1)?.placement;
   // The view tells its height first.
@@ -485,7 +482,7 @@ test('the view sends the layout of the threads beside the text editor: the rows 
   fake.fire('visibleRanges', { textEditor: editor });
   expect(placement()).toMatchObject({ highlights: { '1': [56, 76] }, cursor: [256, 276] });
   // At five columns, the title of seven characters takes two rows, and the highlight "The text" too.
-  fake.settings.set('workspace', { addFormatComment: false, lineHeight: 20, wordWrap: 'wordWrapColumn', wordWrapColumn: 5 });
+  fake.settings.set('workspace', { lineHeight: 20, wordWrap: 'wordWrapColumn', wordWrapColumn: 5 });
   editor.visibleRanges = [new FakeRange(0, 0, 13, 0)];
   fake.fire('visibleRanges', { textEditor: editor });
   expect(placement()).toMatchObject({ highlights: { '1': [86, 126] } });

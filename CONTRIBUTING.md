@@ -18,7 +18,7 @@ describes its security model.
 | `src/notes/notes.ts` | The notes of a Markdown text by their places (line and column), with the prefix of their lines in a block quote or a list item, found with markdown-it as the preview finds them; their references, start markers, colors and highlights; the blocks of text with the lines of their outermost blocks; and the references and markers that the warnings need. A text without `[^note-` has no notes, and `readNotes` reads it without markdown-it. It uses no API of VS Code. |
 | `src/notes/colors.ts` | The six colors of the notes and their names, the default color blue, and the color of a note from its start marker, which the text editor, the preview and the side view share. It uses no API of VS Code. |
 | `src/notes/edits.ts` | The edits of the text when an answer is saved, added as a reply or deleted, when a note is added, colored or deleted, and when the text view of the side view saves the whole text of a note, with the check that the changed text holds the same note with the expected tree of answers, and the place of the start marker, the reference and the definition of a new note. It uses no API of VS Code. |
-| `src/notes/doctype.ts` | The comment of the format at the top of a file with notes, its "DOCTYPE": its lines with the version of the format and the address of the specification, its place after a front matter, and its edit together with each change of a note. It uses no API of VS Code. |
+| `src/notes/doctype.ts` | The comment of the format at the top of a file with notes, its "DOCTYPE": its lines with the semantic version of the format (`formatVersion`) and the address of the specification, its place after a front matter, its edit together with each change of a note, which writes an existing comment anew only for a higher version, and `newerFormat`, which finds a higher major version. It uses no API of VS Code. |
 | `src/notes/checks.ts` | The warnings at the notes of a text: each form of a note that GitHub or another Markdown viewer shows differently from the extension, and each note without a start marker or without highlighted text. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes of the open Markdown documents: one thread for each note with an identifier that stays while the document is open, the reading of the notes after a change, the warnings of the notes as diagnostics, and the operations that write the changes of the side view. |
 | `src/noteEditor.ts` | The overlay of the notes in the text editor: the folding ranges of the notes, their collapse and the collapse again of a note that VS Code opens, the highlights in the colors of the notes while the side view is open, the strong highlight of the selected note, the hidden highlight under the pointer, the hidden start markers and references, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
@@ -29,7 +29,7 @@ describes its security model.
 | `src/selectionHover.ts` | The hover over the selected text in the text editor: "Add Note" and an icon of each color, which runs "Add Note" of the side view with the color, shown 600 ms after the selection with the command `editor.action.showHover`. |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
-| `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the format on save of a Markdown file with notes or with the comment of the format (`onWillSaveTextDocument`): one edit of the changed lines with the line breaks of the document. |
+| `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
 | `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdown-notes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
 | `src/editorLayout.ts` | The rows of each highlight in the text editor, at which the side view puts the thread of its note: the rows of the visible ranges, the lines wrapped by words, and the estimate of the number of columns of a row. It uses no API of VS Code. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: takes the notes out of the page, writes the start marker and the first reference of each note as the empty start and end of its highlight, with the color, the link to the side view and the state of the highlight, and leaves every other token, also every other footnote, as it is. |
@@ -136,7 +136,7 @@ commit of the build.
 - The command "Add Note" is the button `+` in the title of the side view (`view/title`) and an entry of the context menu of the text editor (`editor/context`) while text is selected (`editorHasSelection`); the Command Palette shows it only then. The commands "Show Highlights" and "Hide Highlights" are buttons in the title of the text editor, of the preview of a Markdown file and of the modes "Markdown Preview" and "Markdown Editor" of VS Code (`editor/title`); the context key `nimblescape.markdownNotes.highlightsShown`, which the extension sets while the setting `showHighlights` is on and the side view is open, shows one of them. The command "Show or Hide Notes" is a button in the same titles (`activeCustomEditorId` for the modes). A test checks the commands and the menus against `src/notesView.ts`, `src/extension.ts` and `src/noteEditor.ts`.
 - The four commands "Delete Left of a Hidden Marker", "Delete Right of a Hidden Marker" and their word forms are the keybindings of Backspace, Delete, Ctrl+Backspace and Ctrl+Delete (on macOS Alt+Backspace and Alt+Delete) while the cursor is next to a hidden marker. The editor sets the context keys `nimblescape.markdownNotes.markerLeft` and `nimblescape.markdownNotes.markerRight` for this, only when their value changes. The Command Palette does not show them.
 - The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `openLinksIn` has the scope `resource`, so that a folder of a workspace can have its own value, and `showHighlights` and `addFormatComment` the scope `window`. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
-- `configurationDefaults` makes the extension the default formatter of Markdown files (`editor.defaultFormatter` for `[markdown]`), and turns on no `editor.formatOnSave`, because VS Code would then format every Markdown file on a save ([R-FMT-001](docs/requirements.md#r-fmt-001), decision 19). The extension formats a file with notes itself before its save: `formatsOnSave` of `src/formatter.ts` returns the edits in `waitUntil` of `onWillSaveTextDocument` for a Markdown file with notes or with the comment of the format while the setting `formatOnSave` is on, and not for an automatic save after a delay, nor when `editor.formatOnSave` is on for the document (VS Code runs the formatter then) or another default formatter is set. The settings of the user and of a workspace for `[markdown]` win over these defaults. A test checks them.
+- `configurationDefaults` makes the extension the default formatter of Markdown files (`editor.defaultFormatter` for `[markdown]`), and turns on no `editor.formatOnSave`, because VS Code would then format every Markdown file on a save ([R-FMT-001](docs/requirements.md#r-fmt-001), decision 19). The extension formats a file with notes itself before its save: `changesOnSave` of `src/formatter.ts` decides and `saveEdits` returns the edits in `waitUntil` of `onWillSaveTextDocument`. It formats a Markdown file with notes or with the comment of the format while the setting `formatOnSave` is on, and not for an automatic save after a delay, nor when `editor.formatOnSave` is on for the document (VS Code runs the formatter then) or another default formatter is set. In the same edit it adds a missing comment of the format to a file with notes while the setting `addFormatComment` is on, also when another formatter formats the file, and not for an automatic save after a delay ([R-NOTE-007](docs/requirements.md#r-note-007), decision 20). The settings of the user and of a workspace for `[markdown]` win over these defaults. A test checks them.
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
 - The package has no runtime dependency: the bundle contains markdown-it. The development dependencies are the build, test and packaging tools. `allowScripts` lists the install scripts of dependencies that npm 11.19 and later may run: those of esbuild and `@vscode/vsce-sign` in every version, because the build and the packaging (`npm run package`) run the code of both packages anyway and Dependabot updates them, and not the one of fsevents, an optional package for macOS that already contains its built binary.
 
@@ -263,6 +263,20 @@ quote, a reference in the text of a link, in a heading or in a note, a
 note without a start marker or without highlighted text, and a start marker
 without `<wbr>` at the start of a line.
 
+**Version of the format** ([R-NOTE-007](docs/requirements.md#r-note-007),
+decision 21). `formatVersion` in `src/notes/doctype.ts` is the semantic
+version that the comment of the format names, `v1.0.0` until the first
+release. After the first release, each change of the form of the notes in
+`src/notes/` or of the words of the comment raises it, together with
+`docs/format.md`: MAJOR for a form that an older version reads wrongly, with
+a new specification file that `specUrl` names, MINOR for optional elements
+that an older version reads and keeps, PATCH for a change of only the words
+of the comment or of the specification. `doctypeEdit` writes an existing
+comment anew only when `formatVersion` is higher than its version, and
+`newerFormat` stops the changes of the notes only for a higher major
+version, so that two versions of the extension never change a comment back
+and forth.
+
 ## Text editor
 
 `src/noteThreads.ts` holds the notes of the open Markdown documents of a
@@ -367,8 +381,11 @@ write nothing and return the problem `changed` when the answer at that index
 has another author, date or body, for example after a second click on "Delete" before the view showed
 the new state, or after a change of the file by a collaborator; `saveNoteText`
 does the same when the text of the note is not the text that the text view
-started with. A change of a setting calls `markAll` and keeps the threads and
-their IDs, so the open editors and the selection of the side view stay.
+started with. A change of a setting keeps the threads and their IDs, so the
+open editors and the selection of the side view stay. `NoteThreads` writes no
+comment of the format on its own: the comment comes with the edit of a note
+(`src/notes/edits.ts`) and with the save of a file with notes
+(`saveEdits` of `src/formatter.ts`), never because an editor shows a file.
 
 ## GitHub sign-in
 

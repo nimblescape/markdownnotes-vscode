@@ -26,7 +26,7 @@ export interface Settings {
   showHighlights: boolean;
   /** openLinksIn is the place where a link of a note to a file opens ([R-GEN-010](../docs/requirements.md#r-gen-010)). */
   openLinksIn: LinkTarget;
-  /** addFormatComment writes the comment of the format into a file with notes as soon as an editor shows it ([R-NOTE-007](../docs/requirements.md#r-note-007)). */
+  /** addFormatComment writes the comment of the format into a file with notes when it is saved ([R-NOTE-007](../docs/requirements.md#r-note-007)). */
   addFormatComment: boolean;
   /** formatOnSave formats a Markdown file with notes when it is saved ([R-FMT-001](../docs/requirements.md#r-fmt-001)). */
   formatOnSave: boolean;

@@ -22,7 +22,7 @@ import { noteColors } from './notes/colors';
 import { doctypeLines } from './notes/doctype';
 import { deleteCommands, keepTime, markerContexts, settleTime } from './noteEditor';
 import { notesViewId } from './notesView';
-import { Fake, FakeEditor, FakePosition, FakeRange, FakeThemeColor, type FakeView, settle } from './testing/fakeVscode';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeThemeColor, FakeUri, type FakeView, settle } from './testing/fakeVscode';
 
 // The static import of the module reads only its constants; each test imports the extension with a new fake of the
 // editor API.
@@ -34,9 +34,6 @@ let fake: Fake;
 beforeEach(() => {
   vi.useFakeTimers();
   fake = new Fake();
-  // The tests of the overlay keep their lines: the comment of the format, which an editor of a file with notes gets,
-  // has tests of its own in src/extension.test.ts.
-  fake.settings.set('workspace', { addFormatComment: false });
   vi.resetModules();
   vi.doMock('vscode', () => fake.api);
 });
@@ -159,16 +156,33 @@ test('the notes collapse the first time their file is in the active editor, into
 });
 
 test('a fold command waits for the edits of the extension, and folds the lines of the notes in the changed document (R-TEXT-005)', async () => {
-  // With the setting addFormatComment, the file gets the comment of the format at its top when the editor shows it,
-  // which moves the notes down by three lines.
-  fake.settings.set('workspace', { addFormatComment: true });
-  const editor = await start(12);
-  expect(editor.document.text.startsWith('<!-- nimblescape-markdown-notes format=')).toBe(true);
-  // The fold of the comment of the format and the folds of the notes, at their lines after the edit.
+  // A click on a highlight in the preview shows the notes of the file in the side view, without its text editor.
+  const editor = new FakeEditor(fake.open(text), 12);
+  fake.editors.push(editor);
+  const { extension } = await fake.activate();
+  const view = openView();
+  await view.send({ type: 'ready' });
+  await fake.uriHandler!.handleUri(FakeUri.parse(`vscode://${extension.extensionId}${extension.openPath}?${new URLSearchParams({ document: editor.document.uri.toString(), line: '2' }).toString()}`));
+  await settle();
+  // A change of the color in the side view, which VS Code applies only later, gives the file the comment of the
+  // format at its top, which moves the notes down. The text editor of the file becomes active in the meantime.
+  let release = (): void => undefined;
+  fake.held = new Promise((resolve) => (release = resolve));
+  const colored = view.send({ type: 'color', id: view.state().threads[0].id, color: 'green' });
+  await settle();
+  fake.activeEditor = editor;
+  fake.fire('activeEditor', editor);
+  await settle();
+  expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([]);
+  release();
+  await colored;
+  await settle();
+  expect(editor.document.text.startsWith('<!-- nimblescape-markdown-notes ')).toBe(true);
+  // The folds of the notes, at their lines after the edit; the new comment of the format folds after VS Code read the
+  // folds of the changed file, as every fold that shows open.
   const added = doctypeLines.length + 1;
-  expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([fold(0, added, 6 + added)]);
+  expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([fold(added, 6 + added)]);
 });
-
 test('a collapsed note at the start of the file hides its first line, and the cursor does not stay on it (R-TEXT-005, R-TEXT-007)', async () => {
   const editor = await start(4, `${hannes}\n\n    First\n\nText[^note-aaaa].\n`);
   const first = new FakeRange(0, 0, 0, hannes.length);

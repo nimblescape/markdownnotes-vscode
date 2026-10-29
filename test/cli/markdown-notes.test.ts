@@ -71,6 +71,6 @@ describe('the command markdown-notes', () => {
   });
 
   it('shows the version of the npm package and of the format of the notes', () => {
-    expect(run(tree({}), ['--version'])).toEqual({ code: 0, stdout: `markdown-notes ${cli.version} (format 1)\n`, stderr: '' });
+    expect(run(tree({}), ['--version'])).toEqual({ code: 0, stdout: `markdown-notes ${cli.version} (format 1.0.0)\n`, stderr: '' });
   });
 });

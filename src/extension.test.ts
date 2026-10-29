@@ -189,14 +189,33 @@ test('the formatter of Markdown documents gives one edit of the changed lines wi
   expect(format(crlf)).toBe('One two\r\n\r\nThree\r\n');
 });
 
+/**
+ * save fires the save of a document and returns the edits that the extension gives VS Code before the save.
+ * @param document - The document.
+ * @param reason - The reason of the save: 1 for a save of the user, 2 for an automatic save after a delay, 3 for a save
+ * when the focus goes to another editor.
+ */
+const save = async (document: FakeDocument, reason = 1): Promise<FakeTextEdit[]> => {
+  const waits: PromiseLike<FakeTextEdit[]>[] = [];
+  fake.fire('willSave', { document, reason, waitUntil: (thenable: PromiseLike<FakeTextEdit[]>) => waits.push(thenable) });
+  return (await Promise.all(waits)).flat();
+};
+
+/**
+ * saved returns the text of a document after the edits that the extension gives VS Code before its save.
+ * @param document - The document.
+ * @param reason - The reason of the save.
+ */
+const saved = async (document: FakeDocument, reason = 1): Promise<string> => {
+  const [edit, ...others] = await save(document, reason);
+  expect(others).toEqual([]);
+  return edit ? document.text.slice(0, document.offsetAt(edit.range.start)) + edit.newText + document.text.slice(document.offsetAt(edit.range.end)) : document.text;
+};
+
 test('a save formats a Markdown file with notes or with the comment of the format, and no other file, also not with the setting formatOnSave off or when VS Code formats on save itself (R-FMT-001)', async () => {
+  // The comment of the format, which a save of a file with notes also writes, has a test of its own.
+  fake.settings.set('workspace', { addFormatComment: false });
   await fake.activate();
-  /** save fires the save of a document and returns the edits that the extension gives VS Code before the save. */
-  const save = async (document: FakeDocument, reason = 1): Promise<FakeTextEdit[]> => {
-    const waits: PromiseLike<FakeTextEdit[]>[] = [];
-    fake.fire('willSave', { document, reason, waitUntil: (thenable: PromiseLike<FakeTextEdit[]>) => waits.push(thenable) });
-    return (await Promise.all(waits)).flat();
-  };
   const withNotes = fake.open('One\ntwo[^note-aaaa].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n', '/folder/notes.md');
   expect(await save(withNotes)).toHaveLength(1);
   // A save with the focus on another editor formats; an automatic save after a delay does not, as in VS Code.
@@ -260,42 +279,38 @@ test('a link of a highlight of the preview opens the side view at its note, for 
   expect(fake.executed.filter((command) => command === focus)).toHaveLength(2);
 });
 
-test('a file with notes gets the comment of the format as soon as an editor shows it, once after it opens, and not with the setting addFormatComment off, nor a file without notes or with a newer format (R-NOTE-007)', async () => {
+test('a save of a file with notes writes the comment of the format at its top, and an editor that only shows the file changes nothing, nor the setting addFormatComment off, a file without notes or with a newer format (R-NOTE-007)', async () => {
+  // The format, which a save of a file with notes also does, has a test of its own.
+  fake.settings.set('workspace', { formatOnSave: false });
   const document = fake.open(note);
   const plain = fake.open('# Title\n\nText.\n', '/folder/plain.md');
-  const hidden = fake.open(note, '/folder/hidden.md');
-  const newer = fake.open(`<!-- nimblescape-markdown-notes format=2 -->\n\n${note}`, '/folder/newer.md');
+  const newer = fake.open(`<!-- nimblescape-markdown-notes v2.0.0 -->\n\n${note}`, '/folder/newer.md');
   const off = fake.open(note, '/folder/off.md');
   fake.settings.set('/folder/off.md', { addFormatComment: false });
   fake.editors.push(...[document, plain, newer, off].map((shown) => new FakeEditor(shown)));
+  fake.tabGroups = [{ viewColumn: 1, tabs: [{ input: { uri: document.uri } }] }];
   await fake.activate();
-  await vi.advanceTimersByTimeAsync(0);
-  expect([document, plain, hidden, newer, off].map((each) => each.text)).toEqual([marked(note), '# Title\n\nText.\n', note, newer.text, note]);
-  // The tab of the mode "Markdown Preview" shows a document too.
-  fake.tabGroups = [{ viewColumn: 1, tabs: [{ input: { uri: hidden.uri } }] }];
   fake.fire('tabs', {});
-  await vi.advanceTimersByTimeAsync(0);
-  expect(hidden.text).toBe(marked(note));
-  // Undo removes the comment for good, until the document opens again.
-  document.text = note;
-  document.version++;
-  fake.fire('change', { document });
   await vi.advanceTimersByTimeAsync(1000);
-  expect(document.text).toBe(note);
-  fake.fire('close', document);
-  fake.fire('open', document);
-  await vi.advanceTimersByTimeAsync(0);
-  expect(document.text).toBe(marked(note));
-  // A note that the user writes into a file without notes brings the comment too.
+  // Hannes, 2026-10-29, "D2: ok": a file that an editor only shows keeps its text.
+  expect([document, plain, newer, off].map((each) => each.text)).toEqual([note, '# Title\n\nText.\n', newer.text, note]);
+  expect(await saved(document)).toBe(marked(note));
+  expect(await saved(document, 3)).toBe(marked(note));
+  expect(await saved(document, 2)).toBe(note);
+  expect(await saved(plain)).toBe(plain.text);
+  expect(await saved(newer)).toBe(newer.text);
+  expect(await saved(off)).toBe(note);
+  // A note that the user writes into a file without notes brings the comment with the next save.
   plain.text = `Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n`;
   plain.version++;
   fake.fire('change', { document: plain });
   await vi.advanceTimersByTimeAsync(1000);
-  expect(plain.text).toBe(marked('Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n'));
+  expect(plain.text).toBe('Text[^note-cccc].\n\n[^note-cccc]: **ann** · 2026-10-28 10:15+01:00\n\n    Body.\n');
+  expect(await saved(plain)).toBe(marked(plain.text));
 });
 
 test('a file whose comment of the format names a newer version keeps its notes as they are and shows why (R-NOTE-007)', async () => {
-  const newer = `<!-- nimblescape-markdown-notes format=2 spec=https://example.com/format.md\n-->\n\n${note}`;
+  const newer = `<!-- nimblescape-markdown-notes v2.0.0 spec=https://example.com/format.md\n-->\n\n${note}`;
   const document = fake.open(newer);
   const editor = new FakeEditor(document, 15);
   fake.editors.push(editor);
@@ -311,7 +326,7 @@ test('a file whose comment of the format names a newer version keeps its notes a
   await view.send({ type: 'add', request: 2, text: 'A note.' });
   await settle();
   expect(document.text).toBe(newer);
-  const message = 'The change was not saved: the file uses version 2 of the format of the notes, and this version of the extension knows only version 1. Update the extension.';
+  const message = 'The change was not saved: the file uses version 2.0.0 of the format of the notes, and this version of the extension knows only the versions 1.x. Update the extension.';
   expect(view.messages.filter((each) => each.type === 'result').map((each) => each.message)).toEqual([message, message]);
   expect(fake.errors).toEqual([message]);
 });
@@ -440,7 +455,6 @@ test('the hover of the selected text shows only for one selection in one block o
 });
 
 test('the hover of the selected text does not show in a file that the extension cannot change, nor on the text of a note (R-EDIT-006)', async () => {
-  fake.settings.set('workspace', { addFormatComment: false });
   const editor = await select(new FakePosition(6, 4), new FakePosition(6, 8), 2, note);
   await vi.advanceTimersByTimeAsync(showTime);
   expect(hovers()).toEqual([]);

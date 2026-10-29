@@ -5,12 +5,13 @@
 /**
  * These tests check the command line tool of the formatter (R-FMT-004): the command `format` writes only the files
  * that change, with their line breaks and byte order mark, `--check` changes no file and exits with 1, `-` formats the
- * standard input, and a wrong command, a wrong option or a file that cannot be read exits with 2.
+ * standard input, and a wrong command, a wrong option, a file that cannot be read or a file of a higher major version of
+ * the format exits with 2.
  */
 
 import { describe, expect, test } from 'vitest';
 import { version } from '../../package.json';
-import { formatVersion } from '../notes/doctype';
+import { formatVersion, versionText } from '../notes/doctype';
 import { command, formatText, type Io, run, usage } from './cli';
 
 /** Fake is an Io in memory, with the files, the standard input, and what the tool wrote. */
@@ -73,7 +74,7 @@ describe('the command format', () => {
 
   test('keeps the notes and the comment of the format', () => {
     const text = [
-      '<!-- nimblescape-markdown-notes format=1 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md',
+      '<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md',
       '-->',
       '',
       'Some <!--[note-7k2q-->text[^note-7k2q] of',
@@ -114,6 +115,21 @@ describe('the command format', () => {
     expect(fake.files.get('a.md')).toBe(formatted);
   });
 
+  test('keeps a file of a higher major version of the format as it is, formats the other files, and exits with 2', () => {
+    const newer = ['<!-- nimblescape-markdown-notes v2.0.0 spec=https://example.com/format-v2.md', '-->', '', unformatted].join('\n');
+    const fake = fakeOf({ 'new.md': newer, 'a.md': unformatted }, newer);
+    expect(run(['format', 'new.md', 'a.md'], fake)).toBe(2);
+    expect(fake.written).toEqual(['a.md']);
+    expect(fake.files.get('new.md')).toBe(newer);
+    expect(fake.errors).toEqual([
+      'new.md: the file uses version 2.0.0 of the format of the notes, and this version of markdown-notes knows only the versions 1.x, so the file stays as it is. Run the newest version: npx -y @nimblescape/markdown-notes@latest format',
+    ]);
+    expect(run(['format', '-'], fake)).toBe(2);
+    expect(fake.stdout).toEqual([newer]);
+    const minor = newer.replace('v2.0.0', 'v1.1.0');
+    expect(formatText(minor)).toBe(minor.replace(unformatted, formatted));
+  });
+
   test('exits with 2 for a file that it cannot write', () => {
     const fake = fakeOf({ 'a.md': unformatted });
     fake.writeFile = () => {
@@ -137,7 +153,7 @@ describe('the command line', () => {
   test('shows the version of the tool and of the format', () => {
     const fake = fakeOf({});
     expect(run(['--version'], fake)).toBe(0);
-    expect(fake.stdout).toEqual([`${command} ${version} (format ${formatVersion})\n`]);
+    expect(fake.stdout).toEqual([`${command} ${version} (format ${versionText(formatVersion)})\n`]);
   });
 
   test('exits with 2 for an unknown command, an unknown option, and no file', () => {

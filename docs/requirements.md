@@ -42,13 +42,14 @@ as the highlights of a marker pen on paper.
 | 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
 | 18 | The collapse at the start of VS Code, the buttons "Hide Note Text" and "Show Note Text", the marker beside the comment mark, the settings `showNotesIn` and `openLinksIn`, the funnel of the selected thread | [R-GEN-009](#r-gen-009), [R-GEN-010](#r-gen-010), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; replaced in step 24, apart from `openLinksIn` and the collapse at the start |
 | 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a highlight that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done; the settings `keepNotesCollapsed` and `showCalloutOnHover` dropped in step 24 |
-| 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done |
+| 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done; written only with a change of a note or a save since step 27 |
 | 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
 | 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
 | 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done |
 | 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
+| 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
 
 ## General
 
@@ -84,9 +85,9 @@ not accept extensions that use one. It supports VS Code 1.125 and later.
 virtual workspaces. It runs no program and collects no telemetry. Its own code
 connects to no address; the sign-in of [R-GEN-006](#r-gen-006) goes through the
 GitHub authentication of VS Code. It changes a file only when the user saves,
-adds, answers or deletes a note, and when an editor shows a file with notes
-without the comment of the format, which it then adds
-([R-NOTE-007](#r-note-007)).
+adds, answers or deletes a note; the save of a file with notes formats it and
+adds the comment of the format ([R-FMT-001](#r-fmt-001),
+[R-NOTE-007](#r-note-007)). A file that an editor only shows keeps its text.
 
 ### R-GEN-004
 
@@ -424,7 +425,7 @@ always knows it is a notes md document"). The
 "the public specification is a file in the github repo").
 
 - The first line names the format, its version and the address of the
-  specification: `<!-- nimblescape-markdown-notes format=1
+  specification: `<!-- nimblescape-markdown-notes v1.0.0
   spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`.
   Short lines of words follow, which tell an AI agent to read the
   specification before it reads, changes or adds a note, and the last line is
@@ -433,23 +434,34 @@ always knows it is a notes md document"). The
   does not interfere with a front matter (Hannes: "it shall not interfere with
   frontmatter"): a YAML (`---`) or TOML (`+++`) front matter stays the first
   block of the file, and the comment follows it.
-- The extension writes the comment as soon as it finds a note in a file that
-  an editor shows, also in the modes "Markdown Preview" and "Markdown Editor"
-  (Hannes, 2026-10-28: "as soon as a note is detected, the "DOCTYPE" is
-  written"): when the file opens, and when a note appears in it. The file
-  then has an unsaved change. Undo removes the comment for good until the
-  file opens again. The setting `nimblescape.markdownNotes.addFormatComment` (on by
-  default) turns this off; the comment then comes only with a change of a
-  note.
-- Each change of a note that the extension writes brings the comment too: the
-  first note brings it, a comment of another text or version is written anew,
-  and the last note takes it away with the blank line after it. Undo removes
-  the comment with the note.
+- The extension writes the comment with a change of a note and with the save
+  of a file with notes, never because an editor only shows a file
+  ([decision 20](#decisions)): a file that an editor, a diff view or the
+  Markdown preview only shows keeps its text. Each change of a note that the
+  extension writes brings the comment too: the first note brings it, and the
+  last note takes it away with the blank line after it. Undo removes the
+  comment with the note. The save of a file with notes adds a missing
+  comment; the auto save after a delay and "Save without Formatting" do not.
+  The setting `nimblescape.markdownNotes.addFormatComment` (on by default)
+  turns this off for the save; a change of a note still brings the comment.
+- The version is a semantic version ([decision 21](#decisions)): a higher
+  major version is a form of the notes that an older version reads wrongly,
+  and has its own specification; a higher minor version adds optional
+  elements that an older version reads and keeps; a higher patch version
+  changes only the words of the comment or of the specification. After the
+  first release, each change of the form of the notes raises the version.
+- The extension writes a comment anew only when its own version is higher
+  than the version of the comment in the file. A comment of an equal or
+  higher version stays as it is, also when its words differ, so that two
+  versions of the extension do not change it back and forth. A comment
+  without a version counts as older.
 - A file without the comment has notes too, for example a file from before
   this version: the extension reads its notes as always
   ([decision 11](#decisions)).
-- When the comment names a newer version of the format than the extension
-  knows, the extension changes no note of the file and says why.
+- When the comment names a higher major version of the format than the
+  extension knows, the extension changes no note of the file and says why,
+  and its formatter keeps the file as it is. A higher minor or patch version
+  does not stop it.
 - The text editor folds the comment into its first line, as it folds a note
   ([R-TEXT-005](#r-text-005)).
 
@@ -1053,10 +1065,13 @@ as the extension does on save.
 - `--check` changes no file, writes `<file>: not formatted` to the standard
   error for each file that the formatter would change, and exits with 1.
 - `-` in place of a file formats the standard input to the standard output.
+- A file whose comment of the format names a higher major version than the
+  tool knows stays as it is ([R-NOTE-007](#r-note-007)); the tool writes why
+  to the standard error, and `-` writes such a text unchanged.
 - The exit code is 0 when all files are formatted, 1 when `--check` found a
-  file to format, and 2 for an unknown command or option, no file, or a file
-  that cannot be read or written; the tool then still formats the other
-  files.
+  file to format, and 2 for an unknown command or option, no file, a file
+  that cannot be read or written, or a file of a higher major version; the
+  tool then still formats the other files.
 - `--help` shows the help, and `--version` the version of the tool and of the
   format of the notes ([R-NOTE-007](#r-note-007)).
 
@@ -1073,8 +1088,8 @@ a file with notes.
 
 ## Decisions
 
-Hannes decided these questions on 2026-10-28. The requirements above follow
-them.
+Hannes decided these questions on 2026-10-28 and 2026-10-29. The
+requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
    whole thread. The other choice was one note for each answer, directly
@@ -1230,6 +1245,23 @@ them.
     file changed 74 % of 436 README and CHANGELOG files on their first save,
     also in projects without notes. The other choices were format on save
     for every Markdown file, as before, and no format on save by default.
+20. **The comment of the format without a change of the file on open**
+    ([R-NOTE-007](#r-note-007), Hannes, 2026-10-29, "D2: ok" of the code
+    review): the extension writes the comment with a change of a note or the
+    save of a file with notes, not when an editor only shows the file. Before,
+    each file with notes got an unsaved change when an editor, a diff view or
+    the Markdown preview showed it, and auto save then saved it.
+21. **A semantic version in the comment of the format**
+    ([R-NOTE-007](#r-note-007), [format.md](format.md#11-the-version-of-the-format),
+    Hannes, 2026-10-29, D3 of the code review: "only if the format version I
+    would write is higher then mine one", "it would avoid the ping pong
+    between new and older version", "we could make semantic versioning",
+    "then make it just v1.0.0"): the first line names `v1.0.0` in place of
+    `format=1`; a new major version points to its own specification ("an new
+    format would point to another instruction file"); only a higher version
+    writes a comment anew, and only a higher major version stops the changes
+    of the notes. Before, each change of the words of the comment wrote the
+    comment anew in every file, also back to the words of an older version.
 
 ---
 

@@ -33,7 +33,7 @@
  */
 
 import type { Token } from 'markdown-it';
-import { frontMatterEnd } from '../notes/doctype';
+import { frontMatterEnd, newerFormat } from '../notes/doctype';
 import { before, parse, read } from '../notes/notes';
 import { breakText, markerText, noteCloseType, noteOpenType } from '../notes/syntax';
 
@@ -526,10 +526,15 @@ const signature = (lines: readonly string[]): string =>
  * with its hard line breaks, the tables aligned, no white space at the end of a line, one blank line between blocks
  * and around the ATX headings, and one line break at the end. Code blocks, blocks of HTML, the front matter, blocks of
  * math, containers and notes stay as they are. When the preview would read the formatted text with other blocks or
- * another text, the result is the text with only the repaired start markers.
+ * another text, the result is the text with only the repaired start markers. A text whose comment of the format names a
+ * higher major version stays as it is, because its notes can have a form that this version does not know
+ * ([R-NOTE-007](../../docs/requirements.md#r-note-007)).
  * @param lines - The lines of the text.
  */
 export function formatMarkdown(lines: readonly string[]): string[] {
+  if (newerFormat(lines) !== undefined) {
+    return [...lines];
+  }
   const repaired = addMarkers(repairMarkers(lines));
   const formatted = formatLines(repaired);
   return signature(formatted) === signature(repaired) ? formatted : repaired;

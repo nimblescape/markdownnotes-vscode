@@ -64,10 +64,13 @@ The first version.
 - A comment at the top of each file with notes, after a front matter, names
   the format of the notes with its version and links to the specification
   `docs/format.md`, so that programs and AI agents know how to read and add
-  notes. The extension writes it as soon as an editor shows a file with
-  notes, unless the setting `nimblescape.markdownNotes.addFormatComment` is
-  off, and with each change of a note; it removes it with the last note, and
-  changes no note of a file whose comment names a newer version.
+  notes. The extension writes it with each change of a note and with the
+  save of a file with notes, unless the setting
+  `nimblescape.markdownNotes.addFormatComment` is off for the save; an
+  editor that only shows a file never changes it. It removes the comment
+  with the last note. The version `v1.0.0` is a semantic version: the
+  extension writes a comment anew only when its own version is higher, and
+  changes no note of a file whose comment names a higher major version.
 - The text editor and the Problems view warn at each form of a note that
   GitHub shows differently or that breaks a rule of the notes: no blank line
   before or after the note, lines without the indentation of four spaces, a

@@ -10,14 +10,48 @@
  * read, change and add the notes; the further lines say it in short words
  * (Hannes, 2026-10-28). The comment stands at the top of the file, after a
  * front matter, and GitHub and the Markdown preview do not show it. The
- * extension writes it together with its own writes of a note, keeps it up to
- * date, and removes it with the last note. The module uses no API of VS Code.
+ * extension writes it together with its own writes of a note and on the save
+ * of a file with notes, and removes it with the last note.
+ *
+ * The version of the format is a semantic version, `v1.0.0` (Hannes,
+ * 2026-10-29: "we could make semantic versioning", "then make it just
+ * v1.0.0"). The extension writes a comment anew only when its own version is
+ * higher than the version of the comment in the file, so that two versions of
+ * the extension do not change the comment back and forth (Hannes: "it would
+ * avoid the ping pong between new and older version"). The module uses no API
+ * of VS Code.
  */
 
 import type { Position } from './notes';
 
+/**
+ * Version is a semantic version of the format of the notes. A higher major version is a form of the notes that an
+ * older version reads wrongly, and has a specification of its own; a higher minor version adds optional elements that
+ * an older version reads and keeps; a higher patch version changes only the words of the comment or of the
+ * specification.
+ */
+export interface Version {
+  major: number;
+  minor: number;
+  patch: number;
+}
+
 /** formatVersion is the version of the format of the notes that the extension reads and writes. */
-export const formatVersion = 1;
+export const formatVersion: Version = { major: 1, minor: 0, patch: 0 };
+
+/**
+ * versionText returns the text of a version, for example 1.0.0.
+ * @param version - The version.
+ */
+export const versionText = (version: Version): string => `${version.major}.${version.minor}.${version.patch}`;
+
+/**
+ * compareVersions returns a negative number when a version is lower than another, 0 when they are equal, and a positive
+ * number when it is higher.
+ * @param a - The version.
+ * @param b - The other version.
+ */
+export const compareVersions = (a: Version, b: Version): number => a.major - b.major || a.minor - b.minor || a.patch - b.patch;
 
 /** specUrl is the address of the specification of the format, docs/format.md of the repository on the branch main. */
 export const specUrl = 'https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md';
@@ -30,7 +64,7 @@ export const doctypeName = 'nimblescape-markdown-notes';
  * so the hint describes the start marker in words.
  */
 export const doctypeLines: readonly string[] = [
-  `<!-- ${doctypeName} format=${formatVersion} spec=${specUrl}`,
+  `<!-- ${doctypeName} v${versionText(formatVersion)} spec=${specUrl}`,
   'This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.',
   'AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.',
   'A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].',
@@ -47,12 +81,12 @@ export interface Doctype {
   start: number;
   /** end is the index of its last line, the line with `-->`. */
   end: number;
-  /** format is the version of the format, or undefined when the first line names none. */
-  format: number | undefined;
+  /** version is the version of the format, or undefined when the first line names none. */
+  version: Version | undefined;
 }
 
 /** doctypeStart matches the first line of the comment, with the version of the format. */
-const doctypeStart = new RegExp(String.raw`^<!--\s*${doctypeName}(?:\s+format=(\d+))?(?:\s|$)`);
+const doctypeStart = new RegExp(String.raw`^<!--\s*${doctypeName}(?:\s+v(\d+)\.(\d+)\.(\d+))?(?:\s|$)`);
 
 /** fence matches the line that opens or closes a fenced code block, with its fence. */
 const fence = /^ {0,3}(`{3,}|~{3,})/;
@@ -80,19 +114,20 @@ export function findDoctype(lines: readonly string[]): Doctype | undefined {
   while (end < lines.length - 1 && !lines[end].includes('-->', end === start ? 4 : 0)) {
     end++;
   }
-  const format = doctypeStart.exec(lines[start])?.[1];
-  return { start, end, format: format === undefined ? undefined : Number(format) };
+  const [, major, minor, patch] = doctypeStart.exec(lines[start]) ?? [];
+  return { start, end, version: major === undefined ? undefined : { major: Number(major), minor: Number(minor), patch: Number(patch) } };
 }
 
 /**
- * newerFormat returns the version of the format that the comment of a text names when it is newer than the version that
- * the extension knows, or undefined. The extension then changes no note of the text, because a change could break the
- * notes of the newer format.
+ * newerFormat returns the version of the format that the comment of a text names when its major version is higher than
+ * the major version that the extension knows, or undefined. The extension then changes no note of the text, because a
+ * change could break the notes of the newer format. A higher minor or patch version reads as the version of the
+ * extension.
  * @param lines - The lines of the text.
  */
-export function newerFormat(lines: readonly string[]): number | undefined {
-  const format = findDoctype(lines)?.format;
-  return format !== undefined && format > formatVersion ? format : undefined;
+export function newerFormat(lines: readonly string[]): Version | undefined {
+  const version = findDoctype(lines)?.version;
+  return version !== undefined && version.major > formatVersion.major ? version : undefined;
 }
 
 /** frontMatterFences are the first lines of a front matter, YAML or TOML, with the lines that end it. */
@@ -123,8 +158,9 @@ export interface DoctypeEdit {
 
 /**
  * doctypeEdit returns the change of a text for the comment, or undefined when the text needs none. A text with notes
- * gets the comment at its top, after its front matter, with a blank line after it; a comment of another version or
- * another text is written anew; a text without notes loses the comment and the blank line after it.
+ * gets the comment at its top, after its front matter, with a blank line after it. A comment of a lower version, or
+ * without a version, is written anew; a comment of the same or a higher version stays as it is, also with another
+ * text. A text without notes loses the comment and the blank line after it.
  * @param lines - The lines of the text.
  * @param hasNotes - Whether the text has notes after the change of the extension.
  */
@@ -144,8 +180,7 @@ export function doctypeEdit(lines: readonly string[], hasNotes: boolean): Doctyp
   }
   const text = doctypeLines.join('\n');
   if (found) {
-    const current = lines.slice(found.start, found.end + 1).join('\n');
-    return current === text
+    return found.version !== undefined && compareVersions(formatVersion, found.version) <= 0
       ? undefined
       : { start: { line: found.start, character: 0 }, end: { line: found.end, character: lines[found.end].length }, text, lines: doctypeLines.length - 1 - (found.end - found.start) };
   }

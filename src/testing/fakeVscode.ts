@@ -410,6 +410,8 @@ export class Fake {
   sessions: { provider: string; scopes: readonly string[]; options: unknown }[] = [];
   views = new Map<string, { resolveWebviewView(view: FakeView): void }>();
   uriHandler: { handleUri(uri: FakeUri): unknown } | undefined;
+  /** held makes each edit of applyEdit wait until it resolves, as VS Code applies an edit some time after the call. */
+  held: Promise<void> | undefined;
   /** shown records the documents and the options of showTextDocument. */
   shown: { document: FakeDocument; options: unknown }[] = [];
   /**
@@ -633,6 +635,7 @@ export class Fake {
    * @param edit - The edit.
    */
   async applyEdit(edit: FakeWorkspaceEdit): Promise<boolean> {
+    await this.held;
     const changed = new Set<FakeDocument>();
     // The ranges of the replacements refer to the text before the edit, so they apply from the end of the text.
     const replacements = edit.replacements.map(({ uri, range, text }) => {
