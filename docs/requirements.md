@@ -59,6 +59,7 @@ as the highlights of a marker pen on paper.
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
+| 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
 
 ## General
 
@@ -230,9 +231,14 @@ be viewed or hidden, when viewd make it good constrast"):
   side view hides them and does not change the setting; opening it shows
   them again.
 - The title of the text editor and of the preview of a Markdown file has the
-  button "Hide Highlights" (a closed eye) while the highlights show, which
-  turns the setting off, and else the button "Show Highlights" (an open eye),
-  which turns the setting on and opens the side view. The button changes the
+  button "Hide Highlights" (a highlighter pen with a stroke) while the
+  highlights show, which turns the setting off, and else the button "Show
+  Highlights" (a highlighter pen over its line), which turns the setting on
+  and opens the side view. The icon shows what a click does, and the tooltip
+  names it. The pen is an icon font of the extension, so that VS Code draws
+  it in the icon color of the theme, as its own codicons (Hannes,
+  2026-10-29: "propose a better icon for the show highlights button";
+  [decision 26](#decisions)). The button changes the
   setting in the settings of the workspace when they hold a value, else in the
   settings of the user. The Command Palette has the same commands.
 - A hidden highlight shows while the pointer rests on its text, in the text
@@ -1528,6 +1534,15 @@ requirements above follow them.
     choices were the list with the notes in a margin of the Markdown
     preview, the aligned view with a scroll of its own, and an editor of the
     extension with the text and the notes side by side.
+26. **The icon of the highlights** ([R-GEN-011](#r-gen-011), Hannes,
+    2026-10-29, 09:35, decided with the option "A Highlighter pen (own
+    icon)"): the buttons "Show Highlights" and "Hide Highlights" show a
+    highlighter pen over its line and the same pen with a stroke, from an
+    icon font of the extension. No codicon of VS Code shows such a pen, and
+    the eye stays free for the icon of the hidden notes
+    ([R-HIDE-002](#r-hide-002)). Before, the buttons showed an open and a
+    closed eye. The other choices were the codicons "layers-active" and
+    "layers", and "circle-large-filled" and "circle-large-outline".
 
 ---
 

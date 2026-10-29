@@ -34,6 +34,7 @@ describes its security model.
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: takes the notes out of the page, writes the start marker and the first reference of each note as the empty start and end of its highlight, with the color, the link to the side view and the state of the highlight, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the highlights in the Markdown preview, in the colors of the notes, and the script that paints the highlights with the CSS Custom Highlight API, shows a hidden highlight under the pointer, selects and deselects a note on a click, and scrolls to the selected note. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the list that scrolls the selected thread to its top, the tooltips, and the messages to the extension. |
+| `resources/notes-icons.ttf`, `resources/icons/highlighter.svg`, `scripts/icon-font.py` | The icon font of the buttons "Show Highlights" (U+E001) and "Hide Highlights" (U+E002), its source image, a highlighter pen over its line, and the script that builds the font from the image ([Icon font](#icon-font)). |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
 | `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
@@ -58,7 +59,7 @@ describes its security model.
 | `package.json` | The extension manifest. The section [Manifest](#manifest) explains it. |
 | `package-lock.json` | The locked development tools. npm writes this file, and nobody edits it by hand. |
 | `.node-version` | The Node release of the development tools. `actions/setup-node` in the workflows and local Node version managers read it. |
-| `.vscodeignore` | Lists the files of the package: `dist/extension.js`, `media/markdownPreview.css`, `media/markdownPreview.js`, `media/notesView.css`, `media/notesView.js`, `resources/icon.png`, `resources/notes-view.svg`, `package.json`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`. |
+| `.vscodeignore` | Lists the files of the package: `dist/extension.js`, `media/markdownPreview.css`, `media/markdownPreview.js`, `media/notesView.css`, `media/notesView.js`, `resources/icon.png`, `resources/notes-icons.ttf`, `resources/notes-view.svg`, `package.json`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`. |
 | `.github/workflows/ci.yml` | Checks the types, runs all tests, packages the VSIX and the npm package for every push to `main`, every pull request and the commit of every release, and runs the tests of `markdown-notes` on Ubuntu and macOS with Node.js 22 and 26. The release publishes the packages of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/vscode-versions.yml` | Runs `ci.yml` once per week with VS Code Insiders and with the lowest supported VS Code version. |
 | `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace and to npmjs.com. A dry run tests without a change. The section [Release](#release) explains it. |
@@ -126,7 +127,7 @@ commit of the build.
 - The engine range defines the compatible VS Code versions. `@types/vscode` stays at the lowest version of that range, so that the code compiles only with the API of that version. The manifest enables no proposed API (`enabledApiProposals`), because the Marketplace does not accept an extension that uses one. A test checks both.
 - `main` selects the bundle `dist/extension.js`. A test checks it.
 - `extensionPack` installs the extension "Markdown Footnotes" (`bierner.markdown-footnotes`) together with this extension, so that the preview shows the other footnotes of a file ([R-GEN-008](docs/requirements.md#r-gen-008)). It is a pack and no dependency (`extensionDependencies`): the user can disable or uninstall it, and the notes keep working. The plugin of this extension never renders other footnotes itself, because two plugins of footnotes would give two lists of footnotes. A test checks the pack.
-- `.vscodeignore` lists the files of the package, not a `files` field: it ignores everything and keeps the bundle, the styles and the scripts of the preview and of the side view, the icons and the documents. A test checks the list.
+- `.vscodeignore` lists the files of the package, not a `files` field: it ignores everything and keeps the bundle, the styles and the scripts of the preview and of the side view, the icons, the icon font and the documents. A test checks the list.
 - `icon` is `resources/icon.png`, a PNG, because the Marketplace takes no SVG icon. `resources/icon.svg` is its source; after a change of the source, render it again as a PNG of 256 × 256 pixels with a transparent background, for example with a screenshot of the SVG in Chromium. A test checks the size.
 - `extensionKind` selects the workspace host, where the documents are.
 - The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, and `onUri` when VS Code passes it a link of the highlight of a note.
@@ -136,6 +137,7 @@ commit of the build.
 - The four commands "Delete Left of a Hidden Marker", "Delete Right of a Hidden Marker" and their word forms are the keybindings of Backspace, Delete, Ctrl+Backspace and Ctrl+Delete (on macOS Alt+Backspace and Alt+Delete) while the cursor is next to a hidden marker. The editor sets the context keys `nimblescape.markdownNotes.markerLeft` and `nimblescape.markdownNotes.markerRight` for this, only when their value changes. The Command Palette does not show them.
 - The configuration contribution declares the settings of `src/settings.ts` in the section `nimblescape.markdownNotes`; `openLinksIn` has the scope `resource`, so that a folder of a workspace can have its own value, and `showHighlights` and `addFormatComment` the scope `window`. A test keeps the defaults equal to `src/settings.ts`, and a test checks that the README and the guide name every setting.
 - `configurationDefaults` makes the extension the default formatter of Markdown files (`editor.defaultFormatter` for `[markdown]`), and turns on no `editor.formatOnSave`, because VS Code would then format every Markdown file on a save ([R-FMT-001](docs/requirements.md#r-fmt-001), decision 19). The extension formats a file with notes itself before its save: `changesOnSave` of `src/formatter.ts` decides and `saveEdits` returns the edits in `waitUntil` of `onWillSaveTextDocument`. It formats a Markdown file with notes or with the comment of the format while the setting `formatOnSave` is on, and not for an automatic save after a delay, nor when `editor.formatOnSave` is on for the document (VS Code runs the formatter then) or another default formatter is set. In the same edit it adds a missing comment of the format to a file with notes while the setting `addFormatComment` is on, also when another formatter formats the file, and not for an automatic save after a delay ([R-NOTE-007](docs/requirements.md#r-note-007), decision 20). The settings of the user and of a workspace for `[markdown]` win over these defaults. A test checks them.
+- `icons` contributes the icons `nimblescape-highlights-show` and `nimblescape-highlights-hide`, the characters U+E001 and U+E002 of the icon font `resources/notes-icons.ttf`, and the commands "Show Highlights" and "Hide Highlights" show them as `$(nimblescape-highlights-show)` and `$(nimblescape-highlights-hide)` ([R-GEN-011](docs/requirements.md#r-gen-011), decision 26). VS Code draws an icon of a font in the icon color of the theme, as its codicons; an SVG file as the icon of a command would need a file for the light and one for the dark themes, with fixed colors. VS Code 1.125 already knows the contribution. A test checks the icons and that the font has both characters ([Icon font](#icon-font)).
 - The untrusted-workspace and virtual-workspace capabilities state that the extension works in both.
 - The package has no runtime dependency: the bundle contains markdown-it. The development dependencies are the build, test and packaging tools. `allowScripts` lists the install scripts of dependencies that npm 11.19 and later may run: those of esbuild and `@vscode/vsce-sign` in every version, because the build and the packaging (`npm run package`) run the code of both packages anyway and Dependabot updates them, and not the one of fsevents, an optional package for macOS that already contains its built binary.
 
@@ -145,6 +147,28 @@ address and must not be an SVG. Both files and `SUPPORT.md` use full
 `https://github.com/…` links outside code, so that every link works in the
 repository, in the package and on the Marketplace. A test checks it, and a
 test checks that the package script keeps the checks of vsce.
+
+### Icon font
+
+The buttons "Show Highlights" and "Hide Highlights" show a highlighter pen
+over its line, and the same pen with a stroke from the top left to the
+bottom right. `resources/icons/highlighter.svg` is the image of the pen, on
+16 × 16 pixels with strokes of 1 pixel, as the codicons. The script
+`scripts/icon-font.py` builds the font `resources/notes-icons.ttf` from it: it
+turns the strokes into outlines, adds the stroke of "Hide Highlights" with a
+gap of 1 pixel on both sides, and writes the font with the metrics of the
+codicon font (300 units for 16 pixels). The font is in the repository, and
+the package holds the font and not the image. After a change of the image,
+build the font again and check both icons in VS Code, in a dark and in a
+light theme:
+
+```sh
+python3 -m pip install fonttools picosvg skia-pathops
+python3 scripts/icon-font.py
+```
+
+The same image gives the same font, because the script writes a fixed date
+into it.
 
 ## npm package
 

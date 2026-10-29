@@ -185,7 +185,64 @@ test('the title of the text editor and of the preview of a Markdown file has the
     ]),
   );
   const iconOf = (command: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === command).icon;
-  expect([highlightCommands.show, highlightCommands.hide].map(iconOf)).toEqual(['$(eye)', '$(eye-closed)']);
+  expect([highlightCommands.show, highlightCommands.hide].map(iconOf)).toEqual(['$(nimblescape-highlights-show)', '$(nimblescape-highlights-hide)']);
+});
+
+/**
+ * glyphOf returns the glyph of a character in a TrueType font after its character map (format 4), and the size of its
+ * outline in bytes, which is 0 for an empty glyph.
+ * @param font - The bytes of the font.
+ * @param character - The code point of the character.
+ */
+const glyphOf = (font: Buffer, character: number): { glyph: number; size: number } => {
+  const tables = new Map<string, number>();
+  for (let index = 0; index < font.readUInt16BE(4); index++) {
+    const record = 12 + 16 * index;
+    tables.set(font.toString('latin1', record, record + 4), font.readUInt32BE(record + 8));
+  }
+  const cmap = tables.get('cmap')!;
+  let glyph = 0;
+  for (let index = 0; index < font.readUInt16BE(cmap + 2); index++) {
+    const subtable = cmap + font.readUInt32BE(cmap + 4 + 8 * index + 4);
+    if (font.readUInt16BE(subtable) !== 4) continue;
+    const segments = font.readUInt16BE(subtable + 6) / 2;
+    const ends = subtable + 14;
+    const starts = ends + 2 * segments + 2;
+    const deltas = starts + 2 * segments;
+    const ranges = deltas + 2 * segments;
+    for (let segment = 0; segment < segments; segment++) {
+      if (character > font.readUInt16BE(ends + 2 * segment) || character < font.readUInt16BE(starts + 2 * segment)) continue;
+      const range = font.readUInt16BE(ranges + 2 * segment);
+      const delta = font.readUInt16BE(deltas + 2 * segment);
+      const start = font.readUInt16BE(starts + 2 * segment);
+      const id = range === 0 ? character : font.readUInt16BE(ranges + 2 * segment + range + 2 * (character - start));
+      glyph = id === 0 ? 0 : (id + delta) & 0xffff;
+    }
+    if (glyph) break;
+  }
+  const loca = tables.get('loca')!;
+  const long = font.readInt16BE(tables.get('head')! + 50) === 1;
+  const offset = (index: number) => (long ? font.readUInt32BE(loca + 4 * index) : 2 * font.readUInt16BE(loca + 2 * index));
+  return { glyph, size: glyph ? offset(glyph + 1) - offset(glyph) : 0 };
+};
+
+test('the buttons "Show Highlights" and "Hide Highlights" show a highlighter pen of the icon font of the extension, which follows the icon color of the theme (R-GEN-011)', () => {
+  // Hannes chose the highlighter pen on 2026-10-29 (decision 26); the eye stays for the icon of the hidden notes (R-HIDE-002).
+  const font = 'resources/notes-icons.ttf';
+  expect(manifest.contributes.icons).toEqual({
+    'nimblescape-highlights-show': { description: expect.any(String), default: { fontPath: font, fontCharacter: '\\E001' } },
+    'nimblescape-highlights-hide': { description: expect.any(String), default: { fontPath: font, fontCharacter: '\\E002' } },
+  });
+  // The font maps both characters to a glyph with an outline; scripts/icon-font.py builds it from the image.
+  const bytes = fs.readFileSync(path.join(repository, font));
+  const glyphs = [0xe001, 0xe002].map((character) => glyphOf(bytes, character));
+  for (const { glyph, size } of glyphs) {
+    expect(glyph).toBeGreaterThan(0);
+    expect(size).toBeGreaterThan(0);
+  }
+  expect(glyphs[0].glyph).not.toBe(glyphs[1].glyph);
+  expect(read('scripts/icon-font.py')).toContain("SOURCE = ROOT / 'resources' / 'icons' / 'highlighter.svg'");
+  expect(fs.existsSync(path.join(repository, 'resources/icons/highlighter.svg'))).toBe(true);
 });
 
 test('the title of the side view has the button "Hide Notes" where VS Code shows none, and the Markdown editors the button "Show or Hide Notes" (R-SIDE-006)', () => {
@@ -242,7 +299,7 @@ test('the README and the guide name every setting that the manifest contributes'
   }
 });
 
-test('the package holds the bundle, the styles and the scripts of the preview and the side view, the icons and the documents only', () => {
+test('the package holds the bundle, the styles and the scripts of the preview and the side view, the icons, the icon font and the documents only', () => {
   const patterns = read('.vscodeignore')
     .split('\n')
     .filter((line) => line && !line.startsWith('#'));
@@ -254,6 +311,7 @@ test('the package holds the bundle, the styles and the scripts of the preview an
     '!media/notesView.css',
     '!media/notesView.js',
     '!resources/icon.png',
+    '!resources/notes-icons.ttf',
     '!resources/notes-view.svg',
     '!package.json',
     '!README.md',

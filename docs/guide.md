@@ -296,10 +296,11 @@ The highlights show while the side view "Notes" is open and the setting
 have a clear background and a line below the text, so that they stand out of
 the text.
 
-- The button "Hide Highlights" (a closed eye) in the title of the text editor
-  and of the preview hides them. It turns the setting off: in the settings of
+- The button "Hide Highlights" (a highlighter pen with a stroke) in the title
+  of the text editor and of the preview hides them. It turns the setting off: in the settings of
   the workspace when they hold a value, else in your user settings.
-- The button "Show Highlights" (an open eye) shows them again. It turns the
+- The button "Show Highlights" (a highlighter pen over its line) shows them
+  again. It turns the
   setting on, and opens the side view when it is closed.
 - Closing the side view also hides the highlights, and keeps the setting.
   Opening the side view shows them again.

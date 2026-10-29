@@ -25,9 +25,10 @@ The first version.
   blue, until the user gives a note one of six colors.
 - The text editor and the Markdown preview show the highlights in the colors
   of their notes, with a good contrast, while the side view "Notes" is open.
-  "Hide Highlights" and "Show Highlights" in the title of the editors change
-  the setting `nimblescape.markdownNotes.showHighlights`; "Show Highlights"
-  also opens the side view, and closing the side view hides the highlights.
+  "Hide Highlights" and "Show Highlights" in the title of the editors, with
+  the icon of a highlighter pen, change the setting
+  `nimblescape.markdownNotes.showHighlights`; "Show Highlights" also opens
+  the side view, and closing the side view hides the highlights.
   A hidden highlight shows while the pointer is on it. A click on a highlight
   selects its note in the side view and opens the side view. The highlight of
   the selected note is strong with a frame, and the other highlights are

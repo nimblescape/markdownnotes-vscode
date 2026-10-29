@@ -128,13 +128,13 @@
         "command": "nimblescape.markdownNotes.showHighlights",
         "title": "Show Highlights",
         "category": "Markdown Notes",
-        "icon": "$(eye)"
+        "icon": "$(nimblescape-highlights-show)"
       },
       {
         "command": "nimblescape.markdownNotes.hideHighlights",
         "title": "Hide Highlights",
         "category": "Markdown Notes",
-        "icon": "$(eye-closed)"
+        "icon": "$(nimblescape-highlights-hide)"
       },
       {
         "command": "nimblescape.markdownNotes.hideNotes",
@@ -169,6 +169,22 @@
         "category": "Markdown Notes"
       }
     ],
+    "icons": {
+      "nimblescape-highlights-show": {
+        "description": "Markdown Notes: the button Show Highlights, a highlighter pen over its line.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E001"
+        }
+      },
+      "nimblescape-highlights-hide": {
+        "description": "Markdown Notes: the button Hide Highlights, the highlighter pen with a stroke.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E002"
+        }
+      }
+    },
     "menus": {
       "editor/title": [
         {
