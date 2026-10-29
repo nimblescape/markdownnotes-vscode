@@ -313,11 +313,13 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * toReal returns the position in the file of a position in a clean document: before the hidden parts there.
+   * toReal returns the position in the file of a position in a clean document: before the hidden parts there, or after
+   * them, for example after the start marker of a highlight that starts there.
    * @param document - The URI of the clean document.
    * @param position - The position in the clean document.
+   * @param after - Whether the position in the file is after the hidden parts at the position.
    */
-  toReal(document: vscode.Uri, position: vscode.Position): vscode.Position | undefined {
+  toReal(document: vscode.Uri, position: vscode.Position, after = false): vscode.Position | undefined {
     const mirror = this.ready.get(document.toString());
     if (!mirror) {
       return undefined;
@@ -325,7 +327,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const clean = offsetIn(mirror.projection.clean, position);
     let removed = 0;
     mirror.projection.hidden.forEach((part, index) => {
-      if (mirror.projection.at[index] < clean) {
+      if (mirror.projection.at[index] < clean || (after && mirror.projection.at[index] === clean)) {
         removed += part.end - part.start;
       }
     });

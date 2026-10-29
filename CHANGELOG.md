@@ -38,8 +38,10 @@ The first version.
   lists the threads of the active Markdown file, also in the modes "Markdown
   Preview" and "Markdown Editor" of VS Code, with their trees of replies.
   The list scrolls on its own, and a click on a highlight or a move of the
-  cursor into it scrolls its thread to the top; each thread that is not
-  selected is dimmed. Its buttons are icons with
+  cursor into it scrolls its thread to the top, also when the view opens
+  after the selection; each thread that is not selected is dimmed. A click on
+  a thread scrolls the text editor or the preview smoothly to its note: the
+  extension turns on `editor.smoothScrolling` for Markdown files. Its buttons are icons with
   tooltips: "Reply", "Edit" and
   "Delete" at each answer; the color, "Show as Text", "Answer" and "Delete
   Thread" at each thread; "Add Note" in its title. "Show as Text" shows the

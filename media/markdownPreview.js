@@ -57,7 +57,8 @@
 // in the color of the note, one for each line of the text, and the highlights
 // of the other notes are dimmed. An end with the attribute data-reveal asks
 // the preview to scroll to the note; the script scrolls once for each number
-// of the attribute.
+// of the attribute, smoothly as the side view (Hannes, 2026-10-29: "use smooth
+// scrolling as in the side view"), unless the system asks for less motion.
 
 (() => {
   'use strict';
@@ -139,6 +140,9 @@
    * @returns {HighlightRegistry | undefined}
    */
   const registryOf = () => (typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight === 'function' ? CSS.highlights : undefined);
+
+  /** motion returns how the preview scrolls to a note: smoothly, as the side view, unless the system asks for less motion. */
+  const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
 
   /**
    * keyOf returns the key of the selected note of an end: its label and its request to scroll.
@@ -248,7 +252,7 @@
     const request = selected?.getAttribute('data-reveal') ?? undefined;
     if (selected && request !== undefined && request !== revealed) {
       revealed = request;
-      (frames.firstElementChild ?? selected).scrollIntoView({ block: 'center' });
+      (frames.firstElementChild ?? selected).scrollIntoView({ block: 'center', behavior: motion() });
     }
   };
 

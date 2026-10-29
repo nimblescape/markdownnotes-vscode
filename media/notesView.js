@@ -49,7 +49,9 @@
 // scrolls on its own (Hannes, 2026-10-29, decision 25: "List that scrolls
 // freely"). It scrolls itself only when the selected thread changes, for a
 // click on a highlight or a move of the cursor into a highlight: the selected
-// thread scrolls to the top of the view. An empty part after the last thread
+// thread scrolls to the top of the view. A hidden view cannot scroll: when
+// the selected thread changed while it was hidden, the extension sends the
+// message "scroll" after it shows again. An empty part after the last thread
 // lets also the last thread scroll to the top. The editor of a new note
 // stands at the top of the list.
 //
@@ -948,6 +950,9 @@
       if (selectionChanged) {
         scrollToSelected();
       }
+    } else if (message.type === 'scroll') {
+      // The view shows again after the selected thread changed while it was hidden, and has its size in the next frame.
+      requestAnimationFrame(scrollToSelected);
     } else if (message.type === 'new') {
       // An open editor of a new note keeps its text and its color; `/todo` of the text editor makes the note a todo.
       newTodo = message.todo === true;

@@ -263,9 +263,10 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
   expect(manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.toggle).icon).toBe('$(comment-discussion)');
 });
 
-test('the extension is the default formatter of Markdown files, without format on save of VS Code for every Markdown file, and the user can change it (R-FMT-001)', () => {
+test('the extension is the default formatter of Markdown files, without format on save of VS Code for every Markdown file, and a Markdown editor scrolls smoothly; the user can change both (R-FMT-001, R-SIDE-007)', () => {
   // The extension formats only a file with notes on a save (setting formatOnSave), so it turns on no format on save of VS Code.
-  expect(manifest.contributes.configurationDefaults['[markdown]']).toEqual({ 'editor.defaultFormatter': extensionId });
+  // VS Code scrolls a text editor to a note that the side view selects smoothly only with editor.smoothScrolling.
+  expect(manifest.contributes.configurationDefaults['[markdown]']).toEqual({ 'editor.defaultFormatter': extensionId, 'editor.smoothScrolling': true });
 });
 
 test('the extension uses no proposed API, and the API of the oldest VS Code version that it supports (R-GEN-002)', () => {

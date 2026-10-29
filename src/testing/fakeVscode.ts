@@ -440,10 +440,14 @@ export class FakeView {
     },
   };
 
-  /** show opens the view, and keeps the focus where it is. */
+  /** show opens the view, and keeps the focus where it is; a hidden view tells its listeners that it shows. */
   show(): void {
     this.shows += 1;
+    const hidden = !this.visible;
     this.visible = true;
+    if (hidden) {
+      this.visibility.forEach((listener) => listener());
+    }
   }
 
   onDidChangeVisibility(listener: () => void) {

@@ -164,9 +164,6 @@ const cacheSize = 200;
 /** titleLength is the number of characters of the highlighted text in the title of the editor of a new note. */
 const titleLength = 60;
 
-/** doubleClickTime is the longest time in milliseconds from the first click of a double click to the second one. */
-const doubleClickTime = 500;
-
 /** wordCharacter matches a letter, a digit or an underscore: a character of a word that a double click selects. */
 const wordCharacter = /[\p{L}\p{N}_]/u;
 
@@ -217,7 +214,7 @@ function modeOf(
  */
 export interface CleanMirror {
   realOf(document: vscode.Uri): vscode.Uri | undefined;
-  toReal(document: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
+  toReal(document: vscode.Uri, position: vscode.Position, after?: boolean): vscode.Position | undefined;
   cleanEditorOf(real: vscode.Uri): vscode.TextEditor | undefined;
   toClean(real: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
 }
@@ -236,15 +233,18 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private document: vscode.Uri | undefined;
   /** selected is the identifier of the selected thread. */
   private selected: string | undefined;
+  /**
+   * scrollPending tells whether the selected thread changed while the view was hidden: the hidden view cannot scroll,
+   * so it scrolls to the thread when it shows again (Hannes, 2026-10-29: "the side view is opened but it does not
+   * scroll to the right position").
+   */
+  private scrollPending = false;
   /** lines holds the line of the cursor of each document, by its URI. */
   private readonly lines = new Map<string, number>();
   /** atCursor holds the identifier of the thread of the note at the cursor of each document, by its URI. */
   private readonly atCursor = new Map<string, string | undefined>();
-  /**
-   * cursor is the last cursor of a text editor without selected text: its document, its place, its time, and whether a
-   * click with the mouse put it there.
-   */
-  private cursor: { document: string; position: vscode.Position; time: number; click: boolean } | undefined;
+  /** cursor is the last cursor of a text editor without selected text: its document and its place. */
+  private cursor: { document: string; position: vscode.Position } | undefined;
   /** clean is whether the view follows a text editor of the clean editing view, whose lines the threads name. */
   private clean = false;
   /** selections holds the selection of the text editor of each document, by its URI, for "Add Note". */
@@ -322,7 +322,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     view.onDidChangeVisibility(() => {
       if (view.visible) {
         this.followTab();
-        void this.refresh();
+        void this.refresh().then(() => {
+          if (this.scrollPending && this.view === view) {
+            this.scrollPending = false;
+            void view.webview.postMessage({ type: 'scroll' });
+          }
+        });
       }
     });
     view.onDidDispose(() => {
@@ -501,6 +506,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param reveal - Whether the preview scrolls to the note.
    */
   private select(document: vscode.Uri, id: string | undefined, reveal = false): void {
+    if (id !== this.selected && !this.visible) {
+      this.scrollPending = id !== undefined;
+    }
     this.selected = id;
     const entry = id === undefined ? undefined : this.threads.entriesOf(document).find((candidate) => candidate.id === id);
     this.chosen.select(document, entry?.note.label, reveal);
@@ -530,9 +538,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /**
    * doubleClicked tells whether a change of the selection of a text editor with the mouse is the second click of a
    * double click, and returns the place of the cursor before it. VS Code tells an extension no double click: it reports
-   * the first click as a cursor without selected text, unless the cursor stood there, and the second click as the
-   * selected word at that place. A drag of the mouse and a click with Shift select text from the cursor, so a word around
-   * the cursor is the word of a double click; a word that starts or ends at the cursor is one only soon after a click.
+   * the first click as a cursor without selected text, and the second click as the selected word at that place. A first
+   * click on the place of the cursor changes nothing, so VS Code reports no first click, also long after the click that
+   * put the cursor there (Hannes, 2026-10-29: "doubleclick does not open the side view"). So a word that the mouse
+   * selects in one step, around the cursor or from it, is the word of a double click. A drag of the mouse selects the
+   * text in steps, of which the first one is no word.
    * @param editor - The text editor.
    * @param click - Whether the mouse changed the selection.
    */
@@ -540,15 +550,13 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const last = this.cursor;
     const key = editor.document.uri.toString();
     const { selection } = editor;
-    this.cursor = selection.isEmpty ? { document: key, position: selection.active, time: Date.now(), click } : undefined;
+    this.cursor = selection.isEmpty ? { document: key, position: selection.active } : undefined;
     if (!click || !last || last.document !== key || selection.isEmpty || !selection.isSingleLine || last.position.line !== selection.start.line) {
       return undefined;
     }
     const { start, end } = selection;
     const at = last.position.character;
-    const around = start.character < at && at < end.character;
-    const atEdge = (at === start.character || at === end.character) && last.click && Date.now() - last.time <= doubleClickTime;
-    if (!around && !atEdge) {
+    if (at < start.character || end.character < at) {
       return undefined;
     }
     const line = editor.document.lineAt(start.line).text;
@@ -575,18 +583,20 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     if (!editor || (!real && !isNoteDocument(editor.document))) {
       return;
     }
-    const place = (position: vscode.Position): vscode.Position => (real ? (this.mirror!.toReal(editor.document.uri, position) ?? position) : position);
+    const place = (position: vscode.Position, after = false): vscode.Position => (real ? (this.mirror!.toReal(editor.document.uri, position, after) ?? position) : position);
     const document = real ?? editor.document.uri;
     // The word of a double click can end at the end of a highlight, outside the note; the place of the click names it.
     const doubleClick = this.doubleClicked(editor, click);
-    const active = place(doubleClick ?? editor.selection.active);
+    const at = doubleClick ?? editor.selection.active;
+    const active = place(at);
     const line = active.line;
     this.lines.set(document.toString(), line);
     this.selections.set(document.toString(), new vscode.Range(place(editor.selection.start ?? editor.selection.active), place(editor.selection.end ?? editor.selection.active)));
     const changed = document.toString() !== this.document?.toString() || (real !== undefined) !== this.clean;
     this.clean = real !== undefined;
-    // The position, not only the line, names the note, because the selections of several notes can share a line.
-    const entry = this.threads.entryAt(document, active);
+    // The position, not only the line, names the note, because the selections of several notes can share a line. In the
+    // clean editing view, the cursor at the start of a highlight is before its hidden start marker in the file.
+    const entry = this.threads.entryAt(document, active) ?? (real ? this.threads.entryAt(document, place(at, true)) : undefined);
     const selected = entry?.id;
     const left = this.atCursor.get(document.toString()) === this.selected && this.selected !== undefined;
     this.atCursor.set(document.toString(), selected);

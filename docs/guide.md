@@ -452,9 +452,10 @@ window, where VS Code also shows the chat. The Explorer and the other views
 of the primary side bar stay usable while it is open. The button "Show or Hide
 Notes" (two speech bubbles) in the title of the text editor and of the preview
 of a Markdown file opens and closes it with one click, also in Zen Mode and
-in the modes "Markdown Preview" and "Markdown Editor" of VS Code. A click on
-a highlight in the text editor or in the preview opens it too. The view is
-the only place of the text of the notes, and their editor:
+in the modes "Markdown Preview" and "Markdown Editor" of VS Code. A double
+click on a highlight in the text editor or in the preview opens it too, and
+the view scrolls to the thread of the note. The view is the only place of the
+text of the notes, and their editor:
 
 - The view shows the threads of the active Markdown file, each with the line
   of the note and its answers rendered as Markdown with author and date. The
@@ -482,6 +483,11 @@ the only place of the text of the notes, and their editor:
     scrolls to the highlight of the note, which gets the strong highlight.
   - In the mode "Markdown Editor" of VS Code, the text of the highlight is
     selected there.
+
+  The text editor and the preview scroll smoothly to the note. For the text
+  editor, the extension turns on the setting `editor.smoothScrolling` of
+  VS Code for Markdown files; set it to `false` under `"[markdown]"` in your
+  settings to scroll without the animation.
 - A click on a link of a rendered text opens it, as in the Markdown preview:
   a web link or a mail link with your system, and a link to a file at the
   place of the setting `openLinksIn` ([Settings](#settings)). A relative path
@@ -497,6 +503,11 @@ the only place of the text of the notes, and their editor:
   the bottom, or hide it, VS Code shows no such button; the view then has its
   own button "Hide Notes" (×). The command "Markdown Notes: Show or Hide
   Notes" of the Command Palette shows or hides the view.
+
+In Zen Mode, VS Code makes the centered text editor narrower when the side
+view opens, so that the lines of the text wrap again. The setting
+`"workbench.editor.centeredLayoutFixedWidth": true` of VS Code keeps the width
+of the text editor while the window has room for it.
 
 ### The view next to the text
 

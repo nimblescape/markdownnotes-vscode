@@ -12,18 +12,19 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 79 requested features, 57 are built, among them the clean editing view
+Of 85 requested features, 59 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
-breaks and the cursor next to the hidden markers in the text editor. 10
+breaks and the cursor next to the hidden markers in the text editor. 13
 features are planned but not built: the features of the section
-[Planned features](#planned-features). The npm package with the first release
-needs Hannes. 11 requests were replaced or dropped by later decisions of
+[Planned features](#planned-features). Two need Hannes: the npm package with
+the first release, and a setting of VS Code for the width of the text editor
+in Zen Mode. 11 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
-notes, the standard footnotes in the side view, and the slash commands
-`/research` and `/source`, which wait for the answer of Hannes on how a source
-is written in the Markdown text.
+notes, the standard footnotes in the side view, and the citations and sources
+in the style of the PHT (APA 7) with the slash commands `/research` and
+`/source`, which wait for the answer of Hannes on the form of the citations.
 
 The columns of the tables:
 
@@ -46,7 +47,8 @@ which is in the section [Planned features](#planned-features). The
 tooltips, the lighter dimming and the list that scrolls on its own came on
 2026-10-29 (commit
 [a508cdf](https://github.com/nimblescape/nimblescape-markdown-notes/commit/a508cdf)),
-the header with the filters in the evening of 2026-10-29.
+the header with the filters and the smooth scrolling of the text in the
+evening of 2026-10-29.
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
@@ -72,6 +74,9 @@ the header with the filters in the evening of 2026-10-29.
 | A search in the full text of the notes | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | The text and the authors of all answers, without regard to case; each typed word must be in the note; Escape clears the field |
 | A todo filter: "an empty box for open todos and a checked box for completed todos" | 10-29 17:56, 18:04 | [R-SIDE-008](requirements.md#r-side-008) | Built | Both boxes together show all todo notes |
 | The filters together, and a button that clears them: "the filters are combined with AND" | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | "Clear Filter" (X); the selected thread always shows; the filter stays when the view is hidden and shown again |
+| Smooth scrolling of the text: "use smooth scrolling as in the side view when the side view selects a note and the main view scrolls to that, in text view and in preview mode" | 10-29 19:01 | [R-SIDE-007](requirements.md#r-side-007) | Built | VS Code scrolls a text editor smoothly only with its setting `editor.smoothScrolling`, which the extension now turns on for Markdown files; the preview scrolls smoothly unless the system asks for less motion |
+| The view that a double click opens scrolls to the note: "the side view is opened but it does not scroll to the right position" | 10-29 19:26 | [R-SIDE-007](requirements.md#r-side-007) | Built | A hidden view cannot scroll; the view now scrolls to a thread that was selected while it was hidden when it shows again |
+| The width of the text editor in Zen Mode when the side view opens: "keep the main view the same width in zen view when a side view opens as long as the main view has enough space" | 10-29 19:29 | [R-SIDE-001](requirements.md#r-side-001) | Needs Hannes | The setting `"workbench.editor.centeredLayoutFixedWidth": true` of VS Code keeps the width (checked in VS Code 1.144: 900 pixels with the side view, 701 in place of 884 without the setting); it changes the centered layout of all files, so the extension does not set it |
 
 ## Text editor
 
@@ -93,7 +98,7 @@ breaks and the cursor next to the hidden markers.
 | Closing the side view hides the highlights | 10-28 20:31 | [R-GEN-011](requirements.md#r-gen-011) | Replaced | By [decision 28](requirements.md#decisions) (10-29 16:33): the highlights do not depend on the side view |
 | "Show Highlights" only shows the highlights: "it shall not open the side view but only show the highlights. when a highlight is clicked, then the side view shall open" | 10-29 16:33 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 28](requirements.md#decisions), step 39 of the plan |
 | A click on a highlight selects its note and opens the side view; a click outside deselects it | 10-28, 20:32 | [R-SIDE-007](requirements.md#r-side-007) | Replaced | By [decision 29](requirements.md#decisions) (10-29 17:49): a click selects, a double click opens the side view |
-| Only a double click opens the side view: "only a double click on a selected highlight shall open the side view", "in both text and preview" | 10-29 17:49 | [R-SIDE-007](requirements.md#r-side-007), [R-PREV-003](requirements.md#r-prev-003) | Built | [Decision 29](requirements.md#decisions), step 41 of the plan. VS Code tells an extension no double click in the text editor: the extension reads one from the word that the second click selects |
+| Only a double click opens the side view: "only a double click on a selected highlight shall open the side view", "in both text and preview"; at 18:59: "doubleclick does not open the side view" | 10-29 17:49, 18:59 | [R-SIDE-007](requirements.md#r-side-007), [R-PREV-003](requirements.md#r-prev-003) | Built | [Decision 29](requirements.md#decisions), step 41 of the plan. VS Code tells an extension no double click in the text editor: the extension reads one from the word that the second click selects. Two bugs fixed in step 46: VS Code reports no first click on the place of the cursor, and the cursor at the start of a highlight in the clean editing view stood outside the note |
 | The cursor that leaves a highlight deselects its note: "moving the cursor into a highlight shows the highlight but keeps it selected when the cursor goes out of it again" | 10-29 17:48, 18:12 | [R-SIDE-007](requirements.md#r-side-007) | Built | Also with the keys; a note that the user selected in the side view stays while the keys move outside the notes |
 | A note only for selected text: "there shall be no way to add a note without highlighting text" | 10-28 20:25 | [R-EDIT-003](requirements.md#r-edit-003) | Built | |
 | "Add Note" at the selected text: the light bulb (Ctrl+.), Shift+Alt+N (Cmd+K N on macOS), the context menu | 10-29 07:47 | [R-EDIT-006](requirements.md#r-edit-006) | Built | |
@@ -151,7 +156,7 @@ need Hannes after the merge of
 
 ## Planned features
 
-Ten features are in the specification and the plan, but not built. Steps 29
+13 features are in the specification and the plan, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -166,6 +171,9 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
+| `/footnote` opens the editor of the new footnote in the side view: "it just goes to the side view editor, similar to the /notes command" | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-001](requirements.md#r-foot-001) | 32 | Planned |
+| A metadata format for the sources: "we need to find a suitable bibliography metadata definition, as we have with the note tags" | 10-29 18:55 | [R-EDIT-008](requirements.md#r-edit-008) | 45, waits for Hannes | Planned |
+| A render hint in the comment of the format, with a link to an instruction file of the style: "we use PHT style", "for now we only support this APA 7" | 10-29 19:18 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
 | "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it; the comment of the format explains to an agent what to do with it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
 | "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45, waits for Hannes | Planned |
 
@@ -184,8 +192,9 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 2. The merge of
    [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
    the first release and the npm package: these need Hannes.
-3. Step 45: the slash commands `/research` and `/source`, after the answer of
-   Hannes on how a source is written in the Markdown text.
+3. Step 45: the citations and sources in the style of the PHT (APA 7), the
+   render hint, and the slash commands `/research` and `/source`, after the
+   answer of Hannes on the form of the citations.
 4. Steps 31 to 35: the text without notes, and the standard footnotes in the
    side view.
 5. Step 14: the visual editing in the side view.

@@ -90,7 +90,8 @@
   "contributes": {
     "configurationDefaults": {
       "[markdown]": {
-        "editor.defaultFormatter": "nimblescape.nimblescape-markdown-notes"
+        "editor.defaultFormatter": "nimblescape.nimblescape-markdown-notes",
+        "editor.smoothScrolling": true
       }
     },
     "markdown.markdownItPlugins": true,

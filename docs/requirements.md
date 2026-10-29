@@ -54,7 +54,7 @@ as the highlights of a marker pen on paper.
 | 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | planned; before the first release |
 | 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | planned; before the first release |
 | 31 | The text without notes for publishing: `markdown-notes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
-| 32 | The standard footnotes in the side view: show, edit, delete and reveal, the button "Show Footnotes" | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002) | planned |
+| 32 | The standard footnotes in the side view: show, edit, delete and reveal, the button "Show Footnotes"; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | planned |
 | 33 | "Add Footnote" at the cursor | [R-FOOT-003](#r-foot-003) | planned |
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
@@ -67,7 +67,8 @@ as the highlights of a marker pen on paper.
 | 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
 | 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date` and `/time` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
-| 45 | The slash commands `/research` and `/source` for the sources of a document, and the words for AI agents on `(RESEARCH)` in the comment of the format | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; the form of a source waits for Hannes |
+| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; the form of the citations waits for Hannes |
+| 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
 
 ## General
 
@@ -879,7 +880,10 @@ which thread of the view belongs to which highlight of the text (Hannes,
   user scrolls it on its own, smoothly, to find a note (Hannes, 2026-10-29:
   "the side view cannot be scrolled individually to find a note"). The view
   scrolls itself only when the selected thread changes: the selected thread
-  scrolls to the top of the view ([R-SIDE-001](#r-side-001)). It does not
+  scrolls to the top of the view ([R-SIDE-001](#r-side-001)). A hidden view
+  cannot scroll: when the selected thread changed while the view was hidden,
+  the view scrolls to it when it shows again (Hannes, 2026-10-29: "the side
+  view is opened but it does not scroll to the right position"). It does not
   follow the scrolling of the text editor or of the preview. The editor of a
   new note stands at the top of the list, and an editor that opens scrolls
   into the view.
@@ -898,6 +902,13 @@ which thread of the view belongs to which highlight of the text (Hannes,
     the start of its highlight;
   - when no text editor shows the file but the Markdown preview does, the
     preview scrolls to the highlight;
+  - the text editor and the preview scroll smoothly, as the view (Hannes,
+    2026-10-29: "can you also use smooth scrolling as in the side view when
+    the side view selects a note and the main view scrolls to that, in text
+    view and in preview mode"). VS Code scrolls a text editor smoothly only
+    with its setting `editor.smoothScrolling`, which the extension turns on
+    for Markdown files; the user can turn it off. The preview scrolls
+    smoothly unless the system asks for less motion;
   - in the mode "Markdown Editor" of VS Code, that editor selects the text of
     the highlight.
 
@@ -907,7 +918,11 @@ which thread of the view belongs to which highlight of the text (Hannes,
   highlight"); a double click on a highlight opens the view
   ([R-NOTE-006](#r-note-006), [decision 29](#decisions)). VS Code tells an
   extension no double click: the extension reads one from the second click,
-  which selects the word at the cursor of the first one. The position of the cursor, not only its
+  which selects the word at the cursor of the first one. A first click on the
+  place of the cursor changes nothing, so VS Code reports only the word, also
+  long after the click that put the cursor there (Hannes, 2026-10-29:
+  "doubleclick does not open the side view"). In the clean editing view, the
+  cursor at the start of a highlight is in the highlight. The position of the cursor, not only its
   line, names the note, because the highlights of several notes can share a
   line; of several highlights at the position, the one that starts last is
   the note (Hannes, 2026-10-28: a click selected the note above).
@@ -1122,7 +1137,12 @@ it shows no suggestions while the user types words.
   before it. The cursor goes to the definition, where the user writes its
   text. The list offers `/footnote` only after a word, where a reference can
   stand: not in a code span, a code block, the text of a link or a marker of
-  a note.
+  a note. When the side view shows the standard footnotes (step 32 of the
+  plan, [R-FOOT-001](#r-foot-001)), `/footnote` opens the editor of the new
+  footnote in the side view, as `/note` does (Hannes, 18:51: "since footnotes
+  are also available in the side view, it just goes to the side view editor,
+  similar to the /notes command"); until then the cursor goes to the
+  definition.
 - `/date` inserts the current date, for example `2026-10-29` (Hannes, 18:29:
   "date inserts the current date at the place where the cursor is").
 - `/time` inserts the current date and time in the local time, in minutes,
@@ -1132,7 +1152,15 @@ it shows no suggestions while the user types words.
 The editors of the side view have no slash commands (Hannes, 18:40), so
 `/todo` at the start of a new note, which [decision 30](#decisions) named,
 is dropped. `/research` and `/source` for the sources of a document (Hannes,
-18:33 to 18:39) wait for the decision on the form of a source.
+18:33 to 18:39) wait for the decision on the form of the citations and of
+the metadata of the sources (Hannes, 18:55: "we need to find a suitable
+bibliography metadata definition, as we have with the note tags"). The
+citation style is the one of the PHT, APA 7 in the German form of its guide
+"Zitationsrichtlinien für Abschlussarbeiten an der PHT, Zitation nach APA 7",
+Version 2.0 (Hannes, 19:18: "we use PHT style", "for now we only support this
+APA 7"). The comment of the format ([R-NOTE-007](#r-note-007)) gets a render
+hint: a link to an instruction file of the style in the repository, as its
+link to the format (Hannes, 19:18: "we need a render hint in the doctype").
 
 ## Markdown preview
 

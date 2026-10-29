@@ -501,7 +501,7 @@ test('the view follows the active tab that shows a Markdown file in the mode "Ma
   expect(view.state().threads).toHaveLength(1);
 });
 
-test('a click into the highlight of a note selects it, and a double click on it opens the view; the keyboard, a drag and the note itself do not (R-SIDE-007)', async () => {
+test('a click into the highlight of a note selects it, and a double click on it opens the view, which scrolls to the thread; the keyboard, a drag and the note itself do not (R-SIDE-007)', async () => {
   const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
   const { editor, view } = await start(text);
   view.visible = false;
@@ -524,11 +524,19 @@ test('a click into the highlight of a note selects it, and a double click on it 
   await select([1, 0], [1, 3]);
   expect(view.shows).toBe(1);
   expect(view.state().selected).toBe('1');
+  // The thread was selected while the view was hidden, so the view scrolls to it when it shows.
+  expect(view.messages.filter((message) => message.type === 'scroll')).toHaveLength(1);
+  // The first click of a double click on the place of the cursor changes nothing, and VS Code reports only the word,
+  // also long after the click that put the cursor there.
+  await select([1, 4]);
+  vi.advanceTimersByTime(2000);
+  await select([1, 4], [1, 8]);
+  expect(view.shows).toBe(2);
   // A drag selects the text from the cursor in steps, and the keys select no word of a double click.
   await select([1, 5]);
   await select([1, 5], [1, 7]);
   await select([1, 4]);
-  vi.advanceTimersByTime(1000);
+  await select([1, 4], [1, 6]);
   await select([1, 4], [1, 8]);
   await select([1, 6]);
   await select([1, 4], [1, 8], 1);
@@ -537,7 +545,7 @@ test('a click into the highlight of a note selects it, and a double click on it 
   await select([5, 4], [5, 9]);
   await select([0, 1]);
   await select([0, 0], [0, 3]);
-  expect(view.shows).toBe(1);
+  expect(view.shows).toBe(2);
 });
 
 test('a mouse click outside the notes and a cursor that leaves the selected note deselect it, a move with the keys outside the notes keeps a note of the view, and the script of the view deselects it for a click on its empty part or Escape (R-SIDE-007)', async () => {

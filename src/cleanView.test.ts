@@ -155,6 +155,14 @@ test('shows the text of a file without the notes markup, with the highlights of 
   expect(highlighted(editor, 'underline 2px').sort()).toEqual(['change the work', 'teams']);
 });
 
+test('names the place in the file of a place in the view before the hidden markup there, or after it', async () => {
+  const { view, real, document } = await opened();
+  const start = document.positionAt(clean.indexOf('change'));
+  const marker = real.text.indexOf('<wbr><!--[note-7k2q');
+  expect(view.toReal(document.uri as never, start as never)).toEqual(real.positionAt(marker));
+  expect(view.toReal(document.uri as never, start as never, true)).toEqual(real.positionAt(real.text.indexOf('change')));
+});
+
 test('writes typed text into the file: outside a highlight at its edges, in it inside its text', async () => {
   const { real, document } = await opened();
   typeIn(document, clean.indexOf(' of teams'), clean.indexOf(' of teams'), ' and more');
