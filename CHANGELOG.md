@@ -27,8 +27,8 @@ The first version.
   of their notes, with a good contrast, also while the side view "Notes" is
   closed. "Hide Highlights" and "Show Highlights" in the title of the
   editors, with the icon of a highlighter pen, change the setting
-  `nimblescape.markdownNotes.showHighlights`, and leave the side view as it
-  is.
+  `nimblescape.markdownNotes.showHighlights`, leave the side view as it is,
+  and deselect the selected note.
   A hidden highlight shows while the pointer is on it. A click on a highlight
   selects its note, and a double click opens the side view. The highlight of
   the selected note is strong with a frame, and the other highlights are
@@ -40,8 +40,10 @@ The first version.
   The list scrolls on its own, and a click on a highlight or a move of the
   cursor into it scrolls its thread to the top, also when the view opens
   after the selection; each thread that is not selected is dimmed. A click on
-  a thread scrolls the text editor or the preview smoothly to its note: the
-  extension turns on `editor.smoothScrolling` for Markdown files. Its buttons are icons with
+  a thread scrolls the text editor or the preview smoothly to its note, over
+  the whole way: the extension scrolls the text editor itself in small steps
+  while `editor.smoothScrolling` is on, which it turns on for Markdown
+  files. Its buttons are icons with
   tooltips: "Reply", "Edit" and
   "Delete" at each answer; the color, "Show as Text", "Answer" and "Delete
   Thread" at each thread; "Add Note" in its title. "Show as Text" shows the
@@ -51,8 +53,9 @@ The first version.
   heading. The view is in the secondary side bar, and the button "Show or
   Hide Notes" in the title of the Markdown editors opens and closes it, also
   in Zen Mode. Its header stays at the top, with the name of the file, the
-  todo filter, the colors as dots, "Clear Filter" and a search field for the
-  text and the authors of the answers; the filters that are on combine.
+  todo filter (the open or the completed todos), the colors as dots, "Clear
+  Filter" and a search field for the text and the authors of the answers;
+  the filters that are on combine.
 - Standard footnotes in the side view: each footnote that is no note, for
   example `[^1]`, is a thread of the list at the place of its first
   reference, with its label, the numbers that GitHub and the Markdown

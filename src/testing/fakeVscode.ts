@@ -591,7 +591,7 @@ export class Fake {
       ThemeColor: FakeThemeColor,
       DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2 },
       FoldingRangeKind: { Comment: 1 },
-      TextEditorRevealType: { InCenterIfOutsideViewport: 2, AtTop: 3 },
+      TextEditorRevealType: { InCenter: 1, InCenterIfOutsideViewport: 2, AtTop: 3 },
       TabInputText: FakeTabInputText,
       TextEditorSelectionChangeKind: { Keyboard: 1, Mouse: 2, Command: 3 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },

@@ -20,6 +20,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
 import { addPath, extensionId } from './extension';
 import { markdownModes, notesViewId, previewTextMissing, viewCommands } from './notesView';
+import { scrollTime } from './scrolling';
 import { Fake, FakeEditor, FakePosition, FakeRange, FakeSelection, FakeTabInputText, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
@@ -207,10 +208,8 @@ test('a click on a thread whose selection starts on the line where the selection
   const { editor, view } = await start(text, 9);
   const [, second] = view.state().threads;
   await send(view, { type: 'reveal', id: second.id, focus: false });
-  // VS Code puts the cursor at the start of the selection of the second note, on the last line of the first selection.
-  const { selection } = fake.shown.at(-1)!.options as { selection: FakeRange };
-  expect(selection.start).toEqual(new FakePosition(1, 35));
-  editor.selection = { active: selection.start };
+  // The cursor goes to the start of the selection of the second note, on the last line of the first selection.
+  expect(editor.selection.start).toEqual(new FakePosition(1, 35));
   fake.fire('selection', { textEditor: editor });
   await settle();
   expect(view.state().selected).toBe(second.id);
@@ -331,16 +330,22 @@ test('Save, Reply and Save of the text view from a view that shows an older stat
   expect(document.text).toContain('    > **cid** · 2026-10-28 10:15+01:00\n    >\n    > Edited text of cid.\n');
 });
 
-test('a change of a setting keeps the threads, so that the view keeps its selected note and its open editors', async () => {
+test('a change of a setting keeps the threads, so that the view keeps its selected note and its open editors; "Hide Highlights" and "Show Highlights" deselect the note (R-GEN-011)', async () => {
   const { view } = await start(three);
   await send(view, { type: 'reveal', id: '1', focus: false });
   const before = view.state();
-  await fake.run('nimblescape.markdownNotes.hideHighlights');
+  fake.settings.set('', { openLinksIn: 'editor' });
+  fake.fire('configuration', { affectsConfiguration: (name: string) => name === 'nimblescape.markdownNotes' || name === 'nimblescape.markdownNotes.openLinksIn' });
   await settle();
   const after = view.state();
   expect(after.threads.map((thread) => thread.id)).toEqual(before.threads.map((thread) => thread.id));
   // The view sends its whole state again after the change of the setting, still with the selected note.
   expect(after.selected).toBe('1');
+  // Showing or hiding the highlights deselects the note, also for the text editor and the preview.
+  await fake.run('nimblescape.markdownNotes.hideHighlights');
+  await settle();
+  expect(view.state().selected).toBeUndefined();
+  expect(view.state().threads.map((thread) => thread.id)).toEqual(before.threads.map((thread) => thread.id));
 });
 
 test('the preview of an editor renders the text as the Markdown preview does, and a failed rendering shows the text as it is', async () => {
@@ -365,14 +370,28 @@ test('Sign in asks VS Code for a GitHub session, and a change of the sessions sh
   expect(view.state().account).toBe('other');
 });
 
-test('a click on the line of a thread shows its note in the text editor, and a click on the thread keeps the focus in the view (R-SIDE-007)', async () => {
-  const { document, editor, view } = await start();
+test('a click on the line of a thread shows its note in the text editor, which scrolls to it smoothly, and a click on the thread keeps the focus in the view (R-SIDE-007)', async () => {
+  const { document, editor, view } = await start(`${'Text.\n\n'.repeat(40)}${note}`, 0);
+  editor.visibleRanges = [new FakeRange(0, 0, 20, 0)];
   await send(view, { type: 'reveal', id: '1' });
-  expect(fake.shown).toEqual([{ document, options: { viewColumn: editor.viewColumn, selection: expect.objectContaining({ start: new FakePosition(2, 0) }), preserveFocus: false } }]);
+  // The text editor gets the focus, the cursor goes to the note, and the editor scrolls to it in steps.
+  expect(fake.shown).toEqual([{ document, options: { viewColumn: editor.viewColumn, preserveFocus: false } }]);
+  const shown = fake.editors.at(-1)!;
+  expect(shown.selection.start).toEqual(new FakePosition(82, 0));
+  shown.visibleRanges = editor.visibleRanges;
+  await vi.advanceTimersByTimeAsync(scrollTime);
+  const lines = shown.revealed.map((range) => range.start.line);
+  expect(lines.length).toBeGreaterThan(20);
+  expect(lines).toEqual([...lines].sort((one, other) => one - other));
+  expect(lines[0]).toBeLessThan(15);
+  expect(lines.at(-1)).toBe(82);
   await send(view, { type: 'reveal', id: '9' });
   expect(fake.shown).toHaveLength(1);
+  // A click on the thread moves the cursor of the visible text editor, which keeps the focus in the view.
+  shown.selection = { active: new FakePosition(0, 0) };
   await send(view, { type: 'reveal', id: '1', focus: false });
-  expect(fake.shown[1].options).toMatchObject({ preserveFocus: true });
+  expect(fake.shown).toHaveLength(1);
+  expect(shown.selection.start).toEqual(new FakePosition(82, 0));
 });
 
 test('a click on a thread puts the cursor at the start of the highlight of its note (R-SIDE-007)', async () => {
@@ -380,7 +399,7 @@ test('a click on a thread puts the cursor at the start of the highlight of its n
   const view = fake.resolveView(notesViewId);
   await send(view, { type: 'ready' });
   await send(view, { type: 'reveal', id: '1' });
-  expect(fake.shown[0].options).toMatchObject({ selection: expect.objectContaining({ start: new FakePosition(0, 33) }) });
+  expect(fake.editors.at(-1)!.selection.start).toEqual(new FakePosition(0, 33));
 });
 
 /** twoNotes is a paragraph with the highlights of two notes, with their start markers. */
@@ -415,10 +434,9 @@ test('a click on a thread in the clean editing view selects the thread in the vi
   for (const thread of [second, first]) {
     await send(view, { type: 'reveal', id: thread.id, focus: false });
     expect(view.state().selected).toBe(thread.id);
-    // VS Code puts the cursor at the start of the highlight in the view, which is the place of the hidden start marker.
-    const { selection } = fake.shown.at(-1)!.options as { selection: FakeRange };
+    // The cursor goes to the start of the highlight in the view, which is the place of the hidden start marker.
+    const { selection } = clean;
     expect(clean.document.getText(new FakeRange(selection.start, clean.document.positionAt(clean.document.getText().length)))).toMatch(thread === first ? /^agents/ : /^the work/);
-    clean.selection = { active: selection.start };
     fake.fire('selection', { textEditor: clean, selections: [selection] });
     await settle();
     expect(view.state().selected).toBe(thread.id);
@@ -864,10 +882,10 @@ test('Edit saves the text of a footnote, a click shows its first reference, or i
     'The change was not saved: the file no longer holds the footnote.',
   ]);
   await send(view, { type: 'reveal', id: 'footnote-src' });
-  expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(0, 66));
+  expect(fake.editors.at(-1)!.selection.start).toEqual(new FakePosition(0, 66));
   expect(view.state().selected).toBe('footnote-src');
   await send(view, { type: 'reveal', id: 'footnote-alone' });
-  expect((fake.shown.at(-1)!.options as { selection: FakeRange }).selection.start).toEqual(new FakePosition(12, 0));
+  expect(fake.editors.at(-1)!.selection.start).toEqual(new FakePosition(12, 0));
   // Delete asks first; without a yes, the file stays as it is.
   const before = document.text;
   await send(view, { type: 'deleteFootnote', id: 'footnote-1' });

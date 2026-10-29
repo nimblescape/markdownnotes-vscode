@@ -86,6 +86,7 @@ import { type Footnote, footnoteAt, placeText, referenceAt, referencePlace } fro
 import { renderedRange } from './notes/rendered';
 import { authorDate, displayDate, type TodoState } from './notes/syntax';
 import { type AnswerRef, isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
+import { showAt } from './scrolling';
 import type { SelectedNotes } from './selectedNotes';
 import type { Settings } from './settings';
 
@@ -444,6 +445,20 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       void this.refresh();
     } else {
       this.chosen.select(document, undefined);
+    }
+  }
+
+  /**
+   * deselectAll deselects the selected note of every document, when the highlights show or hide (Hannes, 2026-10-29:
+   * "when a highlight is selected, and the highlight view is toggled, it shall unselect the selected highlight").
+   */
+  deselectAll(): void {
+    for (const document of this.chosen.documents()) {
+      this.chosen.select(vscode.Uri.parse(document), undefined);
+    }
+    if (this.document && this.selected !== undefined) {
+      this.select(this.document, undefined);
+      void this.refresh();
     }
   }
 
@@ -969,8 +984,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     if (!uri || !target) {
       return;
     }
-    const column = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString())?.viewColumn;
-    const shown = column === undefined ? modeOf(uri, (tab) => this.mirror?.realOf(tab)) : undefined;
+    const visible = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString());
+    const shown = visible === undefined ? modeOf(uri, (tab) => this.mirror?.realOf(tab)) : undefined;
     if (shown?.mode === 'preview') {
       // The preview keeps its place in the editor area and scrolls to the note.
       this.select(uri, id, true);
@@ -982,10 +997,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.select(uri, id);
     void this.refresh();
     const { start } = target;
+    // A visible text editor scrolls smoothly to the note (Hannes, 2026-10-29: "only the preview main window scrolls
+    // smoothly, the text window not").
     const clean = this.mirror?.cleanEditorOf(uri);
     if (clean) {
-      const at = this.mirror!.toClean(uri, start) ?? start;
-      await vscode.window.showTextDocument(clean.document, { viewColumn: clean.viewColumn, selection: new vscode.Range(at, at), preserveFocus: !focus });
+      await showAt(clean, this.mirror!.toClean(uri, start) ?? start, focus);
       return;
     }
     if (shown?.mode === 'editor') {
@@ -996,8 +1012,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       await vscode.commands.executeCommand('vscode.openWith', shownUri, markdownModes.editor, { viewColumn: shown.column, selection: new vscode.Range(place(start), place(end)), preserveFocus: !focus });
       return;
     }
+    if (visible) {
+      await showAt(visible, start, focus);
+      return;
+    }
     const document = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(document, { viewColumn: column, selection: new vscode.Range(start, start), preserveFocus: !focus });
+    await vscode.window.showTextDocument(document, { selection: new vscode.Range(start, start), preserveFocus: !focus });
   }
 
   /**

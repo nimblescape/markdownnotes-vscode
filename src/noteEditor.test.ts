@@ -338,9 +338,15 @@ test('the highlight of the selected note is strong with a frame in its color, al
   expect(highlightsOf(editor, 'faint')).toEqual([[noteColors[1], [new FakeRange(6, 33, 6, 37)]]]);
   const type = [...editor.decorations.keys()].find((candidate) => String((candidate as DecorationType).options.textDecoration).startsWith(`none; background-color: ${noteColors[0]}`)) as DecorationType;
   expect(type.options).toMatchObject({ textDecoration: `none; background-color: ${noteColors[0]}73; outline: 1px solid ${noteColors[0]}; border-radius: 3px;`, overviewRulerLane: 7 });
-  // With the highlights hidden, only the selected note keeps its highlight.
+  // Hiding the highlights deselects the note (Hannes, 2026-10-29); with the highlights hidden, only a selected note
+  // shows its highlight.
   fake.settings.set('', { showHighlights: false });
   fake.fire('configuration', { affectsConfiguration: () => true });
+  expect(highlightsOf(editor, 'strong')).toEqual([]);
+  expect(highlightsOf(editor, 'faint')).toEqual([]);
+  editor.selection = { active: new FakePosition(0, 41) };
+  fake.fire('selection', { textEditor: editor, kind: 2 });
+  await vi.runAllTimersAsync();
   expect(highlightsOf(editor, 'strong')).toEqual([[noteColors[0], [new FakeRange(0, 33, 0, 48)]]]);
   expect(highlightsOf(editor, 'faint')).toEqual([]);
   // A mouse click outside the notes deselects the note.

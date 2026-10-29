@@ -86,9 +86,9 @@ describes each step and where its protection ends.
   Markdown editors opens and closes it with one click, also in Zen Mode and
   in the modes "Markdown Preview" and "Markdown Editor" of VS Code.
 - **Filters.** The header of the side view stays at the top: the name of the
-  file, the todo filter (open and completed todos), the colors as dots,
-  "Clear Filter", and a search field for the text and the authors of the
-  notes. The filters that are on combine.
+  file, the todo filter (the open or the completed todos), the colors as
+  dots, "Clear Filter", and a search field for the text and the authors of
+  the notes. The filters that are on combine.
 - **Todo notes.** A note can be a task: ` · todo` at the end of the header of
   its first answer, ` · done` when it is completed. A check box in the side
   view marks it completed.

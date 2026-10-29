@@ -12,7 +12,7 @@ project, with the date of the request, the requirement of the
 2026-10-29. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 87 requested features, 64 are built, among them the clean editing view
+Of 90 requested features, 67 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, and
 the standard footnotes in the side view. 10 features are planned but not built: the features of the section
@@ -24,7 +24,9 @@ Hannes; each row names the decision.
 The main gaps are the visual editing in the side view, the hidden form of the
 notes, the checks of the footnotes, and the citations and sources
 in the style of the PHT (APA 7) with the slash commands `/research` and
-`/source`, which wait for the answer of Hannes on the form of the citations.
+`/source`. Hannes chose their form on 2026-10-29 at 20:48: footnotes with
+the metadata of the source as CSL
+([decision 31](requirements.md#decisions)).
 
 The columns of the tables:
 
@@ -72,9 +74,11 @@ evening of 2026-10-29.
 | A header that stays at the top of the view while the list scrolls: "filename [ ] [X] (R) (B) (G) ... X", the search field in a second row over the full width | 10-29 17:56, 18:07 | [R-SIDE-008](requirements.md#r-side-008) | Built | The name of the file, the todo filter, the color filter and "Clear Filter" in the first row |
 | A filter by the color of the notes | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | One dot for each color that the notes of the file use; more than one dot shows the notes of each pressed color |
 | A search in the full text of the notes | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | The text and the authors of all answers, without regard to case; each typed word must be in the note; Escape clears the field |
-| A todo filter: "an empty box for open todos and a checked box for completed todos" | 10-29 17:56, 18:04 | [R-SIDE-008](requirements.md#r-side-008) | Built | Both boxes together show all todo notes |
+| A todo filter: "an empty box for open todos and a checked box for completed todos" | 10-29 17:56, 18:04 | [R-SIDE-008](requirements.md#r-side-008) | Built | |
+| The two todo filters exclude each other: "the checked and unchecked todo filters are exclusive" | 10-29 19:48 | [R-SIDE-008](requirements.md#r-side-008) | Built | A click on one box turns the other one off; before, both together showed all todo notes |
 | The filters together, and a button that clears them: "the filters are combined with AND" | 10-29 17:56 | [R-SIDE-008](requirements.md#r-side-008) | Built | "Clear Filter" (X); the selected thread always shows; the filter stays when the view is hidden and shown again |
 | Smooth scrolling of the text: "use smooth scrolling as in the side view when the side view selects a note and the main view scrolls to that, in text view and in preview mode" | 10-29 19:01 | [R-SIDE-007](requirements.md#r-side-007) | Built | VS Code scrolls a text editor smoothly only with its setting `editor.smoothScrolling`, which the extension now turns on for Markdown files; the preview scrolls smoothly unless the system asks for less motion |
+| The text editor scrolls smoothly over the whole way: "only the preview main window scrolls smoothly, the text window not" | 10-29 19:50 | [R-SIDE-007](requirements.md#r-side-007) | Built | VS Code scrolls a text editor in 125 milliseconds and jumps over most of a long way; the extension now scrolls it itself in small steps, in about half a second, slowly at the start and at the end (checked in VS Code 1.144) |
 | The view that a double click opens scrolls to the note: "the side view is opened but it does not scroll to the right position" | 10-29 19:26 | [R-SIDE-007](requirements.md#r-side-007) | Built | A hidden view cannot scroll; the view now scrolls to a thread that was selected while it was hidden when it shows again |
 | The width of the text editor in Zen Mode when the side view opens: "keep the main view the same width in zen view when a side view opens as long as the main view has enough space" | 10-29 19:29 | [R-SIDE-001](requirements.md#r-side-001) | Needs Hannes | The setting `"workbench.editor.centeredLayoutFixedWidth": true` of VS Code keeps the width (checked in VS Code 1.144: 900 pixels with the side view, 701 in place of 884 without the setting); it changes the centered layout of all files, so the extension does not set it |
 
@@ -95,6 +99,7 @@ breaks and the cursor next to the hidden markers.
 | The header of an answer written by the extension and shown rendered | 10-28 11:51 | [R-TEXT-007](requirements.md#r-text-007) | Built | |
 | Highlights, as with a marker pen, with good contrast, and buttons that show and hide them | 10-28 20:00, 20:18 | [R-GEN-011](requirements.md#r-gen-011) | Built | Setting `showHighlights` |
 | A hidden highlight shows under the pointer | 10-28 20:29 | [R-GEN-011](requirements.md#r-gen-011) | Built | |
+| "Show Highlights" and "Hide Highlights" deselect the note: "when a highlight is selected, and the higlight view is toggled, it shall unselect the selected highligt" | 10-29 19:51 | [R-GEN-011](requirements.md#r-gen-011) | Built | In the text editor, the preview and the side view; the open editors of the side view stay |
 | Closing the side view hides the highlights | 10-28 20:31 | [R-GEN-011](requirements.md#r-gen-011) | Replaced | By [decision 28](requirements.md#decisions) (10-29 16:33): the highlights do not depend on the side view |
 | "Show Highlights" only shows the highlights: "it shall not open the side view but only show the highlights. when a highlight is clicked, then the side view shall open" | 10-29 16:33 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 28](requirements.md#decisions), step 39 of the plan |
 | A click on a highlight selects its note and opens the side view; a click outside deselects it | 10-28, 20:32 | [R-SIDE-007](requirements.md#r-side-007) | Replaced | By [decision 29](requirements.md#decisions) (10-29 17:49): a click selects, a double click opens the side view |
@@ -184,10 +189,10 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| A metadata format for the sources: "we need to find a suitable bibliography metadata definition, as we have with the note tags" | 10-29 18:55 | [R-EDIT-008](requirements.md#r-edit-008) | 45, waits for Hannes | Planned |
-| A render hint in the comment of the format, with a link to an instruction file of the style: "we use PHT style", "for now we only support this APA 7" | 10-29 19:18 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
-| "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it; the comment of the format explains to an agent what to do with it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45, waits for Hannes | Planned |
-| "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45, waits for Hannes | Planned |
+| A metadata format for the sources: "we need to find a suitable bibliography metadata definition, as we have with the note tags" | 10-29 18:55 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Planned |
+| A render hint in the comment of the format, with a link to an instruction file of the style: "we use PHT style", "for now we only support this APA 7" | 10-29 19:18 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45 | Planned |
+| "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it; the comment of the format explains to an agent what to do with it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45 | Planned |
+| "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Planned |
 
 The later fixes of the code review of 2026-10-28 are not in the
 specification: a queue of writes for each file, tests of the script of the

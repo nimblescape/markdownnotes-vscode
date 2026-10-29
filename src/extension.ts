@@ -330,6 +330,9 @@ export function activate(context: vscode.ExtensionContext): Api {
     // The Markdown preview renders again only when its document or its own settings change.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(settingsSection)) {
+        if (event.affectsConfiguration(`${settingsSection}.showHighlights`)) {
+          view.deselectAll();
+        }
         showsChanged();
         view.settingsChanged();
       }

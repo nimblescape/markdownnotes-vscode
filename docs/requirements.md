@@ -67,7 +67,7 @@ as the highlights of a marker pen on paper.
 | 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
 | 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
-| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; the form of the citations waits for Hannes |
+| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format; the citations are footnotes with CSL ([decision 31](#decisions)) | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned |
 | 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
 
 ## General
@@ -264,6 +264,11 @@ be viewed or hidden, when viewd make it good constrast"):
   cursor moves or the side view opens.
 - The highlight of the selected note of the side view always shows, strong
   and with a frame in the color of the note ([R-NOTE-006](#r-note-006)).
+- A change of the setting deselects the selected note of every document, in
+  the text editor, in the preview and in the side view (Hannes, 2026-10-29
+  19:51: "when a highlight is selected, and the higlight view is toggled, it
+  shall unselect the selected highligt"). The open editors of the side view
+  stay.
 
 A change of the setting renders the open previews again.
 
@@ -905,10 +910,16 @@ which thread of the view belongs to which highlight of the text (Hannes,
   - the text editor and the preview scroll smoothly, as the view (Hannes,
     2026-10-29: "can you also use smooth scrolling as in the side view when
     the side view selects a note and the main view scrolls to that, in text
-    view and in preview mode"). VS Code scrolls a text editor smoothly only
-    with its setting `editor.smoothScrolling`, which the extension turns on
-    for Markdown files; the user can turn it off. The preview scrolls
-    smoothly unless the system asks for less motion;
+    view and in preview mode"). The text editor scrolls over the whole way
+    in about half a second, slowly at the start and at the end, as the
+    preview does (19:50: "only the preview main window scrolls smoothly, the
+    text window not"): VS Code scrolls a text editor in 125 milliseconds
+    and jumps over most of a long way, so the extension scrolls it itself,
+    in small steps. It does so while the setting `editor.smoothScrolling` is
+    on, which the extension turns on for Markdown files; with the setting
+    off, the text editor goes to the note at once. A click or a key in the
+    text editor stops the scroll. The preview scrolls smoothly unless the
+    system asks for less motion;
   - in the mode "Markdown Editor" of VS Code, that editor selects the text of
     the highlight.
 
@@ -966,7 +977,9 @@ search field over the full width (Hannes, 18:07: "filename [ ] [X] (R) (B)
 - **Todo filter:** the button with an empty box shows the open todos, the
   button with a checked box the completed todos (Hannes, 18:04: "the todo
   filter is just a checked or unchecked box icon beneath the color
-  filter"); both together show all todo notes ([R-NOTE-008](#r-note-008)).
+  filter") ([R-NOTE-008](#r-note-008)). The two buttons exclude each other:
+  a click on one turns the other one off (Hannes, 19:48: "the checked and
+  unchecked todo filters are exclusive").
 - **Color filter:** a click on a dot shows the notes of its color; several
   dots show the notes of each of their colors (Hannes, 17:56: "add a color
   filter by showing all the colors").
@@ -1891,6 +1904,23 @@ requirements above follow them.
     choices were `/todo` only in the text and only in the side view. At
     18:40 Hannes wrote "all slash commands are intended for the text
     editor", so the side view part is dropped.
+
+31. **Citations as footnotes with CSL** ([R-EDIT-008](#r-edit-008),
+    [R-NOTE-007](#r-note-007), Hannes, 2026-10-29, 20:48, decided with the
+    option "Footnotes [^hong2024] with CSL"; 20:50: "in text and preview the
+    extension shall render according to the DOCTYPE citation format. for
+    now only APA7, with instructions linked for Agents equally to the
+    format"): a citation is a reference to a standard footnote, such as
+    `[^hong2024]`, and the definition of the footnote holds the metadata of
+    the source as CSL JSON in a hidden comment; the side view edits it. The
+    text editor and the preview show each citation and the list of the
+    sources in the citation style that the comment of the format names. For
+    now the only style is APA 7 in the form of the PHT. The comment of the
+    format links to an instruction file of the style for AI agents, as it
+    links to the format. GitHub shows the citations as numbered footnotes,
+    which APA 7 does not use. The other choices were hidden CSL tags with
+    the visible APA 7 text, Pandoc citations with CSL in the front matter,
+    and Pandoc citations with a CSL JSON file.
 
 ---
 

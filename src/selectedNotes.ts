@@ -37,6 +37,11 @@ export class SelectedNotes {
     return this.labels.get(document.toString());
   }
 
+  /** documents returns the URIs of the documents that have a selected note, as text. */
+  documents(): string[] {
+    return [...this.labels.keys()];
+  }
+
   /**
    * revealOf returns the number of the last request to reveal the selected note of a document, for revealTime after the
    * request, so that a later rendering, for example of a new preview, does not scroll; otherwise undefined.

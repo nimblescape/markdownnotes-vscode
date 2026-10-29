@@ -317,6 +317,8 @@ line below the text, so that they stand out of the text.
   when the pointer leaves the text of the text editor, so there it stays
   until the pointer rests on other text or the cursor moves.
 - The highlight of the selected note always shows, strong and with a frame.
+- "Show Highlights" and "Hide Highlights" deselect the selected note, in the
+  text editor, in the preview and in the side view.
 
 The Command Palette has the commands "Markdown Notes: Show Highlights" and
 "Markdown Notes: Hide Highlights".
@@ -488,10 +490,12 @@ text of the notes, and their editor:
   - In the mode "Markdown Editor" of VS Code, the text of the highlight is
     selected there.
 
-  The text editor and the preview scroll smoothly to the note. For the text
-  editor, the extension turns on the setting `editor.smoothScrolling` of
-  VS Code for Markdown files; set it to `false` under `"[markdown]"` in your
-  settings to scroll without the animation.
+  The text editor and the preview scroll smoothly to the note, over the
+  whole way in about half a second. A click or a key in the text editor
+  stops the scroll. The text editor scrolls so while the setting
+  `editor.smoothScrolling` of VS Code is on, which the extension turns on
+  for Markdown files; set it to `false` under `"[markdown]"` in your
+  settings to go to the note without the animation.
 - A click on a link of a rendered text opens it, as in the Markdown preview:
   a web link or a mail link with your system, and a link to a file at the
   place of the setting `openLinksIn` ([Settings](#settings)). A relative path
@@ -549,8 +553,8 @@ notes.md   [ ] [x]  (blue) (green) (orange) (purple) (red) (teal)   ×
 ```
 
 - **Todo filter:** the empty box shows the open todos, the checked box the
-  completed todos, and both together all todo notes
-  ([Todo notes](#todo-notes)).
+  completed todos ([Todo notes](#todo-notes)). Only one of the two boxes is
+  on: a click on one box turns the other one off.
 - **Color filter:** a click on a dot shows the notes of its color; several
   dots show the notes of each of their colors. A second click turns a dot
   off.
@@ -578,7 +582,8 @@ the file changed in the meantime, for example when a collaborator changed
 the note or a second click on "Delete" came before the view showed the new
 state, the extension changes nothing and shows a message: look at the note
 again, and repeat the change if it is still needed. A change of a setting,
-for example with "Hide Highlights", keeps the open editors and their texts.
+for example with "Hide Highlights", keeps the open editors and their texts;
+"Hide Highlights" and "Show Highlights" deselect the selected note.
 
 ## Add a note
 

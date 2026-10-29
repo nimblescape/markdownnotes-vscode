@@ -816,16 +816,17 @@
   window.addEventListener('blur', hideTooltip);
 
   /**
-   * filter is the filter of the list (R-SIDE-008): the open and the completed todos, the names of the colors, and the
+   * filter is the filter of the list (R-SIDE-008): the open or the completed todos, the names of the colors, and the
    * text of the search field. A filter that is off lets every thread through, and the filters that are on combine. The
-   * state of the page keeps it while VS Code hides the view and after a reload of the view.
+   * two todo filters exclude each other (Hannes, 2026-10-29: "the checked and unchecked todo filters are exclusive").
+   * The state of the page keeps it while VS Code hides the view and after a reload of the view.
    * @type {{ open: boolean, done: boolean, colors: string[], text: string }}
    */
   const filter = (() => {
     const saved = vscode.getState()?.filter;
     return {
       open: saved?.open === true,
-      done: saved?.done === true,
+      done: saved?.done === true && saved?.open !== true,
       colors: Array.isArray(saved?.colors) ? saved.colors.filter((name) => typeof name === 'string') : [],
       text: typeof saved?.text === 'string' ? saved.text : '',
     };
@@ -862,10 +863,16 @@
   const fileName = element('div', 'file');
   const openTodos = iconButton('todoOpen', 'Open Todos', () => {
     filter.open = !filter.open;
+    if (filter.open) {
+      filter.done = false;
+    }
     changed();
   });
   const doneTodos = iconButton('todoDone', 'Completed Todos', () => {
     filter.done = !filter.done;
+    if (filter.done) {
+      filter.open = false;
+    }
     changed();
   });
   const dots = element('span', 'dots', undefined, { role: 'group', 'aria-label': 'Colors of the notes' });

@@ -27,6 +27,7 @@ describes its security model.
 | `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
 | `src/notes/rendered.ts` | The place in the Markdown text of text that the user selected in the Markdown preview, for "Add Note" of the preview: the letters and digits of the text of the block without the parts that the page does not show, and the selected text after as many of them as the text before it holds, or the nearest occurrence. It uses no API of VS Code. |
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
+| `src/scrolling.ts` | The smooth scroll of a visible text editor to the note of a thread: small steps of `revealRange` that start and end slowly. |
 | `src/selectedNotes.ts` | The selected note of each document, which the side view sets and the text editor and the preview show with a strong highlight, and the request of the side view to scroll the preview to it. |
 | `src/notes/folds.ts` | The folds of the collapsed notes: which line of a text stays visible and which lines a fold takes, so that a note vanishes; and the places of the header lines of the answers. It uses no API of VS Code. |
 | `src/notesView.ts` | The side view "Notes" in the secondary side bar: the webview view provider, its page with the security policy, the active Markdown file of a text editor or of the modes "Markdown Preview" and "Markdown Editor" of VS Code, the state of its threads with the rendered answers, their colors and their whole texts, the places of the highlights beside the text editor, the actions of its script, the threads of the standard footnotes, and the commands "Add Note", "Add Footnote", "Hide Notes" and "Show or Hide Notes". |
@@ -632,6 +633,22 @@ the preview does, and keeps up to 200 rendered texts.
   editor, after the scroll (decision 14, the view aligned to the text editor,
   moved in steps and late). A click on a thread sends `reveal` with
   `focus: false`, which shows the note with `preserveFocus`.
+- **The smooth scroll of the text editor**
+  ([R-SIDE-007](docs/requirements.md#r-side-007)): `reveal` sets the cursor
+  of a visible text editor (`selection`, which does not scroll) and
+  `scrollTo` of `src/scrolling.ts` scrolls it. `showTextDocument` with a
+  selection scrolls with VS Code's own smooth scroll, which takes 125
+  milliseconds and, for a way of more than 2.5 heights of the editor, jumps
+  over most of it (measured in VS Code 1.144 with the Chrome DevTools
+  Protocol: one frame moved the text by 4,300 pixels). `scrollTo` calls
+  `revealRange` with `InCenter` every 16 milliseconds for 450 milliseconds,
+  at a place between the middle of the visible text and the note, by the
+  characters, with an ease-in-out curve; each step is short, so VS Code
+  moves smoothly between the steps (measured: 33 positions of the text,
+  none more than 470 pixels apart). A new scroll of the editor, and a
+  selection by the mouse or the keys, stop it. Without
+  `editor.smoothScrolling`, it reveals the note at once. Only a text editor
+  that does not show yet gets `showTextDocument` with the selection.
 - **Tooltips** ([R-SIDE-002](docs/requirements.md#r-side-002)): the elements
   have the attribute `data-tooltip` and no `title`, because the tooltips of
   `title` did not show in the view on macOS. One element `#tooltip`
