@@ -11,7 +11,7 @@ text and choosing "Add Note": in the light bulb at the selected text, with a
 shortcut, or in the context menu. Every change goes back into the footnote in
 the file, with the GitHub login of the author.
 
-![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the two threads, each at the height of its highlight, and the selected blue thread with its line to its highlight](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
+![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the list of the two threads, the selected blue thread at its top with a frame, and the dimmed green thread](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
 
 ## What the extension does on your computer
 
@@ -71,9 +71,10 @@ describes each step and where its protection ends.
   colors. The start marker keeps the color, for example
   `<wbr><!--[note-7k2q green-->`.
 - **Side view "Notes".** The only place of the text of the notes. The view
-  stands next to the text editor, as the compare view of VS Code: each
-  thread at the height of its highlight, and only the selected thread with a
-  line to its highlight. The buttons are icons, as in the title of an editor:
+  is a list of the threads in the order of the file, which you scroll on its
+  own; a click on a highlight or a move of the cursor into it scrolls its
+  thread to the top. The buttons are icons with tooltips, as in the title of
+  an editor:
   "Reply", "Edit" and "Delete" at each answer, the color, "Show as Text",
   "Answer" and "Delete Thread" at each thread. "Show as Text" shows the whole
   note as the file holds it, and you can change it there. The links of the

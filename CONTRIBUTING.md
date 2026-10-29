@@ -31,10 +31,9 @@ describes its security model.
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
 | `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdown-notes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
-| `src/editorLayout.ts` | The rows of each highlight in the text editor, at which the side view puts the thread of its note: the rows of the visible ranges, the lines wrapped by words, and the estimate of the number of columns of a row. It uses no API of VS Code. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: takes the notes out of the page, writes the start marker and the first reference of each note as the empty start and end of its highlight, with the color, the link to the side view and the state of the highlight, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the highlights in the Markdown preview, in the colors of the notes, and the script that paints the highlights with the CSS Custom Highlight API, shows a hidden highlight under the pointer, selects and deselects a note on a click, and scrolls to the selected note. |
-| `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the threads beside the text editor with the marks of the highlights and the line of the selected thread, and the messages to the extension. |
+| `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the list that scrolls the selected thread to its top, the tooltips, and the messages to the extension. |
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
 | `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
@@ -431,8 +430,7 @@ the preview does, and keeps up to 200 rendered texts.
   `deleteAnswer` (with the `AnswerRef`),
   `deleteNote`, `reveal`, `render` (the preview of an editor), `openLink` (a
   click on a link of a rendered text, which `src/links.ts` opens),
-  `deselect`, `signIn`, `ready`, `size` (the height of the page) and
-  `scroll` (the mouse wheel over the view, which scrolls the text editor). A message of an editor has the number of
+  `deselect`, `signIn` and `ready`. A message of an editor has the number of
   its request, and the extension answers with `result` and the message of a
   refused text, or with `rendered`. The script keeps the open editors and the
   focus when a new state arrives. The key of the editor of an answer holds
@@ -456,25 +454,24 @@ the preview does, and keeps up to 200 rendered texts.
   VS Code shows its own button "Hide Secondary Side Bar" in the title of the
   secondary side bar.
 - **The view next to the text** ([R-SIDE-007](docs/requirements.md#r-side-007),
-  decision 14): while a text editor shows the file, the state has the
-  placement of the threads: the top and the bottom of the text of the editor,
-  the rows of the highlight of each note and the row of the cursor, in pixels
-  from the top of the view. `placesOf` in `src/editorLayout.ts` computes them
-  from `visibleRanges`, the settings `editor.fontSize`, `editor.lineHeight`,
-  `editor.wordWrap` and `editor.wordWrapColumn`, and the lines that the
-  collapsed notes hide (`hiddenLinesOf` of the overlay). The sizes of the bars
-  of VS Code (`workbench` in `src/notesView.ts`) are measured in VS Code 1.143
-  with its default settings; a later version of VS Code can change them. The
-  extension sends the placement again on each scroll of the editor
-  (`onDidChangeTextEditorVisibleRanges`), each change of the selection, the
-  tabs or the settings. The script puts each thread at the row of its
-  highlight, moves overlapping threads apart from the thread that the user
-  works on, draws the marks of the highlights with `div` elements and the
-  line of the selected thread as an SVG path in a fixed layer at the left
-  edge, and turns the mouse wheel over the view into `scroll`. Without a
-  text editor of the file, the state has no placement, and the script lists
-  the threads. A click on a thread sends `reveal` with `focus: false`, which
-  shows the note with `preserveFocus`.
+  decision 25): the view is a list in the order of the file, which the user
+  scrolls. The script scrolls the selected thread to the top of the page with
+  `scrollIntoView` when the state names another selected thread, smoothly
+  unless the system asks for reduced motion, and keeps the scroll position
+  when it shows a new state. The extension sends no layout of the text
+  editor: VS Code tells an extension only the whole visible rows of a text
+  editor, after the scroll (decision 14, the view aligned to the text editor,
+  moved in steps and late). A click on a thread sends `reveal` with
+  `focus: false`, which shows the note with `preserveFocus`.
+- **Tooltips** ([R-SIDE-002](docs/requirements.md#r-side-002)): the elements
+  have the attribute `data-tooltip` and no `title`, because the tooltips of
+  `title` did not show in the view on macOS. One element `#tooltip`
+  (`role="tooltip"`) shows the text below its element, inside the page:
+  after 500 ms under the pointer (the default of `workbench.hover.delay`), at
+  once while another tooltip shows or just hid, and for the focus of a key
+  (`:focus-visible`). A press, Escape, a scroll and a new state hide it. An
+  element without `aria-label`, such as a date, gets `aria-describedby` while
+  its tooltip shows.
 - **New note** ([R-SIDE-003](docs/requirements.md#r-side-003)): "Add Note",
   the light bulb action and the shortcut run the command
   `nimblescape.markdownNotes.newNote`, which ignores its arguments, such as

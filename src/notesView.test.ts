@@ -11,8 +11,8 @@
  * to the note and to an answer, the new note for the selected text in a
  * color, the color and the text view of a note, the delete, the preview of a
  * text, the GitHub sign-in (R-GEN-006), the reveal of a note in the text
- * editor, the layout of the threads beside the text editor (decision 14), and
- * the links. The tests run in the zone Europe/Vienna (vitest.config.mts),
+ * editor, the list that does not follow the scrolling of the text editor
+ * (decision 25), and the links. The tests run in the zone Europe/Vienna (vitest.config.mts),
  * which is UTC+01:00 on 2026-10-28.
  */
 
@@ -168,8 +168,6 @@ test('the view shows the threads of the active Markdown file with the rendered a
       { name: 'red', color: '#d33b3b' },
       { name: 'teal', color: '#138a8a' },
     ],
-    // The fake shows the file in no tab, so the view knows no layout of the text editor.
-    placement: undefined,
   });
   expect(fake.sessions.map((session) => session.options)).toContainEqual({ silent: true });
   expect(fake.sessions.map((session) => session.options)).not.toContainEqual({ createIfNone: true });
@@ -465,31 +463,19 @@ test('a mouse click outside the notes deselects the selected note, a move with t
   expect(view.state().selected).toBeUndefined();
 });
 
-test('the view sends the layout of the threads beside the text editor: the rows of the highlight of each note and of the cursor, which follow the scrolling of the editor (R-SIDE-007, decision 14)', async () => {
-  // Rows of 20 pixels; the text of the editor starts 26 pixels below the top of the view, below the tabs and the breadcrumbs.
-  fake.settings.set('workspace', { lineHeight: 20 });
+test('the view is a list that does not follow the scrolling of the text editor, and takes no size or scroll from its script (R-SIDE-007, decision 25)', async () => {
   const { editor, view } = await start(note, 12);
-  const placement = () => view.messages.filter((message) => message.type === 'placement' || message.type === 'state').at(-1)?.placement;
-  // The view tells its height first.
-  expect(placement()).toBeUndefined();
-  await send(view, { type: 'size', height: 600 });
-  // The highlight of the note is line 2, the third row, and the cursor is on line 12; the text of the editor ends 9
-  // pixels below the bottom of the view.
-  expect(placement()).toEqual({ editor: [26, 609], highlights: { '1': [66, 86] }, cursor: [266, 286], lineHeight: 20 });
-  // The editor scrolls one line down, so the highlight is on the second row, which starts half a row lower, because the
-  // editor can show a part of the row above.
+  const count = view.messages.length;
   editor.visibleRanges = [new FakeRange(1, 0, 13, 0)];
   fake.fire('visibleRanges', { textEditor: editor });
-  expect(placement()).toMatchObject({ highlights: { '1': [56, 76] }, cursor: [256, 276] });
-  // At five columns, the title of seven characters takes two rows, and the highlight "The text" too.
-  fake.settings.set('workspace', { lineHeight: 20, wordWrap: 'wordWrapColumn', wordWrapColumn: 5 });
-  editor.visibleRanges = [new FakeRange(0, 0, 13, 0)];
-  fake.fire('visibleRanges', { textEditor: editor });
-  expect(placement()).toMatchObject({ highlights: { '1': [86, 126] } });
-  // Without a text editor of the file, for example with the preview only, there is no layout.
-  fake.editors = [];
-  fake.fire('visibleEditors', []);
-  expect(placement()).toBeUndefined();
+  await settle();
+  expect(view.messages.length).toBe(count);
+  expect(view.messages.at(-1)).not.toHaveProperty('placement');
+  // The messages of the aligned view of before change nothing.
+  await send(view, { type: 'size', height: 600 });
+  await send(view, { type: 'scroll', rows: 3 });
+  expect(fake.executed).not.toContain('editorScroll');
+  expect(view.messages.length).toBe(count);
 });
 
 test('without an active Markdown file the view shows no threads, and an action returns that no note is there', async () => {

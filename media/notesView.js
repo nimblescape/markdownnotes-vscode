@@ -45,24 +45,21 @@
 // thread is selected. A click on the empty part of the view, or Escape
 // outside an editor, deselects the thread.
 //
-// While a text editor shows the file, the view stands aligned to it, as the
-// compare view of VS Code shows two texts side by side (decision 14): the
-// extension sends the places of the highlights of the notes, in pixels
-// from the top of the view, and the script puts each thread at the height of
-// its highlight. Threads that would overlap move apart: the thread that the
-// user works on stays at its highlight, the editor of a new note or else
-// the selected thread or else the first thread whose highlight the editor
-// shows, and the threads before it move up and the threads after it move
-// down. The left edge of the view has a mark in the color of each note at the
-// rows of its highlight, and only the selected thread has a line from its mark to the
-// thread (Hannes, 2026-10-28: "only the selected one has the connection").
-// The page does not scroll: the mouse wheel scrolls the text editor, whose
-// new places the extension sends. The editor of a new note stands at the row
-// of the cursor. While no text editor shows the file, the view lists the
-// threads and scrolls the selected thread to its top. The script places the
-// threads again on each change of the state, of the places, of the size of
-// the view and of the height of a thread, and tells the extension its
-// height.
+// The view is a list of the threads in the order of the file, which the user
+// scrolls on its own (Hannes, 2026-10-29, decision 25: "List that scrolls
+// freely"). It scrolls itself only when the selected thread changes, for a
+// click on a highlight or a move of the cursor into a highlight: the selected
+// thread scrolls to the top of the view. An empty part after the last thread
+// lets also the last thread scroll to the top. The editor of a new note
+// stands at the top of the list.
+//
+// The buttons, the colors, the line of a thread and the dates have tooltips,
+// which the script shows itself, from the attribute data-tooltip: VS Code
+// showed no tooltip of the attribute title in the view (Hannes, 2026-10-29,
+// on macOS: "add tooltips to the icons"). A tooltip shows below its element
+// as the hover of VS Code shows the tooltip of a button in the title of an
+// editor: after half a second under the pointer, at once when the pointer
+// comes from another tooltip, and when a key moves the focus to the element.
 
 (() => {
   'use strict';
@@ -73,39 +70,14 @@
   /**
    * @typedef {{ author: string, date: string, authorDate: string, written: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
    * @typedef {{ id: string, line: number, color: string, colorName: string, text: string, answers: AnswerState[] }} ThreadState
-   * @typedef {{ editor: [number, number], highlights: Record<string, [number, number]>, cursor: [number, number] | undefined, lineHeight: number }} Placement
-   * @typedef {{ file: string | undefined, line: number | undefined, highlight: string | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], colors: { name: string, color: string }[], placement: Placement | undefined }} State
+   * @typedef {{ file: string | undefined, line: number | undefined, highlight: string | undefined, account: string | undefined, selected: string | undefined, threads: ThreadState[], colors: { name: string, color: string }[] }} State
    * @typedef {{ text: string, tab: 'write' | 'preview', preview: string | undefined, problem: string | undefined, request: number | undefined, original?: string }} Editor
    */
 
   /** @type {State} */
-  let state = { file: undefined, line: undefined, highlight: undefined, account: undefined, selected: undefined, threads: [], colors: [], placement: undefined };
+  let state = { file: undefined, line: undefined, highlight: undefined, account: undefined, selected: undefined, threads: [], colors: [] };
 
   const svgNamespace = 'http://www.w3.org/2000/svg';
-
-  /** marks holds the marks of the highlights at the left edge of the view. */
-  const marks = document.createElement('div');
-  marks.className = 'marks';
-  marks.setAttribute('aria-hidden', 'true');
-
-  /** connection is the drawing of the line from the mark of the selected note to its thread. */
-  const connection = document.createElementNS(svgNamespace, 'svg');
-  connection.setAttribute('class', 'connection');
-  connection.setAttribute('aria-hidden', 'true');
-  document.body.prepend(marks, connection);
-
-  /** markWidth is the width of a mark in pixels, and gap the space between two threads. */
-  const markWidth = 4;
-  const gap = 6;
-
-  /** rise is the distance in pixels from the top of a thread to the top of the row of its highlight, so that its header stands beside the row. */
-  const rise = 4;
-
-  /** sizes redraws the places when the height of a thread changes, for example when an image of a text loads. */
-  const sizes = typeof ResizeObserver === 'function' ? new ResizeObserver(() => drawLater()) : undefined;
-
-  /** @type {number | undefined} */
-  let frame;
 
   /**
    * editors holds the open editors by their keys: `new`, `answer:<thread>:<answer>`, `reply:<thread>` for a reply to the
@@ -225,7 +197,7 @@
    * @param {Record<string, string>} [attributes]
    */
   const iconButton = (icon, label, action, attributes = {}) => {
-    const created = button('', 'icon', action, { title: label, 'aria-label': label, ...attributes });
+    const created = button('', 'icon', action, { 'data-tooltip': label, 'aria-label': label, ...attributes });
     const svg = document.createElementNS(svgNamespace, 'svg');
     svg.setAttribute('viewBox', '0 0 16 16');
     svg.setAttribute('aria-hidden', 'true');
@@ -315,12 +287,6 @@
     if (editor.problem) {
       box.append(element('p', 'problem', editor.problem, { role: 'alert' }));
     }
-    // The aligned view has no account line at its top, so an editor of a new text tells about the sign-in itself.
-    if (!state.account && state.placement && !key.startsWith('answer:')) {
-      const hint = element('p', 'hint sign-in', 'New notes and answers need a GitHub sign-in. ');
-      hint.append(button('Sign in with GitHub', 'link', () => vscode.postMessage({ type: 'signIn' })));
-      box.append(hint);
-    }
     const buttons = element('div', 'buttons');
     const pending = editor.request !== undefined ? { disabled: '' } : {};
     const writing = editor.tab === 'write';
@@ -404,7 +370,7 @@
   const paletteOf = (chosen, choose) => {
     const palette = element('div', 'palette', undefined, { role: 'group', 'aria-label': 'Colors of the note' });
     for (const { name, color } of state.colors) {
-      const swatch = button('', 'swatch', () => choose(name === state.colors[0]?.name ? undefined : name), { title: name, 'aria-label': name, 'aria-pressed': String(name === chosen) });
+      const swatch = button('', 'swatch', () => choose(name === state.colors[0]?.name ? undefined : name), { 'data-tooltip': name, 'aria-label': name, 'aria-pressed': String(name === chosen) });
       swatch.style.setProperty('--swatch', color);
       palette.append(swatch);
     }
@@ -453,7 +419,7 @@
     const header = element('div', 'answer-header');
     header.append(element('span', 'author', answer.author || 'Unknown author'));
     if (answer.date) {
-      header.append(element('span', 'date', answer.date, { title: answer.authorDate }));
+      header.append(element('span', 'date', answer.date, { 'data-tooltip': answer.authorDate }));
     }
     if (!editors.has(key)) {
       const actions = element('span', 'actions');
@@ -508,7 +474,7 @@
         }
         show();
       },
-      { title: `Color: ${thread.colorName}`, 'aria-label': `Color of the note: ${thread.colorName}`, 'aria-expanded': String(palettes.has(thread.id)) },
+      { 'data-tooltip': `Color: ${thread.colorName}`, 'aria-label': `Color of the note: ${thread.colorName}`, 'aria-expanded': String(palettes.has(thread.id)) },
     );
     swatch.style.setProperty('--swatch', thread.color);
     const actions = element('span', 'actions');
@@ -527,7 +493,7 @@
       }),
       iconButton('trash', 'Delete Thread', () => vscode.postMessage({ type: 'deleteNote', id: thread.id })),
     );
-    header.append(swatch, button(`Line ${thread.line + 1}`, 'link reveal', () => vscode.postMessage({ type: 'reveal', id: thread.id }), { title: 'Show the note in the text editor' }), actions);
+    header.append(swatch, button(`Line ${thread.line + 1}`, 'link reveal', () => vscode.postMessage({ type: 'reveal', id: thread.id }), { 'data-tooltip': 'Show the note in the text editor' }), actions);
     section.append(header);
     if (palettes.has(thread.id)) {
       section.append(
@@ -573,32 +539,165 @@
     return section;
   };
 
-  /** aligned tells whether the view stands aligned to the text editor. */
-  const aligned = () => state.placement !== undefined && state.file !== undefined;
+  /** tooltip is the element that shows the tooltip of the element under the pointer or with the focus of a key. */
+  const tooltip = element('div', 'tooltip', undefined, { id: 'tooltip', role: 'tooltip' });
+  tooltip.hidden = true;
+  document.body.append(tooltip);
+
+  /** tooltipDelay is the time in milliseconds under the pointer before a tooltip shows, the default of VS Code. */
+  const tooltipDelay = 500;
+
+  /** @type {Element | undefined} the element of the shown or the coming tooltip */
+  let anchor;
+  /** @type {Element | undefined} the element that the user pressed, which shows no tooltip until the pointer leaves it */
+  let pressed;
+  /** @type {number | undefined} the timer of the coming tooltip */
+  let timer;
+  /** hiddenAt is the time at which the last tooltip hid. */
+  let hiddenAt = -Infinity;
+
+  /** hideTooltip hides the tooltip, or stops the coming one. */
+  const hideTooltip = () => {
+    clearTimeout(timer);
+    timer = undefined;
+    if (!tooltip.hidden) {
+      tooltip.hidden = true;
+      hiddenAt = performance.now();
+    }
+    anchor?.removeAttribute('aria-describedby');
+    anchor = undefined;
+  };
+
+  /** placeTooltip shows the tooltip of the anchor below it and inside the view, or above it without room below. */
+  const placeTooltip = () => {
+    timer = undefined;
+    const text = anchor?.isConnected ? anchor.getAttribute('data-tooltip') : null;
+    if (!anchor || !text) {
+      hideTooltip();
+      return;
+    }
+    tooltip.textContent = text;
+    tooltip.style.left = '0px';
+    tooltip.style.top = '0px';
+    tooltip.hidden = false;
+    const margin = 4;
+    const box = anchor.getBoundingClientRect();
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const left = Math.max(Math.min(box.left + (box.width - width) / 2, window.innerWidth - width - margin), margin);
+    const below = box.bottom + margin;
+    const top = below + height <= window.innerHeight - margin ? below : Math.max(box.top - height - margin, margin);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    // A screen reader reads the tooltip of an element without a label of its own, such as the time of the author of a date.
+    if (!anchor.hasAttribute('aria-label')) {
+      anchor.setAttribute('aria-describedby', tooltip.id);
+    }
+  };
 
   /**
-   * show shows the state and the open editors, and puts the focus back into the text field that had it.
+   * tooltipFor shows the tooltip of an element after the delay, or at once while a tooltip shows or just hid.
+   * @param {Element} target
+   */
+  const tooltipFor = (target) => {
+    if (target === anchor) {
+      return;
+    }
+    const recent = !tooltip.hidden || performance.now() - hiddenAt < tooltipDelay;
+    hideTooltip();
+    anchor = target;
+    if (recent) {
+      placeTooltip();
+    } else {
+      timer = setTimeout(placeTooltip, tooltipDelay);
+    }
+  };
+
+  /**
+   * tooltipTarget returns the element with a tooltip that holds the target of an event, or null.
+   * @param {EventTarget | null} target
+   */
+  const tooltipTarget = (target) => {
+    const found = target instanceof Element ? target.closest('[data-tooltip]') : null;
+    return found?.getAttribute('data-tooltip') ? found : null;
+  };
+
+  document.addEventListener('pointerover', (event) => {
+    const target = tooltipTarget(event.target);
+    if (target !== pressed) {
+      pressed = undefined;
+    }
+    if (target && target !== pressed) {
+      tooltipFor(target);
+    } else {
+      hideTooltip();
+    }
+  });
+  // The pointer leaves the view.
+  document.addEventListener('pointerout', (event) => {
+    if (event.relatedTarget === null) {
+      pressed = undefined;
+      hideTooltip();
+    }
+  });
+  // A click hides the tooltip, as in VS Code.
+  document.addEventListener(
+    'pointerdown',
+    (event) => {
+      pressed = tooltipTarget(event.target) ?? undefined;
+      hideTooltip();
+    },
+    true,
+  );
+  // A key that moves the focus to an element shows its tooltip; a click that focuses it does not.
+  document.addEventListener('focusin', (event) => {
+    const target = tooltipTarget(event.target);
+    if (target && target === event.target && target.matches(':focus-visible')) {
+      tooltipFor(target);
+    }
+  });
+  document.addEventListener('focusout', (event) => {
+    if (event.target === anchor) {
+      hideTooltip();
+    }
+  });
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape') {
+        hideTooltip();
+      }
+    },
+    true,
+  );
+  // A scroll of the view or of a text field moves the element away from its tooltip.
+  document.addEventListener('scroll', hideTooltip, true);
+  window.addEventListener('blur', hideTooltip);
+
+  /** motion returns how the view scrolls itself: smoothly, unless the system asks for less motion. */
+  const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+
+  /**
+   * show shows the state and the open editors, and puts the focus back into the text field that had it. The list keeps
+   * its scroll position, and an editor that opens scrolls into the view.
    * @param {string} [focusKey] - The key of an editor whose text field gets the focus.
    */
   const show = (focusKey) => {
     const active = document.activeElement;
     const activeKey = active instanceof HTMLTextAreaElement ? active.closest('.editor')?.getAttribute('data-key') : undefined;
     const selection = active instanceof HTMLTextAreaElement ? [active.selectionStart, active.selectionEnd] : undefined;
+    const scrolled = window.scrollY;
     root.replaceChildren();
-    sizes?.disconnect();
-    document.body.classList.toggle('aligned', aligned());
-    if (!aligned()) {
-      const top = element('div', 'top');
-      top.append(element('div', 'file', state.file ?? 'No Markdown file', { title: state.file ?? '' }));
-      const account = element('div', 'account');
-      if (state.account) {
-        account.textContent = `Signed in to GitHub as ${state.account}`;
-      } else {
-        account.append(element('span', undefined, 'New notes and answers need a GitHub sign-in. '), button('Sign in with GitHub', 'link', () => vscode.postMessage({ type: 'signIn' })));
-      }
-      top.append(account);
-      root.append(top);
+    const top = element('div', 'top');
+    top.append(element('div', 'file', state.file ?? 'No Markdown file', { 'data-tooltip': state.file ?? '' }));
+    const account = element('div', 'account');
+    if (state.account) {
+      account.textContent = `Signed in to GitHub as ${state.account}`;
+    } else {
+      account.append(element('span', undefined, 'New notes and answers need a GitHub sign-in. '), button('Sign in with GitHub', 'link', () => vscode.postMessage({ type: 'signIn' })));
     }
+    top.append(account);
+    root.append(top);
     if (state.file !== undefined && editors.has('new')) {
       root.append(newNoteOf());
     }
@@ -610,11 +709,13 @@
     for (const thread of state.threads) {
       root.append(threadOf(thread));
     }
-    if (sizes && aligned()) {
-      root.querySelectorAll('.thread, .new-note').forEach((item) => sizes.observe(item));
-    }
     document.body.classList.toggle('with-selection', state.threads.some((thread) => thread.id === state.selected));
-    draw();
+    if (anchor && !anchor.isConnected) {
+      hideTooltip();
+    }
+    if (window.scrollY !== scrolled) {
+      window.scrollTo({ top: scrolled });
+    }
     const key = focusKey ?? activeKey;
     const field = key ? root.querySelector(`.editor[data-key="${CSS.escape(key)}"] textarea`) : null;
     if (field instanceof HTMLTextAreaElement) {
@@ -622,139 +723,24 @@
       if (!focusKey && selection) {
         field.setSelectionRange(selection[0], selection[1]);
       }
+      if (focusKey) {
+        (field.closest('.new-note') ?? field.closest('.editor'))?.scrollIntoView({ block: 'nearest', behavior: motion() });
+      }
     }
   };
 
   /**
-   * layout returns the top of each item of the aligned view, by the element: each thread at the row of its highlight,
-   * the editor of a new note at the row of the cursor, and the items apart by gap. The item that the user works on keeps
-   * its place: the editor of a new note, or else the selected thread, or else the first thread whose highlight the
-   * text editor shows; the items before it move up and the items after it move down.
-   * @param {Placement} placement
-   * @returns {Map<Element, number>}
-   */
-  const layout = (placement) => {
-    /** @type {{ item: HTMLElement, anchor: number, height: number, id: string }[]} */
-    const items = [];
-    for (const item of root.querySelectorAll('.thread, .new-note')) {
-      if (!(item instanceof HTMLElement)) {
-        continue;
-      }
-      const id = item.getAttribute('data-id') ?? '';
-      const place = id === 'new' ? placement.cursor : placement.highlights[id];
-      if (place) {
-        items.push({ item, anchor: place[0] - rise, height: item.offsetHeight, id });
-      }
-    }
-    // The editor of a new note stands before the threads of its row.
-    items.sort((a, b) => a.anchor - b.anchor || (a.id === 'new' ? -1 : b.id === 'new' ? 1 : 0));
-    const [editorTop, editorBottom] = placement.editor;
-    const visible = (id) => {
-      const place = placement.highlights[id];
-      return place !== undefined && place[1] > editorTop && place[0] < editorBottom;
-    };
-    let pivot = items.findIndex((entry) => entry.id === 'new');
-    if (pivot < 0) {
-      pivot = items.findIndex((entry) => entry.id === state.selected);
-    }
-    if (pivot < 0) {
-      pivot = items.findIndex((entry) => visible(entry.id));
-    }
-    const tops = items.map((entry) => entry.anchor);
-    for (let index = Math.max(pivot, 0) + 1; index < items.length; index++) {
-      tops[index] = Math.max(items[index].anchor, tops[index - 1] + items[index - 1].height + gap);
-    }
-    for (let index = pivot - 1; index >= 0; index--) {
-      tops[index] = Math.min(items[index].anchor, tops[index + 1] - items[index].height - gap);
-    }
-    return new Map(items.map((entry, index) => [entry.item, tops[index]]));
-  };
-
-  /**
-   * draw places the threads of the aligned view, with the marks of the highlights and the line of the selected
-   * thread, or removes the places, the marks and the line for the list.
-   */
-  const draw = () => {
-    frame = undefined;
-    marks.replaceChildren();
-    connection.replaceChildren();
-    const placement = aligned() ? state.placement : undefined;
-    if (!placement) {
-      root.querySelectorAll('.thread, .new-note').forEach((item) => {
-        if (item instanceof HTMLElement) {
-          item.style.top = '';
-        }
-      });
-      return;
-    }
-    const tops = layout(placement);
-    for (const [item, top] of tops) {
-      if (item instanceof HTMLElement) {
-        item.style.top = `${top}px`;
-      }
-    }
-    root.querySelectorAll('.thread, .new-note').forEach((item) => {
-      if (item instanceof HTMLElement && !tops.has(item)) {
-        item.style.top = '-10000px';
-      }
-    });
-    const [editorTop, editorBottom] = placement.editor;
-    const height = window.innerHeight;
-    connection.setAttribute('viewBox', `0 0 ${window.innerWidth} ${height}`);
-    for (const thread of state.threads) {
-      const place = placement.highlights[thread.id];
-      if (!place) {
-        continue;
-      }
-      const top = Math.max(place[0], editorTop);
-      const bottom = Math.min(place[1], editorBottom);
-      if (bottom <= top) {
-        continue;
-      }
-      const selected = thread.id === state.selected;
-      const mark = element('div', `mark${selected ? ' selected' : ''}`);
-      mark.style.top = `${top}px`;
-      mark.style.height = `${Math.max(bottom - top, 3)}px`;
-      mark.style.backgroundColor = thread.color;
-      marks.append(mark);
-      // Only the selected thread has the line from its mark, so that the line shows which highlight the user works on.
-      const section = selected ? root.querySelector(`.thread[data-id="${CSS.escape(thread.id)}"]`) : null;
-      const card = section?.getBoundingClientRect();
-      if (!card || card.bottom <= 0 || card.top >= height) {
-        continue;
-      }
-      const from = (top + bottom) / 2;
-      const to = Math.min(Math.max(card.top + rise + 10, 0), height);
-      const middle = (markWidth + card.left) / 2;
-      const path = document.createElementNS(svgNamespace, 'path');
-      path.setAttribute('d', `M ${markWidth} ${from} C ${middle} ${from} ${middle} ${to} ${card.left} ${to}`);
-      path.setAttribute('class', 'line');
-      path.setAttribute('stroke', thread.color);
-      connection.append(path);
-    }
-  };
-
-  /** drawLater places the threads before the next frame, once for several changes. */
-  const drawLater = () => {
-    if (frame === undefined) {
-      frame = requestAnimationFrame(draw);
-    }
-  };
-
-  /**
-   * scrollToSelected scrolls the selected thread of the list to the top of the view (Hannes, 2026-10-28: "so the
-   * selected note is on top"); in the aligned view, the thread stands at its highlight.
+   * scrollToSelected scrolls the selected thread to the top of the view (Hannes, 2026-10-28: "so the selected note is on
+   * top").
    */
   const scrollToSelected = () => {
-    if (!aligned()) {
-      root.querySelector('.thread.selected')?.scrollIntoView({ block: 'start' });
-    }
+    root.querySelector('.thread.selected')?.scrollIntoView({ block: 'start', behavior: motion() });
   };
 
   // A click on the empty part of the view, outside the threads and the controls, deselects the selected thread.
   document.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null;
-    if (state.selected !== undefined && (!target || !target.closest('.thread, .new-note, .top, button, a, textarea, .editor, .marks'))) {
+    if (state.selected !== undefined && (!target || !target.closest('.thread, .new-note, .top, button, a, textarea, .editor'))) {
       vscode.postMessage({ type: 'deselect' });
     }
   });
@@ -804,14 +790,6 @@
       if (selectionChanged) {
         scrollToSelected();
       }
-    } else if (message.type === 'placement') {
-      const wasAligned = aligned();
-      state.placement = message.placement;
-      if (wasAligned !== aligned()) {
-        show();
-      } else {
-        drawLater();
-      }
     } else if (message.type === 'new') {
       // An open editor of a new note keeps its text and its color.
       open('new', editors.get('new')?.text ?? '');
@@ -846,48 +824,6 @@
     }
   });
 
-  /** told is the last height of the page that the script told the extension. */
-  let told = 0;
-
-  /** tellSize tells the extension the height of the page, from which it estimates the height of the text editor. */
-  const tellSize = () => {
-    if (window.innerHeight !== told) {
-      told = window.innerHeight;
-      vscode.postMessage({ type: 'size', height: told });
-    }
-  };
-
-  /** wheel holds the pixels of the mouse wheel that did not yet scroll the text editor by a whole row. */
-  let wheel = 0;
-
-  // In the aligned view, the mouse wheel scrolls the text editor by rows, as the compare view scrolls both of its sides;
-  // a text field that can scroll keeps the wheel.
-  window.addEventListener(
-    'wheel',
-    (event) => {
-      const placement = aligned() ? state.placement : undefined;
-      const target = event.target instanceof Element ? event.target : null;
-      const field = target?.closest('textarea, pre');
-      if (!placement || (field && field.scrollHeight > field.clientHeight)) {
-        return;
-      }
-      event.preventDefault();
-      const lineHeight = Math.max(placement.lineHeight, 1);
-      wheel += event.deltaMode === 1 ? event.deltaY * lineHeight : event.deltaMode === 2 ? event.deltaY * window.innerHeight : event.deltaY;
-      const rows = Math.trunc(wheel / lineHeight);
-      if (rows !== 0) {
-        wheel -= rows * lineHeight;
-        vscode.postMessage({ type: 'scroll', rows });
-      }
-    },
-    { passive: false },
-  );
-  window.addEventListener('resize', () => {
-    tellSize();
-    drawLater();
-  });
-
   show();
   vscode.postMessage({ type: 'ready' });
-  tellSize();
 })();

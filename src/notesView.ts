@@ -37,24 +37,19 @@
  * from this module and sends the actions of the user back.
  *
  * A click on a thread selects its note in the text editor
- * ([R-SIDE-007](../docs/requirements.md#r-side-007)). While a text editor
- * shows the file, the view stands aligned to it, as the compare view of
- * VS Code shows two texts side by side (decision 14): each thread stands at
- * the height of the rows of its highlight and scrolls with the text, threads
- * that would overlap move apart, and the selected thread stays at its
- * highlight. The places come from the visible ranges of the editor
- * ([src/editorLayout.ts](editorLayout.ts)), an estimate where lines wrap. The
- * left edge of the view has a mark in the color of each note at the rows of
- * its highlight, and only the selected thread has a line to its mark (Hannes,
- * 2026-10-28: "only the selected one has the connection"). The mouse wheel
- * over the view scrolls the text editor. While no text editor shows the file,
- * for example in the Markdown preview, the view lists the threads, with the
- * selected thread at its top: VS Code tells an extension no place of the
- * preview. The position of the cursor, not only its line, selects the thread,
- * because the highlights of several notes can share a line. The text editor
- * and the Markdown preview show the highlight of the note of the selected
- * thread in a strong color and with a frame
- * ([src/selectedNotes.ts](selectedNotes.ts)).
+ * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The view is a list of
+ * the threads in the order of the file, which the user scrolls on its own
+ * (Hannes, 2026-10-29, decision 25: "List that scrolls freely"), in the text
+ * editor and in the Markdown preview alike. It scrolls the selected thread to
+ * its top when the selection changes, and does not follow the scrolling of the
+ * text editor: VS Code tells an extension only the whole rows that a text
+ * editor shows, after it scrolled, and no place of the preview, so threads
+ * beside the text moved in steps and late (Hannes, 2026-10-29: "the side view
+ * really has no smooth scrolling and is laggy"). The position of the cursor,
+ * not only its line, selects the thread, because the highlights of several
+ * notes can share a line. The text editor and the Markdown preview show the
+ * highlight of the note of the selected thread in a strong color and with a
+ * frame ([src/selectedNotes.ts](selectedNotes.ts)).
  *
  * A click with the mouse on a highlight in the text editor selects its thread
  * and opens the view when it is closed. A click on a thread while the
@@ -64,7 +59,6 @@
  */
 
 import * as vscode from 'vscode';
-import { columnsOf, type EditorLayout, placesOf } from './editorLayout';
 import { githubProvider } from './github';
 import { openLink } from './links';
 import { hiddenText } from './format/format';
@@ -92,8 +86,6 @@ export const viewCommands = {
 /** Message is a message of the script of the view. */
 export type Message =
   | { type: 'ready' }
-  | { type: 'size'; height: number }
-  | { type: 'scroll'; rows: number }
   | { type: 'signIn' }
   | { type: 'reveal'; id: string; focus?: boolean }
   | { type: 'deselect' }
@@ -136,21 +128,6 @@ interface ThreadState {
   answers: AnswerState[];
 }
 
-/**
- * Placement is the layout of the threads beside the text editor (decision 14), in pixels from the top of the view: the
- * text of the editor, the rows of the highlight of each thread, and the row of the cursor.
- */
-interface Placement {
-  /** editor is the top and the bottom of the text of the text editor. */
-  editor: [number, number];
-  /** highlights holds the top and the bottom of the rows of the highlight of each thread, by its identifier; estimates outside the visible rows. */
-  highlights: Record<string, [number, number]>;
-  /** cursor is the top and the bottom of the row of the cursor, where "Add Note" adds a note. */
-  cursor: [number, number] | undefined;
-  /** lineHeight is the height of a row of the editor, by which the mouse wheel over the view scrolls the editor. */
-  lineHeight: number;
-}
-
 /** State is the content of the view, which the script shows. */
 export interface State {
   type: 'state';
@@ -169,8 +146,6 @@ export interface State {
   threads: ThreadState[];
   /** colors are the colors that "Color" offers, by their names; the first one is the default. */
   colors: { name: string; color: string }[];
-  /** placement is the layout of the threads beside the text editor, or undefined while no text editor shows the file. */
-  placement: Placement | undefined;
 }
 
 /** cacheSize is the number of rendered texts that the view keeps. */
@@ -215,57 +190,6 @@ function modeOf(document: vscode.Uri): { mode: 'preview' | 'editor'; column: vsc
   return undefined;
 }
 
-/**
- * workbench holds sizes of the window of VS Code in pixels, measured in VS Code 1.143 with its default settings: the
- * height of the bar of the tabs and of the breadcrumbs, the top of the page of the side view below the top of the bar of
- * the tabs, and the bottom of the text of a text editor below the bottom of the page of the side view. VS Code tells an
- * extension no place of a part of the window.
- */
-const workbench = { tabs: 32, breadcrumbs: 22, viewTop: 28, editorBottom: 9 };
-
-/**
- * textTop returns the top of the text of a text editor in pixels from the top of the page of the side view, which
- * stands at the same height of the window: below the bar of the tabs, the breadcrumbs and the padding of the editor.
- * @param configuration - The settings `editor` of the document.
- */
-function textTop(configuration: vscode.WorkspaceConfiguration): number {
-  const tabs = vscode.workspace.getConfiguration('workbench.editor').get<unknown>('showTabs');
-  const breadcrumbs = vscode.workspace.getConfiguration('breadcrumbs').get<boolean>('enabled') ?? true;
-  const padding = configuration.get<{ top?: number }>('padding')?.top ?? 0;
-  return (tabs === 'none' || tabs === false ? 0 : workbench.tabs) + (breadcrumbs ? workbench.breadcrumbs : 0) - workbench.viewTop + padding;
-}
-
-/**
- * lineHeightOf returns the height of a row of a text editor in pixels, as VS Code computes it from the settings
- * `editor.fontSize` and `editor.lineHeight`.
- * @param configuration - The settings `editor` of the document.
- */
-function lineHeightOf(configuration: vscode.WorkspaceConfiguration): number {
-  const mac = process.platform === 'darwin';
-  const fontSize = configuration.get<number>('fontSize') ?? (mac ? 12 : 14);
-  const lineHeight = configuration.get<number>('lineHeight') ?? 0;
-  const height = lineHeight === 0 ? fontSize * (mac ? 1.5 : 1.35) : lineHeight < 8 ? fontSize * lineHeight : lineHeight;
-  return Math.max(8, Math.round(height));
-}
-
-/**
- * wrapOf returns how a text editor wraps its lines, from the settings `editor.wordWrap` and `editor.wordWrapColumn`.
- * @param configuration - The settings `editor` of the document.
- */
-function wrapOf(configuration: vscode.WorkspaceConfiguration): Pick<EditorLayout, 'wrap' | 'bound'> {
-  const column = configuration.get<number>('wordWrapColumn') ?? 80;
-  switch (configuration.get<string>('wordWrap')) {
-    case 'on':
-      return { wrap: undefined };
-    case 'bounded':
-      return { wrap: undefined, bound: column };
-    case 'wordWrapColumn':
-      return { wrap: column };
-    default:
-      return { wrap: Infinity };
-  }
-}
-
 /** NotesView is the provider of the side view. */
 export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable {
   private view: vscode.WebviewView | undefined;
@@ -281,14 +205,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private readonly rendered = new Map<string, string>();
   /** version counts the states, so that only the newest one reaches the view. */
   private version = 0;
-  /** height is the height of the page of the view in pixels, which its script tells. */
-  private height: number | undefined;
   /** ready tells whether the script of the view started and receives messages. */
   private ready = false;
   /** newPending tells whether "Add Note" waits for a script that did not start yet. */
   private newPending = false;
-  /** columns holds the estimated number of columns of the rows of the text editor of each document, by its URI. */
-  private readonly columns = new Map<string, number>();
   private readonly registrations: vscode.Disposable[];
   /** visibility holds the listeners of the changes of the visibility of the view. */
   private readonly visibility = new Set<() => void>();
@@ -300,7 +220,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param render - Renders a Markdown text as the Markdown preview does.
    * @param settingsOf - Returns the settings of a document.
    * @param chosen - The selected note of each document, which the view sets.
-   * @param hiddenLinesOf - Returns the lines of a document that its collapsed notes hide in the text editor.
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -309,30 +228,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     private readonly render: (text: string) => Promise<string>,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly chosen: SelectedNotes,
-    private readonly hiddenLinesOf: (document: vscode.TextDocument) => ReadonlySet<number>,
   ) {
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
-      vscode.window.tabGroups.onDidChangeTabs(() => {
-        this.followTab();
-        this.postPlacement();
-      }),
-      vscode.window.tabGroups.onDidChangeTabGroups(() => {
-        this.followTab();
-        this.postPlacement();
-      }),
+      vscode.window.tabGroups.onDidChangeTabs(() => this.followTab()),
+      vscode.window.tabGroups.onDidChangeTabGroups(() => this.followTab()),
       vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor, event.kind === vscode.TextEditorSelectionChangeKind.Mouse)),
-      vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
-        if (event.textEditor.document.uri.toString() === this.document?.toString()) {
-          this.postPlacement();
-        }
-      }),
-      vscode.window.onDidChangeVisibleTextEditors(() => this.postPlacement()),
-      vscode.workspace.onDidChangeConfiguration((event) => {
-        if (['editor', 'workbench.editor.showTabs', 'breadcrumbs.enabled'].some((section) => event.affectsConfiguration(section))) {
-          this.postPlacement();
-        }
-      }),
       threads.onDidChange((document) => {
         if (document.toString() === this.document?.toString()) {
           void this.refresh();
@@ -517,7 +418,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       void this.refresh();
     } else {
       void this.view?.webview.postMessage({ type: 'line', line, highlight: this.highlightOf(document) });
-      this.postPlacement();
     }
     const inSelection = entry?.note.selection !== undefined && !(entry.note.start.line <= active.line && active.line <= entry.note.end.line);
     if (click && inSelection && !this.view?.visible) {
@@ -581,49 +481,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       this.rendered.set(text, html);
     }
     return html;
-  }
-
-  /**
-   * placement returns the layout of the threads beside the first visible text editor of the document of the view: the
-   * places of the highlights of its notes and of the cursor; undefined while no text editor shows the document, or before
-   * the script told the height of the view.
-   */
-  private placement(): Placement | undefined {
-    const document = this.document;
-    const uri = document?.toString();
-    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
-    if (!document || !editor || this.height === undefined || editor.visibleRanges.length === 0) {
-      return undefined;
-    }
-    const configuration = vscode.workspace.getConfiguration('editor', editor.document);
-    const top = textTop(configuration);
-    const layout: EditorLayout = {
-      ranges: editor.visibleRanges,
-      lineHeight: lineHeightOf(configuration),
-      top,
-      height: Math.max(this.height + workbench.editorBottom - top, 0),
-      ...wrapOf(configuration),
-      lineCount: editor.document.lineCount,
-    };
-    const lineAt = (line: number): string => editor.document.lineAt(line).text;
-    const columns = columnsOf(layout, lineAt, this.columns.get(uri!));
-    this.columns.set(uri!, columns);
-    const entries = this.threads.entriesOf(document);
-    const cursor = editor.selection.active;
-    const hidden = this.hiddenLinesOf(editor.document);
-    const highlights = [...entries.map(({ note }) => note.selection ?? { start: note.start, end: note.end }), { start: cursor, end: cursor }];
-    const places = placesOf(layout, lineAt, columns, highlights, (line) => hidden.has(line));
-    return {
-      editor: [top, top + layout.height],
-      highlights: Object.fromEntries(entries.flatMap((entry, index) => (places[index] ? [[entry.id, places[index]]] : []))),
-      cursor: places.at(-1),
-      lineHeight: layout.lineHeight,
-    };
-  }
-
-  /** postPlacement sends the layout of the threads beside the text editor to the script of the view. */
-  private postPlacement(): void {
-    void this.view?.webview.postMessage({ type: 'placement', placement: this.placement() });
   }
 
   /** settingsChanged shows the view again after a change of the settings of the extension. */
@@ -692,7 +549,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       selected: entries.some((entry) => entry.id === this.selected) ? this.selected : undefined,
       threads,
       colors: colorNames.map((name, index) => ({ name, color: noteColors[index] })),
-      placement: this.placement(),
     };
   }
 
@@ -716,29 +572,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   private async reply(request: number, problem: Parameters<typeof problemMessage>[0] | undefined): Promise<void> {
     await this.view?.webview.postMessage({ type: 'result', request, message: problem ? problemMessage(problem) : undefined });
-  }
-
-  /**
-   * scroll scrolls the text editor of the document of the view by rows, for a turn of the mouse wheel over the view
-   * beside it (decision 14). The command of VS Code scrolls the active text editor by its rows, also by the rows of a
-   * wrapped line; a text editor that is not active scrolls by lines.
-   * @param rows - The number of rows, down when positive.
-   */
-  private async scroll(rows: number): Promise<void> {
-    const uri = this.document?.toString();
-    if (!uri || !Number.isInteger(rows) || rows === 0) {
-      return;
-    }
-    if (vscode.window.activeTextEditor?.document.uri.toString() === uri) {
-      await vscode.commands.executeCommand('editorScroll', { to: rows > 0 ? 'down' : 'up', by: 'wrappedLine', value: Math.abs(rows), revealCursor: false });
-      return;
-    }
-    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri);
-    const first = editor?.visibleRanges[0]?.start.line;
-    if (editor && first !== undefined) {
-      const line = Math.min(Math.max(first + rows, 0), editor.document.lineCount - 1);
-      editor.revealRange(new vscode.Range(line, 0, line, 0), vscode.TextEditorRevealType.AtTop);
-    }
   }
 
   /**
@@ -788,13 +621,6 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
           this.newPending = false;
           await this.view?.webview.postMessage({ type: 'new' });
         }
-        return;
-      case 'size':
-        this.height = message.height;
-        this.postPlacement();
-        return;
-      case 'scroll':
-        await this.scroll(message.rows);
         return;
       case 'signIn':
         await this.login(true);

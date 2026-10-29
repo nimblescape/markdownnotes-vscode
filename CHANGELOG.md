@@ -35,9 +35,9 @@ The first version.
 - The side view "Notes" is the only place of the text of the notes. It
   lists the threads of the active Markdown file, also in the modes "Markdown
   Preview" and "Markdown Editor" of VS Code, with their trees of replies.
-  Next to the text editor, each thread stands at the height of its highlight
-  and moves with the text, and only the selected thread has a line to its
-  highlight. Its buttons are icons with tooltips: "Reply", "Edit" and
+  The list scrolls on its own, and a click on a highlight or a move of the
+  cursor into it scrolls its thread to the top. Its buttons are icons with
+  tooltips: "Reply", "Edit" and
   "Delete" at each answer; the color, "Show as Text", "Answer" and "Delete
   Thread" at each thread; "Add Note" in its title. "Show as Text" shows the
   whole note as the file holds it, for a change of the whole text. The editor

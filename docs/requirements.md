@@ -46,7 +46,7 @@ as the highlights of a marker pen on paper.
 | 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
 | 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
 | 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
-| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28 |
+| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28, the view aligned to the text editor in step 36 |
 | 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 | 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
@@ -58,6 +58,7 @@ as the highlights of a marker pen on paper.
 | 33 | "Add Footnote" at the cursor | [R-FOOT-003](#r-foot-003) | planned |
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
+| 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 
 ## General
 
@@ -566,7 +567,7 @@ color in the start marker of the note, after its label, for example
 `<wbr><!--[note-7k2q green-->`; the default color has no name in the marker
 ([R-NOTE-006](#r-note-006), [decision 16](#decisions)). The color shows in
 the highlight of the note in the text editor and in the preview, in its mark
-in the overview ruler, and at the thread and at its mark in the side view
+in the overview ruler, and at the thread in the side view
 ([R-SIDE-007](#r-side-007)). The text editor shows no marker of a note in
 its left margin (Hannes, 2026-10-28: "drop all colored icons on the left"),
 and a note has no number.
@@ -639,13 +640,13 @@ the mode "Markdown Preview" or "Markdown Editor" of VS Code
 selected thread is the note at the cursor of the text editor, or the note
 that the user clicked in the preview ([R-PREV-003](#r-prev-003)).
 
-While a text editor shows the file, the view stands aligned to it
-([R-SIDE-007](#r-side-007)). While no text editor shows the file, for
-example in the Markdown preview, the view lists the threads with the file
-and the GitHub account at its top, and shows the selected thread at its top
-(Hannes, 2026-10-28: "selecting in the editor shall always scroll the side
-view so the selected note is on top"); an empty part after the last thread
-lets also the last thread scroll to the top.
+The view is a list of the threads in the order of the file, with the file
+and the GitHub account at its top, which the user scrolls on its own
+([R-SIDE-007](#r-side-007), [decision 25](#decisions)). It shows the
+selected thread at its top (Hannes, 2026-10-28: "selecting in the editor
+shall always scroll the side view so the selected note is on top"); an
+empty part after the last thread lets also the last thread scroll to the
+top.
 
 ### R-SIDE-002
 
@@ -653,7 +654,13 @@ lets also the last thread scroll to the top.
 small icons with a tooltip, the codicons of VS Code, as the buttons in the
 title of an editor of VS Code (Hannes, 2026-10-28: "exchange all the buttons
 on the note editor with icons", "similar as the header icons of the tab where
-you dan switch between preview and text mode"):
+you dan switch between preview and text mode"). The view draws the tooltips
+itself, in the colors of the hovers of VS Code, because the tooltips of the
+browser did not show in the view (Hannes, 2026-10-29, on macOS: "add
+tooltips to the icons"): a tooltip shows below its button after half a
+second under the pointer, at once when the pointer comes from another
+tooltip, and when a key moves the focus to the button. The colors, the line
+of a thread and the dates have tooltips too. The buttons:
 
 - Each answer has "Reply", "Edit" and "Delete".
 - Each thread has the button with its color, which opens the colors of the
@@ -739,22 +746,18 @@ also in Zen Mode (Hannes, 2026-10-28):
 
 **The view next to the text.** When the side view is open, the user sees
 which thread of the view belongs to which highlight of the text (Hannes,
-2026-10-28). The view stands aligned to the text editor, as the compare view
-of VS Code shows two texts side by side ([decision 14](#decisions)):
+2026-10-28), through the selection that the view and the text share
+([decision 25](#decisions)):
 
-- **Aligned threads:** while a text editor shows the file, each thread
-  stands at the height of the rows of its highlight in the text editor, and
-  moves with the text when the editor scrolls. Threads that would overlap
-  move apart: the thread that the user works on stays at its highlight, the
-  editor of a new note or else the selected thread or else the first thread
-  whose highlight the editor shows; the threads before it move up and the
-  threads after it move down. The editor of a new note stands at the row of
-  the cursor. The view does not scroll itself: the mouse wheel over the view
-  scrolls the text editor.
-- **Marks and connection:** the left edge of the view, next to the editor,
-  has a mark in the color of each note at the rows of its highlight. Only the
-  selected thread has a line from its mark to the thread (Hannes,
-  2026-10-28: "only the selected one has the connection").
+- **A list that scrolls freely:** the view lists the threads in the order of
+  the file, in the text editor and in the Markdown preview alike, and the
+  user scrolls it on its own, smoothly, to find a note (Hannes, 2026-10-29:
+  "the side view cannot be scrolled individually to find a note"). The view
+  scrolls itself only when the selected thread changes: the selected thread
+  scrolls to the top of the view ([R-SIDE-001](#r-side-001)). It does not
+  follow the scrolling of the text editor or of the preview. The editor of a
+  new note stands at the top of the list, and an editor that opens scrolls
+  into the view.
 - **Common selection:** the selected thread of the view and its note in the
   text are highlighted together: the highlight of the note is strong, with a
   frame in its color, in the text editor and in the preview
@@ -781,27 +784,21 @@ of VS Code shows two texts side by side ([decision 14](#decisions)):
   text shall deselect the selected note"); a move of the cursor with the keys
   keeps it. In the view, a click on its empty part, outside the threads, or
   Escape outside an editor deselects it too.
-- **Dimming:** while a thread is selected, the view dims the other threads;
-  a thread under the pointer or with the focus shows clear.
+- **Dimming:** while a thread is selected, the view dims the other threads
+  a little, to 70 % (Hannes, 2026-10-29: "dimming of the non selected tags is
+  too dark when one is selected"); a thread under the pointer or with the
+  focus shows clear.
 
-VS Code lets no view draw into the text editor, and tells no extension where
-a line of the text is on the screen, so the line of the selected thread ends
-at the edge of the view. VS Code tells an extension the rows that the text
-editor shows, also inside a wrapped line; the extension counts the rows from
-there, so the places of the threads are exact without wrapped lines, apart
-from a part of a row at the top. Where the editor wraps lines at its width,
-the extension estimates the number of columns of a row from the rows that
-fill the editor, and wraps the lines by words. The heights of the bars of
-VS Code come from VS Code 1.143 with its default settings; the extension
-reads the settings of the tabs, the breadcrumbs, the font and the wrapping,
-but not other changes of the layout, for example an open panel below the
-editor. The Markdown preview tells an extension no place of its text, so the
-view stands aligned only to the text editor; next to the preview, it lists
-the threads ([R-SIDE-001](#r-side-001)).
-
-The badges with the number of a note, the strip of the whole file and the
-funnels of earlier versions ([decision 12](#decisions)), with the setting
-`showFunnels`, are dropped.
+VS Code lets no view draw into the text editor, tells an extension only the
+whole rows that a text editor shows, after it scrolled, and tells no place
+of the text of the preview. The threads beside the text editor of
+[decision 14](#decisions) therefore moved in steps of a row and after the
+text, and the view could not scroll on its own (Hannes, 2026-10-29: "the side
+view really has no smooth scrolling and is laggy"). The view aligned to the
+text editor, its marks of the highlights and the line of the selected thread
+are dropped, as the badges with the number of a note, the strip of the whole
+file and the funnels of earlier versions ([decision 12](#decisions)), with
+the setting `showFunnels`.
 
 ## Editing
 
@@ -1119,9 +1116,9 @@ footnotes of the active Markdown file, the footnotes that are no note
 footnotes too (Hannes, 2026-10-29: "the extension could serve as a rich ui
 for editing footnotes", [decision 24](#decisions)):
 
-- Each footnote stands at the line of its first reference, aligned to the
-  text editor as a thread ([R-SIDE-007](#r-side-007)). A footnote without a
-  reference stands at the line of its definition.
+- Each footnote stands in the list at the place of its first reference, in
+  the order of the file, as a thread ([R-SIDE-007](#r-side-007)). A footnote
+  without a reference stands at the place of its definition.
 - It shows its label as the file holds it, for example `1`, and the
   rendered text of its definition. It has no author, no date, no replies, no
   color and no highlight. GitHub numbers all footnotes of a file in the
@@ -1411,7 +1408,8 @@ requirements above follow them.
     the compare view of VS Code shows two texts side by side: each thread at
     the height of its highlight, with the scrolling of the text. Only the
     selected thread has a line to its highlight (Hannes, 19:51: "only the
-    selected one has the connection"). The places are estimates where lines
+    selected one has the connection"). [Decision 25](#decisions) replaces
+    this decision. The places are estimates where lines
     wrap, and the view lists the threads next to the preview, which tells an
     extension no place of its text. The other choices were a compare layout
     in the preview, with the text on the left and the notes at the exact
@@ -1517,6 +1515,19 @@ requirements above follow them.
     shows, edits, adds, checks and renumbers the standard footnotes of a
     file, and turns an accepted note into a footnote. Before, the extension
     showed no footnote that is no note and never changed one.
+25. **A list that scrolls freely** ([R-SIDE-007](#r-side-007), Hannes,
+    2026-10-29, 09:06, decided with the option "List that scrolls freely"):
+    the side view is a list of the threads in the order of the file, which
+    the user scrolls on its own, and which moves only when the selected
+    thread changes, for a click or a move of the cursor into a highlight. It
+    has no line to the text. This replaces [decision 14](#decisions), whose
+    threads followed the text editor in steps and late, and which the user
+    could not scroll (Hannes: "the side view really has no smooth scrolling
+    and is laggy", "the side view cannot be scrolled individually to find a
+    note", "the linking is not implemented for the preview"). The other
+    choices were the list with the notes in a margin of the Markdown
+    preview, the aligned view with a scroll of its own, and an editor of the
+    extension with the text and the notes side by side.
 
 ---
 

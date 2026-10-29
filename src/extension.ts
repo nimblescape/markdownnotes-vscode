@@ -206,7 +206,7 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights && view.visible;
   const editor = new NoteEditor(threads, showsHighlights, selected);
-  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, (document) => editor.hiddenLinesOf(document));
+  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected);
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the
    * format while the setting formatOnSave is on and the document has notes or the comment of the format (R-FMT-001),

@@ -551,27 +551,6 @@ export class NoteEditor implements vscode.Disposable {
   }
 
   /**
-   * hiddenLinesOf returns the lines of a document that its collapsed folds hide in the text editor, as far as the
-   * extension knows them: the lines after the first line of each fold whose notes are folded, and of the fold of the
-   * comment of the format after the first collapse. The side view counts the rows outside the visible ranges without
-   * them ([R-SIDE-007](../docs/requirements.md#r-side-007)).
-   * @param document - The document.
-   */
-  hiddenLinesOf(document: vscode.TextDocument): Set<number> {
-    const shut = this.shutIn(document);
-    const collapsedOnce = this.collapsed.has(document.uri.toString());
-    const hidden = new Set<number>();
-    for (const fold of this.foldsIn(document)) {
-      if (fold.notes.length > 0 ? fold.notes.every((note) => shut.has(note.label)) : collapsedOnce) {
-        for (let line = fold.start + 1; line <= fold.end; line++) {
-          hidden.add(line);
-        }
-      }
-    }
-    return hidden;
-  }
-
-  /**
    * fold collapses or expands folds in the active text editor, and takes the new state of their notes until the visible
    * ranges of the editor tell it. A fold command names lines, so it waits until VS Code applied the edits of the
    * extension, for example the comment of the format that an opened file gets, and takes the lines of the folds from the

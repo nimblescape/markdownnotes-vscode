@@ -11,12 +11,9 @@
  * the selected thread has a frame in this color, and the other threads are
  * dimmed (R-SIDE-007). The replies to a reply are indented below it. The
  * buttons are small icons, as the buttons in the title of an editor, and the
- * text view of a note has the font of the text editor.
- *
- * Aligned to the text editor (decision 14), the page does not scroll: each
- * thread stands at the place that the script gives it, a mark in the color of
- * each note stands at the left edge at the rows of its highlight, and a line
- * leads from the mark of the selected note to its thread.
+ * text view of a note has the font of the text editor. The view is a list
+ * that scrolls (decision 25), and the tooltips have the colors of the hovers
+ * of VS Code.
  */
 
 body {
@@ -87,6 +84,27 @@ button.icon svg {
   fill: currentColor;
 }
 
+/* The tooltip of a button, a color, the line of a thread or a date, which the script places below its element. */
+.tooltip {
+  position: fixed;
+  z-index: 10;
+  box-sizing: border-box;
+  max-width: min(320px, calc(100vw - 8px));
+  padding: 2px 8px;
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.5)));
+  border-radius: 3px;
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  background: var(--vscode-editorHoverWidget-background, var(--vscode-editor-background));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.tooltip[hidden] {
+  display: none;
+}
+
 /* The round button of the color of a note, and the colors that it offers. */
 button.swatch {
   flex: none;
@@ -145,9 +163,9 @@ textarea:focus {
   box-shadow: inset 0 0 0 1px var(--note-color, var(--vscode-focusBorder));
 }
 
-/* The other threads while a thread is selected: dimmed, and clear again under the pointer or with the focus. */
+/* The other threads while a thread is selected: dimmed a little, and clear again under the pointer or with the focus. */
 body.with-selection .thread:not(.selected, :hover, :focus-within) {
-  opacity: 0.5;
+  opacity: 0.7;
 }
 
 /* In the list, the selected thread scrolls to the top of the view, also the last one: an empty part follows the threads. */
@@ -155,97 +173,10 @@ body.with-selection .thread:not(.selected, :hover, :focus-within) {
   scroll-margin-top: 8px;
 }
 
-body:not(.aligned) #notes:has(.thread)::after {
+#notes:has(.thread)::after {
   content: '';
   display: block;
   height: 80vh;
-}
-
-/* The aligned view: the threads stand at the places of their highlights, and the page does not scroll. */
-html:has(body.aligned),
-body.aligned {
-  height: 100%;
-  overflow: hidden;
-}
-
-body.aligned {
-  padding-left: 18px;
-}
-
-body.aligned #notes {
-  position: relative;
-  height: 100%;
-}
-
-body.aligned .thread,
-body.aligned .new-note {
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin: 0;
-  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
-}
-
-body.aligned .new-note {
-  padding: 4px 8px;
-  border: 1px solid var(--vscode-focusBorder);
-  border-radius: 3px;
-}
-
-body.aligned .new-note h2.new-title {
-  margin-top: 0;
-}
-
-body.aligned > #notes > .hint {
-  margin-top: 8px;
-}
-
-.marks {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  display: none;
-}
-
-body.aligned .marks {
-  display: block;
-}
-
-.marks .mark {
-  position: absolute;
-  left: 0;
-  width: 4px;
-  border-radius: 1px;
-}
-
-body.with-selection .marks .mark:not(.selected) {
-  opacity: 0.4;
-}
-
-.connection {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  display: none;
-}
-
-body.aligned .connection {
-  display: block;
-}
-
-.connection .line {
-  fill: none;
-  stroke-width: 2;
-}
-
-.sign-in {
-  margin: 4px 0 0;
-  font-size: 0.9em;
 }
 
 .thread-header {

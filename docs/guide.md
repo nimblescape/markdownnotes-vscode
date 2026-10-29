@@ -454,27 +454,22 @@ the only place of the text of the notes, and their editor:
 
 ### The view next to the text
 
-While a text editor shows the file, the side view stands next to it, as the
-compare view of VS Code shows two texts side by side:
+The side view is a list of the threads in the order of the file, with the
+name of the file and your GitHub account at its top, next to the text editor
+and next to the Markdown preview alike:
 
-- Each thread stands at the height of its highlight in the text editor, and
-  moves with the text when you scroll. When threads would overlap, they move
-  apart: the selected thread stays at its highlight, the threads before it
-  move up and the threads after it move down.
-- The left edge of the view has a mark in the color of each note at the rows
-  of its highlight. Only the selected thread has a line from its mark to the
-  thread.
-- The mouse wheel over the view scrolls the text editor.
-- The editor of a new note stands at the row of the cursor.
+- You scroll the list on its own, with the mouse wheel over the view, to find
+  a note. The list does not follow the scrolling of the text editor.
+- A click on a highlight, or a move of the cursor into it, selects its thread
+  and scrolls the thread to the top of the view. A click on a thread shows its
+  highlight in the text editor or the preview.
+- While a thread is selected, the other threads are dimmed a little.
+- The editor of a new note stands at the top of the list.
 
-VS Code does not tell an extension where a line of the text stands on the
-screen, so the extension computes the heights from the lines that the text
-editor shows. Where the editor wraps long lines, the height is an estimate,
-and an open panel below the editor, such as the terminal, moves the rows away
-from the computed height. The Markdown preview tells an extension no place of
-its text, so next to the preview the view lists the threads, with the name of
-the file and your GitHub account at its top, and scrolls the selected thread
-to the top.
+VS Code tells an extension only the whole rows that a text editor shows, and
+only after it scrolled, and no place of the text of the preview, so the view
+cannot stand at the height of each highlight and move smoothly with the
+text.
 
 ### Editors of the side view
 
