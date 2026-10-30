@@ -317,7 +317,12 @@ Markdown file with notes without this extension knowing anything of papers:
     of a file and in the format on save ([R-FMT-001](#r-fmt-001)). `file` is
     the URI of the file. A Markdown file that a step formats gets the format
     on save also without notes. A step that fails, or returns no lines,
-    changes nothing. In the clean editing view, the steps run with the save
+    changes nothing. When the steps change the text, the steps of the notes
+    run again, and the other steps after them while the text still changes,
+    at most three times: so a step that writes the markers of a list gets
+    the anchors of its captions in the same format
+    ([R-GEN-016](#r-gen-016)). A step must keep a text that it formatted as
+    it is. In the clean editing view, the steps run with the save
     of the file, not in "Format Document" of the view.
   - `registerHiddenBlocks({ find(lines) })`: blocks of whole lines at the
     end of a file that the clean editing view leaves out

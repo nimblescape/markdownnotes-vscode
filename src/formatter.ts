@@ -19,7 +19,9 @@
  * Markdown Paper for its citations, so that one formatter formats the notes and
  * the parts of the other extension in one edit. A step runs after the steps of
  * the notes on the text of a file; in the clean editing view, it runs with the
- * save of the file.
+ * save of the file. When a step changes the text, the steps of the notes and
+ * the other steps run again, at most three times, so that one format is
+ * enough.
  *
  * The formatter writes the current code of the source of each listing of a
  * file ([R-CODE-002](../docs/requirements.md#r-code-002)): it reads the file of
@@ -172,9 +174,20 @@ export function sourceOf(file: vscode.Uri): Source | undefined {
  */
 export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, steps?: FormatSteps): vscode.TextEdit[] {
   const lines = document.getText().split(/\r\n|\r|\n/);
-  let changed = changes.format ? formatMarkdown(lines, { source: sourceOf(document.uri) }) : lines;
-  if (changes.format && steps) {
-    changed = steps.run(document, changed);
+  const options = { source: sourceOf(document.uri) };
+  let changed = changes.format ? formatMarkdown(lines, options) : lines;
+  // A step of another extension can write what the steps of the notes read, such as the markers of a generated list,
+  // whose captions then get their anchors (R-GEN-016); the steps run again while they change the text, at most three
+  // times, so that one format gives the text that the next format keeps.
+  for (let round = 0; changes.format && steps && round < 3; round++) {
+    const stepped = steps.run(document, changed);
+    if (stepped.join('\n') === changed.join('\n')) {
+      break;
+    }
+    changed = formatMarkdown(stepped, options);
+    if (changed.join('\n') === stepped.join('\n')) {
+      break;
+    }
   }
   const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true) : undefined;
   if (comment) {

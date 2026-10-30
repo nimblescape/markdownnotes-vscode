@@ -203,7 +203,8 @@ The first version.
 - An API for other extensions, such as nimblescape Markdown Paper:
   `getAPI(1)` of the export of the extension, with `fileOf`, which names the
   file behind a clean editing view, `registerFormatStep` for a step of the
-  formatter after the steps of the notes, `registerHiddenBlocks` for blocks
+  formatter after the steps of the notes, which run again while the steps
+  change the text, `registerHiddenBlocks` for blocks
   at the end of a file that the clean editing view leaves out, and
   `registerSlashCommand` for a slash command.
 - The settings `nimblescape.markdownNotes.showHighlights`,

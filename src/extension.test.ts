@@ -171,6 +171,33 @@ test('another extension adds a step of the formatter through the API, which runs
   expect(await save(cited)).toEqual([]);
 });
 
+test('a step of another extension that writes the markers of a list runs again after the anchors of the captions, so that one format is enough (R-GEN-016, R-GEN-012)', async () => {
+  fake.settings.set('workspace', { addFormatComment: false });
+  const { api } = await fake.activate();
+  let runs = 0;
+  // A step as Markdown Paper writes the list of figures: the markers under its heading, and a link to each anchor.
+  const registration = api.getAPI(1)!.registerFormatStep({
+    applies: (lines: readonly string[]) => lines.includes('## Figures'),
+    format: (lines: readonly string[]) => {
+      runs++;
+      const entries = lines.flatMap((line) => {
+        const match = /^(Figure \d+): .*<a id="(fig-[a-z0-9-]+)"><\/a>$/.exec(line);
+        return match ? [`- [${match[1]}](#${match[2]})`] : [];
+      });
+      const rest = lines.slice(lines.indexOf('## Figures') + 1);
+      const after = rest.includes('<!-- /lof -->') ? rest.slice(rest.indexOf('<!-- /lof -->') + 1) : rest;
+      return [...lines.slice(0, lines.indexOf('## Figures') + 1), '', '<!-- lof -->', ...entries, '<!-- /lof -->', ...after];
+    },
+  } as never);
+  const file = fake.open('## Figures\n\nFigure: The plan\n\n![The plan](plan.png)\n', '/folder/figures.md');
+  const text = await saved(file);
+  expect(text).toBe('## Figures\n\n<!-- lof -->\n- [Figure 1](#fig-plan)\n<!-- /lof -->\n\nFigure 1: The plan<a id="fig-plan"></a>\n\n![The plan](plan.png)\n');
+  expect(runs).toBe(2);
+  // The next format keeps the text.
+  expect(await save(fake.open(text, '/folder/formatted.md'))).toEqual([]);
+  registration.dispose();
+});
+
 test('another extension hides blocks at the end of a file in the clean editing view through the API, until its disposal (R-TEXT-009, R-GEN-012)', async () => {
   const { api } = await fake.activate();
   const { cleanUriOf } = await import('./cleanView');

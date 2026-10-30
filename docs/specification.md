@@ -330,8 +330,11 @@ form of the notes in a file for programs and AI agents, and
 
 The export has `getAPI(version)`; `getAPI(1)` gives `fileOf(uri)`,
 `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand`, each
-register call with a disposable. Checks of another extension go on the file
-that `fileOf` names ([R-GEN-012](requirements.md#r-gen-012)).
+register call with a disposable. The steps of the formatter of other
+extensions run after the steps of the notes, and both run again while the
+steps change the text, at most three times, so that one format is enough.
+Checks of another extension go on the file that `fileOf` names
+([R-GEN-012](requirements.md#r-gen-012)).
 
 ---
 
