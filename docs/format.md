@@ -226,11 +226,15 @@ A program, for example an AI agent, follows these steps:
   nothing and exits with 1 when the file is not formatted. The formatter puts
   each paragraph on one line, aligns the tables, gives each start marker its
   `<wbr>`, adds the start marker of a note without one, writes the numbers of
-  the links to figures and tables ([8](#8-figures-tables-and-links-to-them)),
-  and keeps the answers of the notes, code blocks and HTML as they are.
-- **Link to a figure or a table:** give it an anchor at the end of the line
-  of its image or its caption when it has none, and write a link with a word
-  and a number to it ([8](#8-figures-tables-and-links-to-them)).
+  the captions and of the links to figures and tables
+  ([8](#8-figures-tables-and-links-to-them)), and keeps the answers of the
+  notes, code blocks and HTML as they are.
+- **Add a figure or a table:** write its caption line before it, for example
+  `Figure: Plan of the study`, a blank line and the image; the formatter
+  writes the number ([8](#8-figures-tables-and-links-to-them)).
+- **Link to a figure or a table:** give it an anchor at the end of its caption
+  when it has none, and write a link with a word and a number to it
+  ([8](#8-figures-tables-and-links-to-them)).
 
 An AI agent writes as the author the GitHub login of the person that it works
 for, or a GitHub login of its own; the author of an answer is always known.
@@ -242,9 +246,11 @@ The extension also adds figures, tables and links to them and to sections
 and not part of the notes, so the version of the format stays 1.0.0.
 
 ```markdown
-![Plan of the study](images/plan.png)<a id="fig-plan-study"></a>
+Figure 1: Plan of the study<a id="fig-plan-study"></a>
 
-Table: Participants by grade<a id="tab-participants-grade"></a>
+![Plan of the study](images/plan.png)
+
+Table 1: Participants by grade<a id="tab-participants-grade"></a>
 
 | Grade | Participants |
 | ----- | ------------ |
@@ -253,13 +259,28 @@ Table: Participants by grade<a id="tab-participants-grade"></a>
 As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
 ```
 
-- A figure is an image that stands alone in its paragraph. Its caption is the
-  text of the image.
-- A table has a caption: a paragraph that starts with `Table:` and stands
-  directly before the table, with one blank line between them.
-- The anchor of a figure or a table stands at the end of the line of its
-  image or its caption: `<a id="fig-` or `<a id="tab-`, a name of small
-  letters, digits and hyphens, and `"></a>`. The name is unique in the file.
+- A figure, a table and a listing of code ([10](#10-listings-of-code)) have a
+  caption: a paragraph that starts with a word, a number and a colon, and
+  stands directly before the paragraph of the image, before the table, or
+  before the comment of the listing, with one blank line between them. The
+  words are `Figure` or `Abbildung`, `Table` or `Tabelle`, and `Listing`.
+- A figure is an image that stands alone in its paragraph after its caption.
+  An image without a caption is no figure.
+- The number of a caption is the place of the item among the items of its
+  kind in the file, from 1. The formatter writes it anew after each change
+  of the order, also into a caption without a number, for example
+  `Table 2:` for `Table:`. The word and the text stay. Headings have no
+  numbers ([R-GEN-016](requirements.md#r-gen-016)).
+- The anchor of a figure or a table stands at the end of its caption:
+  `<a id="fig-` or `<a id="tab-`, a name of small letters, digits and
+  hyphens, and `"></a>`. The name is unique in the file. An image of the
+  older form with the anchor at its end and without a caption still counts
+  as a figure; the formatter gives it a caption line with the text of the
+  image.
+- A file with a generated list, such as the list of figures between
+  `<!-- lof -->` and `<!-- /lof -->` (`lot` for tables, `lol` for listings),
+  gets an anchor at each caption of that kind from the formatter. Markdown
+  Paper writes the entries of the lists.
 - A link to a figure or a table has a word and a number as its text, for
   example `[Table 1](#tab-participants-grade)` or
   `[Abbildung 2](#fig-plan-study)`. The number is the place of the figure
@@ -305,7 +326,7 @@ A listing is a fenced code block whose code comes from a source file of the
 repository ([R-CODE-001](requirements.md#r-code-001)):
 
 ````markdown
-Listing: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
+Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -331,10 +352,9 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   the name never names a symbol of the language
   ([R-CODE-005](requirements.md#r-code-005)), and the formatter reports a
   listing whose snippet the file does not have as not found.
-- The caption line `Listing:` before the comment, with only blank lines
+- The caption line `Listing 1:` before the comment, with only blank lines
   between them, and the anchor `lst-…` at its end, work as those of a table;
-  a link to it is `[Listing 1](#lst-reading-fields)`. The caption has no
-  number.
+  a link to it is `[Listing 1](#lst-reading-fields)`.
 - The text of the caption is free text and a link to the source: the path of
   the comment, and for a snippet `#L`, the first line, `-L` and the last
   line of the snippet in the source file, from 1, from the line after the
@@ -347,7 +367,8 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   code in the Markdown file, or the lines of the link, loses the change with
   the next format: change the source file. An AI agent that adds a listing
   writes the caption line `Listing: ` with its text, the comment and an
-  empty code block, and runs `markdownnotes format`.
+  empty code block, and runs `markdownnotes format`, which writes the number,
+  the link and the code.
 
 ---
 

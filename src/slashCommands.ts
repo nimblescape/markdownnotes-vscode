@@ -25,11 +25,12 @@
  * `/figure` and `/table` add an entry, and `/ref` a reference to it
  * ([R-XREF-001](../docs/requirements.md#r-xref-001)). On a line of their own,
  * `/figure` lists the images of the workspace and inserts the chosen one as a
- * figure, with its caption selected for typing, and `/table` inserts a table of
- * two columns with its caption line `Table:`. In text, `/ref` lists the
- * figures, tables, listings and sections of the file and inserts a link to the
- * chosen one, such as `[Table 1](#tab-grades)`, after it gave a figure, a table
- * or a listing an anchor at the end of its line. A link to a section names the
+ * figure, with its caption line such as `Figure 2:` before it and the caption
+ * selected for typing, and `/table` inserts a table of two columns with its
+ * caption line such as `Table 1:`. In text, `/ref` lists the figures, tables,
+ * listings and sections of the file and inserts a link to the chosen one, such
+ * as `[Table 1](#tab-grades)`, after it gave a figure, a table or a listing an
+ * anchor at the end of its caption. A link to a section names the
  * ID that GitHub gives its heading, such as `[Chapter 2.1](#methods)`, and the
  * heading gets no anchor ([src/notes/figures.ts](notes/figures.ts)).
  *
@@ -51,7 +52,7 @@ import * as vscode from 'vscode';
 import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
-import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
+import { anchorColumn, anchorName, anchorText, captionWord, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
 import { listingBlock, listingTarget, snippetsOf, sourceFiles } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
@@ -75,8 +76,24 @@ const ownLabels = ['/note', '/todo', '/footnote', '/figure', '/table', '/listing
 /** imageFiles are the files that `/figure` lists: the images that the Markdown preview and GitHub show. */
 export const imageFiles = '**/*.{png,jpg,jpeg,gif,svg,webp,avif}';
 
-/** tableSnippet is the table that `/table` inserts: its caption line, a blank line, and a table of two columns. */
-export const tableSnippet = 'Table: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0';
+/**
+ * tableSnippet returns the table that `/table` inserts: its caption line, a blank line, and a table of two columns.
+ * @param caption - The start of the caption: its word and its number, for example `Table 2:`.
+ */
+export const tableSnippet = (caption: string): string => `${caption} \${1:Caption}\n\n| \${2:Column} | \${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0`;
+
+/**
+ * captionStart returns the start of a new caption of a figure, a table or a listing at a line of a text: the word of
+ * the links of the text or of the language of VS Code, and the number after the captions of its kind before the line,
+ * for example `Tabelle 2:`. The formatter writes the numbers of the captions after it anew.
+ * @param lines - The lines of the text.
+ * @param kind - The kind of the new item.
+ * @param line - The index of the line of the new caption.
+ */
+export function captionStart(lines: readonly string[], kind: 'figure' | 'table' | 'listing', line: number): string {
+  const before = findItems(lines).filter((item) => item.kind === kind && item.line < line).length;
+  return `${captionWord(lines, kind, vscode.env.language ?? 'en')} ${before + 1}:`;
+}
 
 /**
  * snippetText escapes a text for a snippet, so that VS Code inserts it as it is.
@@ -375,7 +392,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       figure.command = { command: slashCommandIds.figure, title: 'Add Figure', arguments: [document.uri] };
       const listing = item('/listing', 'Add Listing', 'Code of a file of the workspace, which the formatter keeps current', vscode.CompletionItemKind.Function, range, '');
       listing.command = { command: slashCommandIds.listing, title: 'Add Listing', arguments: [document.uri] };
-      items.push(figure, item('/table', 'Add Table', 'A table with its caption line "Table:"', vscode.CompletionItemKind.Function, range, new vscode.SnippetString(tableSnippet)), listing);
+      const table = item('/table', 'Add Table', 'A table with its caption line "Table 1:"', vscode.CompletionItemKind.Function, range, new vscode.SnippetString(tableSnippet(captionStart(lines, 'table', position.line))));
+      items.push(figure, table, listing);
     }
     // A link stands where a reference of a footnote can stand, in the text of a block.
     if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && (findItems(linesOf(found.file)).length > 0 || readFields(linesOf(found.file)).size > 0)) {
@@ -443,7 +461,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
 
   /**
    * figure inserts an image of the workspace as a figure for `/figure`, after VS Code removed the typed command: the user
-   * chooses the image, and its caption is selected for typing. Without images, the path is selected after the caption.
+   * chooses the image, and the figure gets its caption line, a blank line and the image. The caption is selected for
+   * typing, and the text of the image repeats it. Without images, the path is selected after the caption.
    * @param uri - The URI of the document.
    */
   private async figure(uri: vscode.Uri): Promise<void> {
@@ -469,7 +488,9 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       }
       path = snippetText(chosen.relative);
     }
-    await editor.insertSnippet(new vscode.SnippetString(`![\${1:Caption}](${path})`), editor.selection.active);
+    const at = editor.selection.active;
+    const caption = captionStart(editor.document.getText().split(/\r\n|\r|\n/), 'figure', at.line);
+    await editor.insertSnippet(new vscode.SnippetString(`${caption} \${1:Caption}\n\n![\${1:Caption}](${path})`), at);
   }
 
   /**
@@ -519,13 +540,13 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const target = listingTarget(chosen.relative, text, name);
     const file = this.mirror?.realOf(editor.document.uri);
     // The clean editing view hides the link of the caption and the comment: the view gets the caption and the code block.
-    const lines = file ? ['Listing: ${1:Caption}', '', ...code.map(snippetText)] : [`Listing: [\${1:Caption}](${snippetText(target)})`, '', snippetText(comment), '', ...code.map(snippetText)];
     const at = editor.selection.active;
+    const head = `${captionStart(editor.document.getText().split(/\r\n|\r|\n/), 'listing', at.line)} `;
+    const lines = file ? [`${head}\${1:Caption}`, '', ...code.map(snippetText)] : [`${head}[\${1:Caption}](${snippetText(target)})`, '', snippetText(comment), '', ...code.map(snippetText)];
     await editor.insertSnippet(new vscode.SnippetString(`${lines.join('\n')}\n$0`), at, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
     if (file) {
       // The hidden parts go into the file after the view wrote the caption and the code block there.
       await this.mirror?.settled?.(editor.document.uri);
-      const head = 'Listing: ';
       const start = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line, at.character + head.length), true);
       const end = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line, at.character + head.length + 'Caption'.length));
       const fence = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line + 2, 0), true);

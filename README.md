@@ -16,8 +16,9 @@ the file, with the GitHub login of the author.
 
 ## What the extension does on your computer
 
-- **When it works.** The extension starts when a Markdown file opens, or when
-  you click the highlight of a note in the Markdown preview. It does not run in
+- **When it works.** The extension starts with a workspace that holds a
+  Markdown file, when a Markdown file opens, or when you click the highlight
+  of a note in the Markdown preview. It does not run in
   VS Code for the Web.
 - **Markdown files.** The extension reads the open Markdown files to find
   their notes. It changes the text of a file only when you save, add, answer

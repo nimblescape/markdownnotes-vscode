@@ -62,11 +62,13 @@ highlights in the text editor and the Markdown preview. The
 
 ## Figures, tables and listings
 
-[Figure 1](#fig-participants-study-grade) shows the participants of the study by their grades, and [Table 1](#tab-participants-grade) gives their numbers. `/figure` and `/table` add a figure and a table, and `/ref` adds a link to one of them. The formatter writes the numbers of the links from the order in the file.
+[Figure 1](#fig-participants-study-grade) shows the participants of the study by their grades, and [Table 1](#tab-participants-grade) gives their numbers. `/figure` and `/table` add a figure and a table, and `/ref` adds a link to one of them. The formatter writes the numbers of the captions and of the links from the order in the file.
 
-![Participants of the study by grade](images/participants.svg)<a id="fig-participants-study-grade"></a>
+Figure 1: Participants of the study by grade<a id="fig-participants-study-grade"></a>
 
-Table: Participants by grade<a id="tab-participants-grade"></a>
+![Participants of the study by grade](images/participants.svg)
+
+Table 1: Participants by grade<a id="tab-participants-grade"></a>
 
 | Grade | Participants |
 | ----- | ------------ |
@@ -76,7 +78,7 @@ Table: Participants by grade<a id="tab-participants-grade"></a>
 
 [Listing 1](#lst-removing-common-indentation) shows code of the extension itself: `/listing` adds the code of a function of a source file, and the formatter keeps it current.
 
-Listing: [Removing the common indentation](../src/notes/listings.ts#L216-L225)<a id="lst-removing-common-indentation"></a>
+Listing 1: [Removing the common indentation](../src/notes/listings.ts#L215-L224)<a id="lst-removing-common-indentation"></a>
 
 <!-- listing: ../src/notes/listings.ts#dedent -->
 

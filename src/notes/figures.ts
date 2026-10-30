@@ -16,17 +16,25 @@
  * `[Chapter 2.1](#methods)`. An anchor of the older form,
  * `## Methods<a id="sec-methods"></a>`, still counts.
  *
- * A figure is an image that stands alone in its paragraph, and its caption is
- * the text of the image. A table has a caption: a paragraph that starts with
- * `Table:` directly before it. A figure or a table that a link names has an
- * anchor at the end of the line of its image or its caption, for example
- * `<a id="tab-grades"></a>`, and a link to it has a word and a number as its
- * text, for example `[Table 1](#tab-grades)`. A listing of code
- * ([R-CODE-001](../../docs/requirements.md#r-code-001)) has the caption
- * `Listing:` before the comment of its source and its code block, with its
- * text as a link to the source, and the anchor `lst-…`. The formatter writes the number of each link from the order
- * of the figures, the tables, the listings and the sections in the text. The
- * module uses no API of VS Code.
+ * A figure, a table and a listing of code
+ * ([R-CODE-001](../../docs/requirements.md#r-code-001)) have a caption: a
+ * paragraph that starts with a word, a number and a colon, directly before the
+ * paragraph of the image, the table, or the comment of the source and the code
+ * block of the listing, for example `Figure 1: Participants by grade`,
+ * `Tabelle 2: Noten` or `Listing 3: [Reading the fields](../src/fields.ts#L12-L30)`.
+ * The text of the caption of a listing is a link to its source. An image
+ * without a caption is no figure, apart from an image of the older form with
+ * the anchor `fig-…` at its end, which the formatter gives a caption.
+ *
+ * A figure, a table or a listing that a link names has an anchor at the end of
+ * its caption, for example `<a id="tab-grades"></a>`, and a link to it has a
+ * word and a number as its text, for example `[Table 1](#tab-grades)`. The
+ * formatter writes the number of each caption and of each link from the order
+ * of the figures, the tables, the listings and the sections in the text, which
+ * keeps the file current without a renderer
+ * ([R-GEN-016](../../docs/requirements.md#r-gen-016)). The headings get no
+ * number, because it would change the IDs that links from other files name.
+ * The module uses no API of VS Code.
  */
 
 import type { Token } from 'markdown-it';
@@ -41,12 +49,14 @@ export type ItemKind = 'figure' | 'table' | 'listing' | 'section';
 export interface Item {
   kind: ItemKind;
   /**
-   * caption is the text of the image of a figure, the text after `Table:`, the text of the link after `Listing:` or the
-   * text of a heading, without the anchor.
+   * caption is the text of the caption of a figure or a table after its number, the text of the link of the caption of
+   * a listing, the text of the image of a figure of the older form, or the text of a heading, without the anchor.
    */
   caption: string;
-  /** line is the index of the line that ends the image, the caption or the text of the heading, where its anchor stands. */
+  /** line is the index of the line that ends the caption, the image or the text of the heading, where its anchor stands. */
   line: number;
+  /** head is the index of the first line of the caption, which starts with its word and its number. */
+  head?: number;
   /** level is the level of the heading of a section, 1 for `#`. */
   level?: number;
   /** anchor is the name of the anchor, or undefined without one. */
@@ -84,6 +94,15 @@ const anchorPattern = String.raw`<a id="((?:fig|tab|lst|sec)-[a-z0-9]+(?:-[a-z0-
 /** hasAnchor tells quickly whether a text can hold an anchor. */
 export const hasAnchor = (text: string): boolean => /<a id="(?:fig|tab|lst|sec)-/.test(text);
 
+/** captionKinds are the words of the captions, by the kind of item that each one names. */
+const captionKinds: Readonly<Record<string, ItemKind>> = { Figure: 'figure', Abbildung: 'figure', Table: 'table', Tabelle: 'table', Listing: 'listing' };
+
+/** captionPattern matches the text of a caption: its word, its number when it has one, and its text. */
+const captionPattern = /^(Figure|Abbildung|Table|Tabelle|Listing)(?:[ \t]+\d+)?:\s*([^]*)$/;
+
+/** captionHead matches the word and the number of a caption at the start of its first line, after the marks of quotes. */
+const captionHead = /^((?:[ \t]*>)*[ \t]*)(Figure|Abbildung|Table|Tabelle|Listing)(?:[ \t]+\d+)?[ \t]*:/;
+
 /** prefixes are the prefixes of the names of the anchors of each kind. */
 const prefixes: Record<ItemKind, string> = { figure: 'fig', table: 'tab', listing: 'lst', section: 'sec' };
 
@@ -109,9 +128,9 @@ function imageOf(inline: Token): string | undefined {
 }
 
 /**
- * findItems returns the figures, the tables and the sections of a Markdown text in the order of the text. Code blocks,
- * HTML, the front matter and the texts of the notes hold none. A heading above the top level of the sections, such as
- * the title of a document with sections of the level `##`, starts no section ([topLevel](#toplevel)).
+ * findItems returns the figures, the tables, the listings and the sections of a Markdown text in the order of the text.
+ * Code blocks, HTML, the front matter and the texts of the notes hold none. A heading above the top level of the
+ * sections, such as the title of a document with sections of the level `##`, starts no section ([topLevel](#toplevel)).
  * @param lines - The lines of the text.
  */
 export function findItems(lines: readonly string[]): Item[] {
@@ -130,6 +149,8 @@ export function findItems(lines: readonly string[]): Item[] {
     return id;
   };
   let depth = 0;
+  /** pictures are the indexes of the tokens of the paragraphs of the images of figures with a caption. */
+  const pictures = new Set<number>();
   tokens.forEach((token, index) => {
     if (token.type === noteOpenType) {
       depth++;
@@ -149,26 +170,38 @@ export function findItems(lines: readonly string[]): Item[] {
       items.push({ kind: 'section', caption, line, level: Number(token.tag.slice(1)), id, ...(anchor ? { anchor: anchor.name, anchorStart: anchor.start, anchorEnd: anchor.end } : {}) });
       return;
     }
-    if (token.type !== 'paragraph_open') {
+    if (token.type !== 'paragraph_open' || pictures.has(index)) {
       return;
     }
     const last = token.map[1] - 1;
     const anchor = anchorOf(lines[last]);
     const located = anchor ? { anchor: anchor.name, anchorStart: anchor.start, anchorEnd: anchor.end } : {};
-    const caption = imageOf(inline);
-    if (caption !== undefined) {
-      items.push({ kind: 'figure', caption, line: last, ...located });
+    const image = imageOf(inline);
+    if (image !== undefined) {
+      // An image of the older form, with the anchor of a figure and without a caption, still counts.
+      if (anchor?.name.startsWith('fig-')) {
+        items.push({ kind: 'figure', caption: image, line: last, ...located });
+      }
       return;
     }
-    const captioned = /^(Table|Listing):\s*([^]*)$/.exec(inline.content.replace(new RegExp(anchorPattern, 'g'), '').trim());
+    const captioned = captionPattern.exec(inline.content.replace(new RegExp(anchorPattern, 'g'), '').trim());
+    if (!captioned) {
+      return;
+    }
+    const kind = captionKinds[captioned[1]];
     const next = tokens[index + 3];
     // The caption of a listing can have the comment of its source between it and the code block.
     const code = next?.type === 'fence' || (next?.type === 'html_block' && tokens[index + 4]?.type === 'fence');
-    if (captioned && (captioned[1] === 'Table' ? next?.type === 'table_open' : code)) {
-      // The caption of a listing is the text of the link to its source.
-      const text = captioned[1] === 'Listing' ? (/^\[([^]*)\]\([^()\s]*\)$/.exec(captioned[2])?.[1] ?? captioned[2]) : captioned[2];
-      items.push({ kind: captioned[1] === 'Table' ? 'table' : 'listing', caption: text.replace(/\s+/g, ' ').trim(), line: last, ...located });
+    const picture = next?.type === 'paragraph_open' && imageOf(tokens[index + 4]) !== undefined;
+    if (kind === 'table' ? next?.type !== 'table_open' : kind === 'listing' ? !code : !picture) {
+      return;
     }
+    if (kind === 'figure') {
+      pictures.add(index + 3);
+    }
+    // The caption of a listing is the text of the link to its source.
+    const text = kind === 'listing' ? (/^\[([^]*)\]\([^()\s]*\)$/.exec(captioned[2])?.[1] ?? captioned[2]) : captioned[2];
+    items.push({ kind, caption: text.replace(/\s+/g, ' ').trim(), line: last, head: token.map[0], ...located });
   });
   const top = topLevel(items);
   return items.filter((item) => item.kind !== 'section' || item.level! >= top);
@@ -356,6 +389,101 @@ export function numberLinks(lines: readonly string[]): string[] {
       return counts ? `[${word}${space}${labelOf(items, target.item)}](#${name})` : whole;
     });
   });
+}
+
+/**
+ * numberCaptions returns the lines of a Markdown text with the number of each caption of a figure, a table and a
+ * listing written anew from the order of the items in the text, for example `Table 2:` for `Table:` or `Table 5:`
+ * ([R-XREF-001](../../docs/requirements.md#r-xref-001)). The word of a caption and its text stay.
+ * @param lines - The lines of the text.
+ */
+export function numberCaptions(lines: readonly string[]): string[] {
+  if (!lines.some((line) => captionHead.test(line))) {
+    return [...lines];
+  }
+  const items = findItems(lines);
+  const numbered = [...lines];
+  for (const item of items) {
+    if (item.head !== undefined) {
+      numbered[item.head] = numbered[item.head].replace(captionHead, (_whole: string, quotes: string, word: string) => `${quotes}${word} ${numberOf(items, item)}:`);
+    }
+  }
+  return numbered;
+}
+
+/**
+ * captionFigures returns the lines of a Markdown text with a caption for each figure of the older form: an image alone
+ * in its paragraph, outside a list or a quote, with the anchor of a figure at its end and without a caption. The text
+ * of the image becomes the caption, which gets the anchor, and a blank line separates it from the image
+ * ([R-XREF-001](../../docs/requirements.md#r-xref-001)). The word of the caption is the word of the links, `Abbildung`
+ * or `Figure`.
+ * @param lines - The lines of the text.
+ */
+export function captionFigures(lines: readonly string[]): string[] {
+  if (!lines.some((line) => line.includes('<a id="fig-'))) {
+    return [...lines];
+  }
+  const old = findItems(lines).filter((item) => item.kind === 'figure' && item.head === undefined);
+  if (old.length === 0) {
+    return [...lines];
+  }
+  const word = wordOf(lines, 'figure') === 'Abbildung' ? 'Abbildung' : 'Figure';
+  const captioned = [...lines];
+  for (const item of [...old].reverse()) {
+    let first = item.line;
+    while (first > 0 && captioned[first - 1].trim() !== '') {
+      first--;
+    }
+    if (!captioned[first].startsWith('![')) {
+      continue;
+    }
+    const line = captioned[item.line];
+    captioned[item.line] = (line.slice(0, item.anchorStart) + line.slice(item.anchorEnd)).trimEnd();
+    captioned.splice(first, 0, `${word}: ${item.caption}`.trimEnd() + anchorText(item.anchor!), '');
+  }
+  return captioned;
+}
+
+/** listNames are the names of the hidden markers of the generated lists of the figures, the tables and the listings. */
+const listNames: Readonly<Record<'figure' | 'table' | 'listing', string>> = { figure: 'lof', table: 'lot', listing: 'lol' };
+
+/**
+ * anchorCaptions returns the lines of a Markdown text with an anchor at the end of each caption of a kind whose list
+ * the text holds: the list of figures between `<!-- lof -->` and `<!-- /lof -->`, the list of tables with `lot`, or
+ * the list of listings with `lol`. Each entry of a generated list links to the anchor of its item, so that the list
+ * works on GitHub ([R-GEN-016](../../docs/requirements.md#r-gen-016)). The anchor gets the name that `/ref` gives it.
+ * @param lines - The lines of the text.
+ */
+export function anchorCaptions(lines: readonly string[]): string[] {
+  if (!lines.some((line) => /<!--\s*lo[ftl]\s*-->/.test(line))) {
+    return [...lines];
+  }
+  const markers = parse(lines).filter((token) => token.type === 'html_block').map((token) => token.content.trim());
+  const listed = (Object.keys(listNames) as (keyof typeof listNames)[]).filter((kind) => markers.some((marker) => new RegExp(`^<!--\\s*${listNames[kind]}\\s*-->`).test(marker)));
+  const items = findItems(lines);
+  const named = [...items];
+  const anchored = [...lines];
+  for (const item of items) {
+    if (item.head !== undefined && item.anchor === undefined && (listed as ItemKind[]).includes(item.kind)) {
+      const name = anchorName(item, named);
+      named.push({ ...item, anchor: name });
+      const column = anchorColumn(anchored[item.line], item);
+      anchored[item.line] = anchored[item.line].slice(0, column) + anchorText(name) + anchored[item.line].slice(column);
+    }
+  }
+  return anchored;
+}
+
+/**
+ * captionWord returns the word of a new caption of a kind: the word of the last link to an item of the kind when a
+ * caption can have it, such as `Tabelle`, else the word of the language of VS Code.
+ * @param lines - The lines of the text.
+ * @param kind - The kind of the item: a figure, a table or a listing.
+ * @param language - The language of VS Code.
+ */
+export function captionWord(lines: readonly string[], kind: Exclude<ItemKind, 'section'>, language: string): string {
+  const linked = wordOf(lines, kind);
+  return linked !== undefined && captionKinds[linked] === kind ? linked : defaultWord(kind, language);
 }
 
 /**

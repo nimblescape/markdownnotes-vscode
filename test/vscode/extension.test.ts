@@ -227,7 +227,7 @@ describe('nimblescape Markdown Notes', () => {
   it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     // Without the heading, the table is the first entry of the list of /ref.
-    fs.writeFileSync(file.fsPath, note.replace('# Title\n', 'Title.\n').replace('\nMore.\n', '\nSee .\n\nTable: People\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n'));
+    fs.writeFileSync(file.fsPath, note.replace('# Title\n', 'Title.\n').replace('\nMore.\n', '\nSee .\n\nTable 1: People\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n'));
     await vscode.commands.executeCommand('vscode.open', file);
     const view = await viewOf(file);
     const at = view.document.positionAt(view.document.getText().indexOf('See ') + 'See '.length);
@@ -244,8 +244,8 @@ describe('nimblescape Markdown Notes', () => {
       () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('<a id="tab-people"></a>')),
       'the anchor in the file',
     );
-    assert.ok(real.getText().includes('See [Table 1](#tab-people).\n\nTable: People<a id="tab-people"></a>\n'), real.getText());
-    await waitFor(() => (view.document.getText().includes('See [Table 1](#tab-people).\n\nTable: People\n') ? true : undefined), 'the hidden anchor in the view');
+    assert.ok(real.getText().includes('See [Table 1](#tab-people).\n\nTable 1: People<a id="tab-people"></a>\n'), real.getText());
+    await waitFor(() => (view.document.getText().includes('See [Table 1](#tab-people).\n\nTable 1: People\n') ? true : undefined), 'the hidden anchor in the view');
     // Saved files leave no changes behind, which the close of the editors would ask about.
     await vscode.workspace.saveAll(false);
     await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
@@ -297,7 +297,7 @@ describe('nimblescape Markdown Notes', () => {
     const read = 'export function read(path: string): string {\n  return path;\n}';
     assert.equal(
       document.getText(),
-      `Listing: [Reading](src/read%20me.ts#L2-L4)\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\nEnd.\n`,
+      `Listing 1: [Reading](src/read%20me.ts#L2-L4)\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\nEnd.\n`,
     );
     // A change of the source that is not saved yet counts.
     const opened = await vscode.workspace.openTextDocument(source);
@@ -306,7 +306,7 @@ describe('nimblescape Markdown Notes', () => {
     assert.ok(await vscode.workspace.applyEdit(change), 'the change of the source');
     await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), 'More.\n'));
     assert.ok(await document.save(), 'the second save of the file');
-    assert.ok(document.getText().startsWith('Listing: [Reading](src/read%20me.ts#L2-L4)\n\n<!-- listing: src/read%20me.ts#read -->\n\n```typescript\nexport function read(path: string): string {\n  return path.trim();\n}\n```\n'), document.getText());
+    assert.ok(document.getText().startsWith('Listing 1: [Reading](src/read%20me.ts#L2-L4)\n\n<!-- listing: src/read%20me.ts#read -->\n\n```typescript\nexport function read(path: string): string {\n  return path.trim();\n}\n```\n'), document.getText());
     assert.ok(await opened.save(), 'the save of the source');
     // A snippet between its marks, and the comment of its listing as a link to its first line (R-CODE-003).
     const snippet = vscode.Uri.file(path.join(folder, 'src', 'snippet.py'));
@@ -329,16 +329,16 @@ describe('nimblescape Markdown Notes', () => {
     fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });
     fs.writeFileSync(source.fsPath, 'export const one = 1;\n');
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
-    const listing = 'Listing: [Caption](src/listed.ts)\n\n<!-- listing: src/listed.ts -->\n\n```typescript\nexport const one = 1;\n```\n';
+    const listing = 'Listing 1: [Caption](src/listed.ts)\n\n<!-- listing: src/listed.ts -->\n\n```typescript\nexport const one = 1;\n```\n';
     fs.writeFileSync(file.fsPath, `${note}\n${listing}`);
     await vscode.commands.executeCommand('vscode.open', file);
     const view = await viewOf(file);
-    assert.ok(view.document.getText().endsWith('\nMore.\n\nListing: Caption\n\n```typescript\nexport const one = 1;\n```\n'), view.document.getText());
+    assert.ok(view.document.getText().endsWith('\nMore.\n\nListing 1: Caption\n\n```typescript\nexport const one = 1;\n```\n'), view.document.getText());
     // Text typed over the caption stays in its link.
     const start = view.document.positionAt(view.document.getText().indexOf('Caption'));
     await view.edit((edit) => edit.replace(new vscode.Range(start, start.translate(0, 'Caption'.length)), 'Reading'));
     const real = await waitFor(
-      () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('Listing: [Reading](src/listed.ts)')),
+      () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('Listing 1: [Reading](src/listed.ts)')),
       'the new caption in the link',
     );
     assert.ok(real.getText().endsWith(`\n${listing.replace('Caption', 'Reading')}`), real.getText());

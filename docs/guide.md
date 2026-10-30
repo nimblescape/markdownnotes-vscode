@@ -686,9 +686,9 @@ commands.
 | `/note` | Adds a note to the selected text. Select the text, type `/`: VS Code replaces the selected text with the slash, and `/note` puts the text back, selects it and opens the editor of the new note in the side view. The list shows `/note` only after a slash that replaced selected text. |
 | `/todo` | Adds a [todo note](#todo-notes): to the selected text, as `/note`, or else to the sentence before the command, from the end of the sentence before it (`.`, `!` or `?`) in the same paragraph, or from the start of the paragraph. It removes the command with the space before it. The list shows `/todo` only where a note can highlight the sentence. |
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
-| `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as an image alone in its paragraph, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
-| `/table` | Adds a table: its caption line `Table: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
-| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the snippets of the chosen file, and inserts the caption line `Listing: [Caption](…)` with the link to the source, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
+| `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as a figure: its caption line with the next number, for example `Figure 2: Caption`, a blank line and the image, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
+| `/table` | Adds a table: its caption line with the next number, for example `Table 1: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
+| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the snippets of the chosen file, and inserts the caption line with the next number, `Listing 2: [Caption](…)`, with the link to the source, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
 | `/ref` | Adds a link to a figure, a table, a listing or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#methods)`: lists them by their numbers and captions or headings. A figure, a table or a listing without an anchor gets one first; a link to a heading names the ID that GitHub gives it. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
@@ -701,15 +701,19 @@ Markdown Paper, which add a source of the folder `bib/` and a citation of it.
 
 ## Figures, tables and links to them
 
-A figure is an image that stands alone in its paragraph; its caption is the
-text of the image. A table has a caption: a paragraph that starts with
-`Table:` directly before it. A link to a figure or a table goes to its
-anchor, which stands at the end of the line of its image or its caption:
+A figure, a table and a listing have a caption: a paragraph that starts with
+a word, a number and a colon, directly before the image, the table or the
+listing, for example `Figure 1: Plan of the study`. A figure is an image that
+stands alone in its paragraph after its caption; an image without a caption
+is no figure. A link to a figure or a table goes to its anchor, which stands
+at the end of its caption:
 
 ```markdown
-![Plan of the study](images/plan.png)<a id="fig-plan-study"></a>
+Figure 1: Plan of the study<a id="fig-plan-study"></a>
 
-Table: Participants by grade<a id="tab-participants-grade"></a>
+![Plan of the study](images/plan.png)
+
+Table 1: Participants by grade<a id="tab-participants-grade"></a>
 
 | Grade | Participants |
 | ----- | ------------ |
@@ -727,11 +731,25 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
   for example "Tabelle" in a German text; `/ref` takes the word of the last
   link of the same kind in the file, or else the word of the language of VS
   Code (German or English).
-- The formatter writes the number of each link anew from the order of the
-  figures and the tables in the file, so that a moved table keeps the right
-  number in every link ([Formatter](#formatter)). A link in a code block or a
-  code span, and a link to an anchor that the file does not have, stay as
-  they are.
+- The formatter writes the number of each caption and of each link anew
+  from the order of the figures and the tables in the file, so that a moved
+  table keeps the right number in its caption and in every link
+  ([Formatter](#formatter)). You can write a caption without a number, for
+  example `Table: Grades`; the formatter adds it. The words of a caption are
+  "Figure" or "Abbildung", "Table" or "Tabelle", and "Listing". A link in a
+  code block or a code span, and a link to an anchor that the file does not
+  have, stay as they are.
+- The file holds the numbers, so GitHub and every other viewer of Markdown
+  show them. Headings get no numbers, because a number would change the ID
+  that GitHub gives the heading and break the links of other files
+  ([R-GEN-016](requirements.md#r-gen-016)).
+- An image of the older form, with an anchor at its end and without a
+  caption, gets a caption line with the text of the image from the
+  formatter.
+- When the file holds a generated list of figures, tables or listings of
+  nimblescape Markdown Paper, between `<!-- lof -->` and `<!-- /lof -->`
+  (`lot`, `lol`), the formatter gives each caption of that kind an anchor, so
+  that each entry of the list links to it.
 - The clean editing view hides the anchors, and a file with an anchor opens
   in it ([Clean editing view](#clean-editing-view)).
 - `/ref` also links a section, the part of the text under a heading, with
@@ -787,7 +805,7 @@ a file of the repository, or a snippet of it, and the formatter keeps it
 current:
 
 ````markdown
-Listing: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
+Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -801,7 +819,7 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 - On an empty line, type `/listing` and choose the file, then "Whole file"
   or a snippet of it ([Snippets](#snippets)); a file without snippets gives
   its whole text. Type the caption, which is selected.
-- The caption after `Listing:` is your own text, and a link to the source:
+- The caption after `Listing 1:` is your own text, and a link to the source:
   a click on it on GitHub opens the source file at the lines of the
   snippet. The formatter writes the link and keeps its lines current; you
   write only the text.
@@ -824,9 +842,8 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   Makefile), CSS, SCSS, HTML, XML, SQL, shell scripts and others.
 - GitHub and the Markdown preview show the caption and the code block,
   without the comment. `/ref` links a listing, for example
-  `[Listing 1](#lst-reading-fields)`. The caption has no number: the
-  formatter writes the numbers into the links, and nimblescape Markdown
-  Paper numbers the captions when it renders the document.
+  `[Listing 1](#lst-reading-fields)`. The formatter writes the numbers into
+  the captions and the links.
 - The clean editing view shows only the text of the caption and the code
   block: it hides the comment and the link around the caption. Ctrl+Click
   (Cmd+Click on a Mac) on the caption there, or on the path in the comment
@@ -859,9 +876,9 @@ export function parse(lines: readonly string[]): Token[] {
   names a snippet after `#`:
   `<!-- listing: ../src/parse.ts#keep-lines -->`.
 - The code of a listing never shows the marks of the snippets.
-- `/snippet` shows once the extension is active, after a Markdown file was
-  opened in the window; "Add Snippet" in the Command Palette works at any
-  time.
+- `/snippet` shows from the start in a workspace that holds a Markdown
+  file, because the extension starts with it; "Add Snippet" in the Command
+  Palette works in any window.
 - In the text editor of a source file, each mark line shows a small gray tag
   in place of the comment. The start tag names the snippet and the listings
   that show it, for example

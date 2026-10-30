@@ -9,9 +9,10 @@
  * A listing is a code block with a comment of HTML directly before it that names its source: a whole file,
  * `<!-- listing: ../src/fields.ts -->`, or a snippet of the file, `<!-- listing: ../src/fields.ts#parse-notes -->`. The
  * formatter reads the source again and writes its code into the block, the same way in VS Code and on the command line.
- * The caption of a listing, the free text after `Listing:`, is a link to its source, so that a click on it in any viewer
- * of Markdown opens the file at the lines of the snippet: `Listing: [Parsing the notes](../src/fields.ts#L12-L30)`. The
- * formatter writes the link around the caption and keeps its target current with the code.
+ * The caption of a listing, the free text after `Listing` and its number, is a link to its source, so that a click on it
+ * in any viewer of Markdown opens the file at the lines of the snippet:
+ * `Listing 1: [Parsing the notes](../src/fields.ts#L12-L30)`. The formatter writes the link around the caption and keeps
+ * its target current with the code.
  *
  * A snippet is code between two marks in comments of the source ([R-CODE-003](../../docs/requirements.md#r-code-003)):
  * `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment form of the
@@ -86,8 +87,8 @@ export function captionsOf(lines: readonly string[], items: readonly Item[], lis
   return listings.map((listing) => captions.find((item) => item.line < listing.line && lines.slice(item.line + 1, listing.line).every((line) => line.trim() === '')));
 }
 
-/** captionHead matches the start of the first line of the caption of a listing, up to the text of the caption. */
-const captionHead = /^(\s*Listing:[ \t]*)/;
+/** captionHead matches the start of the first line of the caption of a listing, with its number, up to its text. */
+const captionHead = /^(\s*Listing(?:[ \t]+\d+)?:[ \t]*)/;
 
 /** captionTail matches the end of the last line of the caption of a listing after its text: its anchor, if any. */
 const captionTail = /[ \t]*(?:<a id="lst-[a-z0-9]+(?:-[a-z0-9]+)*"><\/a>)?[ \t]*$/;

@@ -252,20 +252,30 @@ form of the notes in a file for programs and AI agents, and
 
 ## 11. Figures, tables, sections and listings
 
-- `/figure` inserts a chosen image of the workspace as a figure with its
-  caption, `/table` a table with its caption line `Table:` before it, and
-  `/ref` a link to a figure or a table of the file, such as
-  `[Table 1](#tab-grades)`, after it gave the target an anchor at the end of
-  its caption line. The clean editing view hides the anchors
+- `/figure` inserts a chosen image of the workspace as a figure after its
+  caption line, such as `Figure 2: Caption`, `/table` a table with its
+  caption line, such as `Table 1: Caption`, before it, and `/ref` a link to a
+  figure or a table of the file, such as `[Table 1](#tab-grades)`, after it
+  gave the target an anchor at the end of its caption line. An image without
+  a caption is no figure. The clean editing view hides the anchors
   ([R-XREF-001](requirements.md#r-xref-001)).
+- The file is document driven: the formatter writes the numbers into the
+  captions and the links, the code and the links of the listings and the
+  values of the front matter, and keeps them current, as far as it computes
+  them from the file and its sources alone and changes nothing that other
+  files link to. Headings get no numbers. The renderer of Markdown Paper
+  adds only the look, and Markdown Paper writes the table of contents and
+  the lists of the figures, the tables and the listings into the file
+  between hidden markers ([R-GEN-016](requirements.md#r-gen-016),
+  [decision 42](requirements.md#decisions)).
 - `/ref` also links a section, the part of the text under a heading, with
   the numbers of its chapter, such as `[Chapter 2.1](#methods)`. The link
   names the ID that GitHub gives the heading, and the heading gets no anchor
   ([R-GEN-013](requirements.md#r-gen-013), "close to Markdown"). The sections
   start at the highest level that more than one heading has, so a single
   title `#` has no number ([R-XREF-003](requirements.md#r-xref-003)).
-- The formatter writes the number of each link from the order in the file:
-  a link to an anchor, and a link to the ID of a heading whose word is
+- The formatter writes the number of each caption and of each link from the
+  order in the file: a link to an anchor, and a link to the ID of a heading whose word is
   "Chapter", "Kapitel", "Section" or "Abschnitt". Markdown Paper can number
   by the rules of its layout ([R-XREF-002](requirements.md#r-xref-002)).
 - `/ref` also inserts a value of the front matter between hidden markers,
@@ -273,7 +283,7 @@ form of the notes in a file for programs and AI agents, and
   the current value of the key into it, and the clean editing view hides the
   markers ([R-XREF-004](requirements.md#r-xref-004)).
 - `/listing` inserts the code of a file of the workspace, or of a snippet of
-  it, as a listing: the caption line `Listing:` with the caption as a link
+  it, as a listing: the caption line `Listing 2:` with the caption as a link
   to the lines of the source, `[Reading](../src/fields.ts#L12-L30)`, the
   comment `<!-- listing: ../src/fields.ts#read-fields -->` and the code
   block. The clean editing view shows only the text of the caption and the

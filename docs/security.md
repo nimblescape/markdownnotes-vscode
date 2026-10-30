@@ -18,7 +18,8 @@ issue.
 The README and the Marketplace page list these behaviors at the top. Each item
 links to its details.
 
-- **When it works.** The extension activates when a Markdown file opens
+- **When it works.** The extension activates with a workspace that holds a
+  Markdown file (`workspaceContains:**/*.md`), when a Markdown file opens
   (`onLanguage:markdown`), or when VS Code passes it a link of the preview
   (`onUri`). The manifest has no `browser` entry, so the extension does not
   run in VS Code for the Web. See [Trust boundaries](#trust-boundaries).

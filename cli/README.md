@@ -51,8 +51,11 @@ request.
 - Each start marker of a note of the extension starts with `<wbr>`, and a
   note without a start marker gets one at the start of the text of its block,
   so that GitHub shows the paragraph whole and every note has its highlight.
-- Each link to a figure, a table, a listing or a section, such as
-  `[Table 1](#tab-grades)`, gets its number from the order in the file.
+- Each caption of a figure, a table or a listing, such as
+  `Table 1: Participants`, and each link to a figure, a table, a listing or
+  a section, such as `[Table 1](#tab-grades)`, gets its number from the
+  order in the file. An image of the older form with an anchor at its end
+  gets a caption line before it, `Figure 1: <the text of the image>`.
 - Each value of the front matter in the text,
   `<wbr><!--{title}-->A paper<!--{/title}-->`, gets the current value of its
   key.
@@ -62,7 +65,7 @@ request.
   `markdownnotes: snippet <name>` and `markdownnotes: /snippet <name>`,
   `<!-- listing: ../src/fields.ts#read-fields -->`. The caption line before
   it, `Listing: Reading the fields`, becomes a link to the lines of the
-  snippet in the source, `Listing: [Reading the fields](../src/fields.ts#L12-L30)`,
+  snippet in the source, `Listing 1: [Reading the fields](../src/fields.ts#L12-L30)`,
   which the command keeps current. The path is relative to the Markdown
   file, or to the current folder for the standard input. A listing whose
   source the command does not find keeps its code and its caption, and the

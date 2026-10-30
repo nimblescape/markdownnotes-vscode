@@ -102,9 +102,10 @@ test('the icon is a PNG of 256 × 256 pixels, because the Marketplace takes no S
 });
 
 test('the extension starts with the Markdown files, and adds its plugin, its styles and its script to the Markdown preview (R-PREV-001, R-PREV-002)', () => {
-  // The clean editing view (R-TEXT-009) reads its documents from the file system of the extension, also when
-  // VS Code opens one of them again after a restart.
-  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'onFileSystem:markdownnotes', 'onUri']);
+  // A workspace with a Markdown file starts it with VS Code, so that /snippet shows in a source file from the start
+  // (R-CODE-003). The clean editing view (R-TEXT-009) reads its documents from the file system of the extension, also
+  // when VS Code opens one of them again after a restart.
+  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'workspaceContains:**/*.md', 'onFileSystem:markdownnotes', 'onUri']);
   expect(manifest.contributes['markdown.markdownItPlugins']).toBe(true);
   expect(manifest.contributes['markdown.previewStyles']).toEqual(['./media/markdownPreview.css']);
   expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js']);

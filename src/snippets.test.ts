@@ -159,5 +159,5 @@ test('/listing in a Markdown file lists the whole file and the snippets of the c
     ['Whole file', 'src/keep.ts'],
     ['filter', 'Snippet'],
   ]);
-  expect(paper.text).toBe('Listing: [Caption](src/keep.ts#L3)\n\n<!-- listing: src/keep.ts#filter -->\n\n```typescript\nconst kept = lines.filter(Boolean);\n```\n\n');
+  expect(paper.text).toBe('Listing 1: [Caption](src/keep.ts#L3)\n\n<!-- listing: src/keep.ts#filter -->\n\n```typescript\nconst kept = lines.filter(Boolean);\n```\n\n');
 });

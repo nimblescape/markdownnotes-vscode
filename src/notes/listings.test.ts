@@ -223,7 +223,9 @@ describe('the listings of a text', () => {
     expect(items.map(({ kind, caption, line }) => [kind, caption, line])).toEqual([['listing', 'Reading the fields', 0]]);
     // The caption of a listing is the text of the link to its source.
     expect(findItems(formatted).map(({ caption }) => caption)).toEqual(['Reading the fields']);
-    expect(formatted[0]).toBe('Listing: [Reading the fields](../src/fields.ts#L6-L13)<a id="lst-reading-fields"></a>');
+    // The formatter writes the number of the caption.
+    expect(formatted[0]).toBe('Listing 1: [Reading the fields](../src/fields.ts#L6-L13)<a id="lst-reading-fields"></a>');
+    expect(formatMarkdown(formatted, { source })).toEqual(formatted);
     const plain = findItems(['Listing: Reading the fields', '', '```', 'x', '```', '']);
     expect(anchorName(plain[0], plain)).toBe('lst-reading-fields');
     expect(numberLinks(paper)[8]).toBe('See [Listing 1](#lst-reading-fields).');

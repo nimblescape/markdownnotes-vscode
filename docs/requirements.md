@@ -90,6 +90,9 @@ requirement, the plan and the decisions of Hannes.
 | 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | planned |
 | 62 | The marks of a snippet as tags in the look of a code lens in place of the mark lines; the cursor jumps over them; a click on an end tag goes to the start; "Rename Snippet" and "Remove Snippet" in the light bulb ([decision 37](#decisions)) | [R-CODE-004](#r-code-004) | done |
 | 63 | The caption of a listing as a link to the lines of its source, which the formatter keeps current; the clean editing view hides the comment of the listing and the link of the caption, and Ctrl+Click on the caption opens the source ([decision 41](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009) | done |
+| 64 | The principle "document driven" ([decision 42](#decisions)): the numbers of the captions of the figures, the tables and the listings from the formatter; the caption line of a figure before its image, which `/figure` inserts and the formatter writes for a figure of the older form; the anchors of the captions whose generated list the file holds | [R-GEN-016](#r-gen-016), [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-CODE-001](#r-code-001) | done |
+| 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
+| 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
 
 ## General
 
@@ -365,6 +368,48 @@ every file of the repository: the other documents,
 [the list of the requested features](features.md) and the comments of the
 code. The words of the requests stay in the discussion documents, such as
 the concept documents in Claude.
+
+### R-GEN-016
+
+**Document driven.** The Markdown file holds everything that a reader needs
+on GitHub, in another viewer of Markdown or as an AI agent. The formatter
+writes it into the file and keeps it current, in VS Code and on the command
+line: the code of each listing and the link of its caption
+([R-CODE-002](#r-code-002)), the numbers of the captions and of the links
+([R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002)), the values of the
+front matter in the text ([R-XREF-004](#r-xref-004)), and the generated lists
+and the reference list of Markdown Paper ([R-GEN-012](#r-gen-012)). Two
+limits apply ([decision 42](#decisions)):
+
+- **Reliable:** the formatter writes only what it computes from the file and
+  its source files alone, the same in VS Code and on the command line. A file
+  that an edit outside VS Code left with old numbers or old code fails
+  `markdownnotes format --check` in the check of a pull request.
+- **No broken references:** the formatter changes nothing that other files
+  link to. Headings get no numbers, because a number would change the ID that
+  GitHub gives the heading ([R-XREF-003](#r-xref-003)); a link shows the
+  number of its chapter instead, for example `[Chapter 2.1](#methods)`.
+
+The renderer of Markdown Paper adds only the look: the layout, the cite after
+a caption, line numbers in front of code, the numbers of the headings, page
+numbers and the dotted lines of the lists. It does not number the captions
+again.
+
+Markdown Paper writes the table of contents, the list of figures, the list of
+tables and the list of listings into the file with its steps of the
+formatter, each as a list of links between two hidden markers under a
+heading that the author writes: `toc`, `lof`, `lot` and `lol`. The link texts
+hold the numbers. The formatter of Markdown Notes gives each caption of a
+kind whose list the file holds an anchor, with the name that `/ref` gives it,
+so that each entry of the list links to it:
+
+```markdown
+## List of listings
+
+<!-- lol -->
+- [Listing 1: Reading the fields](#lst-reading-fields)
+<!-- /lol -->
+```
 
 ## Notes
 
@@ -1607,37 +1652,62 @@ brings the note back.
 
 **Figures, tables and links to them.** The slash commands named by a noun
 add an entry, and `/ref` adds a reference to it ([R-EDIT-008](#r-edit-008),
-[decision 35](#decisions)). The numbers of the figures and tables in a paper
-and their lists are parts of nimblescape Markdown Paper; Markdown Notes adds
-and links them. The form:
+[decision 35](#decisions)). Markdown Notes writes the numbers into the
+captions and the links ([R-GEN-016](#r-gen-016)); Markdown Paper writes the
+lists of the figures, the tables and the listings. The form:
 
 ```markdown
-Table: Participants by grade<a id="tab-grades"></a>
+Table 1: Participants by grade<a id="tab-grades"></a>
 
 | Grade | Participants |
 | --- | --- |
 | 5 | 12 |
 
-As [Table 1](#tab-grades) shows, …
+Figure 1: Plan of the study<a id="fig-plan-study"></a>
+
+![Plan of the study](images/plan.png)
+
+As [Table 1](#tab-grades) and [Figure 1](#fig-plan-study) show, …
 ```
 
-- A figure is an image that stands alone in its paragraph; its caption is the
-  text of the image. A table has a caption: a paragraph that starts with
-  `Table:` directly before it. A listing of code ([R-CODE-001](#r-code-001))
-  has the caption `Listing:` before its comment and its code block, an
-  anchor `lst-…`, and the word "Listing" in its links.
+- A figure, a table and a listing of code ([R-CODE-001](#r-code-001)) have a
+  caption: a paragraph that starts with a word, a number and a colon,
+  directly before the paragraph of the image, before the table, or before
+  the comment and the code block of the listing. The words are "Figure" or
+  "Abbildung", "Table" or "Tabelle", and "Listing". The anchors are `fig-…`,
+  `tab-…` and `lst-…`.
+- A figure is an image that stands alone in its paragraph, after its caption
+  and a blank line, as APA 7 puts the number and the title above the figure.
+  An image without a caption is no figure and has no number.
+- The formatter writes the number of each caption from the order of the
+  items of its kind in the file, for example `Table 2:` for `Table:` or
+  `Table 5:` ([decision 42](#decisions)). The word and the text of the
+  caption stay as they are written. The numbers count from 1 through the
+  whole file; the headings get no numbers ([R-GEN-016](#r-gen-016)).
+- An image of the older form, with the anchor of a figure at its end and
+  without a caption, `![Plan](plan.png)<a id="fig-plan"></a>`, still counts
+  as a figure. Outside a list and a quote, the formatter gives it a caption
+  line before it, with the text of the image as the caption and the anchor at
+  its end. The word is "Abbildung" when the links to the figures use it, else
+  "Figure".
 - `/figure` lists the images of the workspace (PNG, JPEG, GIF, SVG, WebP and
   AVIF) by their paths from the folder of the file, and inserts the chosen
-  one as a figure, `![Caption](images/plan.png)`, with the caption selected
-  for typing; a path with spaces or parentheses is encoded. Without images,
-  it inserts the same form with a path to fill in.
-- `/table` inserts a table of two columns with its caption line
-  `Table: Caption` and a blank line before it, with the caption selected for
-  typing.
+  one as a figure: the caption line with the next number, for example
+  `Figure 2: Caption`, a blank line and the image, whose text repeats the
+  caption, `![Caption](images/plan.png)`. The caption is selected for
+  typing; a path with spaces or parentheses is encoded. Without images, it
+  inserts the same form with a path to fill in.
+- `/table` inserts a table of two columns with its caption line, for example
+  `Table 1: Caption`, and a blank line before the table, with the caption
+  selected for typing.
+- The word of a new caption is the word of the last link to an item of its
+  kind when a caption can have it, else the word of the language of VS Code.
+  The number of a new caption follows the captions of its kind before it;
+  the formatter writes the numbers after it anew.
 - `/ref` lists the figures and tables of the file by their numbers and
   captions, and inserts a link to the chosen one, for example
   `[Table 1](#tab-grades)`. A figure or a table without an anchor first gets
-  one at the end of the line of its image or its caption:
+  one at the end of its caption:
   `<a id="fig-…"></a>` or `<a id="tab-…"></a>`, with up to three words of
   its caption as its name, in small letters and without small words such as
   "by", "the" and "der", for example `tab-participants-grade`. In the clean editing view, which hides the
@@ -1654,12 +1724,16 @@ As [Table 1](#tab-grades) shows, …
 
 ### R-XREF-002
 
-**The numbers of the links.** The formatter writes the number in the text of
-each link to a figure, a table, a listing ([R-CODE-001](#r-code-001)) or a
-section anew from the order of the figures, the tables, the listings and the
-headings in the file: a link to an anchor, and a link to the ID of a heading
-with the word of a section ([R-XREF-003](#r-xref-003)), so that a moved table keeps
-the right number in every link ([R-FMT-002](#r-fmt-002)). Markdown Paper can
+**The numbers of the captions and the links.** The formatter writes the
+number of each caption of a figure, a table and a listing
+([R-XREF-001](#r-xref-001)), and the number in the text of each link to a
+figure, a table, a listing ([R-CODE-001](#r-code-001)) or a section, anew from
+the order of the figures, the tables, the listings and the headings in the
+file: a link to an anchor, and a link to the ID of a heading with the word of
+a section ([R-XREF-003](#r-xref-003)), so that a moved table keeps the right
+number in its caption and in every link ([R-FMT-002](#r-fmt-002)). A file
+with a caption gets the format on save, as a file with notes
+([R-FMT-001](#r-fmt-001)). Markdown Paper can
 number them by the rules of its layout with its own step of the formatter,
 for example A1 for the first table of an appendix, no number for the table
 of contents, or the chapters of several files ([R-GEN-012](#r-gen-012)).
@@ -1740,7 +1814,7 @@ repository with other source code, and `/listing` adds code of a file of the
 repository to it. The form:
 
 ````markdown
-Listing: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
+Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -1756,19 +1830,21 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   source: a whole file, `<!-- listing: ../src/fields.ts -->`, or a snippet
   of the file, `<!-- listing: ../src/fields.ts#read-fields -->`
   ([R-CODE-003](#r-code-003)), and no symbol of the language
-  ([R-CODE-005](#r-code-005)). The path is relative to the Markdown file, with `/`, and encodes spaces
-  and other characters as in a link. A listing in the text of a note does
+  ([R-CODE-005](#r-code-005)). A listing shows all lines of its snippet or
+  its file and leaves out no lines in the middle; two parts of a function
+  are two snippets and two listings ([decision 44](#decisions)). The path
+  is relative to the Markdown file, with `/`, and encodes spaces and other
+  characters as in a link. A listing in the text of a note does
   not count.
-- The caption is the free text after `Listing:`, on the line before the
-  comment, with only blank lines between them. Its text is a link to the
-  source: the path, and for a snippet its lines, for example
+- The caption is the free text after `Listing` and its number, on the line
+  before the comment, with only blank lines between them. Its text is a link
+  to the source: the path, and for a snippet its lines, for example
   `#L12-L30`, so that a click on the caption on GitHub and in any viewer of
   Markdown opens the source file at these lines. The formatter writes the
-  link and keeps its target current ([R-CODE-002](#r-code-002)); the
-  text of the caption stays as the person wrote it. The caption holds no
-  number: the formatter writes the numbers into the links to the listing
-  ([R-XREF-002](#r-xref-002)), and the renderer numbers the caption
-  ([decision 41](#decisions)).
+  link and keeps its target current ([R-CODE-002](#r-code-002)), and writes
+  the number of the caption ([R-XREF-002](#r-xref-002)); the text of the
+  caption stays as the person wrote it ([decision 41](#decisions),
+  [decision 42](#decisions)).
 - GitHub and the Markdown preview show the caption and the code block; the
   comment is hidden there. The text editor of the file with markup shows
   everything. The clean editing view hides the comment, the `[` and the
@@ -1778,8 +1854,8 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   Ctrl+Click on the comment does in the text editor of the file with markup.
 - `/listing` lists the source files of the workspace by their paths from the
   folder of the Markdown file, then "Whole file" and the snippets of the
-  chosen file. It inserts the caption line `Listing: [Caption](…)` with the
-  link to the source, the comment and the code block with the language of
+  chosen file. It inserts the caption line with the next number,
+  `Listing 2: [Caption](…)`, with the link to the source, the comment and the code block with the language of
   the file, with the caption selected for typing. A file without snippets
   gives its whole text. In the clean editing view, the view gets the caption
   and the code block, and the link and the comment go into the file.
@@ -1883,8 +1959,10 @@ export function parse(lines: readonly string[]): Token[] {
   Ctrl+Click stays the only gesture, as for every link in VS Code; a double
   click, which opens the side view at a highlight of a note, does not open
   the source.
-- `/snippet` shows once the extension is active, after a Markdown file was
-  opened; "Add Snippet" in the Command Palette starts the extension.
+- `/snippet` shows from the start of VS Code in a workspace that holds a
+  Markdown file, because the extension starts with such a workspace, and
+  else once a Markdown file opens ([decision 43](#decisions)). "Add Snippet"
+  in the Command Palette starts the extension in any window.
 - "Add Snippet" takes the name as an optional third argument, after the URI
   of the file and the range of the lines, for a keyboard shortcut or another
   extension; without it, the command asks for the name.
@@ -2390,13 +2468,34 @@ requirements above follow them.
     [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009)): the caption is
     free text and a link to the lines of the source, which the formatter
     keeps current; the clean editing view shows only the text of the caption
-    and hides the comment of the listing. The caption holds no number. A
+    and hides the comment of the listing. A
     cite with the file and the lines after the caption, such as
     `(fields.ts, L12-L30)`, and line numbers in front of the code are
     options of the layout of nimblescape Markdown Paper, which renders
     them; the Markdown file holds neither. The other choices were the file
     and the lines as text in the caption, and a visible comment of the
     listing in the clean editing view.
+42. **Document driven** ([R-GEN-016](#r-gen-016), [R-XREF-001](#r-xref-001),
+    [R-XREF-002](#r-xref-002)): the formatter writes everything that a reader
+    of the file needs into the file and keeps it current, when it computes it
+    reliably from the file and its sources, and changes nothing that other
+    files link to. So the captions of the figures, the tables and the
+    listings carry their numbers, `Figure 1:`, `Table 2:`, `Listing 3:`, and
+    the headings carry none. A figure has a caption line before its image. The
+    table of contents, the list of figures, the list of tables and the list
+    of listings stand in the file as lists of links between hidden markers,
+    written by Markdown Paper. The renderer adds only the look. The other
+    choices were "data driven", where the file holds only references and the
+    renderer writes the numbers and the lists, numbered headings, and a
+    switch for the numbering in each file.
+43. **The start of the extension** ([R-CODE-003](#r-code-003)): the
+    extension starts when the workspace holds a Markdown file, also before a
+    Markdown file opens, so that `/snippet` shows in a source file from the
+    start. A workspace without Markdown files has no use for snippets. The
+    other choice was the start with the first Markdown file that opens.
+44. **No left out lines in a listing** ([R-CODE-001](#r-code-001)): a
+    listing shows all lines of its snippet or its file. The other choice was
+    a mark that leaves out lines in the middle of a listing, shown as `…`.
 
 ---
 

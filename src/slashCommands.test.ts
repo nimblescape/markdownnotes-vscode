@@ -234,19 +234,21 @@ test('another extension adds a slash command through the API, which shows after 
   expect(labels(fake.complete(document, new FakePosition(0, 41)))).not.toContain('/source');
 });
 
-test('on a line of its own, /figure inserts a chosen image of the workspace as a figure, and /table a table with its caption line (R-EDIT-008, R-XREF-001)', async () => {
-  const { document, editor } = await start('# Results\n\n/\n\nMore.\n', 2, 1);
+test('on a line of its own, /figure inserts a chosen image of the workspace as a figure, and /table a table, each with its numbered caption line (R-EDIT-008, R-XREF-001)', async () => {
+  const { document, editor } = await start('# Results\n\nTable 1: Grades\n\n| A |\n| --- |\n\n/\n\nMore.\n', 7, 1);
   fake.found = [new FakeUri('file', '/folder/images/plan (v2).png'), new FakeUri('file', '/other/logo.svg')];
-  const items = fake.complete(document, new FakePosition(2, 1));
+  const items = fake.complete(document, new FakePosition(7, 1));
   // The heading starts a section, which /ref links (R-XREF-003).
   expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user']);
+  // The caption gets the number after the captions of its kind before it.
   const table = items[1];
-  expect((table.insertText as unknown as FakeSnippetString).value).toBe('Table: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0');
+  expect((table.insertText as unknown as FakeSnippetString).value).toBe('Table 2: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0');
   // /figure lists the images by their paths from the folder of the file, and inserts the chosen one.
   fake.pick = (choices) => choices.find((choice) => choice.label === 'plan (v2).png');
   await accept(editor, items[0]);
   expect(fake.picks.at(-1)!.map((choice) => choice.description)).toEqual(['../other/logo.svg', 'images/plan (v2).png']);
-  expect(document.text).toBe('# Results\n\n![Caption](images/plan%20%28v2%29.png)\n\nMore.\n');
+  // The caption line stands before the image, whose text repeats the caption.
+  expect(document.text).toBe('# Results\n\nTable 1: Grades\n\n| A |\n| --- |\n\nFigure 1: Caption\n\n![Caption](images/plan%20%28v2%29.png)\n\nMore.\n');
   // In text and in a code block, a figure and a table are not offered.
   const inText = fake.open('A sentence /\n\n```\n/\n```\n', '/folder/b.md');
   expect(labels(fake.complete(inText, new FakePosition(0, 12)))).not.toContain('/figure');
@@ -271,7 +273,7 @@ test('on a line of its own, /listing inserts the whole file or a chosen snippet 
     ['Whole file', 'src/read me.ts'],
     ['open-reader', 'Snippet'],
   ]);
-  expect(document.text).toBe("# Code\n\nListing: [Caption](src/read%20me.ts#L7-L9)\n\n<!-- listing: src/read%20me.ts#open-reader -->\n\n```typescript\nopen(): void {\n  read('a');\n}\n```\n\n\nMore.\n");
+  expect(document.text).toBe("# Code\n\nListing 1: [Caption](src/read%20me.ts#L7-L9)\n\n<!-- listing: src/read%20me.ts#open-reader -->\n\n```typescript\nopen(): void {\n  read('a');\n}\n```\n\n\nMore.\n");
   // The whole file: its code without the marks of the snippet, with the characters that a snippet escapes.
   const other = fake.open('/\n', '/folder/c.md');
   const otherEditor = new FakeEditor(other, 0);
@@ -282,11 +284,11 @@ test('on a line of its own, /listing inserts the whole file or a chosen snippet 
   fake.pick = (choices) => (fake.picks.length === 1 ? choices.find((choice) => choice.label === 'read me.ts') : choices[0]);
   await accept(otherEditor, fake.complete(other, new FakePosition(0, 1)).find((item) => labels([item])[0] === '/listing')!);
   const whole = code.split('\n').filter((line) => !line.includes('markdownnotes:')).join('\n').trimEnd();
-  expect(other.text).toBe(`Listing: [Caption](src/read%20me.ts)\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\n`);
+  expect(other.text).toBe(`Listing 1: [Caption](src/read%20me.ts)\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\n`);
 });
 
-test('in text, /ref links a chosen figure or table, and gives it an anchor at the end of its line when it has none (R-EDIT-008, R-XREF-001)', async () => {
-  const text = 'As /\n\n![Plan of the study](plan.png)\n\nTable: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n';
+test('in text, /ref links a chosen figure or table, and gives it an anchor at the end of its caption when it has none (R-EDIT-008, R-XREF-001)', async () => {
+  const text = 'As /\n\nFigure 1: Plan of the study\n\n![Plan of the study](plan.png)\n\n![No figure](logo.png)\n\nTable 1: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n';
   const { document, editor } = await start(text, 0, 4);
   const items = fake.complete(document, new FakePosition(0, 4));
   expect(labels(items)).toEqual(['/todo', '/footnote', '/ref', '/date', '/time', '/user']);
@@ -295,7 +297,8 @@ test('in text, /ref links a chosen figure or table, and gives it an anchor at th
     ['Figure 1', 'Plan of the study'],
     ['Table 1', 'Participants'],
   ]);
-  expect(document.text).toBe('As [Figure 1](#fig-plan-study)\n\n![Plan of the study](plan.png)<a id="fig-plan-study"></a>\n\nTable: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n');
+  // An image without a caption is no figure.
+  expect(document.text).toBe('As [Figure 1](#fig-plan-study)\n\nFigure 1: Plan of the study<a id="fig-plan-study"></a>\n\n![Plan of the study](plan.png)\n\n![No figure](logo.png)\n\nTable 1: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n');
   expect(editor.selection.active).toEqual(new FakePosition(0, 30));
   // A table with an anchor keeps it, and the word of the last link of its kind stays.
   document.text = document.text.replace('As [Figure 1]', 'Wie [Abbildung 1]').replace('As', 'Wie');
@@ -305,7 +308,7 @@ test('in text, /ref links a chosen figure or table, and gives it an anchor at th
   fake.pick = (choices) => choices[1];
   await accept(editor, fake.complete(document, position).find((item) => labels([item])[0] === '/ref')!);
   expect(document.text.split('\n')[0]).toBe('Wie [Abbildung 1](#fig-plan-study) [Table 1](#tab-people)');
-  expect(document.text).toContain('Table: Participants<a id="tab-people"></a>\n');
+  expect(document.text).toContain('Table 1: Participants<a id="tab-people"></a>\n');
   // A file without figures, tables and headings offers no /ref.
   const plain = fake.open('Text /\n', '/folder/c.md');
   expect(labels(fake.complete(plain, new FakePosition(0, 6)))).not.toContain('/ref');

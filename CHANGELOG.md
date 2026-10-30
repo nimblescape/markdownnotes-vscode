@@ -83,16 +83,19 @@ The first version.
   `/user` for the GitHub login of the user, in the list
   of suggestions of VS Code; Tab or Enter takes the chosen command.
 - Figures, tables and links to them: `/figure` inserts a chosen image of the
-  workspace as a figure, an image alone in its paragraph with its caption,
-  `/table` a table after its caption line `Table: Caption`, and `/ref` a
-  link to a figure or a table of the file, for example
-  `[Table 1](#tab-grades)`, after it gave the target an anchor
-  `<a id="tab-grades"></a>` at the end of the line of its image or its
-  caption. `/ref` also links a section with the numbers of its chapter, for
-  example `[Chapter 2.1](#methods)`, by the ID that GitHub gives its heading,
-  without an anchor. The formatter writes the number of each link from the
-  order of the figures, the tables and the headings in the file, and the
-  clean editing view hides the anchors.
+  workspace as a figure, an image alone in its paragraph after its caption
+  line `Figure 1: Caption`, `/table` a table after its caption line
+  `Table 1: Caption`, and `/ref` a link to a figure or a table of the file,
+  for example `[Table 1](#tab-grades)`, after it gave the target an anchor
+  `<a id="tab-grades"></a>` at the end of its caption. `/ref` also links a
+  section with the numbers of its chapter, for example
+  `[Chapter 2.1](#methods)`, by the ID that GitHub gives its heading,
+  without an anchor. The formatter writes the number of each caption and of
+  each link from the order of the figures, the tables, the listings and the
+  headings in the file, gives an image of the older form with an anchor a
+  caption line, and gives each caption an anchor when the file holds the
+  generated list of its kind; the clean editing view hides the anchors. The
+  file is document driven: it holds the numbers, and headings get none.
 - Values of the front matter in the text: `/ref` inserts the value of a key
   of the front matter between hidden markers, for example
   `<wbr><!--{title}-->A paper<!--{/title}-->`, and the formatter writes the
@@ -102,7 +105,7 @@ The first version.
   and the comment of its source, for example
   `<!-- listing: ../src/fields.ts#read-fields -->`. The caption is free
   text and a link to the lines of the source, for example
-  `Listing: [Reading](../src/fields.ts#L12-L30)`. The formatter writes the
+  `Listing 1: [Reading](../src/fields.ts#L12-L30)`. The formatter writes the
   current code of the source into each listing and the current lines into
   the link of its caption, in VS Code and on the command line, which names
   a listing whose source it does not find; the text editor shows a warning

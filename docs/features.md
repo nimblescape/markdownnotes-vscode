@@ -16,23 +16,24 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 125 requested features, 97 are built, among them the clean editing view
+Of 130 requested features, 101 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
 Paper, the figures, tables and sections with the links to them (to a
 section by the ID that GitHub gives its heading), the
-values of the front matter in the text, and the listings of code from the
-source files of the repository with the snippets in them. 7 features are planned but not built: the features of the section
+values of the front matter in the text, the listings of code from the
+source files of the repository with the snippets in them, and the numbers of
+the captions in the file by the principle "document driven". 7 features are planned but not built: the features of the section
 [Planned features](#planned-features). Four need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
 in Zen Mode, the new name of the repository, and the question whether the
 comment of the format becomes front matter. 11 requests were replaced or
-dropped by later decisions of Hannes; each row names the decision. 6 requests
-moved to nimblescape Markdown Paper: the citations, the sources, and the cite
-and the line numbers of a rendered listing
+dropped by later decisions of Hannes; each row names the decision. 7 requests
+moved to nimblescape Markdown Paper: the citations, the sources, the cite
+and the line numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
-[decision 41](requirements.md#decisions)).
+[decision 41](requirements.md#decisions), [decision 42](requirements.md#decisions)).
 
 The main gaps are the visual editing in the side view, the hidden form of the
 notes, and the checks of the footnotes.
@@ -137,6 +138,7 @@ breaks and the cursor next to the hidden markers.
 | Code of the source files in the text | 10-30 02:58, 03:03, 03:10 | [R-CODE-001](requirements.md#r-code-001) | Built | Step 53: `/listing` lists the source files, then "Whole file" and the snippets of the file (the symbols of step 53 are removed in step 60), and inserts `Listing: Caption`, `<!-- listing: ../src/x.ts#name -->` and the code block; `/ref` links it as `[Listing 1](#lst-…)` |
 | Snippets in the source code that a listing names | 10-30 02:58, 03:03, 03:20 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 54, in the form of the proposal, decided at 06:20 ([decision 39](requirements.md#decisions)): `// markdownnotes: snippet name` and `// markdownnotes: /snippet name`, with the name in both marks. `/snippet` and "Add Snippet" write the marks; Ctrl+Click on the comment of a listing opens the source |
 | Snippets and listings in more file types | 10-30 04:29, 04:30 | [R-CODE-003](requirements.md#r-code-003), [R-CODE-001](requirements.md#r-code-001) | Built | Step 57: the marks in the comment form of more than 80 file types, also by the name of a file (`.env`, `Dockerfile`, `Makefile`); the symbols of the languages with braces and of Python are removed in step 60 |
+| `/snippet` from the start of VS Code | 10-30 07:31 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 66, [decision 43](requirements.md#decisions): the extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file before a Markdown file opens |
 | Snippets in any source | 10-30 04:30 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 58: a file type that the extension does not know gets the comment form of VS Code for its language ("Add Line Comment") |
 | The snippet as a tag in the source editor | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58, [decision 37](requirements.md#decisions): a code lens above the start mark with the listings that show the snippet, the marks dimmed; replaced in step 62 by the tags in place of the mark lines |
 | The mark as a tag in place of its line | 10-30 05:49, 05:57 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: each mark line shows a tag in the small gray letters of a code lens in place of the comment, `snippet keep-lines · Listing 2 in paper/paper.md` and `/snippet keep-lines`; the line keeps its height, because VS Code cannot remove a line |
@@ -146,8 +148,11 @@ breaks and the cursor next to the hidden markers.
 | Listings of whole files and snippets, symbols only with parsers | 10-30 04:43, 05:38 | [R-CODE-005](requirements.md#r-code-005) | Built | Step 60, [decision 38](requirements.md#decisions): a listing shows a whole file or a snippet; the rules that found functions by their declarations are removed; the text editor warns at a listing whose file or snippet is not found |
 | The formatter keeps the code blocks current | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a snippet is found by its marks, the same way in both |
 | The comment of a listing hidden in the clean editing view, and the caption as the link to the source | 10-30 06:36 | [R-CODE-001](requirements.md#r-code-001), [R-TEXT-009](requirements.md#r-text-009) | Built | Step 63, [decision 41](requirements.md#decisions): the view hides the comment and the `[` and `](…)` of the link of the caption, so that only the text of the caption is edited; Ctrl+Click on the caption opens the source at the snippet; `/listing` in the view writes the hidden parts into the file |
-| The caption cites the source file and the lines, and the formatter keeps the lines current | 10-30 06:36, 06:40, 06:48 | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) | Built | Step 63: the caption is free text and a link to the source, `Listing: [Reading the fields](../src/fields.ts#L12-L30)`, so that a click on GitHub opens the lines; the formatter writes the link and its target, the text stays as written; no number in the caption |
+| The caption cites the source file and the lines, and the formatter keeps the lines current | 10-30 06:36, 06:40, 06:48 | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) | Built | Step 63: the caption is free text and a link to the source, `Listing: [Reading the fields](../src/fields.ts#L12-L30)`, so that a click on GitHub opens the lines; the formatter writes the link and its target, the text stays as written; the number of the caption came with step 64 |
 | Line numbers in front of the code and a cite after the caption in the rendered listing | 10-30 06:30, 06:40, 06:43 | [R-CODE-001](requirements.md#r-code-001) | Moved | [Decision 41](requirements.md#decisions): options of the layout of nimblescape Markdown Paper, for example `(server.ts, L20-L40)` after the caption; the line numbers are off by default and start at 1 in each listing |
+| The file holds everything, and the formatter keeps it current | 10-30 06:58, 07:03, 07:10 | [R-GEN-016](requirements.md#r-gen-016) | Built | [Decision 42](requirements.md#decisions): "document driven" with two limits: the formatter writes only what it computes from the file and its sources, and changes nothing that other files link to, so the headings get no numbers; the renderer adds only the look |
+| Numbers in the captions | 10-30 06:48, 07:03 | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) | Built | Step 64: the formatter writes `Figure 1:`, `Table 2:` and `Listing 3:` (also `Abbildung`, `Tabelle`) from the order in the file; `/figure`, `/table` and `/listing` insert the next number |
+| Figures get captions | 10-30 07:10 | [R-XREF-001](requirements.md#r-xref-001) | Built | Step 64: a caption line before the image, as APA 7 has it; an image without a caption is no figure; the formatter gives an image of the older form with an anchor a caption line from the text of the image |
 | `/ref` for sections | 10-30 02:47, 03:19 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 51, changed by step 56: `[Chapter 2.1](#methods)`; the chapters are the headings of the highest level that more than one heading has |
 | Links to headings without anchors | 10-30 03:28 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 56, [decision 36](requirements.md#decisions): the link names the ID that GitHub gives the heading, and the heading gets no anchor; an anchor of the earlier form still counts |
 | Plain Markdown first | 10-30 03:29 | [R-GEN-013](requirements.md#r-gen-013) | Built | A rule for each new form in the file; the links to headings follow it |
@@ -242,6 +247,9 @@ into nimblescape Markdown Paper ([decision 32](requirements.md#decisions)),
 and at 02:47 that `/source` and `/cite` of Markdown Paper add a source and a
 citation ([decision 35](requirements.md#decisions)). Their code was built on 2026-10-29 in the form of links and handed to the
 thread of Markdown Paper, which adds them through the API of this extension.
+At 07:10 Hannes decided that the file holds the generated lists, which
+Markdown Paper writes with its steps of the formatter
+([decision 42](requirements.md#decisions)).
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
@@ -250,6 +258,7 @@ thread of Markdown Paper, which adds them through the API of this extension.
 | "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Moved |
 | "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Moved |
 | "/source" lists all files of the folder `bib/` | 10-30 02:45 | [R-XREF-001](requirements.md#r-xref-001) | | Moved |
+| The table of contents, the list of figures, the list of tables and the list of listings in the file | 10-30 07:10, 07:11 | [R-GEN-016](requirements.md#r-gen-016) | 65 | Moved |
 
 The later fixes of the code review of 2026-10-28 are not in the
 specification: a queue of writes for each file, tests of the script of the

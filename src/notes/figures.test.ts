@@ -5,23 +5,29 @@
 /**
  * These tests check the figures and the tables of a Markdown text and the links
  * to them (R-XREF-001, R-XREF-002): which images and tables count, the names of
- * new anchors, the word of a link, and the numbers that the formatter writes.
+ * new anchors, the word of a link, and the numbers that the formatter writes
+ * into the captions and the links (R-GEN-016).
  */
 
 import { describe, expect, test } from 'vitest';
-import { anchorColumn, anchorName, anchorsOf, defaultWord, findItems, hasNumberedLinks, labelOf, numberLinks, numberOf, slugOf, wordOf } from './figures';
+import { anchorCaptions, anchorColumn, anchorName, anchorsOf, captionFigures, captionWord, defaultWord, findItems, hasNumberedLinks, labelOf, numberCaptions, numberLinks, numberOf, slugOf, wordOf } from './figures';
 
-/** text is a paper with two figures, a table with a caption, a table without one, and links. */
+/**
+ * text is a paper with two figures with captions, an image without one, a table with a caption, a table without one, a
+ * caption without its image, and links.
+ */
 const text = [
   '# Results',
   '',
   'As [Table 2](#tab-grades) and [Figure 3](#fig-plan) show, the plan works.',
   '',
-  '![Plan of the study](images/plan.png)<a id="fig-plan"></a>',
+  'Figure: Plan of the study<a id="fig-plan"></a>',
+  '',
+  '![Plan of the study](images/plan.png)',
   '',
   'Text with an inline ![icon](icon.png) image.',
   '',
-  'Table: Participants by grade<a id="tab-grades"></a>',
+  'Table 5: Participants by grade<a id="tab-grades"></a>',
   '',
   '| Grade | Participants |',
   '| --- | --- |',
@@ -31,7 +37,13 @@ const text = [
   '| --- | --- |',
   '| 1 | 2 |',
   '',
-  '![Ergebnisse der Schüler](images/results.png)',
+  'Abbildung 7: Ergebnisse der Schüler',
+  '',
+  '![Ergebnisse](images/results.png)',
+  '',
+  '![Logo without a caption](logo.png)',
+  '',
+  'Figure 9: No image follows',
   '',
   '```markdown',
   '![Not a figure](code.png)',
@@ -41,19 +53,58 @@ const text = [
 ].join('\n');
 
 describe('the figures and tables', () => {
-  test('are the images alone in their paragraphs and the tables with a caption line, not in code (R-XREF-001)', () => {
-    const items = findItems(text.split('\n'));
-    expect(items.map(({ kind, caption, line, anchor }) => [kind, caption, line, anchor])).toEqual([
-      ['section', 'Results', 0, undefined],
-      ['figure', 'Plan of the study', 4, 'fig-plan'],
-      ['table', 'Participants by grade', 8, 'tab-grades'],
-      ['figure', 'Ergebnisse der Schüler', 18, undefined],
+  test('are the images alone in their paragraphs and the tables, each with a caption line before it, not in code (R-XREF-001)', () => {
+    const lines = text.split('\n');
+    const items = findItems(lines);
+    expect(items.map(({ kind, caption, line, head, anchor }) => [kind, caption, line, head, anchor])).toEqual([
+      ['section', 'Results', 0, undefined, undefined],
+      ['figure', 'Plan of the study', 4, 4, 'fig-plan'],
+      ['table', 'Participants by grade', 10, 10, 'tab-grades'],
+      ['figure', 'Ergebnisse der Schüler', 20, 20, undefined],
     ]);
     expect(numberOf(items, items[3])).toBe(2);
-    expect(anchorsOf(text.split('\n'))).toEqual([
-      { line: 4, start: 37, end: 58 },
-      { line: 8, start: 28, end: 51 },
+    expect(anchorsOf(lines)).toEqual([
+      { line: 4, start: lines[4].indexOf('<a'), end: lines[4].length },
+      { line: 10, start: lines[10].indexOf('<a'), end: lines[10].length },
     ]);
+  });
+
+  test('get the numbers of their captions from the order of the text, with the word of each caption (R-XREF-001, R-GEN-016)', () => {
+    const lines = text.split('\n');
+    const numbered = numberCaptions(lines);
+    expect([numbered[4], numbered[10], numbered[20], numbered[26], numbered[29]]).toEqual([
+      'Figure 1: Plan of the study<a id="fig-plan"></a>',
+      'Table 1: Participants by grade<a id="tab-grades"></a>',
+      'Abbildung 2: Ergebnisse der Schüler',
+      'Figure 9: No image follows',
+      '![Not a figure](code.png)',
+    ]);
+    expect(numbered.filter((line, index) => line !== lines[index])).toHaveLength(3);
+    // A caption in a quote and a caption of several lines keep their marks and their texts.
+    expect(numberCaptions(['> Table:   People', '> of the study', '>', '> | A |', '> | --- |', ''])[0]).toBe('> Table 1:   People');
+    expect(numberCaptions(['No captions.'])).toEqual(['No captions.']);
+  });
+
+  test('get an anchor at the end of each caption of a kind whose generated list the text holds (R-GEN-016)', () => {
+    const lines = ['## List of tables', '', '<!-- lot -->', '<!-- /lot -->', '', 'Table: Grades', '', '| A |', '| --- |', '', 'Table: Grades', '', '| B |', '| --- |', '', 'Figure: Plan', '', '![Plan](p.png)', '', '```', '<!-- lof -->', '```', ''];
+    const anchored = anchorCaptions(lines);
+    expect([anchored[5], anchored[10], anchored[15]]).toEqual(['Table: Grades<a id="tab-grades"></a>', 'Table: Grades<a id="tab-grades-2"></a>', 'Figure: Plan']);
+    expect(anchorCaptions(anchored)).toEqual(anchored);
+    expect(anchorCaptions(['Table: Grades', '', '| A |', '| --- |', ''])[0]).toBe('Table: Grades');
+  });
+
+  test('of the older form, an image with the anchor of a figure, get a caption line from the text of the image (R-XREF-001)', () => {
+    const old = ['See [Abbildung 2](#fig-plan).', '', '![Plan of the study](plan.png)<a id="fig-plan"></a>', '', '> ![Quoted](q.png)<a id="fig-quoted"></a>', ''];
+    expect(findItems(old).map(({ caption, line, head }) => [caption, line, head])).toEqual([
+      ['Plan of the study', 2, undefined],
+      ['Quoted', 4, undefined],
+    ]);
+    // A figure in a quote keeps its form, because a caption line there needs the marks of the quote.
+    const captioned = captionFigures(old);
+    expect(captioned).toEqual(['See [Abbildung 2](#fig-plan).', '', 'Abbildung: Plan of the study<a id="fig-plan"></a>', '', '![Plan of the study](plan.png)', '', '> ![Quoted](q.png)<a id="fig-quoted"></a>', '']);
+    expect(numberLinks(numberCaptions(captioned)).slice(0, 3)).toEqual(['See [Abbildung 1](#fig-plan).', '', 'Abbildung 1: Plan of the study<a id="fig-plan"></a>']);
+    expect(captionFigures(['![Plain](a.png)', ''])).toEqual(['![Plain](a.png)', '']);
+    expect(findItems(['![Plain](a.png)', ''])).toEqual([]);
   });
 
   test('have anchors that the clean editing view hides also away from the end of a line, but not in code or a note', () => {
@@ -77,7 +128,7 @@ describe('the figures and tables', () => {
   });
 
   test('are not the images and tables in the text of a note', () => {
-    const noted = ['A text[^note-aaaa].', '', '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00', '', '    ![In a note](a.png)', ''];
+    const noted = ['A text[^note-aaaa].', '', '[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00', '', '    Figure 1: In a note', '', '    ![In a note](a.png)', ''];
     expect(findItems(noted)).toEqual([]);
   });
 
@@ -168,11 +219,11 @@ describe('the links', () => {
     const numbered = numberLinks(text.split('\n'));
     expect(numbered[2]).toBe('As [Table 1](#tab-grades) and [Figure 1](#fig-plan) show, the plan works.');
     // The code block stays as it is.
-    expect(numbered[22]).toBe('[Table 7](#tab-grades)');
+    expect(numbered[30]).toBe('[Table 7](#tab-grades)');
     // A moved figure changes the number of its link, also of a link with another word.
     const moved = text.split('\n');
-    moved.splice(4, 2);
-    moved.splice(18, 0, '![Plan of the study](images/plan.png)<a id="fig-plan"></a>', '');
+    const plan = moved.splice(4, 4);
+    moved.splice(20, 0, ...plan);
     moved[2] = 'Wie [Abbildung 1](#fig-plan) zeigt, `[Figure 9](#fig-plan)` and [Figure 4](#fig-none).';
     expect(numberLinks(moved)[2]).toBe('Wie [Abbildung 2](#fig-plan) zeigt, `[Figure 9](#fig-plan)` and [Figure 4](#fig-none).');
     expect(numberLinks(['No anchors [Table 3](#tab-x).'])).toEqual(['No anchors [Table 3](#tab-x).']);
@@ -184,5 +235,7 @@ describe('the links', () => {
     expect(wordOf(lines, 'figure')).toBe('Abbildung');
     expect(wordOf(['None.'], 'figure')).toBeUndefined();
     expect([defaultWord('figure', 'de-AT'), defaultWord('table', 'de'), defaultWord('table', 'en-US'), defaultWord('figure', 'ja')]).toEqual(['Abbildung', 'Tabelle', 'Table', 'Figure']);
+    // A new caption takes the word of the links only when a caption can have it.
+    expect([captionWord(lines, 'table', 'de'), captionWord(lines, 'figure', 'en'), captionWord([], 'listing', 'de')]).toEqual(['Tabelle', 'Abbildung', 'Listing']);
   });
 });

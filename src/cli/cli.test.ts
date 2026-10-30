@@ -135,13 +135,13 @@ describe('the command format', () => {
     const code = '// markdownnotes: snippet read\nexport function read(path: string): string {\n  return path;\n}\n// markdownnotes: /snippet read\n\nexport const other = 1;\n';
     const fake = fakeOf({ 'paper/a.md': paper, 'src/read me.ts': code }, paper);
     expect(run(['format', 'paper/a.md'], fake)).toBe(0);
-    const formatted = paper.replace('old', 'export function read(path: string): string {\n  return path;\n}').replace('Listing: Reading', 'Listing: [Reading](../src/read%20me.ts#L2-L4)');
+    const formatted = paper.replace('old', 'export function read(path: string): string {\n  return path;\n}').replace('Listing: Reading', 'Listing 1: [Reading](../src/read%20me.ts#L2-L4)');
     expect(fake.files.get('paper/a.md')).toBe(formatted);
     expect(fake.errors).toEqual(['paper/a.md:11: the source ../src/gone.ts of the listing was not found']);
     // --check fails for a listing without its source, and the standard input reads the sources from the current folder.
     expect(run(['format', '--check', 'paper/a.md'], fake)).toBe(1);
     expect(run(['format', '-'], fake)).toBe(0);
-    expect(fake.stdout).toEqual([paper]);
+    expect(fake.stdout).toEqual([paper.replace('Listing: Reading', 'Listing 1: Reading')]);
   });
 
   test('exits with 2 for a file that it cannot write', () => {

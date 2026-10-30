@@ -538,13 +538,13 @@ export function rebuild(projection: Projection, start: number, end: number, inse
       opens.push({ at: moved(projection.at[index], 'reference', start, end, insert.length), text });
     } else if (part.kind === 'captionEnd') {
       // The link of a caption keeps the text typed at its start and its end, before the references and the anchor. It
-      // goes when the edit makes the text no caption: when its paragraph no longer starts with `Listing:` before it, has
+      // goes when the edit makes the text no caption: when its paragraph no longer starts with `Listing 1:` before it, has
       // a paragraph break in it, or has more text after it than the code block of the listing.
       const open = opens.pop();
       const close = moved(projection.at[index], 'marker', start, end, insert.length);
       const head = open && clean.slice(0, open.at).split(/\n[ \t]*\n/).at(-1)!;
       const caption =
-        open && /^[ \t]*Listing:[ \t]*$/.test(head!) && !/\n[ \t]*\n/.test(clean.slice(open.at, close)) && /^\n(?:[ \t]*\n)*[ \t]*(?:`{3,}|~{3,})/.test(clean.slice(close));
+        open && /^[ \t]*Listing(?:[ \t]+\d+)?:[ \t]*$/.test(head!) && !/\n[ \t]*\n/.test(clean.slice(open.at, close)) && /^\n(?:[ \t]*\n)*[ \t]*(?:`{3,}|~{3,})/.test(clean.slice(close));
       if (caption) {
         inline.push({ at: open!.at, order: -1, text: open!.text }, { at: close, order: 3.5, text });
       }

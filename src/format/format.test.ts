@@ -73,16 +73,32 @@ describe('the paragraphs', () => {
 });
 
 describe('the links to figures and tables', () => {
-  test('get the numbers of the figures and tables in the order of the text (R-XREF-002)', () => {
+  test('get the numbers of the figures and tables in the order of the text, in their captions too (R-XREF-002, R-GEN-016)', () => {
     const text = [
       'As [Figure 2](#fig-b) and\n[Figure 1](#fig-a) show.',
       '',
-      '![Second](b.png)<a id="fig-b"></a>',
+      'Figure 2: Second<a id="fig-b"></a>',
       '',
-      '![First](a.png)<a id="fig-a"></a>',
+      '![Second](b.png)',
+      '',
+      'Table: People',
+      '',
+      '| A |',
+      '| --- |',
+      '',
+      'Figure 1: First<a id="fig-a"></a>',
+      '',
+      '![First](a.png)',
       '',
     ].join('\n');
-    expect(format(text)).toBe('As [Figure 1](#fig-b) and [Figure 2](#fig-a) show.\n\n![Second](b.png)<a id="fig-b"></a>\n\n![First](a.png)<a id="fig-a"></a>\n');
+    const numbered = 'As [Figure 1](#fig-b) and [Figure 2](#fig-a) show.\n\nFigure 1: Second<a id="fig-b"></a>\n\n![Second](b.png)\n\nTable 1: People\n\n| A   |\n| --- |\n\nFigure 2: First<a id="fig-a"></a>\n\n![First](a.png)\n';
+    expect(format(text)).toBe(numbered);
+    expect(format(numbered)).toBe(numbered);
+  });
+
+  test('give a figure of the older form, an image with an anchor, a caption line from the text of the image (R-XREF-001)', () => {
+    const text = ['As [Figure 2](#fig-b) show.', '', '![Second](b.png)<a id="fig-b"></a>', ''].join('\n');
+    expect(format(text)).toBe('As [Figure 1](#fig-b) show.\n\nFigure 1: Second<a id="fig-b"></a>\n\n![Second](b.png)\n');
   });
 });
 
