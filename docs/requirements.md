@@ -1919,7 +1919,8 @@ slash command in the source code editor /snippet adds the mark, but the mark
 must be more clear it belongs to the notes plugin, do not like the
 begin-snippet tag, whereas snippet is the correct name for it", "propose
 something that is better aligned with what we already have"). The form,
-proposed on 2026-10-30 at about 04:10:
+proposed on 2026-10-30 at about 04:10 and decided at 06:20 ("agreed", on
+open question 1 of the concept document; [decision 39](#decisions)):
 
 ```ts
 // markdownnotes: snippet parse-notes
@@ -1933,7 +1934,7 @@ export function parse(lines: readonly string[]): Token[] {
   hyphen ([decision 33](#decisions)), and the end mark has the `/` of the
   end marker of a value of the front matter ([R-XREF-004](#r-xref-004)).
   The name has small letters and digits, with `-` between them. The other
-  form on the card is `@snippet` and `@endsnippet`.
+  form was `@snippet` and `@endsnippet`.
 - The end mark names the snippet again (Hannes, 06:19: "ok, name stays"):
   when an edit loses one mark, the listing finds no snippet of that name
   and warns ([R-CODE-005](#r-code-005)), and does not show other code; two
@@ -2550,6 +2551,13 @@ requirements above follow them.
     and shell scripts. The other proposals were the rules of the
     declarations, built in step 57 and removed in step 60, because only a
     parser knows the code, and the parsers now.
+39. **The form of the marks of a snippet** ([R-CODE-003](#r-code-003),
+    Hannes, 2026-10-30, 06:20, on open question 1 of the concept document
+    "Listings and snippets", and 06:19 on the name of the end mark):
+    `// markdownnotes: snippet <name>` and `// markdownnotes: /snippet
+    <name>`, with the `/` of the end marker of a value of the front matter
+    and of an HTML end tag, and the name in both marks. The other forms were
+    `@snippet` and `@endsnippet`, and an end mark without the name.
 
 ---
 
