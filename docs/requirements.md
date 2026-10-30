@@ -71,7 +71,7 @@ requirement, the plan and the decisions of Hannes.
 | 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
 | 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
-| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` | [R-EDIT-008](#r-edit-008) | moved to nimblescape Markdown Paper ([decision 32](#decisions)); built there on the API of [R-GEN-012](#r-gen-012) |
+| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the citation style, which the layout of Markdown Paper names and not the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` | [R-EDIT-008](#r-edit-008) | moved to nimblescape Markdown Paper ([decision 32](#decisions)); built there on the API of [R-GEN-012](#r-gen-012) |
 | 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
 | 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository gets its new name `markdownnotes-vscode` when the implementation is complete |
 | 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
@@ -95,6 +95,7 @@ requirement, the plan and the decisions of Hannes.
 | 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
 | 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
 | 68 | Listings of files of other repositories as Git submodules: the link of the caption to the other repository at the commit of the submodule ([decision 46](#decisions)) | [R-CODE-006](#r-code-006) | planned |
+| 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
 
 ## General
 
@@ -360,9 +361,11 @@ its heading and adds no anchor ([R-XREF-003](#r-xref-003),
 
 ### R-GEN-014
 
-**Decisions as requirements.** Each decision of Hannes on the extension gets
-a requirement in this document, in the same change that builds it, and an
-entry in [Decisions](#decisions) with the choice that it replaced. A
+**Everything in the requirements.** Everything that is decided or built for
+the extension gets a requirement in this document, in the same change that
+builds it: each decision of Hannes also gets an entry in
+[Decisions](#decisions) with the choice that it replaced, and each built
+part a step of the [plan](#plan). A
 decision that changes an earlier requirement changes its text, so that this
 document describes the extension as it is.
 

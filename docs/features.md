@@ -251,7 +251,10 @@ citation ([decision 35](requirements.md#decisions)). Their code was built on 202
 thread of Markdown Paper, which adds them through the API of this extension.
 At 07:10 Hannes decided that the file holds the generated lists, which
 Markdown Paper writes with its steps of the formatter
-([decision 42](requirements.md#decisions)).
+([decision 42](requirements.md#decisions)). The render hint in the comment of
+the format is replaced there: the layout of Markdown Paper names the citation
+style, as `"citationStyle"` in its `layout.json` or as a CSL file of the
+layout, and the comment of the format names no style.
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
