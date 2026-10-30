@@ -300,3 +300,15 @@ test('/ref links a section with the numbers of its chapter, and gives its headin
   }
   expect(document.text.split('\n')[4]).toBe('See [Chapter 2.1](#sec-data) [Chapter 2](#sec-methods) [Chapter 3](#sec-results)');
 });
+
+test('/ref inserts a value of the front matter between its markers (R-EDIT-008, R-XREF-004)', async () => {
+  const { document, editor } = await start('---\ntitle: A paper\nauthor:\n  name: Ann\n---\n\nSee /\n', 6, 5);
+  fake.pick = (choices) => choices.find((choice) => choice.label === 'author.name');
+  await accept(editor, fake.complete(document, new FakePosition(6, 5)).find((item) => labels([item])[0] === '/ref')!);
+  expect(fake.picks.at(-1)!.map((choice) => [choice.label, choice.description])).toEqual([
+    ['title', 'Front matter: A paper'],
+    ['author.name', 'Front matter: Ann'],
+  ]);
+  expect(document.text.split('\n')[6]).toBe('See <wbr><!--{author.name}-->Ann<!--{/author.name}-->');
+  expect(editor.selection.active).toEqual(new FakePosition(6, document.text.split('\n')[6].length));
+});

@@ -93,6 +93,10 @@ The first version.
   heading. The formatter writes the number of each link from the order of
   the figures, the tables and the headings in the file, and the clean
   editing view hides the anchors.
+- Values of the front matter in the text: `/ref` inserts the value of a key
+  of the front matter between hidden markers, for example
+  `<wbr><!--{title}-->A paper<!--{/title}-->`, and the formatter writes the
+  current value into it on each format.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side

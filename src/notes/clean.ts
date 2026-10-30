@@ -10,7 +10,9 @@
  * for the line breaks and the cursor, also a hidden one, so the text editor
  * edits a text without the markup: without the start markers, the references,
  * the definitions of the notes, the comment of the format, the anchors of the
- * figures and tables ([R-XREF-001](../../docs/requirements.md#r-xref-001)), and the blocks
+ * figures and tables ([R-XREF-001](../../docs/requirements.md#r-xref-001)), the
+ * markers of the values of the front matter
+ * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), and the blocks
  * that other extensions hide through the API of the extension
  * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), such as the database of
  * the sources of nimblescape Markdown Paper at the end of a file. While the side
@@ -30,16 +32,18 @@
  */
 
 import { findDoctype, frontMatterEnd } from './doctype';
+import { findFields } from './fields';
 import { anchorsOf } from './figures';
 import { firstReferences, readFootnotes } from './footnotes';
 import { type Note, type Range, read, readNotes } from './notes';
 
 /**
- * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note and the anchor of a
- * figure or a table are in a line of text, the definition of a note, the definition of a standard footnote, the
- * comment of the format and a block of another extension are whole lines.
+ * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note, the anchor of a
+ * figure, a table or a section, and the start and the end marker of a value of the front matter are in a line of text;
+ * the definition of a note, the definition of a standard footnote, the comment of the format and a block of another
+ * extension are whole lines.
  */
-export type HiddenKind = 'marker' | 'reference' | 'anchor' | 'definition' | 'footnote' | 'doctype' | 'block';
+export type HiddenKind = 'marker' | 'reference' | 'anchor' | 'fieldStart' | 'fieldEnd' | 'definition' | 'footnote' | 'doctype' | 'block';
 
 /** Block is a block of whole lines of a file that another extension hides, from its first to its last line. */
 export interface Block {
@@ -219,6 +223,10 @@ export function project(text: string, options: Options = {}): Projection {
   for (const anchor of anchorsOf(lines)) {
     parts.push({ kind: 'anchor', start: starts[anchor.line] + anchor.start, end: starts[anchor.line] + anchor.end });
   }
+  for (const field of findFields(lines)) {
+    parts.push({ kind: 'fieldStart', start: starts[field.line] + field.start, end: starts[field.line] + field.valueStart });
+    parts.push({ kind: 'fieldEnd', start: starts[field.line] + field.valueEnd, end: starts[field.line] + field.end });
+  }
   if (doctype) {
     parts.push(block('doctype', doctype.start, doctype.end));
   }
@@ -339,7 +347,8 @@ export interface Result {
 /**
  * applyClean returns the new text of a file for an edit of its clean text: the text from `start` to `end` of the clean
  * text becomes `insert`. The visible characters of that part go, and the hidden parts in it stay. Typed text goes
- * before the first start marker or anchor there, so that it stays out of a highlight that starts there and of one that ends
+ * before the first start marker, anchor or start marker of a value of the front matter there, so that it stays out of a
+ * highlight or a value that starts there and of one that ends
  * there; the new text of a replacement goes after the hidden parts at its start and before the hidden parts at its
  * end, so that it stays in a highlight whose text it replaces. New text goes before the blocks of other extensions,
  * which belong at the end of the file. Typed text that continues the text of a highlight at
@@ -362,7 +371,7 @@ export function applyClean(projection: Projection, start: number, end: number, i
   const prefix = text.slice(0, beforeRun(projection, start));
   const suffix = text.slice(afterRun(projection, end));
   const pieces = kept.map((part) => text.slice(part.start, part.end));
-  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'anchor');
+  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'anchor' || part.kind === 'fieldStart');
   const firstBlock = kept.findIndex((part) => part.kind === 'block');
   // A replacement takes the place of the old text: after the parts at its start and before the parts at its end.
   const natural = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
@@ -455,6 +464,14 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     // An anchor stays after the references and the start markers at its place.
     const at = moved(toClean(projection, starts[anchor.line] + anchor.start), 'reference', start, end, insert.length);
     inline.push({ at, order: 4, text: lines[anchor.line].slice(anchor.start, anchor.end) });
+  }
+  for (const field of findFields(lines)) {
+    // The markers of a value move as the start marker and the reference of a note; an empty value keeps its order.
+    const open = moved(toClean(projection, starts[field.line] + field.start), 'marker', start, end, insert.length);
+    const close = Math.max(open, moved(toClean(projection, starts[field.line] + field.valueEnd), 'reference', start, end, insert.length));
+    const empty = open === close;
+    inline.push({ at: open, order: empty ? 1 : 3, text: lines[field.line].slice(field.start, field.valueStart) });
+    inline.push({ at: close, order: empty ? 2 : 0, text: lines[field.line].slice(field.valueEnd, field.end) });
   }
   const footnotes = new Map<string, string>();
   if (projection.footnotes.length > 0) {

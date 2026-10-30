@@ -50,6 +50,7 @@
 import * as vscode from 'vscode';
 import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
+import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
@@ -372,7 +373,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       items.push(figure, item('/table', 'Add Table', 'A table with its caption line "Table:"', vscode.CompletionItemKind.Function, range, new vscode.SnippetString(tableSnippet)));
     }
     // A link stands where a reference of a footnote can stand, in the text of a block.
-    if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && findItems(linesOf(found.file)).length > 0) {
+    if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && (findItems(linesOf(found.file)).length > 0 || readFields(linesOf(found.file)).size > 0)) {
       const ref = item('/ref', 'Link a Figure, Table or Section', 'A link to a figure, a table or a section of the file', vscode.CompletionItemKind.Reference, range, '');
       ref.command = { command: slashCommandIds.ref, title: 'Link a Figure, Table or Section', arguments: [document.uri] };
       items.push(ref);
@@ -484,12 +485,20 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const lines = linesOf(found.file);
     const items = findItems(lines);
+    const fields = readFields(lines);
     const wordFor = (kind: ItemKind): string => wordOf(lines, kind) ?? defaultWord(kind, vscode.env.language ?? 'en');
     const chosen = await vscode.window.showQuickPick(
-      items.map((target, index) => ({ label: `${wordFor(target.kind)} ${labelOf(items, target)}`, description: target.caption, index })),
-      { placeHolder: 'The figure, table or section to link', matchOnDescription: true },
+      [
+        ...items.map((target, index) => ({ label: `${wordFor(target.kind)} ${labelOf(items, target)}`, description: target.caption, index, key: undefined })),
+        ...[...fields].map(([key, value]) => ({ label: key, description: `Front matter: ${value}`, index: -1, key })),
+      ],
+      { placeHolder: 'The figure, table, section or value of the front matter to reference', matchOnDescription: true },
     );
     if (!chosen) {
+      return;
+    }
+    if (chosen.key !== undefined) {
+      await this.field(editor, chosen.key, fields.get(chosen.key) ?? '');
       return;
     }
     const target = items[chosen.index];
@@ -513,6 +522,36 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       if (same && !same.anchor) {
         const edit = new vscode.WorkspaceEdit();
         edit.insert(found.file.uri, new vscode.Position(same.line, anchorColumn(current[same.line], same)), anchorText(name));
+        await vscode.workspace.applyEdit(edit);
+      }
+    }
+  }
+
+  /**
+   * field inserts a value of the front matter between its markers for `/ref`
+   * ([R-XREF-004](../docs/requirements.md#r-xref-004)). In the clean editing view, which hides the markers, the value
+   * goes into the view, and the markers go around it in the file after the view wrote it there.
+   * @param editor - The text editor.
+   * @param key - The key of the value.
+   * @param value - The value.
+   */
+  private async field(editor: vscode.TextEditor, key: string, value: string): Promise<void> {
+    const [open, close] = fieldMarkers(key);
+    const at = editor.selection.active;
+    const clean = this.mirror?.realOf(editor.document.uri) !== undefined;
+    await editor.edit((builder) => builder.insert(at, clean ? value : `${open}${value}${close}`));
+    const after = new vscode.Position(at.line, at.character + value.length + (clean ? 0 : open.length + close.length));
+    editor.selection = new vscode.Selection(after, after);
+    const file = clean ? this.mirror!.realOf(editor.document.uri)! : undefined;
+    if (file) {
+      await this.mirror?.settled?.(editor.document.uri);
+      // The start marker goes after the hidden parts before the value, and the end marker before the ones after it.
+      const start = this.mirror!.toReal(editor.document.uri, at, true);
+      const end = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line, at.character + value.length));
+      if (start && end) {
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(file, start, open);
+        edit.insert(file, end, close);
         await vscode.workspace.applyEdit(edit);
       }
     }

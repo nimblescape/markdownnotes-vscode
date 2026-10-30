@@ -363,3 +363,44 @@ describe('the anchors of the figures and tables', () => {
     expect(rebuilt).toContain('Table: Participants by grade<a id="tab-grades"></a>\n');
   });
 });
+
+describe('the values of the front matter', () => {
+  /** titled is a file with a front matter, a field in a highlight of a note, and a field at the start of a line. */
+  const titled = [
+    '---',
+    'title: A paper',
+    '---',
+    '',
+    'This is <wbr><!--[note-7k2q-->the paper <wbr><!--{title}-->A paper<!--{/title}-->[^note-7k2q] of the plan.',
+    '',
+    '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+    '',
+    '    Which plan?',
+    '',
+    '<wbr><!--{title}-->A paper<!--{/title}--> starts here.',
+    '',
+  ].join('\n');
+
+  test('show without their markers in the clean text (R-XREF-004)', () => {
+    expect(project(titled).clean).toBe('---\ntitle: A paper\n---\n\nThis is the paper A paper of the plan.\n\nA paper starts here.\n');
+    // A field in a code span is text.
+    expect(project('`<wbr><!--{t}-->x<!--{/t}-->`\n').hidden).toEqual([]);
+  });
+
+  test('keep text typed before and after a value outside of it, and text typed in it in it (R-XREF-004)', () => {
+    const before = edit(titled, 'A paper starts', 0, 'Now ');
+    expect(before.text).toContain('\nNow <wbr><!--{title}-->A paper<!--{/title}--> starts here.\n');
+    const deleted = edit(titled, 'A paper starts', 'A paper'.length, '');
+    expect(deleted.text).toContain('\n<wbr><!--{title}--><!--{/title}--> starts here.\n');
+    const replaced = edit(titled, 'A paper of', 'A paper'.length, 'The plan');
+    expect(replaced.clean).toBe(replaced.expected);
+    expect(replaced.text).toContain('the paper <wbr><!--{title}-->The plan<!--{/title}-->[^note-7k2q] of');
+    const appended = edit(titled, ' of the plan', 0, '!');
+    expect(appended.text).toContain('<!--{title}-->A paper<!--{/title}-->[^note-7k2q]! of the plan');
+    const projection = project(titled);
+    const start = projection.clean.indexOf(' of the plan');
+    const rebuilt = rebuild(projection, start, start, '\n\n')!;
+    expect(project(rebuilt).clean).toBe(`${projection.clean.slice(0, start)}\n\n${projection.clean.slice(start)}`);
+    expect(rebuilt).toContain('the paper <wbr><!--{title}-->A paper<!--{/title}-->[^note-7k2q]');
+  });
+});

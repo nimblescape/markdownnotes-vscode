@@ -276,6 +276,22 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
 - A figure, a table, a heading, an anchor or a link in a code block, in HTML,
   in the front matter or in the text of a note does not count.
 
+## 9. Values of the front matter
+
+A value of the front matter stands in the text between two markers
+([R-XREF-004](requirements.md#r-xref-004)):
+`<wbr><!--{author.name}-->Hannes Stauss<!--{/author.name}-->`.
+
+- The start marker is `<wbr>`, `<!--{`, the key and `}-->`; the end marker is
+  `<!--{/`, the same key and `}-->`. The key of a value under another key is
+  the path of the keys with `.`. The value has no marker in it and stands on
+  one line.
+- The formatter writes the current value of the key between the markers. A
+  list is its items joined by `, `, and a block scalar its lines joined by
+  spaces.
+- A program that changes the value in the text without the front matter
+  loses the change with the next format: change the front matter.
+
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·

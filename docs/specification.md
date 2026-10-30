@@ -261,6 +261,10 @@ form of the notes in a file for programs and AI agents, and
 - The formatter writes the number of each link from the order in the file;
   Markdown Paper can number by the rules of its layout
   ([R-XREF-002](requirements.md#r-xref-002)).
+- `/ref` also inserts a value of the front matter between hidden markers,
+  such as `<wbr><!--{title}-->A paper<!--{/title}-->`; the formatter writes
+  the current value of the key into it, and the clean editing view hides the
+  markers ([R-XREF-004](requirements.md#r-xref-004)).
 
 ## 12. API for other extensions
 

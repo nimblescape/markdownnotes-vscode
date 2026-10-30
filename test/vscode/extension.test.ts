@@ -2,7 +2,8 @@
 // Tests in a real VS Code (npm run test:vscode, .vscode-test.mjs): mocha runs them in the extension host. They open
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
-// (R-SIDE-001, R-GEN-011), the link of /ref in the clean editing view (R-XREF-001), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
+// (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
+// R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
@@ -244,6 +245,34 @@ describe('nimblescape Markdown Notes', () => {
     );
     assert.ok(real.getText().includes('See [Table 1](#tab-people).\n\nTable: People<a id="tab-people"></a>\n'), real.getText());
     await waitFor(() => (view.document.getText().includes('See [Table 1](#tab-people).\n\nTable: People\n') ? true : undefined), 'the hidden anchor in the view');
+    // Saved files leave no changes behind, which the close of the editors would ask about.
+    await vscode.workspace.saveAll(false);
+    await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
+  });
+
+  it('inserts a value of the front matter with /ref in the clean editing view, and writes its markers into the file, which the view hides (R-XREF-004)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, `---\ntitle: A paper\n---\n\n${note.replace('# Title\n', 'Title.\n').replace('\nMore.\n', '\nSee .\n')}`);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const at = view.document.positionAt(view.document.getText().indexOf('See ') + 'See '.length);
+    view.selection = new vscode.Selection(at, at);
+    // Without figures, tables and headings, the value of the key title is the first entry of the list of /ref.
+    let done = false;
+    const run = Promise.resolve(vscode.commands.executeCommand(commandOf('slashRef'), view.document.uri)).then(() => (done = true));
+    while (!done) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
+    }
+    await run;
+    const real = await waitFor(
+      () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('<!--{/title}-->')),
+      'the markers in the file',
+    );
+    assert.ok(real.getText().includes('\nSee <wbr><!--{title}-->A paper<!--{/title}-->.\n'), real.getText());
+    await waitFor(() => (view.document.getText().includes('\nSee A paper.\n') ? true : undefined), 'the hidden markers in the view');
+    await vscode.workspace.saveAll(false);
+    await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
   });
 
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {

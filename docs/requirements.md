@@ -78,6 +78,7 @@ requirement, the plan and the decisions of Hannes.
 | 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
 | 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
 | 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
+| 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
 
 ## General
 
@@ -1260,8 +1261,9 @@ it shows no suggestions while the user types words.
   it, and inserts nothing when the user cancels the sign-in.
 
 - `/figure` and `/table` add a figure and a table, and `/ref` adds a link to
-  a figure, a table or a section of the file ([R-XREF-001](#r-xref-001),
-  [R-XREF-003](#r-xref-003); Hannes,
+  a figure, a table or a section of the file, or a value of its front matter
+  ([R-XREF-001](#r-xref-001), [R-XREF-003](#r-xref-003),
+  [R-XREF-004](#r-xref-004); Hannes,
   2026-10-30, 02:32: "there is also the /table and /figure slash commands,
   these are commands in markdownnotes", 02:45: "lets rethink which command
   adds an entry in the directory which adds a reference to it";
@@ -1714,6 +1716,39 @@ inserts a link to the chosen one, for example `[Chapter 2.1](#sec-methods)`
 - Markdown Paper numbers the sections of a paper by its layout, for example
   without numbers for the table of contents and the reference list, and
   with letters for the appendices.
+
+### R-XREF-004
+
+**Values of the front matter in the text.** `/ref` also lists the keys of the
+front matter of the file with their values, and inserts the chosen value
+between two hidden markers (Hannes, 2026-10-30, 03:10: "anything from
+frontmatter can be references in the document"; the form proposed at 03:20):
+
+```markdown
+---
+title: A paper
+author:
+  name: Hannes Stauss
+---
+
+This is <wbr><!--{title}-->A paper<!--{/title}--> of <wbr><!--{author.name}-->Hannes Stauss<!--{/author.name}-->.
+```
+
+- The key of a value under another key is the path of the keys with `.`,
+  for example `author.name`. A list is its items joined by commas, and a
+  block scalar (`|` or `>`) its lines joined by spaces. The front matter is
+  YAML (`---`) or TOML (`+++`).
+- The start marker has `<wbr>` before it, as the start marker of a note
+  ([R-NOTE-006](#r-note-006)): a line that starts with a comment of HTML is
+  a block of HTML, which GitHub shows without the Markdown of its paragraph.
+- GitHub and the Markdown preview show only the value. The clean editing view
+  hides the markers ([R-TEXT-009](#r-text-009)); text typed at the start or
+  the end of a value stays outside of it.
+- The formatter writes the current value of the key between the markers on
+  each format, also on the command line, and adds a missing `<wbr>`
+  ([R-FMT-002](#r-fmt-002)). A value of a key that the front matter does not
+  have stays as it is. A field in a code block, a code span, the front
+  matter or the text of a note does not count.
 
 ## Hidden notes
 
