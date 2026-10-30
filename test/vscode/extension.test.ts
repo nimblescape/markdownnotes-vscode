@@ -4,7 +4,7 @@
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
 // R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
-// format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), the snippets of a source file (R-CODE-003), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
@@ -312,6 +312,22 @@ describe('nimblescape Markdown Notes', () => {
     const link = links.find((candidate) => candidate.range.start.line === document.lineCount - 7);
     assert.equal(link?.target?.path, snippet.path);
     assert.equal(link?.target?.fragment, 'L3');
+  });
+
+  it('offers /snippet in the text editor of a source file after a slash that replaced selected lines (R-CODE-003)', async () => {
+    const source = vscode.Uri.file(path.join(folder, 'src', `slash-${++count}.ts`));
+    fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });
+    fs.writeFileSync(source.fsPath, 'export function keep(lines: string[]): string[] {\n  const kept = lines.filter(Boolean);\n  return kept;\n}\n');
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(source));
+    const selected = new vscode.Selection(1, 0, 2, 14);
+    editor.selection = selected;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    // VS Code replaces the selected lines with the typed slash.
+    await editor.edit((edit) => edit.replace(selected, '/'));
+    const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', source, new vscode.Position(1, 1), '/');
+    const labels = list.items.map((item) => (typeof item.label === 'string' ? item.label : item.label.label));
+    assert.ok(labels.includes('/snippet'), labels.join(', '));
+    await vscode.commands.executeCommand('workbench.action.files.revert');
   });
 
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {
