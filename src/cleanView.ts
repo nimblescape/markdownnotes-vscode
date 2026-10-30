@@ -410,6 +410,15 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
+   * textOf returns the text of the file of a clean document, with the parts that the document hides, or undefined for
+   * another document.
+   * @param document - The URI of the clean document.
+   */
+  textOf(document: vscode.Uri): string | undefined {
+    return this.ready.get(document.toString())?.projection.text;
+  }
+
+  /**
    * cleanEditorOf returns a visible text editor of the clean document of a file, or undefined.
    * @param file - The URI of the file.
    */

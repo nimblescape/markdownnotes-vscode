@@ -12,7 +12,10 @@
  * definitions of the notes, the comment of the format, the anchors of the
  * figures and tables ([R-XREF-001](../../docs/requirements.md#r-xref-001)), the
  * markers of the values of the front matter
- * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), and the blocks that
+ * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), the comments of the
+ * listings, which name the sources of their code, and the links around the
+ * captions of the listings, so that only the text of a caption is edited
+ * ([R-CODE-001](../../docs/requirements.md#r-code-001)), and the blocks that
  * other extensions hide through the API of the extension
  * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), such as the database of
  * the sources of nimblescape Markdown Paper at the end of a file. While the
@@ -23,7 +26,9 @@
  * text. The module uses no API of VS Code.
  *
  * An edit keeps every hidden part of the file: deleted text never deletes a
- * note, and a note goes away only with its button in the side view. Text typed
+ * note, and a note goes away only with its button in the side view. Only the
+ * comment of a listing and the link of its caption go when an edit deletes the
+ * text around them, with the code block or the caption. Text typed
  * at the edge of a highlight stays outside the highlight. Each edit of the
  * file is checked: the clean text of the new file must be the clean text with
  * the edit, so that the two texts never drift apart.
@@ -31,17 +36,31 @@
 
 import { findDoctype, frontMatterEnd } from './doctype';
 import { findFields } from './fields';
-import { anchorsOf } from './figures';
+import { anchorsOf, findItems } from './figures';
 import { firstReferences, readFootnotes } from './footnotes';
+import { captionLinkOf, captionsOf, findListings } from './listings';
 import { type Note, type Range, read, readNotes } from './notes';
 
 /**
  * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note, the anchor of a
- * figure, a table or a section, and the start and the end marker of a value of the front matter are in a line of text;
- * the definition of a note, the definition of a standard footnote, the comment of the format and a block of another
- * extension are whole lines.
+ * figure, a table or a section, the start and the end marker of a value of the front matter, and the `[` and the `](…)`
+ * of the link of the caption of a listing are in a line of text;
+ * the definition of a note, the definition of a standard footnote, the comment of the format, the comment of a listing
+ * and a block of another extension are whole lines.
  */
-export type HiddenKind = 'marker' | 'reference' | 'anchor' | 'fieldStart' | 'fieldEnd' | 'definition' | 'footnote' | 'doctype' | 'block';
+export type HiddenKind =
+  | 'marker'
+  | 'reference'
+  | 'anchor'
+  | 'fieldStart'
+  | 'fieldEnd'
+  | 'captionStart'
+  | 'captionEnd'
+  | 'definition'
+  | 'footnote'
+  | 'doctype'
+  | 'listing'
+  | 'block';
 
 /** Block is a block of whole lines of a file that another extension hides, from its first to its last line. */
 export interface Block {
@@ -156,8 +175,8 @@ const blocksOf = (lines: readonly string[], finder: BlockFinder | undefined): Bl
 
 /**
  * project returns the clean text of the text of a file: without the start markers, the references and the definitions
- * of its notes, without the comment of the format, the anchors of the figures and tables, and the blocks of other
- * extensions; with the option
+ * of its notes, without the comment of the format, the anchors of the figures and tables, the comments of the listings
+ * and the links of their captions, and the blocks of other extensions; with the option
  * `footnotes`, also without the definitions of the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
  * around it keep one blank line between them; at the end of the file it goes with the blank lines before it. Only a
  * note or a footnote with a reference is hidden: the other parts of the form of a note, and a definition without a
@@ -228,6 +247,16 @@ export function project(text: string, options: Options = {}): Projection {
   if (doctype) {
     parts.push(block('doctype', doctype.start, doctype.end));
   }
+  const listings = findListings(lines);
+  const captions = listings.length > 0 ? captionsOf(lines, findItems(lines), listings) : [];
+  listings.forEach((listing, index) => {
+    parts.push(block('listing', listing.line, listing.line));
+    const link = captions[index] && captionLinkOf(lines, captions[index]);
+    if (link) {
+      parts.push({ kind: 'captionStart', start: starts[link.open.line] + link.open.start, end: starts[link.open.line] + link.open.end });
+      parts.push({ kind: 'captionEnd', start: starts[link.close.line] + link.close.start, end: starts[link.close.line] + link.close.end });
+    }
+  });
   for (const { first, last } of blocks) {
     parts.push(block('block', first, last));
   }
@@ -343,6 +372,33 @@ export interface Result {
 }
 
 /**
+ * goneParts returns the indexes of the hidden parts that an edit of the clean text takes away: the comment of a listing
+ * and the link of a caption when the edit deletes the text on both sides of them. The `[` and the `](…)` of a link go
+ * together, so that no half of a link stays.
+ * @param projection - The projection of the file.
+ * @param start - The offset of the start of the edit in the clean text.
+ * @param end - The offset of the end of the edit in the clean text.
+ */
+function goneParts(projection: Projection, start: number, end: number): Set<number> {
+  const inside = (index: number): boolean => start < projection.at[index] && projection.at[index] < end;
+  const gone = new Set<number>();
+  const opens: number[] = [];
+  projection.hidden.forEach((part, index) => {
+    if (part.kind === 'listing' && inside(index)) {
+      gone.add(index);
+    } else if (part.kind === 'captionStart') {
+      opens.push(index);
+    } else if (part.kind === 'captionEnd') {
+      const open = opens.pop();
+      if (open !== undefined && (inside(open) || inside(index))) {
+        gone.add(open).add(index);
+      }
+    }
+  });
+  return gone;
+}
+
+/**
  * applyClean returns the new text of a file for an edit of its clean text: the text from `start` to `end` of the clean
  * text becomes `insert`. The visible characters of that part go, and the hidden parts in it stay. Typed text goes
  * before the first start marker, anchor or start marker of a value of the front matter there, so that it stays out of a
@@ -355,7 +411,9 @@ export interface Result {
  * clean text otherwise, for example in the text of a definition at the end of the
  * file, the next places in both directions are tried. When no place keeps the clean text, because a definition would
  * stand in a line of text or a paragraph break would split a highlight, the file is written anew from the clean text
- * with the edit ([rebuild](#rebuild)).
+ * with the edit ([rebuild](#rebuild)). Typed text at the start or the end of the caption of a listing goes into its
+ * link. The comment of a listing and the link of a caption that the edit deletes the text on both sides of go
+ * ([goneParts](#goneparts)).
  * @param projection - The projection of the file.
  * @param start - The offset of the start of the edit in the clean text.
  * @param end - The offset of the end of the edit in the clean text.
@@ -365,11 +423,12 @@ export interface Result {
 export function applyClean(projection: Projection, start: number, end: number, insert: string, continues = false): Result {
   const { text, hidden } = projection;
   const expected = projection.clean.slice(0, start) + insert + projection.clean.slice(end);
-  const kept = projection.at.flatMap((at, index) => (at >= start && at <= end ? [hidden[index]] : []));
+  const gone = goneParts(projection, start, end);
+  const kept = projection.at.flatMap((at, index) => (at >= start && at <= end && !gone.has(index) ? [hidden[index]] : []));
   const prefix = text.slice(0, beforeRun(projection, start));
   const suffix = text.slice(afterRun(projection, end));
   const pieces = kept.map((part) => text.slice(part.start, part.end));
-  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'anchor' || part.kind === 'fieldStart');
+  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'anchor' || part.kind === 'fieldStart' || part.kind === 'captionEnd');
   const firstBlock = kept.findIndex((part) => part.kind === 'block');
   // A replacement takes the place of the old text: after the parts at its start and before the parts at its end.
   const natural = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
@@ -417,7 +476,9 @@ const moved = (offset: number, kind: 'marker' | 'reference', start: number, end:
  * of each note at their places in the new clean text, a highlight that a paragraph break splits ending before the
  * break, and the definitions of the notes after the outermost block of their references, in the order of the
  * references, and then the hidden definitions of the standard footnotes after the outermost block of their first
- * references; the anchors of the figures and tables stay at their text; the comment of the format stays at its place
+ * references; the anchors of the figures and tables stay at their text, the comments of the listings before their code
+ * blocks, and the links of the captions around their text while the text stays a caption; the comment of the format
+ * stays at its place
  * at the top, and the blocks of other extensions go to the end of the file, in their order. A highlight whose text the edit replaces
  * becomes the new text; one whose text the edit deletes becomes a point, which the checks report.
  * @param projection - The projection of the file.
@@ -463,6 +524,32 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     const at = moved(toClean(projection, starts[anchor.line] + anchor.start), 'reference', start, end, insert.length);
     inline.push({ at, order: 4, text: lines[anchor.line].slice(anchor.start, anchor.end) });
   }
+  const gone = goneParts(projection, start, end);
+  const opens: { at: number; text: string }[] = [];
+  projection.hidden.forEach((part, index) => {
+    const text = projection.text.slice(part.start, part.end);
+    if (gone.has(index)) {
+      return;
+    }
+    if (part.kind === 'listing') {
+      // The comment of a listing stays before its code block, with the blank line after it.
+      inline.push({ at: moved(projection.at[index], 'reference', start, end, insert.length), order: 5, text });
+    } else if (part.kind === 'captionStart') {
+      opens.push({ at: moved(projection.at[index], 'reference', start, end, insert.length), text });
+    } else if (part.kind === 'captionEnd') {
+      // The link of a caption keeps the text typed at its start and its end, before the references and the anchor. It
+      // goes when the edit makes the text no caption: when its paragraph no longer starts with `Listing:` before it, has
+      // a paragraph break in it, or has more text after it than the code block of the listing.
+      const open = opens.pop();
+      const close = moved(projection.at[index], 'marker', start, end, insert.length);
+      const head = open && clean.slice(0, open.at).split(/\n[ \t]*\n/).at(-1)!;
+      const caption =
+        open && /^[ \t]*Listing:[ \t]*$/.test(head!) && !/\n[ \t]*\n/.test(clean.slice(open.at, close)) && /^\n(?:[ \t]*\n)*[ \t]*(?:`{3,}|~{3,})/.test(clean.slice(close));
+      if (caption) {
+        inline.push({ at: open!.at, order: -1, text: open!.text }, { at: close, order: 3.5, text });
+      }
+    }
+  });
   for (const field of findFields(lines)) {
     // The markers of a value move as the start marker and the reference of a note; an empty value keeps its order.
     const open = moved(toClean(projection, starts[field.line] + field.start), 'marker', start, end, insert.length);

@@ -688,7 +688,7 @@ commands.
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as an image alone in its paragraph, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
 | `/table` | Adds a table: its caption line `Table: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
-| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the functions, classes and methods of the chosen file, and inserts the caption line `Listing: Caption`, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
+| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the snippets of the chosen file, and inserts the caption line `Listing: [Caption](…)` with the link to the source, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
 | `/ref` | Adds a link to a figure, a table, a listing or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#methods)`: lists them by their numbers and captions or headings. A figure, a table or a listing without an anchor gets one first; a link to a heading names the ID that GitHub gives it. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
@@ -787,7 +787,7 @@ a file of the repository, or a snippet of it, and the formatter keeps it
 current:
 
 ````markdown
-Listing: Reading the fields<a id="lst-reading-fields"></a>
+Listing: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -801,6 +801,10 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 - On an empty line, type `/listing` and choose the file, then "Whole file"
   or a snippet of it ([Snippets](#snippets)); a file without snippets gives
   its whole text. Type the caption, which is selected.
+- The caption after `Listing:` is your own text, and a link to the source:
+  a click on it on GitHub opens the source file at the lines of the
+  snippet. The formatter writes the link and keeps its lines current; you
+  write only the text.
 - The comment before the code block names the source: the path from the
   Markdown file, and after `#` the name of a snippet, for example
   `#read-fields`. You can also write the comment yourself before a code
@@ -818,10 +822,16 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 - `/listing` lists the files of more than 80 types: the programming
   languages, the configuration files (JSON, JSONC, YAML, TOML, `.env`, INI, Dockerfile,
   Makefile), CSS, SCSS, HTML, XML, SQL, shell scripts and others.
-- GitHub and the Markdown preview show the code block, without the comment.
-  `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
-- Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the
-  source file at the snippet.
+- GitHub and the Markdown preview show the caption and the code block,
+  without the comment. `/ref` links a listing, for example
+  `[Listing 1](#lst-reading-fields)`. The caption has no number: the
+  formatter writes the numbers into the links, and nimblescape Markdown
+  Paper numbers the captions when it renders the document.
+- The clean editing view shows only the text of the caption and the code
+  block: it hides the comment and the link around the caption. Ctrl+Click
+  (Cmd+Click on a Mac) on the caption there, or on the path in the comment
+  in the text editor of the file with markup, opens the source file at the
+  snippet.
 
 ### Snippets
 
@@ -856,7 +866,7 @@ export function parse(lines: readonly string[]): Token[] {
   in place of the comment. The start tag names the snippet and the listings
   that show it, for example
   `snippet keep-lines · Listing 2 in paper/paper.md`; click it to open the
-  Markdown file at the listing. The end tag is `/snippet keep-lines`; click
+  Markdown file at the caption of the listing. The end tag is `/snippet keep-lines`; click
   it to go to the start of the snippet. The file itself does not change.
 - The cursor jumps over the mark lines, and Backspace and Delete next to
   them do nothing. To change the marks, put the cursor in the code of the

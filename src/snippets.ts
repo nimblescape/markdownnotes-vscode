@@ -13,13 +13,22 @@
  * ([src/notes/listings.ts](notes/listings.ts)). "Add Snippet" in the Command
  * Palette and in the light bulb of selected lines does the same. The comment of
  * a listing in a Markdown file is a link: Ctrl+Click opens its source file at
- * the snippet, as a Markdown link opens its file.
+ * the snippet, as a Markdown link opens its file. The clean editing view hides
+ * the comment and the link around the caption of the listing, so there the text
+ * of the caption is the link.
  */
 
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
 import { sourceOf } from './formatter';
-import { findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
+import { findItems } from './notes/figures';
+import { captionLinkOf, captionsOf, findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
+
+/** CleanText gives the text of the file of a document of the clean editing view, and the places of the file there. */
+export interface CleanText {
+  textOf(document: vscode.Uri): string | undefined;
+  toClean(file: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
+}
 
 /** snippetCommands are the commands of the snippets: the one of the Command Palette, and the one of `/snippet`. */
 export const snippetCommands = {
@@ -71,6 +80,11 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
   private replaced: Replaced | undefined;
   /** kind is the kind of the action "Add Snippet" in the light bulb. */
   private readonly kind = vscode.CodeActionKind.Refactor.append('markdownNotes.addSnippet');
+
+  /**
+   * @param clean - The clean editing view, whose documents get the links on the captions.
+   */
+  constructor(private readonly clean?: CleanText) {}
 
   /** register registers the suggestion, the commands, the action of the light bulb and the links of the listings. */
   register(): vscode.Disposable[] {
@@ -229,21 +243,23 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
   }
 
   /**
-   * provideDocumentLinks returns the links of the comments of the listings of a Markdown file: each opens its source
-   * file at the first line of its snippet.
+   * provideDocumentLinks returns the links of the listings of a Markdown file: the comment of each listing opens its
+   * source file at the first line of its snippet. A document of the clean editing view, which hides the comments, gets
+   * the links on the texts of the captions.
    * @param document - The document.
    */
   provideDocumentLinks(document: vscode.TextDocument): vscode.DocumentLink[] {
-    const file = fileOf(document.uri) ?? document.uri;
-    if (file.scheme !== 'file') {
+    const real = fileOf(document.uri);
+    const file = real ?? document.uri;
+    const text = real ? this.clean?.textOf(document.uri) : document.getText();
+    if (file.scheme !== 'file' || text === undefined) {
       return [];
     }
-    const lines = document.getText().split(/\r\n|\r|\n/);
+    const lines = text.split(/\r\n|\r|\n/);
     const source = sourceOf(file);
-    return findListings(lines).flatMap((listing) => {
-      const text = lines[listing.line];
-      const reference = `${listing.path}${listing.snippet ? `#${listing.snippet}` : ''}`;
-      const column = text.indexOf(reference);
+    const listings = findListings(lines);
+    const captions = real && listings.length > 0 ? captionsOf(lines, findItems(lines), listings) : [];
+    return listings.flatMap((listing, index) => {
       let target: vscode.Uri;
       try {
         target = vscode.Uri.joinPath(file, '..', decodeURIComponent(listing.path));
@@ -254,8 +270,25 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       const found = code && snippetsOf(code).find(({ name }) => name === listing.snippet);
       // The number of the first line of the snippet, from 1.
       const line = found ? found.first + 1 : undefined;
-      const link = new vscode.DocumentLink(new vscode.Range(listing.line, column, listing.line, column + reference.length), line ? target.with({ fragment: `L${line}` }) : target);
-      link.tooltip = listing.snippet ? `Open ${listing.snippet} in ${decodeURIComponent(listing.path)}` : `Open ${decodeURIComponent(listing.path)}`;
+      const opens = line ? target.with({ fragment: `L${line}` }) : target;
+      const tooltip = listing.snippet ? `Open ${listing.snippet} in ${decodeURIComponent(listing.path)}` : `Open ${decodeURIComponent(listing.path)}`;
+      let range: vscode.Range | undefined;
+      if (real) {
+        // The text of the caption between the hidden `[` and `](…)` of its link.
+        const link = captions[index] && captionLinkOf(lines, captions[index]);
+        const start = link && this.clean?.toClean(file, new vscode.Position(link.open.line, link.open.end));
+        const end = link && this.clean?.toClean(file, new vscode.Position(link.close.line, link.close.start));
+        range = start && end && end.isAfter(start) ? new vscode.Range(start, end) : undefined;
+      } else {
+        const reference = `${listing.path}${listing.snippet ? `#${listing.snippet}` : ''}`;
+        const column = lines[listing.line].indexOf(reference);
+        range = new vscode.Range(listing.line, column, listing.line, column + reference.length);
+      }
+      if (!range) {
+        return [];
+      }
+      const link = new vscode.DocumentLink(range, opens);
+      link.tooltip = tooltip;
       return [link];
     });
   }

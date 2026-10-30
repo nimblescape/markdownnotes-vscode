@@ -52,7 +52,7 @@ import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
-import { codeOf, listingBlock, snippetsOf, sourceFiles } from './notes/listings';
+import { listingBlock, listingTarget, snippetsOf, sourceFiles } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -476,7 +476,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
    * listing inserts code of a file of the workspace as a listing for `/listing`
    * ([R-CODE-001](../docs/requirements.md#r-code-001)), after VS Code removed the typed command: the user chooses the
    * file, then the whole file or one of its snippets, and the caption is selected for typing. A file without snippets
-   * gives its whole text.
+   * gives its whole text. The caption is a link to the lines of the source; in the clean editing view, which hides the
+   * link and the comment of the listing, they go into the file after the view wrote the caption and the code there.
    * @param uri - The URI of the document.
    */
   private async listing(uri: vscode.Uri): Promise<void> {
@@ -514,9 +515,28 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       }
       name = part.name;
     }
-    const [, ...block] = listingBlock('Caption', chosen.relative, name, codeOf(text, name) ?? []);
-    const snippet = ['Listing: ${1:Caption}', ...block.map(snippetText)].join('\n');
-    await editor.insertSnippet(new vscode.SnippetString(`${snippet}\n$0`), editor.selection.active, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
+    const [, , comment, , ...code] = listingBlock('Caption', chosen.relative, name, text);
+    const target = listingTarget(chosen.relative, text, name);
+    const file = this.mirror?.realOf(editor.document.uri);
+    // The clean editing view hides the link of the caption and the comment: the view gets the caption and the code block.
+    const lines = file ? ['Listing: ${1:Caption}', '', ...code.map(snippetText)] : [`Listing: [\${1:Caption}](${snippetText(target)})`, '', snippetText(comment), '', ...code.map(snippetText)];
+    const at = editor.selection.active;
+    await editor.insertSnippet(new vscode.SnippetString(`${lines.join('\n')}\n$0`), at, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
+    if (file) {
+      // The hidden parts go into the file after the view wrote the caption and the code block there.
+      await this.mirror?.settled?.(editor.document.uri);
+      const head = 'Listing: ';
+      const start = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line, at.character + head.length), true);
+      const end = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line, at.character + head.length + 'Caption'.length));
+      const fence = this.mirror!.toReal(editor.document.uri, new vscode.Position(at.line + 2, 0), true);
+      if (start && end && fence) {
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(file, start, '[');
+        edit.insert(file, end, `](${target})`);
+        edit.insert(file, fence, `${comment}\n\n`);
+        await vscode.workspace.applyEdit(edit);
+      }
+    }
   }
 
   /**

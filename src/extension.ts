@@ -373,7 +373,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     ...registerFormatter(extensionId, saveChangesOf, steps),
     new AddNoteAction(threads, viewCommands.newNote, clean).register(),
     ...slash.register(),
-    ...new Snippets().register(),
+    ...new Snippets(clean).register(),
     ...new UsedSnippets().register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {

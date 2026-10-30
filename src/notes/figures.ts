@@ -23,8 +23,8 @@
  * `<a id="tab-grades"></a>`, and a link to it has a word and a number as its
  * text, for example `[Table 1](#tab-grades)`. A listing of code
  * ([R-CODE-001](../../docs/requirements.md#r-code-001)) has the caption
- * `Listing:` before the comment of its source and its code block, and the
- * anchor `lst-…`. The formatter writes the number of each link from the order
+ * `Listing:` before the comment of its source and its code block, with its
+ * text as a link to the source, and the anchor `lst-…`. The formatter writes the number of each link from the order
  * of the figures, the tables, the listings and the sections in the text. The
  * module uses no API of VS Code.
  */
@@ -40,7 +40,10 @@ export type ItemKind = 'figure' | 'table' | 'listing' | 'section';
 /** Item is a figure, a table or a section of a Markdown text. */
 export interface Item {
   kind: ItemKind;
-  /** caption is the text of the image of a figure, the text after `Table:` or the text of a heading, without the anchor. */
+  /**
+   * caption is the text of the image of a figure, the text after `Table:`, the text of the link after `Listing:` or the
+   * text of a heading, without the anchor.
+   */
   caption: string;
   /** line is the index of the line that ends the image, the caption or the text of the heading, where its anchor stands. */
   line: number;
@@ -162,7 +165,9 @@ export function findItems(lines: readonly string[]): Item[] {
     // The caption of a listing can have the comment of its source between it and the code block.
     const code = next?.type === 'fence' || (next?.type === 'html_block' && tokens[index + 4]?.type === 'fence');
     if (captioned && (captioned[1] === 'Table' ? next?.type === 'table_open' : code)) {
-      items.push({ kind: captioned[1] === 'Table' ? 'table' : 'listing', caption: captioned[2].replace(/\s+/g, ' ').trim(), line: last, ...located });
+      // The caption of a listing is the text of the link to its source.
+      const text = captioned[1] === 'Listing' ? (/^\[([^]*)\]\([^()\s]*\)$/.exec(captioned[2])?.[1] ?? captioned[2]) : captioned[2];
+      items.push({ kind: captioned[1] === 'Table' ? 'table' : 'listing', caption: text.replace(/\s+/g, ' ').trim(), line: last, ...located });
     }
   });
   const top = topLevel(items);

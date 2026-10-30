@@ -305,7 +305,7 @@ A listing is a fenced code block whose code comes from a source file of the
 repository ([R-CODE-001](requirements.md#r-code-001)):
 
 ````markdown
-Listing: Reading the fields<a id="lst-reading-fields"></a>
+Listing: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -331,13 +331,22 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   the name never names a symbol of the language
   ([R-CODE-005](requirements.md#r-code-005)), and the formatter reports a
   listing whose snippet the file does not have as not found.
-- The caption line `Listing:` before the comment, and the anchor `lst-…` at
-  its end, work as those of a table; a link to it is
-  `[Listing 1](#lst-reading-fields)`.
-- The formatter writes the current code of the source into the code block
+- The caption line `Listing:` before the comment, with only blank lines
+  between them, and the anchor `lst-…` at its end, work as those of a table;
+  a link to it is `[Listing 1](#lst-reading-fields)`. The caption has no
+  number.
+- The text of the caption is free text and a link to the source: the path of
+  the comment, and for a snippet `#L`, the first line, `-L` and the last
+  line of the snippet in the source file, from 1, from the line after the
+  start mark to the line before the end mark, for example
+  `../src/notes/fields.ts#L12-L30`, or `#L12` for one line. A whole file has
+  no lines.
+- The formatter writes the current code of the source into the code block,
+  and the link around the caption with the current lines
   ([R-CODE-002](requirements.md#r-code-002)). A program that changes the
-  code in the Markdown file loses the change with the next format: change
-  the source file. An AI agent that adds a listing writes the comment and an
+  code in the Markdown file, or the lines of the link, loses the change with
+  the next format: change the source file. An AI agent that adds a listing
+  writes the caption line `Listing: ` with its text, the comment and an
   empty code block, and runs `markdownnotes format`.
 
 ---

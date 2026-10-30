@@ -99,11 +99,15 @@ The first version.
   current value into it on each format.
 - Listings of code: `/listing` inserts the code of a source file of the
   workspace, or of a snippet of it, as a code block with its caption line
-  `Listing: Caption` and the comment of its source, for example
-  `<!-- listing: ../src/fields.ts#read-fields -->`. The formatter writes the
-  current code of the source into each listing, in VS Code and on the
-  command line, which names a listing whose source it does not find; the
-  text editor shows a warning at such a listing.
+  and the comment of its source, for example
+  `<!-- listing: ../src/fields.ts#read-fields -->`. The caption is free
+  text and a link to the lines of the source, for example
+  `Listing: [Reading](../src/fields.ts#L12-L30)`. The formatter writes the
+  current code of the source into each listing and the current lines into
+  the link of its caption, in VS Code and on the command line, which names
+  a listing whose source it does not find; the text editor shows a warning
+  at such a listing. The clean editing view shows only the text of the
+  caption and the code block; Ctrl+Click on the caption opens the source.
   `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
 - Snippets in the source code: `/snippet` after selected lines of a source
   file, or "Add Snippet", writes the marks

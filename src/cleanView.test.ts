@@ -18,7 +18,7 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import type { CleanView } from './cleanView';
 import type { SelectedNotes } from './selectedNotes';
-import { Fake, FakeDocument, FakeEditor, FakeRange, FakeSelection, type FakeTab, FakeTabInputText, FakeUri, settle } from './testing/fakeVscode';
+import { Fake, FakeDocument, FakeEditor, type FakePosition, FakeRange, FakeSelection, type FakeSnippetString, type FakeTab, FakeTabInputText, FakeUri, settle } from './testing/fakeVscode';
 
 vi.mock('vscode', () => ({}));
 
@@ -493,4 +493,31 @@ test('opens the document of a file again that VS Code closes behind its view, fo
   fake.fire('close', real);
   await settle();
   expect(fake.documents.find((document) => document.uri.toString() === real.uri.toString())?.getText()).toBe(text);
+});
+
+test('shows a listing without its comment and the link of its caption, and takes a listing of /listing into the file with them (R-CODE-001)', async () => {
+  const listing = 'Listing: [Keeping](src/keep.ts#L2)\n\n<!-- listing: src/keep.ts#keep -->\n\n```typescript\nconst kept = 1;\n```\n';
+  const { view, real, document, editor } = await opened(`${text}\n${listing}\n`);
+  expect(document.getText()).toBe(`${clean}\nListing: Keeping\n\n\`\`\`typescript\nconst kept = 1;\n\`\`\`\n\n`);
+  const { SlashCommands } = await import('./slashCommands');
+  new SlashCommands({} as never, async () => {}, async () => {}, view).register();
+  fake.files.set('/folder/src/other.ts', 'export const other = 2;\n');
+  fake.found = [new FakeUri('file', '/folder/src/other.ts')];
+  fake.pick = (choices) => choices[0];
+  // VS Code reports the insertion of the snippet as a change of the view, which the view writes into the file.
+  editor.insertSnippet = async (snippet: FakeSnippetString, position: FakePosition) => {
+    const at = document.offsetAt(position);
+    typeIn(document, at, at, snippet.text);
+    return true;
+  };
+  editor.selection = { active: document.positionAt(document.text.length) };
+  await fake.run('nimblescape.markdownNotes.slashListing', document.uri);
+  await settle();
+  expect(real.text.endsWith(`\n${listing}\nListing: [Caption](src/other.ts)\n\n<!-- listing: src/other.ts -->\n\n\`\`\`typescript\nexport const other = 2;\n\`\`\`\n`)).toBe(true);
+  expect(document.getText().endsWith('```\n\nListing: Caption\n\n```typescript\nexport const other = 2;\n```\n')).toBe(true);
+  // Text typed over the caption goes into its link.
+  const caption = document.text.lastIndexOf('Caption');
+  typeIn(document, caption, caption + 'Caption'.length, 'Other');
+  await settle();
+  expect(real.text).toContain('\nListing: [Other](src/other.ts)\n\n<!-- listing: src/other.ts -->\n');
 });

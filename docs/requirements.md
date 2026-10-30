@@ -89,6 +89,7 @@ requirement, the plan and the decisions of Hannes.
 | 60 | Listings of whole files and snippets only: no symbols of a language in `/listing`, the formatter and the links of the listings; a warning at a listing whose file or snippet is not found ([decision 38](#decisions)) | [R-CODE-005](#r-code-005), [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-CODE-003](#r-code-003) | done |
 | 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | planned |
 | 62 | The marks of a snippet as tags in the look of a code lens in place of the mark lines; the cursor jumps over them; a click on an end tag goes to the start; "Rename Snippet" and "Remove Snippet" in the light bulb ([decision 37](#decisions)) | [R-CODE-004](#r-code-004) | done |
+| 63 | The caption of a listing as a link to the lines of its source, which the formatter keeps current; the clean editing view hides the comment of the listing and the link of the caption, and Ctrl+Click on the caption opens the source ([decision 41](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009) | done |
 
 ## General
 
@@ -770,6 +771,13 @@ file at once, and keeps each note at its text:
   the figures and tables ([R-XREF-001](#r-xref-001)): each anchor outside
   code and the definitions, also one that an edit moved away from the end of
   its line. Text typed at the end of the line of an anchor goes before it.
+- The view leaves out the comment of each listing with the blank line after
+  it, and the `[` and the `](…)` of the link of its caption
+  ([R-CODE-001](#r-code-001)). Text typed at the start or the end of the
+  caption goes into the link. An edit that deletes the text on both sides of
+  the comment or of the link takes them away, and so does an edit after
+  which the text is no caption of the listing, such as a paragraph break in
+  it.
 - Text typed at the start or the end of a highlight stays outside of it;
   text typed inside a highlight stays in it, also when it replaces the first
   or the last word of the highlight, letter by letter.
@@ -1732,7 +1740,7 @@ repository with other source code, and `/listing` adds code of a file of the
 repository to it. The form:
 
 ````markdown
-Listing: Reading the fields<a id="lst-reading-fields"></a>
+Listing: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -1751,14 +1759,30 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   ([R-CODE-005](#r-code-005)). The path is relative to the Markdown file, with `/`, and encodes spaces
   and other characters as in a link. A listing in the text of a note does
   not count.
-- GitHub and the Markdown preview show the code block; the comment is
-  hidden there and stays visible in the text editor and the clean editing
-  view.
+- The caption is the free text after `Listing:`, on the line before the
+  comment, with only blank lines between them. Its text is a link to the
+  source: the path, and for a snippet its lines, for example
+  `#L12-L30`, so that a click on the caption on GitHub and in any viewer of
+  Markdown opens the source file at these lines. The formatter writes the
+  link and keeps its target current ([R-CODE-002](#r-code-002)); the
+  text of the caption stays as the person wrote it. The caption holds no
+  number: the formatter writes the numbers into the links to the listing
+  ([R-XREF-002](#r-xref-002)), and the renderer numbers the caption
+  ([decision 41](#decisions)).
+- GitHub and the Markdown preview show the caption and the code block; the
+  comment is hidden there. The text editor of the file with markup shows
+  everything. The clean editing view hides the comment, the `[` and the
+  `](…)` of the link of the caption and its anchor, so that only the text of
+  the caption is edited ([R-TEXT-009](#r-text-009)); there Ctrl+Click on the
+  caption opens the source file at the first line of the snippet, as
+  Ctrl+Click on the comment does in the text editor of the file with markup.
 - `/listing` lists the source files of the workspace by their paths from the
   folder of the Markdown file, then "Whole file" and the snippets of the
-  chosen file. It inserts the caption line `Listing: Caption`, the comment
-  and the code block with the language of the file, with the caption
-  selected for typing. A file without snippets gives its whole text.
+  chosen file. It inserts the caption line `Listing: [Caption](…)` with the
+  link to the source, the comment and the code block with the language of
+  the file, with the caption selected for typing. A file without snippets
+  gives its whole text. In the clean editing view, the view gets the caption
+  and the code block, and the link and the comment go into the file.
 - `/ref` links a listing as a figure or a table, for example
   `[Listing 1](#lst-reading-fields)` ([R-XREF-001](#r-xref-001)).
 
@@ -1776,11 +1800,20 @@ code block.
   whole file and a snippet lose their blank lines at the start and the end.
   The code block keeps its fence, its indentation and its info string; the
   fence gets longer when the code holds a fence of its length.
+- The formatter writes the caption of a listing as a link to its source
+  and keeps the target of the link current with the code: the path of the
+  comment, and for a snippet its lines from 1, from the line after the
+  start mark to the line before the end mark, for example
+  `../src/fields.ts#L12-L30`, or `#L12` for one line; a whole file has no
+  lines. A caption that is no link becomes the text of the link; a link to
+  the source inside it, for example after text typed outside of the old
+  link, goes into the new link. A caption without text stays as it is.
 - In VS Code, the formatter reads a source from its open document, so that
   a change that is not saved yet counts, or else from the disk. On the
   command line, it reads the source relative to the Markdown file, or to
   the current folder for the standard input.
-- A listing whose file or snippet is not found keeps its code. The text
+- A listing whose file or snippet is not found keeps its code and its
+  caption. The text
   editor and the Problems view show a warning at its comment
   ([R-CODE-005](#r-code-005)). The command line names it on the standard
   error, for example
@@ -2353,6 +2386,17 @@ requirements above follow them.
     at the comment of a listing whose source file or snippet is not found,
     as the command line names it; the listing keeps its code. The other
     choice was the message of the command line only.
+41. **The caption of a listing cites its source** ([R-CODE-001](#r-code-001),
+    [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009)): the caption is
+    free text and a link to the lines of the source, which the formatter
+    keeps current; the clean editing view shows only the text of the caption
+    and hides the comment of the listing. The caption holds no number. A
+    cite with the file and the lines after the caption, such as
+    `(fields.ts, L12-L30)`, and line numbers in front of the code are
+    options of the layout of nimblescape Markdown Paper, which renders
+    them; the Markdown file holds neither. The other choices were the file
+    and the lines as text in the caption, and a visible comment of the
+    listing in the clean editing view.
 
 ---
 

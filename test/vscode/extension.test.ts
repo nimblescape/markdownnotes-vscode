@@ -4,7 +4,8 @@
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
 // R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
-// format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), the snippets of a source file (R-CODE-003), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), a listing in
+// the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
@@ -285,14 +286,18 @@ describe('nimblescape Markdown Notes', () => {
     const listing = (comment: string) => `${comment}\n\n\`\`\`typescript\nold\n\`\`\`\n`;
     fs.writeFileSync(file.fsPath, `Listing: Reading\n\n${listing('<!-- listing: src/read%20me.ts#read -->')}\n${listing('<!-- listing: src/read%20me.ts -->')}`);
     const document = await vscode.workspace.openTextDocument(file);
-    const editor = await vscode.window.showTextDocument(document);
+    await vscode.window.showTextDocument(document);
+    // A file with listings opens in the clean editing view, which hides their comments; this test edits the file itself.
+    await viewOf(file);
+    await vscode.commands.executeCommand(commandOf('openWithMarkup'));
+    const editor = await waitFor(() => (vscode.window.activeTextEditor?.document === document ? vscode.window.activeTextEditor : undefined), 'the text editor of the file');
     // A file without notes gets the format on save, because the formatter keeps its listings current.
     await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), '\nEnd.\n'));
     assert.ok(await document.save(), 'the save of the file');
     const read = 'export function read(path: string): string {\n  return path;\n}';
     assert.equal(
       document.getText(),
-      `Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\nEnd.\n`,
+      `Listing: [Reading](src/read%20me.ts#L2-L4)\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\nEnd.\n`,
     );
     // A change of the source that is not saved yet counts.
     const opened = await vscode.workspace.openTextDocument(source);
@@ -301,7 +306,7 @@ describe('nimblescape Markdown Notes', () => {
     assert.ok(await vscode.workspace.applyEdit(change), 'the change of the source');
     await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), 'More.\n'));
     assert.ok(await document.save(), 'the second save of the file');
-    assert.ok(document.getText().startsWith('Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n```typescript\nexport function read(path: string): string {\n  return path.trim();\n}\n```\n'), document.getText());
+    assert.ok(document.getText().startsWith('Listing: [Reading](src/read%20me.ts#L2-L4)\n\n<!-- listing: src/read%20me.ts#read -->\n\n```typescript\nexport function read(path: string): string {\n  return path.trim();\n}\n```\n'), document.getText());
     assert.ok(await opened.save(), 'the save of the source');
     // A snippet between its marks, and the comment of its listing as a link to its first line (R-CODE-003).
     const snippet = vscode.Uri.file(path.join(folder, 'src', 'snippet.py'));
@@ -317,6 +322,32 @@ describe('nimblescape Markdown Notes', () => {
     await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), '<!-- listing: src/snippet.py#read -->\n\n```python\n```\n'));
     const warning = await waitFor(() => vscode.languages.getDiagnostics(document.uri).find((diagnostic) => diagnostic.message.includes('has no snippet "read"')), 'the warning at the listing');
     assert.equal(warning.range.start.line, document.lineCount - 5);
+  });
+
+  it('shows only the caption and the code of a listing in the clean editing view, keeps typed text in the link of the caption, and links the caption to the source (R-CODE-001)', async () => {
+    const source = vscode.Uri.file(path.join(folder, 'src', 'listed.ts'));
+    fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });
+    fs.writeFileSync(source.fsPath, 'export const one = 1;\n');
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    const listing = 'Listing: [Caption](src/listed.ts)\n\n<!-- listing: src/listed.ts -->\n\n```typescript\nexport const one = 1;\n```\n';
+    fs.writeFileSync(file.fsPath, `${note}\n${listing}`);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    assert.ok(view.document.getText().endsWith('\nMore.\n\nListing: Caption\n\n```typescript\nexport const one = 1;\n```\n'), view.document.getText());
+    // Text typed over the caption stays in its link.
+    const start = view.document.positionAt(view.document.getText().indexOf('Caption'));
+    await view.edit((edit) => edit.replace(new vscode.Range(start, start.translate(0, 'Caption'.length)), 'Reading'));
+    const real = await waitFor(
+      () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('Listing: [Reading](src/listed.ts)')),
+      'the new caption in the link',
+    );
+    assert.ok(real.getText().endsWith(`\n${listing.replace('Caption', 'Reading')}`), real.getText());
+    // Ctrl+Click on the caption opens the source.
+    const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>('vscode.executeLinkProvider', view.document.uri);
+    const link = links.find((candidate) => candidate.target?.path === source.path);
+    assert.equal(link && view.document.getText(link.range), 'Reading');
+    await vscode.workspace.saveAll(false);
+    await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
   });
 
   it('offers /snippet in the text editor of a source file after a slash that replaced selected lines (R-CODE-003)', async () => {

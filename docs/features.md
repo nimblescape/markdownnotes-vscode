@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 122 requested features, 95 are built, among them the clean editing view
+Of 125 requested features, 97 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -28,9 +28,11 @@ source files of the repository with the snippets in them. 7 features are planned
 the first release, a setting of VS Code for the width of the text editor
 in Zen Mode, the new name of the repository, and the question whether the
 comment of the format becomes front matter. 11 requests were replaced or
-dropped by later decisions of Hannes; each row names the decision. 5 requests
-moved to nimblescape Markdown Paper: the citations and the sources
-([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions)).
+dropped by later decisions of Hannes; each row names the decision. 6 requests
+moved to nimblescape Markdown Paper: the citations, the sources, and the cite
+and the line numbers of a rendered listing
+([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
+[decision 41](requirements.md#decisions)).
 
 The main gaps are the visual editing in the side view, the hidden form of the
 notes, and the checks of the footnotes.
@@ -143,6 +145,9 @@ breaks and the cursor next to the hidden markers.
 | A toggle button that highlights the used snippets | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58: "Show Used Snippets" and "Hide Used Snippets" in the title of the text editor of a source file with snippets |
 | Listings of whole files and snippets, symbols only with parsers | 10-30 04:43, 05:38 | [R-CODE-005](requirements.md#r-code-005) | Built | Step 60, [decision 38](requirements.md#decisions): a listing shows a whole file or a snippet; the rules that found functions by their declarations are removed; the text editor warns at a listing whose file or snippet is not found |
 | The formatter keeps the code blocks current | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a snippet is found by its marks, the same way in both |
+| The comment of a listing hidden in the clean editing view, and the caption as the link to the source | 10-30 06:36 | [R-CODE-001](requirements.md#r-code-001), [R-TEXT-009](requirements.md#r-text-009) | Built | Step 63, [decision 41](requirements.md#decisions): the view hides the comment and the `[` and `](…)` of the link of the caption, so that only the text of the caption is edited; Ctrl+Click on the caption opens the source at the snippet; `/listing` in the view writes the hidden parts into the file |
+| The caption cites the source file and the lines, and the formatter keeps the lines current | 10-30 06:36, 06:40, 06:48 | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) | Built | Step 63: the caption is free text and a link to the source, `Listing: [Reading the fields](../src/fields.ts#L12-L30)`, so that a click on GitHub opens the lines; the formatter writes the link and its target, the text stays as written; no number in the caption |
+| Line numbers in front of the code and a cite after the caption in the rendered listing | 10-30 06:30, 06:40, 06:43 | [R-CODE-001](requirements.md#r-code-001) | Moved | [Decision 41](requirements.md#decisions): options of the layout of nimblescape Markdown Paper, for example `(server.ts, L20-L40)` after the caption; the line numbers are off by default and start at 1 in each listing |
 | `/ref` for sections | 10-30 02:47, 03:19 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 51, changed by step 56: `[Chapter 2.1](#methods)`; the chapters are the headings of the highest level that more than one heading has |
 | Links to headings without anchors | 10-30 03:28 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 56, [decision 36](requirements.md#decisions): the link names the ID that GitHub gives the heading, and the heading gets no anchor; an anchor of the earlier form still counts |
 | Plain Markdown first | 10-30 03:29 | [R-GEN-013](requirements.md#r-gen-013) | Built | A rule for each new form in the file; the links to headings follow it |

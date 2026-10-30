@@ -7,29 +7,28 @@
  * ([R-CODE-004](../docs/requirements.md#r-code-004)).
  *
  * Each mark line of a snippet shows as a tag in the small gray letters of a
- * code lens in place of its comment: the start mark as the name of the
- * snippet and the listings of the Markdown files of the workspace that show
- * it, for example "snippet keep-lines · Listing 2 in paper/paper.md", and the
- * end mark as "/snippet keep-lines". The characters of the file stay as they
- * are; only the comment is hidden. The cursor jumps over a mark line, as over
- * a header line of a note ([src/notes/cursor.ts](notes/cursor.ts)), and
- * Backspace and Delete next to a mark line do nothing, so no key changes a
- * hidden mark: the hidden characters of a whole line never stand between
- * visible characters, which caused the bugs of the cursor at the hidden
- * markers of the notes. A click on a start tag opens the Markdown file at the
- * listing; a click on an end tag puts the cursor on the first line of the
- * code and shows the start tag. "Rename Snippet", which also renames the
- * snippet in the listings, and "Remove Snippet" in the light bulb of the code
- * of a snippet change the marks. The button "Show Used
- * Snippets" in the title of the text editor of a source file with snippets
- * gives the lines of each snippet that a listing shows a background color,
- * until "Hide Used Snippets".
+ * code lens in place of its comment: the start mark as the name of the snippet
+ * and the listings of the Markdown files of the workspace that show it, for
+ * example "snippet keep-lines · Listing 2 in paper/paper.md", and the end mark
+ * as "/snippet keep-lines". The characters of the file stay as they are; only
+ * the comment is hidden. The cursor jumps over a mark line, as over a header
+ * line of a note ([src/notes/cursor.ts](notes/cursor.ts)), and Backspace and
+ * Delete next to a mark line do nothing, so no key changes a hidden mark: the
+ * hidden characters of a whole line never stand between visible characters,
+ * which caused the bugs of the cursor at the hidden markers of the notes. A
+ * click on a start tag opens the Markdown file at the caption of the listing; a
+ * click on an end tag puts the cursor on the first line of the code and shows
+ * the start tag. "Rename Snippet", which also renames the snippet in the
+ * listings, and "Remove Snippet" in the light bulb of the code of a snippet
+ * change the marks. The button "Show Used Snippets" in the title of the text
+ * editor of a source file with snippets gives the lines of each snippet that a
+ * listing shows a background color, until "Hide Used Snippets".
  */
 
 import * as vscode from 'vscode';
 import { locksLine, offLines } from './notes/cursor';
 import { findItems, labelOf, wordOf } from './notes/figures';
-import { findListings, isSnippetName, snippetsOf } from './notes/listings';
+import { captionsOf, findListings, isSnippetName, snippetsOf } from './notes/listings';
 
 /**
  * usedSnippetCommands are the commands of the snippets in the text editor of a source file: the two buttons, the
@@ -75,6 +74,8 @@ export interface Use {
   /** markdown is the URI of the Markdown file, and line the line of the comment of the listing. */
   markdown: vscode.Uri;
   line: number;
+  /** caption is the line of the caption of the listing, where the listing opens, or undefined without a caption. */
+  caption?: number;
   /** label names the listing, for example "Listing 2 in paper/paper.md", or only the file for a listing without caption. */
   label: string;
 }
@@ -93,7 +94,7 @@ export function usesOfText(lines: readonly string[], file: vscode.Uri, where: st
     return uses;
   }
   const items = findItems(lines);
-  const captions = items.filter((item) => item.kind === 'listing');
+  const captions = captionsOf(lines, items, listings);
   const word = wordOf(lines, 'listing') ?? 'Listing';
   listings.forEach((listing, index) => {
     if (!listing.snippet) {
@@ -105,12 +106,10 @@ export function usesOfText(lines: readonly string[], file: vscode.Uri, where: st
     } catch {
       return;
     }
-    // The caption line stands directly before the comment, or one blank line before it, after the listing before.
-    const previous = index > 0 ? listings[index - 1].close : -1;
-    const caption = captions.find((item) => item.line > previous && item.line < listing.line && listing.line - item.line <= 2);
+    const caption = captions[index];
     const label = caption ? `${word} ${labelOf(items, caption)} in ${where}` : where;
     const key = `${source.path}#${listing.snippet}`;
-    uses.set(key, [...(uses.get(key) ?? []), { markdown: file, line: listing.line, label }]);
+    uses.set(key, [...(uses.get(key) ?? []), { markdown: file, line: listing.line, ...(caption ? { caption: caption.line } : {}), label }]);
   });
   return uses;
 }
@@ -463,13 +462,14 @@ export class UsedSnippets implements vscode.CodeActionProvider {
   }
 
   /**
-   * open opens the Markdown file of a use at its listing; with several uses, the user chooses one first.
+   * open opens the Markdown file of a use at the caption of its listing, or at its comment without a caption, which the
+   * clean editing view hides; with several uses, the user chooses one first.
    * @param uses - The uses of the snippet.
    */
   private async open(uses: readonly Use[]): Promise<void> {
     const chosen = uses.length === 1 ? uses[0] : (await vscode.window.showQuickPick(uses.map((use) => ({ label: use.label, use })), { placeHolder: 'The listing to open' }))?.use;
     if (chosen) {
-      const at = new vscode.Position(chosen.line, 0);
+      const at = new vscode.Position(chosen.caption ?? chosen.line, 0);
       await vscode.window.showTextDocument(chosen.markdown, { selection: new vscode.Range(at, at) });
     }
   }

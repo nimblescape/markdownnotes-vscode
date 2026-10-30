@@ -273,17 +273,23 @@ form of the notes in a file for programs and AI agents, and
   the current value of the key into it, and the clean editing view hides the
   markers ([R-XREF-004](requirements.md#r-xref-004)).
 - `/listing` inserts the code of a file of the workspace, or of a snippet of
-  it, as a listing: the caption line `Listing:`, the comment
-  `<!-- listing: ../src/fields.ts#read-fields -->` and the code block.
-  `/ref` links it as `[Listing 1](#lst-…)`
-  ([R-CODE-001](requirements.md#r-code-001)).
+  it, as a listing: the caption line `Listing:` with the caption as a link
+  to the lines of the source, `[Reading](../src/fields.ts#L12-L30)`, the
+  comment `<!-- listing: ../src/fields.ts#read-fields -->` and the code
+  block. The clean editing view shows only the text of the caption and the
+  code block, and Ctrl+Click on the caption opens the source. `/ref` links
+  it as `[Listing 1](#lst-…)` ([R-CODE-001](requirements.md#r-code-001)).
+  Markdown Paper renders a cite with the file and the lines after the
+  caption, and line numbers in front of the code, as options of its layout
+  ([decision 41](requirements.md#decisions)).
 - A listing shows a whole file or a snippet, and no symbol of a language,
   such as a function: a function is a snippet around it. Symbols come later
   with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python,
   HTML, CSS, YAML, JSON, JSONC and shell scripts
   ([R-CODE-005](requirements.md#r-code-005)).
-- The formatter writes the current code of the source into each listing, in
-  VS Code and on the command line, which reports a missing source or
+- The formatter writes the current code of the source into each listing,
+  and the current lines into the link of its caption, in VS Code and on the
+  command line, which reports a missing source or
   snippet and fails with `--check`; the text editor and the Problems view
   show a warning at such a listing
   ([R-CODE-002](requirements.md#r-code-002)).

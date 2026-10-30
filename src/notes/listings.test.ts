@@ -11,7 +11,23 @@
 import { describe, expect, test } from 'vitest';
 import { formatMarkdown, keptCurrent } from '../format/format';
 import { anchorName, findItems, numberLinks } from './figures';
-import { codeOf, fileTypeOf, findListings, isSnippetName, languageOf, listingBlock, missingListings, refreshListings, snippetLines, snippetsOf, type Source, sourceFiles } from './listings';
+import {
+  captionLinkOf,
+  captionsOf,
+  codeOf,
+  fileTypeOf,
+  findListings,
+  isSnippetName,
+  languageOf,
+  listingBlock,
+  listingTarget,
+  missingListings,
+  refreshListings,
+  snippetLines,
+  snippetsOf,
+  type Source,
+  sourceFiles,
+} from './listings';
 
 /** typescript is a file of TypeScript with a function in a snippet, a class with a method, an interface and a constant. */
 const typescript = [
@@ -186,6 +202,8 @@ describe('the listings of a text', () => {
 
   test('get the current code of their source from the formatter, with a longer fence for code with a fence (R-CODE-002)', () => {
     const refreshed = refreshListings(paper, source);
+    expect(refreshed[0]).toBe('Listing: [Reading the fields](../src/fields.ts#L6-L13)<a id="lst-reading-fields"></a>');
+    expect(refreshed.slice(1, 4)).toEqual(paper.slice(1, 4));
     expect(refreshed.slice(4, 14)).toEqual(['```typescript {.numbered}', ...codeOf(typescript, 'read-fields')!, '```']);
     expect(refreshed.slice(14, 34)).toEqual(['', 'See [Listing 3](#lst-reading-fields).', '', '<!-- listing: ../src/read%20me.py -->', '~~~', ...python.split('\n'), '~~~']);
     expect(refreshed.slice(34)).toEqual(paper.slice(14));
@@ -203,13 +221,27 @@ describe('the listings of a text', () => {
     expect(keptCurrent(['Text.', '', '```', 'code', '```', ''])).toBe(false);
     const items = findItems(paper);
     expect(items.map(({ kind, caption, line }) => [kind, caption, line])).toEqual([['listing', 'Reading the fields', 0]]);
+    // The caption of a listing is the text of the link to its source.
+    expect(findItems(formatted).map(({ caption }) => caption)).toEqual(['Reading the fields']);
+    expect(formatted[0]).toBe('Listing: [Reading the fields](../src/fields.ts#L6-L13)<a id="lst-reading-fields"></a>');
     const plain = findItems(['Listing: Reading the fields', '', '```', 'x', '```', '']);
     expect(anchorName(plain[0], plain)).toBe('lst-reading-fields');
     expect(numberLinks(paper)[8]).toBe('See [Listing 1](#lst-reading-fields).');
   });
 
   test('are written by /listing with their caption line, their comment and the language of their file (R-CODE-001)', () => {
-    expect(listingBlock('Reading', '../src/fields.ts', 'read-fields', ['```', 'x'])).toEqual(['Listing: Reading', '', '<!-- listing: ../src/fields.ts#read-fields -->', '', '````typescript', '```', 'x', '````']);
+    const marked = '// markdownnotes: snippet read-fields\n```\nx\n// markdownnotes: /snippet read-fields\n';
+    expect(listingBlock('Reading', '../src/fields.ts', 'read-fields', marked)).toEqual([
+      'Listing: [Reading](../src/fields.ts#L2-L3)',
+      '',
+      '<!-- listing: ../src/fields.ts#read-fields -->',
+      '',
+      '````typescript',
+      '```',
+      'x',
+      '````',
+    ]);
+    expect(listingBlock('All', 'a.py', undefined, 'x = 1\n')).toEqual(['Listing: [All](a.py)', '', '<!-- listing: a.py -->', '', '```python', 'x = 1', '```']);
     expect(languageOf('a/b.PY')).toBe('python');
     expect([languageOf('Makefile'), languageOf('LICENSE')]).toEqual(['makefile', '']);
     expect([languageOf('.env.local'), languageOf('Dockerfile'), languageOf('tsconfig.jsonc'), languageOf('a.vue')]).toEqual(['ini', 'dockerfile', 'jsonc', 'vue']);
@@ -217,5 +249,42 @@ describe('the listings of a text', () => {
     expect(sourceFiles).toMatch(/^\{\*\*\/\*\.bash,.*,\*\*\/\*\.ts,.*,\*\*\/\.env,\*\*\/\.env\.\*,\*\*\/Dockerfile,.*\}$/);
     expect(sourceFiles.slice(1, -1)).not.toMatch(/[{}]/);
     expect(sourceFiles).not.toContain('*.md,');
+  });
+});
+
+describe('the caption of a listing', () => {
+  /** listed returns a text with a caption and a listing of a snippet of fields.ts. */
+  const listed = (caption: string[]) => [...caption, '', '<!-- listing: ../src/fields.ts#read-fields -->', '', '```typescript', '```', ''];
+
+  test('is a link to the lines of the snippet in the source, or to the whole file (R-CODE-001)', () => {
+    expect(listingTarget('../src/fields.ts', typescript, 'read-fields')).toBe('../src/fields.ts#L6-L13');
+    expect(listingTarget('../src/fields.ts', typescript)).toBe('../src/fields.ts');
+    expect(listingTarget('a.ts', 'a\n// markdownnotes: snippet one\nb\n// markdownnotes: /snippet one\n', 'one')).toBe('a.ts#L3');
+    expect(listingTarget('a.ts', 'a\n', 'missing')).toBe('a.ts');
+    const lines = listed(['Listing: [Reading the fields](../src/fields.ts#L6-L13)<a id="lst-reading"></a>']);
+    const [caption] = captionsOf(lines, findItems(lines), findListings(lines));
+    expect(captionLinkOf(lines, caption!)).toEqual({ open: { line: 0, start: 9, end: 10 }, close: { line: 0, start: 28, end: 54 }, target: '../src/fields.ts#L6-L13' });
+    // A caption that is not one link, and a listing without a caption.
+    const two = listed(['Listing: [A](a.ts) and [B](b.ts)']);
+    expect(captionLinkOf(two, captionsOf(two, findItems(two), findListings(two))[0]!)).toBeUndefined();
+    const bare = ['<!-- listing: a.ts -->', '```', '```', ''];
+    expect(captionsOf(bare, findItems(bare), findListings(bare))).toEqual([undefined]);
+  });
+
+  test('gets its link and the current lines from the formatter; its text stays as written (R-CODE-001, R-CODE-002)', () => {
+    const link = 'Listing: [Reading the fields](../src/fields.ts#L6-L13)';
+    expect(refreshListings(listed(['Listing: Reading the fields']), source)[0]).toBe(link);
+    expect(refreshListings(listed(['Listing: [Reading the fields](../src/fields.ts#L1-L2)<a id="lst-reading"></a>']), source)[0]).toBe(`${link}<a id="lst-reading"></a>`);
+    // A link of the person to another target gets the target of the source.
+    expect(refreshListings(listed(['Listing: [Reading the fields](https://example.com)']), source)[0]).toBe(link);
+    // Text typed outside of the old link goes into the new link.
+    expect(refreshListings(listed(['Listing: New [Reading the fields](../src/fields.ts#L1-L2) here']), source)[0]).toBe('Listing: [New Reading the fields here](../src/fields.ts#L6-L13)');
+    // A caption of two lines, two blank lines before the comment, and a caption without text.
+    const wrapped = refreshListings(['Listing: Reading', 'the fields', '', ...listed([]).slice(0)], source);
+    expect(wrapped.slice(0, 2)).toEqual(['Listing: [Reading', 'the fields](../src/fields.ts#L6-L13)']);
+    expect(refreshListings(listed(['Listing:']), source)[0]).toBe('Listing:');
+    // A listing whose source is missing keeps its caption.
+    const missing = ['Listing: Gone', '', '<!-- listing: ../src/gone.ts -->', '', '```', 'kept', '```', ''];
+    expect(refreshListings(missing, source)).toEqual(missing);
   });
 });

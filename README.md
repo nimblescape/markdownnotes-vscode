@@ -109,11 +109,12 @@ describes each step and where its protection ends.
   front matter), `/date`, `/time` and `/user` (your GitHub login); Tab takes
   the chosen command.
 - **Code of the repository in the text.** `/listing` adds the code of a
-  source file, or of a function, a class or a method of it, as a code block
-  with the comment of its source, `<!-- listing: ../src/fields.ts#readFields -->`.
-  The formatter writes the current code of the source into it on each
-  format, also on the command line. `/snippet` in a source file marks a part
-  of a function as a snippet that a listing can show.
+  source file, or of a snippet of it, as a code block with the comment of
+  its source, `<!-- listing: ../src/fields.ts#read-fields -->`, and a caption
+  that links to the lines of the source. The formatter writes the current
+  code and lines into it on each format, also on the command line.
+  `/snippet` in a source file marks a function, a class or a few lines as a
+  snippet that a listing can show.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text

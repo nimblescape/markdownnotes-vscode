@@ -9,6 +9,9 @@
  * A listing is a code block with a comment of HTML directly before it that names its source: a whole file,
  * `<!-- listing: ../src/fields.ts -->`, or a snippet of the file, `<!-- listing: ../src/fields.ts#parse-notes -->`. The
  * formatter reads the source again and writes its code into the block, the same way in VS Code and on the command line.
+ * The caption of a listing, the free text after `Listing:`, is a link to its source, so that a click on it in any viewer
+ * of Markdown opens the file at the lines of the snippet: `Listing: [Parsing the notes](../src/fields.ts#L12-L30)`. The
+ * formatter writes the link around the caption and keeps its target current with the code.
  *
  * A snippet is code between two marks in comments of the source ([R-CODE-003](../../docs/requirements.md#r-code-003)):
  * `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment form of the
@@ -18,6 +21,7 @@
  * uses no API of VS Code.
  */
 
+import { findItems, type Item } from './figures';
 import { parse } from './notes';
 import { noteCloseType, noteOpenType } from './syntax';
 
@@ -71,9 +75,142 @@ export function findListings(lines: readonly string[]): Listing[] {
 }
 
 /**
- * dedent returns lines without the white space at their start that all lines that are not blank have.
+ * captionsOf returns the caption of each listing of a text, by the index of the listing, or undefined for a listing
+ * without one: the caption that ends directly before the comment, or with only blank lines between them.
+ * @param lines - The lines of the text.
+ * @param items - The figures, the tables, the listings and the sections of the text (`findItems`).
+ * @param listings - The listings of the text.
+ */
+export function captionsOf(lines: readonly string[], items: readonly Item[], listings: readonly Listing[]): (Item | undefined)[] {
+  const captions = items.filter((item) => item.kind === 'listing');
+  return listings.map((listing) => captions.find((item) => item.line < listing.line && lines.slice(item.line + 1, listing.line).every((line) => line.trim() === '')));
+}
+
+/** captionHead matches the start of the first line of the caption of a listing, up to the text of the caption. */
+const captionHead = /^(\s*Listing:[ \t]*)/;
+
+/** captionTail matches the end of the last line of the caption of a listing after its text: its anchor, if any. */
+const captionTail = /[ \t]*(?:<a id="lst-[a-z0-9]+(?:-[a-z0-9]+)*"><\/a>)?[ \t]*$/;
+
+/** linkEnd matches the end of a link at the end of a text: `](` and its target, without white space. */
+const linkEnd = /\]\(([^()\s]*)\)$/;
+
+/** balanced tells whether the square brackets of a text are balanced, so that the text can be the text of one link. */
+function balanced(text: string): boolean {
+  let depth = 0;
+  for (const character of text) {
+    depth += character === '[' ? 1 : character === ']' ? -1 : 0;
+    if (depth < 0) {
+      return false;
+    }
+  }
+  return depth === 0;
+}
+
+/** Place is a part of a line: the index of the line, and the columns of its start and its end. */
+export interface Place {
+  line: number;
+  start: number;
+  end: number;
+}
+
+/** CaptionLink is the link of the caption of a listing: its `[` before the text, its `](…)` after it, and its target. */
+export interface CaptionLink {
+  open: Place;
+  close: Place;
+  target: string;
+}
+
+/**
+ * captionParts returns the parts of the caption of a listing: the index of its first line, the column where its text
+ * starts there, and the column where its text ends in its last line, before its anchor.
+ * @param lines - The lines of the text.
+ * @param caption - The caption.
+ */
+function captionParts(lines: readonly string[], caption: Item): { first: number; start: number; end: number } | undefined {
+  let first = caption.line;
+  while (first > 0 && lines[first - 1].trim() !== '') {
+    first--;
+  }
+  const start = captionHead.exec(lines[first]);
+  const end = captionTail.exec(lines[caption.line])!;
+  return start && (first < caption.line || end.index >= start[0].length) ? { first, start: start[0].length, end: end.index } : undefined;
+}
+
+/**
+ * captionLinkOf returns the link of the caption of a listing, or undefined when its text is not one link: the text of
+ * the caption is the text of the link, and its target names the source.
+ * @param lines - The lines of the text.
+ * @param caption - The caption of the listing.
+ */
+export function captionLinkOf(lines: readonly string[], caption: Item): CaptionLink | undefined {
+  const parts = captionParts(lines, caption);
+  if (!parts || lines[parts.first][parts.start] !== '[') {
+    return undefined;
+  }
+  const last = lines[caption.line].slice(0, parts.end);
+  const end = linkEnd.exec(last);
+  const text = [...lines.slice(parts.first, caption.line), last].join('\n').slice(parts.start + 1, end ? end.index - last.length : undefined);
+  if (!end || (parts.first === caption.line && end.index <= parts.start) || !balanced(text)) {
+    return undefined;
+  }
+  return { open: { line: parts.first, start: parts.start, end: parts.start + 1 }, close: { line: caption.line, start: end.index, end: parts.end }, target: end[1] };
+}
+
+/**
+ * listingTarget returns the target of the link of the caption of a listing: the path of its source, and for a snippet
+ * its lines in the source, from 1, from the line after the start mark to the line before the end mark, for example
+ * `../src/fields.ts#L12-L30`.
+ * @param path - The path of the source, relative to the Markdown file.
+ * @param text - The text of the source.
+ * @param snippet - The name of the snippet, or undefined for the whole file.
+ */
+export function listingTarget(path: string, text: string, snippet?: string): string {
+  const range = snippet === undefined ? undefined : snippetsOf(text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/)).find(({ name }) => name === snippet);
+  if (!range) {
+    return path;
+  }
+  const [first, last] = [range.first + 1, Math.max(range.first + 1, range.last + 1)];
+  return `${path}#L${first}${last > first ? `-L${last}` : ''}`;
+}
+
+/**
+ * linkedCaption writes the text of the caption of a listing as a link to a target into the lines: a link of its own
+ * gets the target, and a text that is no link becomes the text of the link, without the links to the source of the
+ * listing in it, such as the old link around a part of it. A caption without text stays as it is.
+ * @param lines - The lines of the text.
+ * @param caption - The caption.
+ * @param listing - The listing of the caption.
+ * @param target - The target.
+ */
+function linkedCaption(lines: string[], caption: Item, listing: Listing, target: string): void {
+  const link = captionLinkOf(lines, caption);
+  if (link) {
+    const line = lines[link.close.line];
+    lines[link.close.line] = `${line.slice(0, link.close.start)}](${target})${line.slice(link.close.end)}`;
+    return;
+  }
+  const parts = captionParts(lines, caption);
+  if (!parts) {
+    return;
+  }
+  const last = lines[caption.line];
+  const paragraph = [...lines.slice(parts.first, caption.line), last.slice(0, parts.end)].join('\n');
+  const escaped = listing.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const text = paragraph.slice(parts.start).replace(new RegExp(String.raw`\[([^\[\]]*)\]\(${escaped}(?:#L\d+(?:-L\d+)?)?\)`, 'g'), '$1');
+  if (text.trim() === '') {
+    return;
+  }
+  const linked = `${paragraph.slice(0, parts.start)}[${text}](${target})${last.slice(parts.end)}`.split('\n');
+  lines.splice(parts.first, linked.length, ...linked);
+}
+
+/**
+ * dedent returns lines without the white space at their start that all lines that are not blank have. The example of
+ * the documents shows it as a listing ([docs/example.md](../../docs/example.md)).
  * @param lines - The lines.
  */
+// markdownnotes: snippet dedent
 export function dedent(lines: readonly string[]): string[] {
   const indents = lines.filter((line) => line.trim() !== '').map((line) => /^[ \t]*/.exec(line)![0]);
   let common = indents[0] ?? '';
@@ -84,6 +221,7 @@ export function dedent(lines: readonly string[]): string[] {
   }
   return lines.map((line) => (line.trim() === '' ? '' : line.slice(common.length)));
 }
+// markdownnotes: /snippet dedent
 
 /** trimBlank returns lines without the blank lines at their start and their end. */
 function trimBlank(lines: readonly string[]): string[] {
@@ -226,8 +364,9 @@ export function missingListings(lines: readonly string[], source: Source): Listi
 
 /**
  * refreshListings returns the lines of a text with the current code of the source of each listing in its code block
- * ([R-CODE-002](../../docs/requirements.md#r-code-002)). The fence gets longer when the code holds a fence of its
- * length. A listing whose file or snippet the source does not have keeps its code.
+ * ([R-CODE-002](../../docs/requirements.md#r-code-002)), and the caption of each listing as a link to the current
+ * lines of its source. The fence gets longer when the code holds a fence of its length. A listing whose file or snippet
+ * the source does not have keeps its code and its caption.
  * @param lines - The lines of the text.
  * @param source - Reads the files of the listings.
  */
@@ -237,7 +376,8 @@ export function refreshListings(lines: readonly string[], source: Source): strin
     return [...lines];
   }
   const output = [...lines];
-  for (const listing of [...listings].reverse()) {
+  const captions = captionsOf(lines, findItems(lines), listings);
+  for (const [index, listing] of [...listings.entries()].reverse()) {
     const text = source(listing.path);
     const code = text === undefined ? undefined : codeOf(text, listing.snippet);
     if (!code) {
@@ -248,6 +388,11 @@ export function refreshListings(lines: readonly string[], source: Source): strin
     const longest = Math.max(0, ...code.map((line) => (line.trim().startsWith(fence[0]) ? /^\s*([`~]+)/.exec(line)![1].length : 0)));
     const marker = fence[0].repeat(Math.max(fence.length, longest + 1));
     output.splice(listing.open, listing.close - listing.open + 1, `${indent}${marker}${info}`, ...code.map((line) => (line === '' ? '' : `${indent}${line}`)), `${indent}${marker}`);
+    // The caption stands before the listing, so the new code block moves none of its lines.
+    const caption = captions[index];
+    if (caption) {
+      linkedCaption(output, caption, listing, listingTarget(listing.path, text!, listing.snippet));
+    }
   }
   return output;
 }
@@ -286,15 +431,16 @@ export const sourceFiles = `{${[
 export const languageOf = (path: string): string => languages[fileTypeOf(path)] ?? '';
 
 /**
- * listingBlock returns the lines of a new listing: its caption line, its comment and its code block, with a blank line
- * between them, as the formatter writes them.
+ * listingBlock returns the lines of a new listing: its caption line with the caption as a link to its source, its
+ * comment and its code block, with a blank line between them, as the formatter writes them.
  * @param caption - The caption.
  * @param path - The path of the file of the source.
  * @param snippet - The name of the snippet, or undefined for the whole file.
- * @param code - The code.
+ * @param text - The text of the source.
  */
-export function listingBlock(caption: string, path: string, snippet: string | undefined, code: readonly string[]): string[] {
+export function listingBlock(caption: string, path: string, snippet: string | undefined, text: string): string[] {
+  const code = codeOf(text, snippet) ?? [];
   const longest = Math.max(0, ...code.map((line) => (line.trim().startsWith('`') ? /^\s*(`+)/.exec(line)![1].length : 0)));
   const fence = '`'.repeat(Math.max(3, longest + 1));
-  return [`Listing: ${caption}`, '', listingText(path, snippet), '', `${fence}${languageOf(path)}`, ...code, fence];
+  return [`Listing: [${caption}](${listingTarget(path, text, snippet)})`, '', listingText(path, snippet), '', `${fence}${languageOf(path)}`, ...code, fence];
 }
