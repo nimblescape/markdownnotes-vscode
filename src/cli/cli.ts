@@ -3,9 +3,9 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The command markdown-notes, the formatter on the command line ([R-FMT-004](../../docs/requirements.md#r-fmt-004)),
+ * The command markdownnotes, the formatter on the command line ([R-FMT-004](../../docs/requirements.md#r-fmt-004)),
  * for programs and AI agents that change a Markdown file outside VS Code (Hannes, 2026-10-28: "make the formatter
- * accessible for agents"). It is the npm package @nimblescape/markdown-notes of cli/.
+ * accessible for agents"). It is the npm package @nimblescape/markdownnotes of cli/.
  * The command `format` formats each file as the formatter of the extension does on save
  * ([src/format/format.ts](../format/format.ts)), with the line breaks of the file; `-` formats the standard input to
  * the standard output. With `--check` it changes no file and lists the files that are not formatted. A file whose
@@ -19,7 +19,7 @@ import { formatMarkdown } from '../format/format';
 import { formatVersion, newerFormat, type Version, versionText } from '../notes/doctype';
 
 /** command is the name of the command, the `bin` of cli/package.json, as the shell calls it. */
-export const command = 'markdown-notes';
+export const command = 'markdownnotes';
 
 /** usage is the help of the tool. */
 export const usage = [
@@ -65,7 +65,7 @@ export function formatText(text: string): string {
  * @param newer - The version of the comment.
  */
 const newerMessage = (newer: Version): string =>
-  `the file uses version ${versionText(newer)} of the format of the notes, and this version of ${command} knows only the versions ${formatVersion.major}.x, so the file stays as it is. Run the newest version: npx -y @nimblescape/markdown-notes@latest format`;
+  `the file uses version ${versionText(newer)} of the format of the notes, and this version of ${command} knows only the versions ${formatVersion.major}.x, so the file stays as it is. Run the newest version: npx -y @nimblescape/markdownnotes@latest format`;
 
 /**
  * messageOf returns the message of an error.

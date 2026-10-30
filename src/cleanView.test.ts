@@ -263,7 +263,7 @@ test('shows a text editor of a file with notes as the view, in its group and at 
   const { real, tab } = await inEditor({ offset: text.indexOf('teams') });
   expect(fake.editors).toHaveLength(1);
   const [editor] = fake.editors;
-  expect(editor.document.uri.scheme).toBe('markdown-notes');
+  expect(editor.document.uri.scheme).toBe('markdownnotes');
   expect(editor.document.getText()).toBe(clean);
   expect(editor.selection.active).toEqual(editor.document.positionAt(clean.indexOf('teams')));
   expect(fake.activeEditor).toBe(editor);
@@ -284,7 +284,7 @@ test.each([
 
 test('keeps the tab of a file with changes behind the view, and closes it after the save of the file', async () => {
   const { real, tab } = await inEditor({ dirty: true });
-  expect(fake.editors[0].document.uri.scheme).toBe('markdown-notes');
+  expect(fake.editors[0].document.uri.scheme).toBe('markdownnotes');
   expect(fake.closedTabs).toEqual([]);
   await real.save();
   fake.fire('save', real);
@@ -312,7 +312,7 @@ test('opens the file itself for "Open File with Markup" at the place of the curs
   fake.fire('visibleEditors', fake.editors);
   await settle();
   await settle();
-  expect(fake.editors[0].document.uri.scheme).toBe('markdown-notes');
+  expect(fake.editors[0].document.uri.scheme).toBe('markdownnotes');
 });
 
 test.each(['before', 'while'])('keeps the file that "Open File with Markup" shows %s the view closes the tab of the file that it took the place of', async (when) => {
@@ -328,7 +328,7 @@ test.each(['before', 'while'])('keeps the file that "Open File with Markup" show
   if (when === 'before') {
     window.showTextDocument = async (target, options) => {
       const editor = await show(target, options);
-      if (target instanceof FakeUri && target.scheme === 'markdown-notes') {
+      if (target instanceof FakeUri && target.scheme === 'markdownnotes') {
         window.showTextDocument = show;
         openWithMarkup();
       }
@@ -436,7 +436,7 @@ test('shows a file without notes in place of its view, for example for a link of
   await settle();
   const file = new FakeUri('file', '/folder/b.md').toString();
   expect(fake.editors.map((editor) => editor.document.uri.toString())).toEqual([file]);
-  expect(fake.tabGroups[0].tabs.map((tab) => (tab.input as FakeTabInputText).uri.toString())).toEqual(['markdown-notes://file/folder/a.md', file]);
+  expect(fake.tabGroups[0].tabs.map((tab) => (tab.input as FakeTabInputText).uri.toString())).toEqual(['markdownnotes://file/folder/a.md', file]);
 });
 
 test('gives the files of the Markdown preview of a view as they are: the files beside the file, its style sheets from the folder of the workspace, and its images by their paths there', async () => {
@@ -456,7 +456,7 @@ test('gives the files of the Markdown preview of a view as they are: the files b
   expect(await view.stat(FakeUri.joinPath(document as never, '..', 'img/a.png') as never)).toMatchObject({ type: 1, permissions: 1 });
   expect(await read(FakeUri.joinPath(document as never, '..', '.vscode/serif.css'))).toBe('body { font-family: serif; }');
   const image = (source: string): string | undefined => view.imageOf(document, source)?.toString();
-  const inFolder = `markdown-notes://file/folder/docs/${resourceFolder}`;
+  const inFolder = `markdownnotes://file/folder/docs/${resourceFolder}`;
   expect(image('img/a.png')).toBe(`${inFolder}/docs/img/a.png`);
   expect(image('../figures/b.png')).toBe(`${inFolder}/figures/b.png`);
   expect(image('/figures/b.png?size=2#top')).toBe(`${inFolder}/figures/b.png`);
@@ -469,7 +469,7 @@ test('gives the files of the Markdown preview of a view as they are: the files b
   expect(view.resourceOf(FakeUri.parse(`${inFolder}/../../../etc/passwd`) as never)).toBeUndefined();
   // A file that is no Markdown file does not change, and a file that does not exist is not found.
   await expect(view.writeFile(FakeUri.joinPath(document as never, '..', 'img/a.png') as never, new Uint8Array())).rejects.toThrow('changes only Markdown files');
-  await expect(view.stat(FakeUri.joinPath(document as never, '..', 'img/none.png') as never)).rejects.toThrow('no file markdown-notes://file/folder/docs/img/none.png');
+  await expect(view.stat(FakeUri.joinPath(document as never, '..', 'img/none.png') as never)).rejects.toThrow('no file markdownnotes://file/folder/docs/img/none.png');
   expect(view.resourceOf(document)).toBeUndefined();
 });
 

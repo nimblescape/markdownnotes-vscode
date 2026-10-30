@@ -20,7 +20,7 @@ or GitHub does not show as intended.
 ## Example
 
 ```markdown
-<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].
@@ -59,7 +59,7 @@ and Hannes replied to Anna.
 A file with notes starts with a comment that names the format, like a
 DOCTYPE. GitHub and the Markdown preview do not show it.
 
-- The first line is exactly `<!-- nimblescape-markdown-notes v1.0.0
+- The first line is exactly `<!-- nimblescape-markdownnotes v1.0.0
   spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`,
   on one line. `v1.0.0` is the version of this format, and `spec=` is the
   address of this document.
@@ -218,8 +218,8 @@ A program, for example an AI agent, follows these steps:
   write a note without a start marker or a highlight without text, never put a
   definition into a block quote, and never write a note into a code block.
 - **Format the file** after a change, as the extension does on save: run
-  `npx -y @nimblescape/markdown-notes format <file>` with Node.js 22 or
-  later. `npx -y @nimblescape/markdown-notes format --check <file>` changes
+  `npx -y @nimblescape/markdownnotes format <file>` with Node.js 22 or
+  later. `npx -y @nimblescape/markdownnotes format --check <file>` changes
   nothing and exits with 1 when the file is not formatted. The formatter puts
   each paragraph on one line, aligns the tables, gives each start marker its
   `<wbr>`, adds the start marker of a note without one, and keeps the answers

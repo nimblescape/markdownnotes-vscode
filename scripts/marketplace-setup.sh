@@ -33,6 +33,9 @@ repo="${url#*github.com[:/]}"
 repo="${repo%/}"
 repo="${repo%.git}"
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "The remote origin ($url) is no GitHub repository." >&2; exit 1; }
+# The current name of the repository: the URL of `origin` of an older clone names
+# the repository before a rename, and GitHub only forwards it.
+repo=$(gh repo view "$repo" --json nameWithOwner --jq .nameWithOwner)
 owner="${repo%%/*}"
 name="${repo#*/}"
 environment="marketplace"

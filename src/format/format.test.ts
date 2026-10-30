@@ -152,7 +152,7 @@ describe('the formatter', () => {
   });
 
   test('keeps a text whose comment of the format names a higher major version as it is (R-NOTE-007)', () => {
-    const text = '<!-- nimblescape-markdown-notes v2.0.0 spec=https://example.com/format-v2.md\n-->\n\nA paragraph\non two lines.\n';
+    const text = '<!-- nimblescape-markdownnotes v2.0.0 spec=https://example.com/format-v2.md\n-->\n\nA paragraph\non two lines.\n';
     expect(format(text)).toBe(text);
     expect(format(text.replace('v2.0.0', 'v1.9.3'))).toBe(text.replace('v2.0.0', 'v1.9.3').replace('paragraph\non', 'paragraph on'));
   });

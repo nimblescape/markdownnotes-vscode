@@ -184,7 +184,7 @@ test('a fold command waits for the edits of the extension, and folds the lines o
   release();
   await colored;
   await settle();
-  expect(editor.document.text.startsWith('<!-- nimblescape-markdown-notes ')).toBe(true);
+  expect(editor.document.text.startsWith('<!-- nimblescape-markdownnotes ')).toBe(true);
   // The folds of the notes, at their lines after the edit; the new comment of the format folds after VS Code read the
   // folds of the changed file, as every fold that shows open.
   const added = doctypeLines.length + 1;

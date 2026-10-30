@@ -11,7 +11,7 @@
  * so that the line breaks, the cursor, the word moves, search and copy behave
  * as in a file without notes (Hannes, 2026-10-29: "the editor must behave as
  * if there was no notes markup at all in the document"). A file system of the
- * extension (scheme `markdown-notes`) gives the text editor the clean text,
+ * extension (scheme `markdownnotes`) gives the text editor the clean text,
  * and the extension writes each change of it into the document of the file at
  * once, which keeps the notes at their text; a change of the file, for example
  * a new note of the side view, comes back into the clean text. A save of the
@@ -33,7 +33,7 @@ import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
 /** cleanScheme is the scheme of the documents of the clean editing view. */
-export const cleanScheme = 'markdown-notes';
+export const cleanScheme = 'markdownnotes';
 
 /** cleanCommands are the commands of the clean editing view. */
 export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWithMarkup' };
@@ -43,7 +43,7 @@ export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWi
  * of its file, by their paths in that folder, for the Markdown preview of the view: the preview loads only files from
  * the folder of the clean document, because a clean document belongs to no folder of the workspace.
  */
-export const resourceFolder = '~markdown-notes~';
+export const resourceFolder = '~markdownnotes~';
 
 /** markdownName matches the names of the files that VS Code reads as Markdown: a clean URI of such a file names its clean text. */
 const markdownName = /\.(?:md|mkd|mkdn|mdwn|mdown|markdown|markdn|mdtxt|mdtext|litcoffee|ron|ronn|workbook)$/i;

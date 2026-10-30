@@ -158,7 +158,7 @@ need Hannes after the merge of
 | The comment only with a change or a save, with the version `v1.0.0` as a semantic version | 10-29 07:36, 07:40 | [R-NOTE-007](requirements.md#r-note-007) | Built | |
 | An own formatter with format on save: tables, blank lines, one line per paragraph | 10-28 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Also [R-FMT-002](requirements.md#r-fmt-002), [R-FMT-003](requirements.md#r-fmt-003) |
 | Format on save only for files with notes | 10-29 06:37 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Setting `formatOnSave` |
-| The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdown-notes format` |
+| The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdownnotes format` |
 | The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | After the merge; the thread "Publish formatter to npmjs" has the steps |
 | The extension ID `nimblescape.nimblescape-markdownnotes` | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 47 |
 | The new name of the repository, `markdownnotes-vscode`, "when impl is completed" | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | Then the addresses of the repository change and the Marketplace setup runs again |
@@ -190,7 +190,7 @@ hidden form changes the markup that the clean view leaves out.
 | --- | --- | --- | --- | --- |
 | The hidden form of the notes, which every viewer hides, also GitHub: "when the users decides to hide the notes that also GitHub shall hide the notes" | 10-29 08:01 | [R-HIDE-001](requirements.md#r-hide-001), [R-HIDE-003](requirements.md#r-hide-003) | 29, before the first release | Planned |
 | An icon at the top of the side view that hides the notes from other viewers | 10-29 08:02 | [R-HIDE-002](requirements.md#r-hide-002) | 30, before the first release | Planned |
-| The text without notes for publishing: `markdown-notes strip`, "Copy without Notes" | 10-29 08:01 | [R-HIDE-004](requirements.md#r-hide-004) | 31 | Planned |
+| The text without notes for publishing: `markdownnotes strip`, "Copy without Notes" | 10-29 08:01 | [R-HIDE-004](requirements.md#r-hide-004) | 31 | Planned |
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |

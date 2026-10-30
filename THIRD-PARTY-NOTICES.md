@@ -9,8 +9,8 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 The script of nimblescape Markdown Notes, `dist/extension.js`, contains the
 Markdown parser markdown-it with the packages that it uses. The extension
 finds the notes of a Markdown file with it, as the Markdown preview of
-VS Code does. The command `markdown-notes` of the npm package
-`@nimblescape/markdown-notes`, `cli/dist/markdown-notes.js`, contains the
+VS Code does. The command `markdownnotes` of the npm package
+`@nimblescape/markdownnotes`, `cli/dist/markdownnotes.js`, contains the
 same packages, and the npm package holds this file. This file names each of these packages, its
 license and the place of its source code. The code of the extension itself is under the
 [MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).

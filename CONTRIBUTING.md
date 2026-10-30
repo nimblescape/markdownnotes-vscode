@@ -23,7 +23,7 @@ describes its security model.
 | `src/notes/checks.ts` | The warnings at the notes of a text: each form of a note that GitHub or another Markdown viewer shows differently from the extension, and each note without a start marker or without highlighted text. It uses no API of VS Code. |
 | `src/noteThreads.ts` | The notes of the open Markdown documents: one thread for each note with an identifier that stays while the document is open, the reading of the notes after a change, the warnings of the notes as diagnostics, and the operations that write the changes of the side view. |
 | `src/noteEditor.ts` | The overlay of the notes in the text editor: the folding ranges of the notes, their collapse and the collapse again of a note that VS Code opens, the highlights in the colors of the notes, the strong highlight of the selected note, the hidden highlight under the pointer, the hidden start markers and references, the cursor that steps over them, the commands of Backspace and Delete next to a marker, and the rendered header lines. |
-| `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdown-notes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, the text of the file for the Markdown preview of the view, and the files of that preview as they are. |
+| `src/cleanView.ts` | The clean editing view ([R-TEXT-009](docs/requirements.md#r-text-009)): the file system `markdownnotes` of the clean documents, whose URIs carry the path of the file and its scheme and authority, each change of a clean document written into the document of its file and each change of the file written back, Undo by the texts of the file, the save, the highlights in the view, the text editor of a file with notes that becomes the view, the command "Open File with Markup", the tabs that VS Code keeps behind a view, a close without a save, the text of the file for the Markdown preview of the view, and the files of that preview as they are. |
 | `src/notes/clean.ts` | The clean text of a Markdown text with notes: the text without the start markers, the references, the definitions and the comment of the format, and with the option `footnotes` without the definitions of the standard footnotes that have a reference, the highlights in it, the edit of the text for an edit of the clean text, which keeps each note at its text, and the line in the clean text of each line of the text. It uses no API of VS Code. |
 | `src/notes/rendered.ts` | The place in the Markdown text of text that the user selected in the Markdown preview, for "Add Note" of the preview: the letters and digits of the text of the block without the parts that the page does not show, and the selected text after as many of them as the text before it holds, or the nearest occurrence. It uses no API of VS Code. |
 | `src/notes/cursor.ts` | The cursor at the hidden markers and at the header lines: the step over a marker, the lines where the cursor does not stay, and the part of the text that Backspace and Delete delete next to a marker. It uses no API of VS Code. |
@@ -38,7 +38,7 @@ describes its security model.
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes or with the comment of the format, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
-| `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdown-notes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
+| `src/cli/cli.ts`, `src/cli/main.ts` | The command `markdownnotes` of the npm package, the formatter on the command line for programs and AI agents ([R-FMT-004](docs/requirements.md#r-fmt-004)): the commands `format`, `format --check` and `format -`, the help, the version and the exit codes, without an API of VS Code in `cli.ts`; `main.ts` runs it with the files and the standard streams of Node.js. |
 | `src/markdown/markdownIt.ts` | The markdown-it plugin of the Markdown preview: takes the notes out of the page, writes the start marker and the first reference of each note as the empty start and end of its highlight, with the color, the link to the side view and the state of the highlight, and leaves every other token, also every other footnote, as it is. |
 | `media/markdownPreview.css`, `media/markdownPreview.js` | The styles of the highlights in the Markdown preview, in the colors of the notes, and the script that paints the highlights with the CSS Custom Highlight API, shows a hidden highlight under the pointer, selects and deselects a note on a click, scrolls to the selected note, and shows the button "Add Note" above selected text. |
 | `media/notesView.js`, `media/notesView.css` | The script and the styles of the side view: the threads with their colors and their icon buttons, the threads of the standard footnotes with their labels, the editor of a new footnote, the answers, the editors that switch between "Write" and "Preview", the text view of a thread, the colors of a note, the list that scrolls the selected thread to its top, the tooltips, and the messages to the extension. |
@@ -46,10 +46,10 @@ describes its security model.
 | `resources/notes-view.svg` | The icon of the container of the side view in the title of the secondary side bar: a speech bubble, which VS Code draws in the color of the title. |
 | `resources/icon.png`, `resources/icon.svg` | The Marketplace icon (256 × 256 PNG, because the Marketplace takes no SVG icon) and its source: a page with a note as a callout on the tile of the nimblescape extensions. |
 | `src/**/*.test.ts` | The unit tests, with vitest: the manifest, the package contents, the third-party notices and the documents (`src/manifest.test.ts`), the syntax, the notes, the edits and the warnings, the markdown-it plugin with the source map rule of the preview, the settings, the folds (`src/notes/folds.test.ts`), the activation and the threads (`src/extension.test.ts`), the overlay of the text editor (`src/noteEditor.test.ts`), the clean text (`src/notes/clean.test.ts`), the standard footnotes (`src/notes/footnotes.test.ts`), the clean editing view (`src/cleanView.test.ts`) and the side view (`src/notesView.test.ts`) with a fake of the editor API (`src/testing/fakeVscode.ts`). |
-| `test/cli/` | The tests of the built command `markdown-notes` (`cli/dist/markdown-notes.js`), with the Node.js of the tests in the temporary folder of the system. |
+| `test/cli/` | The tests of the built command `markdownnotes` (`cli/dist/markdownnotes.js`), with the Node.js of the tests in the temporary folder of the system. |
 | `test/vscode/` | The tests in a real VS Code: the highlights and the hidden markers in the text editor, the comment of the format, the collapse of the notes, the side view with the buttons "Show Highlights" and "Hide Highlights", the light bulb action and the shortcut of "Add Note", the formatter, and the highlights of the Markdown preview of VS Code (`markdown.api.render`). |
 | `dist/` | The bundle `dist/extension.js`, built by `esbuild.mjs` and kept out of Git. |
-| `cli/package.json`, `cli/package-lock.json`, `cli/README.md` | The npm package `@nimblescape/markdown-notes`: its manifest, its lock file without dependencies and its page on npmjs.com. The build writes `cli/dist/markdown-notes.js` and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`, all kept out of Git. The section [npm package](#npm-package) explains it. |
+| `cli/package.json`, `cli/package-lock.json`, `cli/README.md` | The npm package `@nimblescape/markdownnotes`: its manifest, its lock file without dependencies and its page on npmjs.com. The build writes `cli/dist/markdownnotes.js` and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`, all kept out of Git. The section [npm package](#npm-package) explains it. |
 | `out/`, `.vscode-test/` | The bundled tests in VS Code (`scripts/build-vscode-tests.mjs`) and the VS Code that `@vscode/test-cli` downloads for them, kept out of Git. |
 | `docs/guide.md` | The user guide: every feature, how to use it, and its state. |
 | `docs/format.md` | The specification of the format of the notes, for people and programs such as AI agents. The comment of the format links to it on the branch `main`, so the file keeps its path. |
@@ -60,16 +60,16 @@ describes its security model.
 | `docs/images/` | The image of the README: `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with the highlights of two notes and the list of the light bulb at the selected text (Ctrl+.), and the side view "Notes" beside it in the secondary side bar. PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
 | `THIRD-PARTY-NOTICES.md` | The packages that the bundle contains, their licenses and the places of their source code. |
 | `SUPPORT.md` | Where to ask questions and report problems, and what a report contains. |
-| `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for the Node.js of VS Code, and `src/cli/main.ts` with markdown-it into `cli/dist/markdown-notes.js` for Node.js 22 or later, and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`. The editor API stays outside the bundles. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
+| `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for the Node.js of VS Code, and `src/cli/main.ts` with markdown-it into `cli/dist/markdownnotes.js` for Node.js 22 or later, and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`. The editor API stays outside the bundles. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
 | `tsconfig.json` | The settings of the type check: strict, and no output, because esbuild builds the bundle. It covers `src/` and `test/`. |
 | `vitest.config.mts` | The settings of the unit tests: the files `src/**/*.test.ts` and `scripts/**/*.test.mjs` on Node. |
-| `vitest.cli.config.mts` | The settings of the tests of the built command `markdown-notes`: the files `test/cli/**/*.test.ts`. |
+| `vitest.cli.config.mts` | The settings of the tests of the built command `markdownnotes`: the files `test/cli/**/*.test.ts`. |
 | `.vscode-test.mjs` | The settings of the tests in VS Code: the VS Code version (`VSCODE_TEST_VERSION`, stable by default), the files of `out/test/vscode/`, and mocha. |
 | `package.json` | The extension manifest. The section [Manifest](#manifest) explains it. |
 | `package-lock.json` | The locked development tools. npm writes this file, and nobody edits it by hand. |
 | `.node-version` | The Node release of the development tools. `actions/setup-node` in the workflows and local Node version managers read it. |
 | `.vscodeignore` | Lists the files of the package: `dist/extension.js`, `media/markdownPreview.css`, `media/markdownPreview.js`, `media/notesView.css`, `media/notesView.js`, `resources/icon.png`, `resources/notes-icons.ttf`, `resources/notes-view.svg`, `package.json`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`. |
-| `.github/workflows/ci.yml` | Checks the types, runs all tests, packages the VSIX and the npm package for every push to `main`, every pull request and the commit of every release, and runs the tests of `markdown-notes` on Ubuntu and macOS with Node.js 22 and 26. The release publishes the packages of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
+| `.github/workflows/ci.yml` | Checks the types, runs all tests, packages the VSIX and the npm package for every push to `main`, every pull request and the commit of every release, and runs the tests of `markdownnotes` on Ubuntu and macOS with Node.js 22 and 26. The release publishes the packages of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/vscode-versions.yml` | Runs `ci.yml` once per week with VS Code Insiders and with the lowest supported VS Code version. |
 | `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace and to npmjs.com. A dry run tests without a change. The section [Release](#release) explains it. |
 | `.github/workflows/release-dry-run.yml` | Fails on a pull request that changes the release process (`release.yml`, `ci.yml` or `scripts/release-checks.mjs`) until a dry run on its branch tested the change (rule 4 of the [release rules](#release-rules)). |
@@ -90,7 +90,7 @@ tests in VS Code, and [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce)
 the Microsoft tool that packages and publishes extensions. Everything runs on
 Node.js 24: the release in `.node-version` for the tools and CI, and the
 runtime of VS Code 1.125 and later (`engines.vscode`) for the extension. The
-command `markdown-notes` of the npm package runs on the Node.js of the
+command `markdownnotes` of the npm package runs on the Node.js of the
 `PATH`, Node.js 22 or later (`engines` of `cli/package.json`).
 
 | Command | Effect |
@@ -98,11 +98,11 @@ command `markdown-notes` of the npm package runs on the Node.js of the
 | `npm ci --ignore-scripts` | Installs the locked development tools and runs no install script of a dependency. |
 | `npm run typecheck` | Checks the types with `tsc`. esbuild does not check them. |
 | `npm test` | Runs the unit tests with vitest. The tests touch no installed editor. |
-| `npm run test:cli` | Builds the bundles and runs the tests of the built `markdown-notes` in the temporary folder of the system. |
+| `npm run test:cli` | Builds the bundles and runs the tests of the built `markdownnotes` in the temporary folder of the system. |
 | `npm run test:vscode` | Builds the bundle and the tests in VS Code, downloads VS Code to `.vscode-test/` and runs the tests in it. On Linux without a display, run it as `xvfb-run -a npm run test:vscode`. `VSCODE_TEST_VERSION=insiders` or a version such as `1.125.0` selects another VS Code. |
-| `npm run build` | Bundles `dist/extension.js` and `cli/dist/markdown-notes.js` with source maps. `node cli/dist/markdown-notes.js format <file>` then runs the built `markdown-notes`. |
-| `npm run package` | Builds `nimblescape-markdown-notes-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
-| `npm pack ./cli` | Builds the npm package `nimblescape-markdown-notes-<version>.tgz` from `cli/`, after a production build (`node esbuild.mjs --production`). `npx -y ./nimblescape-markdown-notes-<version>.tgz format <file>` runs it. |
+| `npm run build` | Bundles `dist/extension.js` and `cli/dist/markdownnotes.js` with source maps. `node cli/dist/markdownnotes.js format <file>` then runs the built `markdownnotes`. |
+| `npm run package` | Builds `nimblescape-markdownnotes-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
+| `npm pack ./cli` | Builds the npm package `nimblescape-markdownnotes-<version>.tgz` from `cli/`, after a production build (`node esbuild.mjs --production`). `npx -y ./nimblescape-markdownnotes-<version>.tgz format <file>` runs it. |
 | `npm run install-local` | Builds the package and installs it into every profile of the VS Code of this computer; `-- --profile <name>` installs into one profile. Reload the window after an update of an active extension. |
 | `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdownnotes` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
 
@@ -120,7 +120,7 @@ tag of its version, and compare `extension/dist/` of the VSIX with `dist/`.
 With the same sources and the locked versions of the tools, the build gives
 the same file.
 
-The npm package holds the bundle `cli/dist/markdown-notes.js` in
+The npm package holds the bundle `cli/dist/markdownnotes.js` in
 `package/dist/`; unpack it with `tar -xzf` and compare it with
 `cli/dist/` in the same way. npmjs.com shows the provenance of each version
 that the release workflow published: the repository, the workflow and the
@@ -139,8 +139,8 @@ commit of the build.
 - `.vscodeignore` lists the files of the package, not a `files` field: it ignores everything and keeps the bundle, the styles and the scripts of the preview and of the side view, the icons, the icon font and the documents. A test checks the list.
 - `icon` is `resources/icon.png`, a PNG, because the Marketplace takes no SVG icon. `resources/icon.svg` is its source; after a change of the source, render it again as a PNG of 256 × 256 pixels with a transparent background, for example with a screenshot of the SVG in Chromium. A test checks the size.
 - `extensionKind` selects the workspace host, where the documents are.
-- The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, `onFileSystem:markdown-notes` when VS Code opens a document of the clean editing view, for example from the tabs of the last session, and `onUri` when VS Code passes it a link of the highlight of a note.
-- The command "Open File with Markup" (`nimblescape.markdownNotes.openWithMarkup`) shows in the Command Palette only for a document of the clean editing view (`resourceScheme == markdown-notes`).
+- The activation event `onLanguage:markdown` starts the extension when a Markdown file opens, `onFileSystem:markdownnotes` when VS Code opens a document of the clean editing view, for example from the tabs of the last session, and `onUri` when VS Code passes it a link of the highlight of a note.
+- The command "Open File with Markup" (`nimblescape.markdownNotes.openWithMarkup`) shows in the Command Palette only for a document of the clean editing view (`resourceScheme == markdownnotes`).
 - The contributions `markdown.markdownItPlugins`, `markdown.previewStyles` and `markdown.previewScripts` connect the extension with the built-in Markdown preview. The Markdown extension of VS Code activates the extension and reads its export `extendMarkdownIt`. The section [Markdown preview](#markdown-preview) explains it.
 - `viewsContainers.secondarySidebar` and `views` contribute the side view "Notes" (`nimblescape.markdownNotes.notes`, a webview) in a container "Markdown Notes" of its own with the icon `resources/notes-view.svg`, in the secondary side bar only, so that the primary side bar stays free for the Explorer ([R-SIDE-001](docs/requirements.md#r-side-001)). VS Code 1.125, the oldest supported version, already knows this place. The section [Side view](#side-view) explains it.
 - The command "Add Note" is the button `+` in the title of the side view (`view/title`) and an entry of the context menu of the text editor (`editor/context`) while text is selected (`editorHasSelection`); the Command Palette shows it only then. The commands "Show Highlights" and "Hide Highlights" are buttons in the title of the text editor, of the preview of a Markdown file and of the modes "Markdown Preview" and "Markdown Editor" of VS Code (`editor/title`); the context key `nimblescape.markdownNotes.highlightsShown`, which the extension sets while the setting `showHighlights` is on, shows one of them. The command "Show or Hide Notes" is a button in the same titles (`activeCustomEditorId` for the modes). The command "Add Footnote" is a button in the title of the side view after "Add Note", an entry of the context menu of the text editor, and in the Command Palette for a Markdown file that can be changed (`editorLangId == markdown && !editorReadonly`), without a selection, because a footnote names a place; its keybinding is Shift+Alt+B, on a Mac Cmd+K B. The commands "Show Footnotes" and "Hide Footnotes" are buttons in the title of the side view; the context key `nimblescape.markdownNotes.footnotesShown`, which the extension sets while the setting `showFootnotes` is on, shows one of them. A test checks the commands and the menus against `src/notesView.ts`, `src/extension.ts` and `src/noteEditor.ts`.
@@ -189,16 +189,17 @@ into it.
 
 ## npm package
 
-`cli/` is the npm package `@nimblescape/markdown-notes`, in the scope of the
-organization `nimblescape` on npmjs.com, with the command `markdown-notes`,
+`cli/` is the npm package `@nimblescape/markdownnotes`, in the scope of the
+organization `nimblescape` on npmjs.com, with the command `markdownnotes`,
 the formatter on the command line for programs and AI agents
 ([R-FMT-004](docs/requirements.md#r-fmt-004)). The npm package
 `@nimblescape/typescript` of the extension nimblescape TypeScript has the
 same form. Its manifest `cli/package.json` has these parts:
 
-- The name `@nimblescape/markdown-notes` and the command `markdown-notes` (`bin`). The Marketplace has no scopes, so the extension keeps the form of [Naming](#naming).
+- The name `@nimblescape/markdownnotes` and the command `markdownnotes` (`bin`), without a hyphen, as the extension ID (Hannes, 2026-10-30). The Marketplace has no scopes, so the extension keeps the form of [Naming](#naming).
+- The library of the formatter: `main` and `exports` name the bundle `dist/index.js` of [src/cli/index.ts](src/cli/index.ts), which exports `formatMarkdown(lines)` and runs nothing on its load, and `types` names `index.d.ts`, which is written by hand and names no type of another package. nimblescape Markdown Paper calls it in its command `markdownpaper format` before its own steps, so that one command formats a paper project. A test in `test/cli/` loads the library with `require` and `import` and checks a program in TypeScript against the types. The package has the version of the extension: a change of `formatMarkdown` that breaks a program needs a new minor version while the version is 0.x, and Markdown Paper depends on a `~` range, for example `~0.2.0`.
 - The version, which the release sets to the version of the extension. A test checks that both manifests and `cli/package-lock.json` have one version.
-- `files` keeps the bundle of `dist/` and `THIRD-PARTY-NOTICES.md`, which the build copies into `cli/`, because the bundle holds markdown-it; npm adds `package.json`, `README.md` and `LICENSE`. A test checks the list with `npm pack --dry-run`.
+- `files` keeps the bundles of `dist/`, `index.d.ts` and `THIRD-PARTY-NOTICES.md`, which the build copies into `cli/`, because the bundles hold markdown-it; npm adds `package.json`, `README.md` and `LICENSE`. A test checks the list with `npm pack --dry-run`.
 - `engines.node` is `>=22`, and the package has no dependency: the bundle imports only modules of Node.js, which a test checks.
 - `repository.directory` is `cli`, and `publishConfig.access` is `public`, which a scoped package needs for its first version.
 
@@ -474,7 +475,7 @@ because a test cannot sign in; the unit tests cover them with the fake API.
 
 `src/cleanView.ts` gives the text editor the clean text of a Markdown file
 with notes ([R-TEXT-009](docs/requirements.md#r-text-009)), from the file
-system `markdown-notes` of the extension. The URI of a clean document has the
+system `markdownnotes` of the extension. The URI of a clean document has the
 path of its file, so that the tab shows the name of the file and VS Code
 reads it as Markdown, and the scheme and the authority of the file in its
 authority, so that a relative link of the view leads to the view of the file
@@ -533,7 +534,7 @@ URI that names no clean text as the file itself, read only (`resourceOf`): a
 file that is no Markdown file, such as an image beside the file or the file
 of a link, which the view then shows in its own text editor; a style sheet
 of `markdown.styles` with a relative path, from the folder of the workspace;
-and a file under the folder `~markdown-notes~` beside the document, by its
+and a file under the folder `~markdownnotes~` beside the document, by its
 path in the folder of the workspace. The plugin of the preview gives each
 image of a clean rendering such an address (`imageOf`), after the image rule
 of VS Code, which wraps the rules of the plugins and keeps the address of the
@@ -883,7 +884,7 @@ The run has five jobs:
 
 1. "Version commit" checks that the run starts from `main`, that the version has the form `<major>.<minor>.<patch>`, that it is not lower than the version in `package.json` and that its tag does not exist, and, in a release, that a dry run tested the files of the release process with `scripts/release-checks.mjs dry-run` (rule 4 of the [release rules](#release-rules)). It sets the version in `package.json`, `package-lock.json`, `cli/package.json` and `cli/package-lock.json`, adds the section of the notes to `CHANGELOG.md` when the file has none, commits the change as "Release `<version>`" and pushes it to the temporary branch `release/run-<run ID>`, not to `main`. When `main` holds the version and its section already, it commits nothing. It also deletes the temporary branches of earlier runs that failed.
 2. "CI" runs the workflow `ci.yml` for the commit of the version, because a push with the token of a workflow starts no other workflow. The VSIX and the npm package that this job tests and builds are the files of the release, so the release repeats no test and no build.
-3. "Main, tag and GitHub release" runs only when CI passed. It moves `main` to the commit of the version as a fast-forward and deletes the temporary branch. When `main` changed during the run, it stops before the tag. Then it creates the tag `v<version>` on the commit and the release of the tag with the GitHub CLI `gh`. The section of the version in `CHANGELOG.md` becomes the notes, and the VSIX and the npm package (`nimblescape-markdown-notes-<version>.tgz`) become the files of the release. A release that exists keeps its notes and receives only a file that it does not hold.
+3. "Main, tag and GitHub release" runs only when CI passed. It moves `main` to the commit of the version as a fast-forward and deletes the temporary branch. When `main` changed during the run, it stops before the tag. Then it creates the tag `v<version>` on the commit and the release of the tag with the GitHub CLI `gh`. The section of the version in `CHANGELOG.md` becomes the notes, and the VSIX and the npm package (`nimblescape-markdownnotes-<version>.tgz`) become the files of the release. A release that exists keeps its notes and receives only a file that it does not hold.
 4. "Publish to the Visual Studio Marketplace" downloads the VSIX of the GitHub release, signs in to Microsoft Entra ID with the official [`azure/login`](https://github.com/Azure/login) action and publishes the VSIX with `vsce publish --azure-credential`.
 5. "Publish to npmjs.com" downloads the npm package of the GitHub release and publishes it with `npm publish --access public`, with [trusted publishing](https://docs.npmjs.com/trusted-publishers): npm exchanges the OpenID Connect token of the job for a token of npmjs.com that can publish only this package, and adds the provenance of the build. It skips a version that npmjs.com holds already, and it stops with a message when the package does not exist yet (see [npmjs.com setup](#npmjscom-setup)). This job is the only part of this section that the other extension repositories of nimblescape do not have.
 
@@ -1016,11 +1017,18 @@ No npm token is stored in GitHub.
 | Part | Where | Value |
 | --- | --- | --- |
 | Organization | [npmjs.com](https://www.npmjs.com/org/nimblescape) | `nimblescape`, the scope of the package |
-| Package | npmjs.com | `@nimblescape/markdown-notes`, public |
+| Package | npmjs.com | `@nimblescape/markdownnotes`, public |
 | Trusted publisher | the settings of the package on npmjs.com, "Trusted Publisher" | GitHub Actions, the repository `nimblescape/nimblescape-markdown-notes`, the workflow `release.yml`, the environment `npm` |
 | Environment | the settings of the repository, "Environments" | `npm`, reachable from the tags `v*` and the branch `main` only |
 
 ### Setup
+
+The repository gets its new name `markdownnotes-vscode` before the first
+publish: the trusted publisher names the repository, and `npm publish` with
+provenance fails when `repository.url` of `cli/package.json` names another
+repository, so a later rename needs the trusted publisher again. The setup
+scripts read the current name of the repository from GitHub, because the URL
+of `origin` of an older clone names the repository before its rename.
 
 npmjs.com sets up a trusted publisher only for a package that exists, so
 the first version is published once by hand, from the GitHub release of

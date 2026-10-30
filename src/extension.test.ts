@@ -169,7 +169,7 @@ test('another extension hides blocks at the end of a file in the clean editing v
   const { api } = await fake.activate();
   const { cleanUriOf } = await import('./cleanView');
   const file = fake.open('Text.\n\n<!-- nimblescape-sources\n{"id":"a"}\n-->\n', '/folder/sources.md');
-  const provider = fake.providers.get('markdown-notes')!;
+  const provider = fake.providers.get('markdownnotes')!;
   const read = async (): Promise<string> => new TextDecoder().decode(await provider.readFile(cleanUriOf(file.uri as never)));
   const registration = api.getAPI(1)!.registerHiddenBlocks({ find: (lines: readonly string[]) => [{ first: lines.indexOf('<!-- nimblescape-sources'), last: lines.indexOf('-->') }] } as never);
   expect(await read()).toBe('Text.\n');
@@ -380,7 +380,7 @@ test('a save of a file with notes writes the comment of the format at its top, a
   fake.settings.set('workspace', { formatOnSave: false });
   const document = fake.open(note);
   const plain = fake.open('# Title\n\nText.\n', '/folder/plain.md');
-  const newer = fake.open(`<!-- nimblescape-markdown-notes v2.0.0 -->\n\n${note}`, '/folder/newer.md');
+  const newer = fake.open(`<!-- nimblescape-markdownnotes v2.0.0 -->\n\n${note}`, '/folder/newer.md');
   const off = fake.open(note, '/folder/off.md');
   fake.settings.set('/folder/off.md', { addFormatComment: false });
   fake.editors.push(...[document, plain, newer, off].map((shown) => new FakeEditor(shown)));
@@ -406,7 +406,7 @@ test('a save of a file with notes writes the comment of the format at its top, a
 });
 
 test('a file whose comment of the format names a newer version keeps its notes as they are and shows why (R-NOTE-007)', async () => {
-  const newer = `<!-- nimblescape-markdown-notes v2.0.0 spec=https://example.com/format.md\n-->\n\n${note}`;
+  const newer = `<!-- nimblescape-markdownnotes v2.0.0 spec=https://example.com/format.md\n-->\n\n${note}`;
   const document = fake.open(newer);
   const editor = new FakeEditor(document, 15);
   fake.editors.push(editor);

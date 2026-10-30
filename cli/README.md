@@ -1,29 +1,29 @@
-# @nimblescape/markdown-notes
+# @nimblescape/markdownnotes
 
-The command `markdown-notes` formats Markdown files as the VS Code extension
+The command `markdownnotes` formats Markdown files as the VS Code extension
 [nimblescape Markdown Notes](https://github.com/nimblescape/nimblescape-markdown-notes)
 does on save. Programs and AI agents that change a Markdown file outside
 VS Code run it after the change, so that a file that an agent changed and a
-file that a person saved in VS Code look the same: `markdown-notes format
+file that a person saved in VS Code look the same: `markdownnotes format
 paper.md`.
 
 ## Install
 
 ```sh
-npx -y @nimblescape/markdown-notes format paper.md
-npm install --global @nimblescape/markdown-notes
+npx -y @nimblescape/markdownnotes format paper.md
+npm install --global @nimblescape/markdownnotes
 ```
 
-`npx` runs the command without an installation. `markdown-notes` needs
+`npx` runs the command without an installation. `markdownnotes` needs
 Node.js 22 or newer and has no dependencies. Its tests run on Linux and
 macOS.
 
 ## Usage
 
 ```sh
-markdown-notes format paper.md notes/*.md
-markdown-notes format --check paper.md
-cat paper.md | markdown-notes format -
+markdownnotes format paper.md notes/*.md
+markdownnotes format --check paper.md
+cat paper.md | markdownnotes format -
 ```
 
 | Command | Effect |
@@ -64,7 +64,21 @@ A file with notes of the extension starts with a comment that names the
 format of the notes and links to its
 [specification](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md).
 An AI agent reads it before it reads, changes or adds a note, and runs
-`markdown-notes format` after the change.
+`markdownnotes format` after the change.
+
+## Library
+
+Programs format Markdown text with the same formatter through the library of
+the package, with `require` or `import`. Loading it runs nothing.
+
+```js
+import { formatMarkdown } from '@nimblescape/markdownnotes';
+
+const lines = formatMarkdown(text.split(/\r?\n/));
+```
+
+`formatMarkdown(lines)` takes the lines of a text without their line breaks
+and returns the formatted lines. The package has the types of TypeScript.
 
 ## Third-party code
 

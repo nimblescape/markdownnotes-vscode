@@ -102,7 +102,7 @@ test('the icon is a PNG of 256 × 256 pixels, because the Marketplace takes no S
 test('the extension starts with the Markdown files, and adds its plugin, its styles and its script to the Markdown preview (R-PREV-001, R-PREV-002)', () => {
   // The clean editing view (R-TEXT-009) reads its documents from the file system of the extension, also when
   // VS Code opens one of them again after a restart.
-  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'onFileSystem:markdown-notes', 'onUri']);
+  expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'onFileSystem:markdownnotes', 'onUri']);
   expect(manifest.contributes['markdown.markdownItPlugins']).toBe(true);
   expect(manifest.contributes['markdown.previewStyles']).toEqual(['./media/markdownPreview.css']);
   expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js']);
@@ -130,7 +130,7 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   expect(Object.keys(manifest.contributes.viewsContainers)).toEqual(['secondarySidebar']);
   const [container] = manifest.contributes.viewsContainers.secondarySidebar;
   expect(manifest.contributes.viewsContainers.secondarySidebar).toHaveLength(1);
-  expect(container).toMatchObject({ id: 'nimblescape-markdown-notes', title: 'Markdown Notes', icon: 'resources/notes-view.svg' });
+  expect(container).toMatchObject({ id: 'nimblescape-markdownnotes', title: 'Markdown Notes', icon: 'resources/notes-view.svg' });
   expect(read(container.icon)).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/m);
   // The side view is the only place of the text of the notes (Hannes, 2026-10-28 19:58: "we completely drop the inline view").
   expect(manifest.contributes.views).toEqual({ [container.id]: [{ type: 'webview', id: notesViewId, name: 'Notes' }] });
@@ -384,46 +384,56 @@ test('the package needs no dependency at run time, because the bundle holds mark
   expect(manifest.scripts.package).toBe('vsce package --no-dependencies');
 });
 
-/** cli is the manifest of the npm package of the command markdown-notes (R-FMT-004). */
+/** cli is the manifest of the npm package of the command markdownnotes (R-FMT-004). */
 const cli = JSON.parse(read('cli/package.json'));
 
-test('the npm package has the version of the extension, the command markdown-notes and a public scope (R-FMT-004)', () => {
-  expect(cli.name).toBe('@nimblescape/markdown-notes');
+test('the npm package has the version of the extension, the command markdownnotes, the library of the formatter and a public scope (R-FMT-004)', () => {
+  expect(cli.name).toBe('@nimblescape/markdownnotes');
   expect(cli.version, 'the release sets one version in both manifests').toBe(manifest.version);
   const lock = JSON.parse(read('cli/package-lock.json'));
   expect([lock.version, lock.packages[''].version]).toEqual([cli.version, cli.version]);
-  expect(cli.bin).toEqual({ 'markdown-notes': 'dist/markdown-notes.js' });
+  expect(cli.bin).toEqual({ markdownnotes: 'dist/markdownnotes.js' });
+  // The library has its own bundle, which runs nothing on its load, and types that name no other package.
+  expect([cli.main, cli.types]).toEqual(['dist/index.js', 'index.d.ts']);
+  expect(cli.exports).toEqual({ '.': { types: './index.d.ts', default: './dist/index.js' }, './package.json': './package.json' });
+  expect(read('esbuild.mjs')).toContain(`entryPoints: ['src/cli/index.ts'], outfile: 'cli/${cli.main}', target: 'node22'`);
+  expect(read('cli/index.d.ts')).not.toMatch(/\bimport\b|\brequire\(/);
   expect(cli.publishConfig).toEqual({ access: 'public' });
   expect(cli.license).toBe(manifest.license);
   expect(cli.repository).toEqual({ type: 'git', url: `git+${manifest.repository.url}`, directory: 'cli' });
+  expect(cli.homepage).toBe(`${manifest.repository.url.replace(/\.git$/, '')}#readme`);
+  expect(cli.bugs).toEqual(manifest.bugs);
   expect(cli.engines).toEqual({ node: '>=22' });
-  expect(read('esbuild.mjs')).toContain(`outfile: 'cli/${cli.bin['markdown-notes']}', target: 'node22'`);
+  expect(read('esbuild.mjs')).toContain(`outfile: 'cli/${cli.bin['markdownnotes']}', target: 'node22'`);
   expect(cli).not.toHaveProperty('dependencies');
 });
 
-test('the npm package holds exactly the bundle, the notices, the README and the license (npm pack --dry-run)', () => {
+test('the npm package holds exactly the bundles, the types, the notices, the README and the license (npm pack --dry-run)', () => {
   const listed = execFileSync('npm', ['pack', './cli', '--dry-run', '--json'], { cwd: repository, encoding: 'utf8' });
   const files = (JSON.parse(listed) as { files: { path: string }[] }[])[0].files.map((file) => file.path);
   // The build writes dist/, LICENSE and THIRD-PARTY-NOTICES.md (esbuild.mjs).
   const built = (file: string) => file === 'LICENSE' || file === 'THIRD-PARTY-NOTICES.md' || file.startsWith('dist/');
-  const expected = ['LICENSE', 'README.md', 'THIRD-PARTY-NOTICES.md', 'package.json', 'dist/markdown-notes.js'].filter(
+  const expected = ['LICENSE', 'README.md', 'THIRD-PARTY-NOTICES.md', 'package.json', 'index.d.ts', 'dist/markdownnotes.js', 'dist/index.js'].filter(
     (file) => !built(file) || fs.existsSync(path.join(repository, 'cli', file)),
   );
   expect(files.sort()).toEqual(expected.sort());
 }, 60_000);
 
-test('the bundle of the command markdown-notes imports only modules of Node.js (R-FMT-004)', async () => {
-  const result = await esbuild.build({
-    entryPoints: [path.join(repository, 'src/cli/main.ts')],
-    bundle: true,
-    platform: 'node',
-    write: false,
-    outdir: path.join(repository, 'out/manifest-test'),
-    metafile: true,
-    logLevel: 'silent',
-  });
-  const imports = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((imported) => imported.path));
-  expect(imports).toEqual(['node:fs']);
+test('the bundle of the command markdownnotes imports only modules of Node.js, and the bundle of the library none (R-FMT-004)', async () => {
+  const importsOf = async (entry: string): Promise<string[]> => {
+    const result = await esbuild.build({
+      entryPoints: [path.join(repository, entry)],
+      bundle: true,
+      platform: 'node',
+      write: false,
+      outdir: path.join(repository, 'out/manifest-test'),
+      metafile: true,
+      logLevel: 'silent',
+    });
+    return Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((imported) => imported.path));
+  };
+  expect(await importsOf('src/cli/main.ts')).toEqual(['node:fs']);
+  expect(await importsOf('src/cli/index.ts')).toEqual([]);
 });
 
 test('the extension pack installs the footnotes of the Markdown preview, which the user can disable, and the extension depends on no extension (R-GEN-008)', () => {
@@ -433,7 +443,7 @@ test('the extension pack installs the footnotes of the Markdown preview, which t
 
 test('the third-party notices name every package that the build bundles, with its version and license (R-GEN-004)', async () => {
   const notices = read('THIRD-PARTY-NOTICES.md');
-  // The command markdown-notes of the npm package bundles markdown-it too, and the package holds the notices.
+  // The command markdownnotes of the npm package bundles markdown-it too, and the package holds the notices.
   const result = await esbuild.build({
     entryPoints: [path.join(repository, 'src/extension.ts'), path.join(repository, 'src/cli/main.ts')],
     bundle: true,

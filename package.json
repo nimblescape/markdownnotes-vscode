@@ -72,7 +72,7 @@
   ],
   "activationEvents": [
     "onLanguage:markdown",
-    "onFileSystem:markdown-notes",
+    "onFileSystem:markdownnotes",
     "onUri"
   ],
   "capabilities": {
@@ -104,14 +104,14 @@
     "viewsContainers": {
       "secondarySidebar": [
         {
-          "id": "nimblescape-markdown-notes",
+          "id": "nimblescape-markdownnotes",
           "title": "Markdown Notes",
           "icon": "resources/notes-view.svg"
         }
       ]
     },
     "views": {
-      "nimblescape-markdown-notes": [
+      "nimblescape-markdownnotes": [
         {
           "type": "webview",
           "id": "nimblescape.markdownNotes.notes",
@@ -273,7 +273,7 @@
         {
           "command": "nimblescape.markdownNotes.hideNotes",
           "group": "navigation@9",
-          "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdown-notes' && config.workbench.activityBar.location != 'default'"
+          "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdownnotes' && config.workbench.activityBar.location != 'default'"
         }
       ],
       "commandPalette": [
@@ -307,7 +307,7 @@
         },
         {
           "command": "nimblescape.markdownNotes.openWithMarkup",
-          "when": "resourceScheme == markdown-notes"
+          "when": "resourceScheme == markdownnotes"
         },
         {
           "command": "nimblescape.markdownNotes.deleteLeft",

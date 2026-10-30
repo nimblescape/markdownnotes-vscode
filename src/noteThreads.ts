@@ -154,7 +154,7 @@ const definitionSearch = /^ {0,3}\[\^[^\]\s]+\]:/m;
 export function isNoteDocument(document: vscode.TextDocument): boolean {
   const scheme = document.uri.scheme;
   // The clean editing view shows a file without its notes (R-TEXT-009): its file has them.
-  return document.languageId === 'markdown' && scheme !== 'markdown-notes' && (scheme === 'untitled' || vscode.workspace.fs.isWritableFileSystem(scheme) === true);
+  return document.languageId === 'markdown' && scheme !== 'markdownnotes' && (scheme === 'untitled' || vscode.workspace.fs.isWritableFileSystem(scheme) === true);
 }
 
 /**

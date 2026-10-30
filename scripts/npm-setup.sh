@@ -3,7 +3,7 @@
 # © 2026 Hannes Stauss (scalarion@nimblescape.com)
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
-# The npmjs.com setup of the npm package @nimblescape/markdown-notes of cli/ (CONTRIBUTING.md, "npmjs.com setup"):
+# The npmjs.com setup of the npm package @nimblescape/markdownnotes of cli/ (CONTRIBUTING.md, "npmjs.com setup"):
 # the GitHub environment `npm` with its deployment rules, the first version of the package, and the trusted publisher
 # of the package, which lets the job publish-npm of the release workflow publish without a token. npmjs.com sets up a
 # trusted publisher only for a package that exists, so the first version is published once by hand, from the GitHub
@@ -49,6 +49,9 @@ repo="${url#*github.com[:/]}"
 repo="${repo%/}"
 repo="${repo%.git}"
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "The remote origin ($url) is no GitHub repository." >&2; exit 1; }
+# The current name of the repository: the URL of `origin` of an older clone names
+# the repository before a rename, and GitHub only forwards it.
+repo=$(gh repo view "$repo" --json nameWithOwner --jq .nameWithOwner)
 root=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 package=$(node -p 'require(process.argv[1]).name' "$root/cli/package.json")
 environment="npm"

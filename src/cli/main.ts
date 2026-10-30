@@ -3,7 +3,7 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The start of the command markdown-notes in Node.js ([R-FMT-004](../../docs/requirements.md#r-fmt-004)):
+ * The start of the command markdownnotes in Node.js ([R-FMT-004](../../docs/requirements.md#r-fmt-004)):
  * it runs [cli.ts](cli.ts) with the arguments of the command line, the files of the disk in UTF-8 and the standard
  * streams, and ends with its exit code.
  */

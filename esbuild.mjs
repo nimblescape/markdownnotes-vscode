@@ -2,12 +2,13 @@
 // © 2026 Hannes Stauss (scalarion@nimblescape.com)
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
-// Bundle the extension into dist/extension.js, and the command markdown-notes,
+// Bundle the extension into dist/extension.js, and the command markdownnotes,
 // the formatter on the command line (docs/requirements.md, R-FMT-004), into
-// cli/dist/markdown-notes.js, the file of the npm package
-// @nimblescape/markdown-notes of cli/, for Node.js 22 or later (engines of
-// cli/package.json). npm puts the license of the folder of a package into the
-// package, so the build copies LICENSE and THIRD-PARTY-NOTICES.md into cli/.
+// cli/dist/markdownnotes.js, and the library of the formatter into
+// cli/dist/index.js, the files of the npm package @nimblescape/markdownnotes of
+// cli/, for Node.js 22 or later (engines of cli/package.json). npm puts the
+// license of the folder of a package into the package, so the build copies
+// LICENSE and THIRD-PARTY-NOTICES.md into cli/.
 // The package of the extension holds no file of cli/. VS Code provides the module
 // `vscode` at run time, so the bundle leaves it out; markdown-it, which the
 // extension uses to find the notes of a document as the preview does, is part
@@ -25,7 +26,8 @@ import * as esbuild from 'esbuild';
 const production = process.argv.includes('--production');
 const bundles = [
   { entryPoints: ['src/extension.ts'], outfile: 'dist/extension.js', target: 'node24' },
-  { entryPoints: ['src/cli/main.ts'], outfile: 'cli/dist/markdown-notes.js', target: 'node22', banner: { js: '#!/usr/bin/env node' } },
+  { entryPoints: ['src/cli/main.ts'], outfile: 'cli/dist/markdownnotes.js', target: 'node22', banner: { js: '#!/usr/bin/env node' } },
+  { entryPoints: ['src/cli/index.ts'], outfile: 'cli/dist/index.js', target: 'node22' },
 ];
 
 fs.mkdirSync('cli/dist', { recursive: true });

@@ -57,7 +57,7 @@ describe('the clean text', () => {
   test('has no start marker, reference, definition or comment of the format, and keeps one blank line between the blocks', () => {
     expect(project(text).clean).toBe('The agents change the work of teams in three ways.\n\nThe next paragraph.\n');
     const clean = project(example).clean;
-    expect(clean).not.toMatch(/<wbr>|<!--\[note-|\[\^note-|nimblescape-markdown-notes v/);
+    expect(clean).not.toMatch(/<wbr>|<!--\[note-|\[\^note-|nimblescape-markdownnotes v/);
     // Other footnotes stay in the text.
     expect(clean).toContain('[^1]');
   });
@@ -133,7 +133,7 @@ describe('an edit of the clean text', () => {
   test('types at the start of the file after the comment of the format', () => {
     const result = edit(example, '', 0, 'Draft. ');
     expect(result.clean).toBe(result.expected);
-    expect(result.text.startsWith('<!-- nimblescape-markdown-notes v1.0.0')).toBe(true);
+    expect(result.text.startsWith('<!-- nimblescape-markdownnotes v1.0.0')).toBe(true);
   });
 
   test('keeps the clean text and every note for random edits, except an edit that makes the notes part of a comment or a code block', () => {

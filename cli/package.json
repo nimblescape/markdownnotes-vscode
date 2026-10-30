@@ -1,7 +1,7 @@
 {
-  "name": "@nimblescape/markdown-notes",
+  "name": "@nimblescape/markdownnotes",
   "version": "0.1.0",
-  "description": "The command markdown-notes: formats Markdown files as the VS Code extension nimblescape Markdown Notes does on save, for programs and AI agents. Each paragraph on one line, aligned tables, <wbr> before each start marker of a note, and the answers of the notes kept as they are.",
+  "description": "The command markdownnotes: formats Markdown files as the VS Code extension nimblescape Markdown Notes does on save, for programs and AI agents. Each paragraph on one line, aligned tables, <wbr> before each start marker of a note, and the answers of the notes kept as they are.",
   "license": "MIT",
   "author": {
     "name": "nimblescape e.U.",
@@ -24,10 +24,20 @@
     "ai-agents"
   ],
   "bin": {
-    "markdown-notes": "dist/markdown-notes.js"
+    "markdownnotes": "dist/markdownnotes.js"
+  },
+  "main": "dist/index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist/*.js",
+    "index.d.ts",
     "THIRD-PARTY-NOTICES.md"
   ],
   "engines": {

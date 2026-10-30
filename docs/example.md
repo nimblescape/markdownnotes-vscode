@@ -1,4 +1,4 @@
-<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].

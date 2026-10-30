@@ -242,7 +242,7 @@ notes, and links to the [specification of the format](format.md), so that an
 agent can read, answer and add notes itself:
 
 ```markdown
-<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 …
@@ -917,18 +917,18 @@ file on a save.
 ### Formatter on the command line
 
 Programs and AI agents that change a Markdown file outside VS Code run the
-same formatter on the command line: the command `markdown-notes` of the npm
-package [`@nimblescape/markdown-notes`](https://www.npmjs.com/package/@nimblescape/markdown-notes),
+same formatter on the command line: the command `markdownnotes` of the npm
+package [`@nimblescape/markdownnotes`](https://www.npmjs.com/package/@nimblescape/markdownnotes),
 with Node.js 22 or later. `npx` runs it without an installation:
 
 ```sh
-npx -y @nimblescape/markdown-notes format paper.md notes/*.md
-npx -y @nimblescape/markdown-notes format --check paper.md
-cat paper.md | npx -y @nimblescape/markdown-notes format -
+npx -y @nimblescape/markdownnotes format paper.md notes/*.md
+npx -y @nimblescape/markdownnotes format --check paper.md
+cat paper.md | npx -y @nimblescape/markdownnotes format -
 ```
 
-After `npm install --global @nimblescape/markdown-notes`, the command is
-`markdown-notes format paper.md`.
+After `npm install --global @nimblescape/markdownnotes`, the command is
+`markdownnotes format paper.md`.
 
 The first command formats the files and writes only those that change. With
 `--check` it changes no file, names each file that is not formatted, and

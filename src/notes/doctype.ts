@@ -57,7 +57,7 @@ export const compareVersions = (a: Version, b: Version): number => a.major - b.m
 export const specUrl = 'https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md';
 
 /** doctypeName is the name of the format in the first line of the comment. */
-export const doctypeName = 'nimblescape-markdown-notes';
+export const doctypeName = 'nimblescape-markdownnotes';
 
 /**
  * doctypeLines are the lines of the comment. No line holds `-->` before the last line, which would end the comment,
@@ -85,8 +85,11 @@ export interface Doctype {
   version: Version | undefined;
 }
 
-/** doctypeStart matches the first line of the comment, with the version of the format. */
-const doctypeStart = new RegExp(String.raw`^<!--\s*${doctypeName}(?:\s+v(\d+)\.(\d+)\.(\d+))?(?:\s|$)`);
+/**
+ * doctypeStart matches the first line of the comment, with the name and the version of the format. It also matches the
+ * name `nimblescape-markdown-notes` of the versions before 2026-10-30, whose comment counts as older.
+ */
+const doctypeStart = /^<!--\s*(nimblescape-markdown-?notes)(?:\s+v(\d+)\.(\d+)\.(\d+))?(?:\s|$)/;
 
 /** fence matches the line that opens or closes a fenced code block, with its fence. */
 const fence = /^ {0,3}(`{3,}|~{3,})/;
@@ -94,7 +97,7 @@ const fence = /^ {0,3}(`{3,}|~{3,})/;
 /**
  * findDoctype returns the place of the comment in the lines of a text: the first comment whose first line starts with
  * the name of the format, at the start of a line outside the fenced code blocks, anywhere in the text; undefined
- * without one.
+ * without one. A comment of the earlier name has no version, so that the extension writes it anew.
  * @param lines - The lines of the text.
  */
 export function findDoctype(lines: readonly string[]): Doctype | undefined {
@@ -114,8 +117,8 @@ export function findDoctype(lines: readonly string[]): Doctype | undefined {
   while (end < lines.length - 1 && !lines[end].includes('-->', end === start ? 4 : 0)) {
     end++;
   }
-  const [, major, minor, patch] = doctypeStart.exec(lines[start]) ?? [];
-  return { start, end, version: major === undefined ? undefined : { major: Number(major), minor: Number(minor), patch: Number(patch) } };
+  const [, name, major, minor, patch] = doctypeStart.exec(lines[start]) ?? [];
+  return { start, end, version: major === undefined || name !== doctypeName ? undefined : { major: Number(major), minor: Number(minor), patch: Number(patch) } };
 }
 
 /**

@@ -120,10 +120,10 @@ connection of VS Code, as the text of an open file does.
   text puts the selected text and the text of its block before it into the
   link to the extension.
 - **The files of the preview of the clean editing view.** The file system
-  `markdown-notes` of the extension gives the preview of a clean document
+  `markdownnotes` of the extension gives the preview of a clean document
   its images and style sheets as they are, read only, and never writes them.
   The preview loads files only from the folder of the document; an image
-  from elsewhere loads under the folder `~markdown-notes~` there, by its path
+  from elsewhere loads under the folder `~markdownnotes~` there, by its path
   in the folder of the workspace of the file, and only from inside that
   folder of the workspace, as the preview of the file itself does.
 - **The light bulb action of the selected text.** The Code Action "Add

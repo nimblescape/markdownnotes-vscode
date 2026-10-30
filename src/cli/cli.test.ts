@@ -74,7 +74,7 @@ describe('the command format', () => {
 
   test('keeps the notes and the comment of the format', () => {
     const text = [
-      '<!-- nimblescape-markdown-notes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md',
+      '<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md',
       '-->',
       '',
       'Some <!--[note-7k2q-->text[^note-7k2q] of',
@@ -116,13 +116,13 @@ describe('the command format', () => {
   });
 
   test('keeps a file of a higher major version of the format as it is, formats the other files, and exits with 2', () => {
-    const newer = ['<!-- nimblescape-markdown-notes v2.0.0 spec=https://example.com/format-v2.md', '-->', '', unformatted].join('\n');
+    const newer = ['<!-- nimblescape-markdownnotes v2.0.0 spec=https://example.com/format-v2.md', '-->', '', unformatted].join('\n');
     const fake = fakeOf({ 'new.md': newer, 'a.md': unformatted }, newer);
     expect(run(['format', 'new.md', 'a.md'], fake)).toBe(2);
     expect(fake.written).toEqual(['a.md']);
     expect(fake.files.get('new.md')).toBe(newer);
     expect(fake.errors).toEqual([
-      'new.md: the file uses version 2.0.0 of the format of the notes, and this version of markdown-notes knows only the versions 1.x, so the file stays as it is. Run the newest version: npx -y @nimblescape/markdown-notes@latest format',
+      'new.md: the file uses version 2.0.0 of the format of the notes, and this version of markdownnotes knows only the versions 1.x, so the file stays as it is. Run the newest version: npx -y @nimblescape/markdownnotes@latest format',
     ]);
     expect(run(['format', '-'], fake)).toBe(2);
     expect(fake.stdout).toEqual([newer]);

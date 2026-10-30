@@ -45,7 +45,7 @@ as the highlights of a marker pen on paper.
 | 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done; written only with a change of a note or a save since step 27 |
 | 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
 | 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
-| 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdown-notes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
+| 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdownnotes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
 | 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28, the view aligned to the text editor in step 36, the highlights only with the side view in step 39 |
 | 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
@@ -53,7 +53,7 @@ as the highlights of a marker pen on paper.
 | 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
 | 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | planned; before the first release |
 | 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | planned; before the first release |
-| 31 | The text without notes for publishing: `markdown-notes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
+| 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
 | 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
 | 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
@@ -488,14 +488,14 @@ always knows it is a notes md document"). The
 "the public specification is a file in the github repo").
 
 - The first line names the format, its version and the address of the
-  specification: `<!-- nimblescape-markdown-notes v1.0.0
+  specification: `<!-- nimblescape-markdownnotes v1.0.0
   spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`.
   Short lines of words follow, which tell an AI agent to read the
   specification before it reads, changes or adds a note, and the last line is
   `-->`. GitHub and the Markdown preview do not show the comment.
 - In a file whose notes are hidden from other viewers
   ([R-HIDE-001](#r-hide-001)), the first line holds the word `hidden` after
-  the version: `<!-- nimblescape-markdown-notes v1.0.0 hidden spec=…`. A
+  the version: `<!-- nimblescape-markdownnotes v1.0.0 hidden spec=…`. A
   first line without the word means the visible form. The words of the
   comment say that in a file with `hidden`, each note is an HTML comment.
 - The comment stands at the top of the file, with a blank line after it. It
@@ -1404,12 +1404,12 @@ text would show other blocks or another text in the preview.
 **The formatter on the command line.** Programs and AI agents that change a
 Markdown file outside VS Code run the same formatter on the command line
 (Hannes, 2026-10-28: "make the formatter accessible for agents"). The command
-`markdown-notes` is a script of Node.js 22 or later without dependencies,
+`markdownnotes` is a script of Node.js 22 or later without dependencies,
 built from the code of the formatter of
 [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003), so that it formats a file
 as the extension does on save.
 
-- `markdown-notes format <file>...` formats each file and
+- `markdownnotes format <file>...` formats each file and
   writes only the files that change, with the line breaks and the byte order
   mark of the file.
 - `--check` changes no file, writes `<file>: not formatted` to the standard
@@ -1425,17 +1425,17 @@ as the extension does on save.
 - `--help` shows the help, and `--version` the version of the tool and of the
   format of the notes ([R-NOTE-007](#r-note-007)).
 
-The command `markdown-notes strip` writes the text of a file without its
+The command `markdownnotes strip` writes the text of a file without its
 notes, for a website or a document that is published
 ([R-HIDE-004](#r-hide-004)).
 
-The command is the npm package `@nimblescape/markdown-notes` in the folder
+The command is the npm package `@nimblescape/markdownnotes` in the folder
 `cli/` of this repository, as the npm package `@nimblescape/typescript` of
 the extension nimblescape TypeScript (Hannes, 2026-10-28: "same as with the
 typescript extension, we have the extension and the npm package in the same
 repo and publish it to npmjs"). It has the version of the extension, and the
 release publishes it to npmjs.com, so that
-`npx -y @nimblescape/markdown-notes format <file>` runs it without an
+`npx -y @nimblescape/markdownnotes format <file>` runs it without an
 installation. The specification of the format of the notes for AI agents
 ([docs/format.md](format.md)) tells agents to run the tool after a change of
 a file with notes.
@@ -1643,7 +1643,7 @@ and that its paragraphs, lists, block quotes and tables stay whole.
 text is published, the extension writes the text of a file without its notes
 (Hannes, 2026-10-29: option B):
 
-- `markdown-notes strip <file>` ([R-FMT-004](#r-fmt-004)) writes the text to
+- `markdownnotes strip <file>` ([R-FMT-004](#r-fmt-004)) writes the text to
   the standard output; `-` reads the standard input, and `--out <folder>`
   writes a copy of each file into the folder. The command never changes a
   file itself.

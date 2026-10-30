@@ -86,7 +86,7 @@ describe('nimblescape Markdown Notes', () => {
   const settings = () => vscode.workspace.getConfiguration('nimblescape.markdownNotes');
 
   before(async () => {
-    folder = fs.mkdtempSync(path.join(os.tmpdir(), 'markdown-notes-'));
+    folder = fs.mkdtempSync(path.join(os.tmpdir(), 'markdownnotes-'));
     // A save of a file of the tests writes no comment of the format; one test turns it on.
     await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
   });
@@ -107,7 +107,7 @@ describe('nimblescape Markdown Notes', () => {
   const viewOf = (file: vscode.Uri): Promise<vscode.TextEditor> =>
     waitFor(() => {
       const editor = vscode.window.activeTextEditor;
-      return editor?.document.uri.scheme === 'markdown-notes' && editor.document.uri.path === file.path ? editor : undefined;
+      return editor?.document.uri.scheme === 'markdownnotes' && editor.document.uri.path === file.path ? editor : undefined;
     }, 'the clean editing view');
 
   /**
