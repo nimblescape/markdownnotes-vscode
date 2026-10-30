@@ -85,6 +85,7 @@ requirement, the plan and the decisions of Hannes.
 | 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
 | 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done |
 | 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it; the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
+| 59 | The frame of a highlight in the pages of a paper only in the text area of each page; "Add Note" without the soft hyphens of the pages | [R-PREV-009](#r-prev-009) | done |
 
 ## General
 
@@ -1451,10 +1452,15 @@ click that selects a note, the double click that opens the side view, and
   address of "Add Note" in the pages, which the user sees, and finds them
   again after the event `nimblescape-paper-rendered` of each new set of
   pages.
+- The frame of a selected highlight covers only the text area of each page,
+  `.pagedjs_page_content`: a highlight over two pages leaves out the
+  margins, the footer and the header between them.
+- "Add Note" leaves out the soft hyphens (U+00AD) of the hyphenation of the
+  pages, which the Markdown text does not have.
 - The PDF has no notes: the renderer of Markdown Paper makes it without the
   plugin, the script and the style of the notes.
 
-Built in step 55.
+Built in step 55; the text area and the soft hyphens in step 59.
 
 ## Formatter
 

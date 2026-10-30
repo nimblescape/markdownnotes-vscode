@@ -90,6 +90,9 @@
   /** pagesSelector finds the pages of nimblescape Markdown Paper, the copies of the content that the user sees. */
   const pagesSelector = '.nimblescape-paper-pages';
 
+  /** contentSelector finds the text area of a page of nimblescape Markdown Paper, without its margins, header and footer. */
+  const contentSelector = '.pagedjs_page_content';
+
   /** controlSelector finds the elements whose click is their own: links and form controls. */
   const controlSelector = 'a, button, input, textarea, select, summary, label, [contenteditable]';
 
@@ -158,6 +161,28 @@
    * @returns {ParentNode}
    */
   const scope = () => document.querySelector(pagesSelector) ?? document;
+
+  /**
+   * clip returns the part of a rectangle of a range in the text area of a page of nimblescape Markdown Paper, or
+   * undefined when it has none, so that a frame of a highlight over two pages leaves out the margins, the header and the
+   * footer between them; without pages, the rectangle as it is.
+   * @param {{ left: number, top: number, right: number, bottom: number }} rect
+   * @returns {{ left: number, top: number, right: number, bottom: number } | undefined}
+   */
+  const clip = (rect) => {
+    const pages = document.querySelector(pagesSelector);
+    if (!pages) {
+      return rect;
+    }
+    for (const content of pages.querySelectorAll(contentSelector)) {
+      const box = content.getBoundingClientRect();
+      const part = { left: Math.max(rect.left, box.left), top: Math.max(rect.top, box.top), right: Math.min(rect.right, box.right), bottom: Math.min(rect.bottom, box.bottom) };
+      if (part.right > part.left && part.bottom > part.top) {
+        return part;
+      }
+    }
+    return undefined;
+  };
 
   /** motion returns how the preview scrolls to a note: smoothly, as the side view, unless the system asks for less motion. */
   const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
@@ -290,11 +315,12 @@
     const origin = frames.getBoundingClientRect();
     /** @type {Map<number, { left: number, top: number, right: number, bottom: number }>} */
     const lines = new Map();
-    for (const rect of range.getClientRects()) {
-      if (rect.width === 0 || rect.height === 0) {
+    for (const whole of range.getClientRects()) {
+      const rect = whole.width === 0 || whole.height === 0 ? undefined : clip(whole);
+      if (!rect) {
         continue;
       }
-      const key = Math.round(rect.top + rect.height / 2);
+      const key = Math.round((rect.top + rect.bottom) / 2);
       const line = lines.get(key);
       lines.set(key, line ? { left: Math.min(line.left, rect.left), top: Math.min(line.top, rect.top), right: Math.max(line.right, rect.right), bottom: Math.max(line.bottom, rect.bottom) } : { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom });
     }
@@ -436,7 +462,9 @@
     const before = document.createRange();
     before.setStart(lined, 0);
     before.setEnd(range.startContainer, range.startOffset);
-    const query = new URLSearchParams({ line, before: before.toString(), text }).toString();
+    // The pages of nimblescape Markdown Paper have soft hyphens of their hyphenation, which the Markdown text has not.
+    const shown = (value) => value.replace(/\u00AD/g, '');
+    const query = new URLSearchParams({ line, before: shown(before.toString()), text: shown(text) }).toString();
     return { href: `${base}&${query}`, rects: [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0) };
   };
 
