@@ -84,6 +84,7 @@ requirement, the plan and the decisions of Hannes.
 | 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
 | 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
 | 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done |
+| 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it; the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
 
 ## General
 
@@ -1973,6 +1974,42 @@ export function parse(lines: readonly string[]): Token[] {
   symbol.
 - `/snippet` shows once the extension is active, after a Markdown file was
   opened; "Add Snippet" in the Command Palette starts the extension.
+- "Add Snippet" takes the name as an optional third argument, after the URI
+  of the file and the range of the lines, for a keyboard shortcut or another
+  extension; without it, the command asks for the name.
+
+### R-CODE-004
+
+**The snippets in the text editor of a source file.** The text editor shows
+each snippet with a small tag, and a button highlights the snippets that a
+listing shows (Hannes, 2026-10-30, 04:34, on open question 2 of the concept
+document: "the editor shall sow it as a rendered tag, unobstrusive, similar
+to the small font annotations that are there sometimes", "the source code
+text editor gets an icon toggle button the highlights the used snippets in
+a source code view"; [decision 37](#decisions)):
+
+- Above the start mark of each snippet, VS Code shows a code lens, the small
+  gray line that it shows as "3 references" above a function: the name of
+  the snippet and the listings of the Markdown files of the workspace that
+  show it, for example `snippet keep-lines · Listing 2 in paper/paper.md`,
+  or `in no listing`. A click on it opens the Markdown file at the comment
+  of the listing; with several listings, the user chooses one first.
+- The two marks of each snippet show dimmed. The extension changes no
+  character of the source file, and the cursor moves through the marks as
+  through any line, because the source must stay exact for the compiler and
+  for git, and hidden characters caused the bugs of the cursor of the notes
+  ([R-TEXT-009](#r-text-009)).
+- The title of the text editor of a source file with snippets has the button
+  "Show Used Snippets" or "Hide Used Snippets", with the highlighter pen of
+  "Show Highlights" ([R-GEN-011](#r-gen-011)). While they show, the lines of
+  each snippet that a listing names get a yellow background and a mark in
+  the overview ruler. The Command Palette has both commands.
+- A listing counts with the caption line directly before its comment, or one
+  blank line before it; it then has its word and number, for example
+  "Listing 2". The uses come from the Markdown files of the workspace,
+  without `node_modules` and `.git`, an open file as it stands, and are read
+  again half a second after a change of a Markdown file.
+- The code lenses show while the setting `editor.codeLens` of VS Code is on.
 
 ## Hidden notes
 
@@ -2439,6 +2476,15 @@ requirements above follow them.
     The other choice, built first in step 51, was an anchor at the end of
     the heading, `## Methods<a id="sec-methods"></a>`, which keeps its links
     when the text of the heading changes.
+37. **The tag of a snippet and the used snippets** ([R-CODE-004](#r-code-004),
+    Hannes, 2026-10-30, 04:34, on open question 2 of the concept document
+    "Listings and snippets"): the text editor of a source file shows each
+    snippet with an unobtrusive tag in small letters, and a toggle button
+    highlights the snippets that a listing shows. The tag is a code lens of
+    VS Code above the start mark, and the marks show dimmed, so that no
+    character of the source changes (Claude's form, open to the other form:
+    the tag in place of the text of the comment). The other proposal of the
+    question was the dimmed marks without a tag.
 
 ---
 

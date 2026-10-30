@@ -312,6 +312,14 @@ interface FakeFileSystemProvider {
   readFile(uri: FakeUri): Uint8Array | Promise<Uint8Array>;
 }
 
+/** FakeCodeLens stands for a vscode.CodeLens. */
+export class FakeCodeLens {
+  constructor(
+    readonly range: FakeRange,
+    readonly command?: { title: string; command: string; arguments?: unknown[]; tooltip?: string },
+  ) {}
+}
+
 /** FakeThemeColor stands for a vscode.ThemeColor. */
 export class FakeThemeColor {
   constructor(readonly id: string) {}
@@ -585,6 +593,10 @@ export class Fake {
   found: FakeUri[] = [];
   /** symbols holds the symbols of the files, by their paths, that the command vscode.executeDocumentSymbolProvider gives. */
   symbols = new Map<string, unknown[]>();
+  /** codeLenses holds the providers of the code lenses. */
+  codeLenses: { provideCodeLenses(document: FakeDocument): Promise<FakeCodeLens[]> | FakeCodeLens[] }[] = [];
+  /** watched holds the listeners of the watchers of files, by the kind of the change. */
+  watched: { kind: 'create' | 'change' | 'delete'; listener: (uri: FakeUri) => void }[] = [];
   /**
    * lineComments holds the line comments of the languages, by their IDs, that the command editor.action.addCommentLine
    * writes at the indentation of the line of each cursor of the active editor; a language without one changes nothing.
@@ -668,6 +680,7 @@ export class Fake {
       Diagnostic: FakeDiagnostic,
       FoldingRange: FakeFoldingRange,
       ThemeColor: FakeThemeColor,
+      CodeLens: FakeCodeLens,
       DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2 },
       FoldingRangeKind: { Comment: 1 },
       TextEditorRevealType: { InCenter: 1, InCenterIfOutsideViewport: 2, AtTop: 3 },
@@ -696,6 +709,10 @@ export class Fake {
             set: (uri: FakeUri, list: FakeDiagnostic[]) => this.diagnostics.set(uri.toString(), list),
             delete: (uri: FakeUri) => this.diagnostics.delete(uri.toString()),
           }),
+        registerCodeLensProvider: (_selector: unknown, provider: { provideCodeLenses(document: FakeDocument): Promise<FakeCodeLens[]> | FakeCodeLens[]; onDidChangeCodeLenses?: unknown }) => {
+          this.codeLenses.push(provider);
+          return this.registration();
+        },
         registerFoldingRangeProvider: (language: string, provider: { provideFoldingRanges(document: FakeDocument): FakeFoldingRange[] }) => {
           this.folding.set(language, provider);
           return this.registration();
@@ -842,6 +859,24 @@ export class Fake {
         openTextDocument: (uri: FakeUri) => this.openTextDocument(uri),
         applyEdit: (edit: FakeWorkspaceEdit) => this.applyEdit(edit),
         findFiles: async () => this.found,
+        asRelativePath: (target: FakeUri) => (target.path.startsWith(this.workspaceFolder) ? target.path.slice(this.workspaceFolder.length) : target.path),
+        createFileSystemWatcher: () => {
+          const watcher = Object.assign(this.registration(), {
+            onDidCreate: (listener: (uri: FakeUri) => void) => {
+              this.watched.push({ kind: 'create', listener });
+              return this.registration();
+            },
+            onDidChange: (listener: (uri: FakeUri) => void) => {
+              this.watched.push({ kind: 'change', listener });
+              return this.registration();
+            },
+            onDidDelete: (listener: (uri: FakeUri) => void) => {
+              this.watched.push({ kind: 'delete', listener });
+              return this.registration();
+            },
+          });
+          return watcher;
+        },
         registerFileSystemProvider: (scheme: string, provider: FakeFileSystemProvider) => {
           this.providers.set(scheme, provider);
           return this.registration();

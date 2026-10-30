@@ -150,6 +150,18 @@
         "icon": "$(nimblescape-highlights-hide)"
       },
       {
+        "command": "nimblescape.markdownNotes.showUsedSnippets",
+        "title": "Show Used Snippets",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-highlights-show)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideUsedSnippets",
+        "title": "Hide Used Snippets",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-highlights-hide)"
+      },
+      {
         "command": "nimblescape.markdownNotes.showFootnotes",
         "title": "Show Footnotes",
         "category": "Markdown Notes",
@@ -252,6 +264,16 @@
           "command": "nimblescape.markdownNotes.hideHighlights",
           "group": "navigation",
           "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && nimblescape.markdownNotes.highlightsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showUsedSnippets",
+          "group": "navigation",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && !nimblescape.markdownNotes.usedSnippetsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideUsedSnippets",
+          "group": "navigation",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && nimblescape.markdownNotes.usedSnippetsShown"
         }
       ],
       "view/title": [
@@ -293,6 +315,14 @@
         {
           "command": "nimblescape.markdownNotes.addSnippet",
           "when": "editorLangId != markdown && !editorReadonly && editorHasSelection"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showUsedSnippets",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && !nimblescape.markdownNotes.usedSnippetsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideUsedSnippets",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && nimblescape.markdownNotes.usedSnippetsShown"
         },
         {
           "command": "nimblescape.markdownNotes.showHighlights",

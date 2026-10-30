@@ -345,6 +345,23 @@ describe('nimblescape Markdown Notes', () => {
     }
   });
 
+  it('shows a code lens above the start mark of each snippet of a source file (R-CODE-004)', async () => {
+    const source = vscode.Uri.file(path.join(folder, 'src', `lens-${++count}.py`));
+    fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });
+    fs.writeFileSync(source.fsPath, 'def read(path):\n    # markdownnotes: snippet open-file\n    return open(path).read()\n    # markdownnotes: /snippet open-file\n');
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(source));
+    let lens: vscode.CodeLens | undefined;
+    for (const end = Date.now() + 10_000; !lens && Date.now() < end; await new Promise((resolve) => setTimeout(resolve, 100))) {
+      // The command resolves the code lenses with the number given, so that each has its command.
+      const found = await vscode.commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', source, 10);
+      lens = found.find((candidate) => candidate.command?.title.startsWith('snippet open-file'));
+    }
+    assert.ok(lens, 'the code lens of the snippet');
+    assert.equal(lens.range.start.line, 1);
+    // The tests open no folder, so no Markdown file of a workspace shows the snippet.
+    assert.equal(lens.command?.title, 'snippet open-file · in no listing');
+  });
+
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nMore.[^1]\n\n[^1]: A source.\n'));

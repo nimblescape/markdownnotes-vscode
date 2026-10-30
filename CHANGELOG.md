@@ -108,8 +108,10 @@ The first version.
   file, or "Add Snippet", writes the marks
   `// markdownnotes: snippet <name>` and `// markdownnotes: /snippet <name>`
   around them in the comment form of the type of the file, also in
-  configuration files such as JSONC, YAML, TOML and `.env`, and a listing
-  names the snippet as `#<name>`. Ctrl+Click on the comment of a listing opens its
+  configuration files such as JSONC, YAML, TOML and `.env`, and in any
+  other language that VS Code knows, and a listing names the snippet as
+  `#<name>`. A small line above each snippet names the listings that show
+  it, and the button "Show Used Snippets" colors the used snippets. Ctrl+Click on the comment of a listing opens its
   source at the snippet or the symbol.
 - The notes in the pages of a paper: the highlights, the selection of a
   note and "Add Note" work in the pages that nimblescape Markdown Paper shows

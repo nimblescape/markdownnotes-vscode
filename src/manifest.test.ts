@@ -23,6 +23,7 @@ import { deleteCommands, markerContexts } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { defaultSettings, linkTargets, settingsSection } from './settings';
 import { snippetCommands } from './snippets';
+import { usedSnippetCommands, usedSnippetContexts } from './usedSnippets';
 
 // The modules of the extension import the editor API; these tests read only their constants.
 vi.mock('vscode', () => ({}));
@@ -140,10 +141,10 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker and "Add Snippet", and no other', () => {
+test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker, "Add Snippet" and the buttons of the used snippets, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
   expect([...contributed].sort()).toEqual(
-    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), snippetCommands.add].sort(),
+    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), snippetCommands.add, usedSnippetCommands.show, usedSnippetCommands.hide].sort(),
   );
 });
 
@@ -221,6 +222,9 @@ test('the title of the text editor and of the preview of a Markdown file has the
     { command: viewCommands.toggle, group: 'navigation', when: `(${markdown})` },
     { command: highlightCommands.show, group: 'navigation', when: `(${markdown}) && !${highlightsContext}` },
     { command: highlightCommands.hide, group: 'navigation', when: `(${markdown}) && ${highlightsContext}` },
+    // The text editor of a source file with snippets has the buttons of the used snippets (R-CODE-004).
+    { command: usedSnippetCommands.show, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && !${usedSnippetContexts.shown}` },
+    { command: usedSnippetCommands.hide, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && ${usedSnippetContexts.shown}` },
   ]);
   expect(manifest.contributes.menus.commandPalette).toEqual(
     expect.arrayContaining([
@@ -229,7 +233,12 @@ test('the title of the text editor and of the preview of a Markdown file has the
     ]),
   );
   const iconOf = (command: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === command).icon;
-  expect([highlightCommands.show, highlightCommands.hide].map(iconOf)).toEqual(['$(nimblescape-highlights-show)', '$(nimblescape-highlights-hide)']);
+  expect([highlightCommands.show, highlightCommands.hide, usedSnippetCommands.show, usedSnippetCommands.hide].map(iconOf)).toEqual([
+    '$(nimblescape-highlights-show)',
+    '$(nimblescape-highlights-hide)',
+    '$(nimblescape-highlights-show)',
+    '$(nimblescape-highlights-hide)',
+  ]);
 });
 
 /**

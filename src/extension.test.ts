@@ -25,6 +25,7 @@ import { notesViewId, viewCommands } from './notesView';
 import { settingsSection } from './settings';
 import { slashCommandIds } from './slashCommands';
 import { snippetCommands } from './snippets';
+import { usedSnippetCommands } from './usedSnippets';
 import { Fake, FakeCodeActionKind, FakeDocument, FakeEditor, FakeFoldingRange, FakePosition, FakeRange, FakeSelection, type FakeTextEdit, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
@@ -86,6 +87,7 @@ test('the activation registers the commands, the side view and the handler of li
       ...Object.values(cleanCommands),
       ...Object.values(slashCommandIds),
       ...Object.values(snippetCommands),
+      ...Object.values(usedSnippetCommands),
     ].sort(),
   );
   expect([...fake.views.keys()]).toEqual([notesViewId]);

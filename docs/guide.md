@@ -854,6 +854,14 @@ export function parse(lines: readonly string[]): Token[] {
 - `/snippet` shows once the extension is active, after a Markdown file was
   opened in the window; "Add Snippet" in the Command Palette works at any
   time.
+- Above the start mark of each snippet, a small gray line names the snippet
+  and the listings that show it, for example
+  `snippet keep-lines · Listing 2 in paper/paper.md`. Click it to open the
+  Markdown file at the listing. The two marks show dimmed; the file itself
+  does not change.
+- The highlighter pen in the title of the text editor of a source file with
+  snippets, "Show Used Snippets", gives each snippet that a listing shows a
+  yellow background; "Hide Used Snippets" removes it.
 
 ## Edit an answer
 
