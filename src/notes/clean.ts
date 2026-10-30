@@ -9,7 +9,10 @@
  * markup at all in the document". VS Code counts every character of a line
  * for the line breaks and the cursor, also a hidden one, so the text editor
  * edits a text without the markup: without the start markers, the references,
- * the definitions of the notes and the comment of the format. While the side
+ * the definitions of the notes and the comment of the format, and the blocks
+ * that other extensions hide through the API of the extension
+ * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), such as the database of
+ * the sources of nimblescape Markdown Paper at the end of a file. While the side
  * view shows the standard footnotes, the definitions of those that have a
  * reference are left out too, as the definitions of the notes (Hannes,
  * 2026-10-29: "the definition can even be hidden, same as for the note, it
@@ -31,11 +34,27 @@ import { type Note, type Range, read, readNotes } from './notes';
 
 /**
  * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note are in a line of
- * text, the definition of a note, the definition of a standard footnote and the comment of the format are whole lines.
+ * text, the definition of a note, the definition of a standard footnote, the comment of the format and a block of
+ * another extension are whole lines.
  */
-export type HiddenKind = 'marker' | 'reference' | 'definition' | 'footnote' | 'doctype';
+export type HiddenKind = 'marker' | 'reference' | 'definition' | 'footnote' | 'doctype' | 'block';
 
-/** Options are the choices of a projection: whether, and which, definitions of standard footnotes it leaves out. */
+/** Block is a block of whole lines of a file that another extension hides, from its first to its last line. */
+export interface Block {
+  first: number;
+  last: number;
+}
+
+/**
+ * BlockFinder returns the blocks of the lines of a file that the clean text leaves out for other extensions: blocks
+ * that belong at the end of the file, such as a database of sources.
+ */
+export type BlockFinder = (lines: readonly string[]) => readonly Block[];
+
+/**
+ * Options are the choices of a projection: whether, and which, definitions of standard footnotes it leaves out, and the
+ * blocks of other extensions.
+ */
 export interface Options {
   /** footnotes leaves out the definitions of the standard footnotes that have a reference, which the side view shows. */
   footnotes?: boolean;
@@ -44,6 +63,8 @@ export interface Options {
    * definition that the clean text shows, for example one that the user types there.
    */
   only?: readonly string[];
+  /** blocks finds the blocks that other extensions hide. */
+  blocks?: BlockFinder;
 }
 
 /** Hidden is a part of the file that the clean text leaves out, from its start to its end, as offsets in the file. */
@@ -84,7 +105,10 @@ export interface Projection {
  * definition of a standard footnote that the clean text shows.
  * @param projection - The projection of the file before the edit.
  */
-export const editOptions = (projection: Projection): Options => (projection.options.footnotes ? { footnotes: true, only: projection.footnotes } : {});
+export const editOptions = ({ options, footnotes }: Projection): Options => ({
+  ...(options.footnotes ? { footnotes: true, only: footnotes } : {}),
+  ...(options.blocks ? { blocks: options.blocks } : {}),
+});
 
 /**
  * lineStarts returns the offset of the first character of each line of a text.
@@ -99,9 +123,37 @@ const lineStarts = (text: string): number[] => {
 };
 
 /**
+ * mergedKind returns the kind of two hidden parts that overlap and so become one: the comment of the format, else a
+ * block of another extension, else the definitions of standard footnotes when both are such, else definitions.
+ * @param a - The kind of the first part.
+ * @param b - The kind of the second part.
+ */
+const mergedKind = (a: HiddenKind, b: HiddenKind): HiddenKind =>
+  a === 'doctype' || b === 'doctype' ? 'doctype' : a === 'block' || b === 'block' ? 'block' : a === 'footnote' && b === 'footnote' ? 'footnote' : 'definition';
+
+/**
+ * blocksOf returns the blocks of the lines of a file that other extensions hide, in the order of the file: only blocks
+ * of whole lines inside the file, and none of an extension whose finder fails.
+ * @param lines - The lines of the file.
+ * @param finder - Finds the blocks.
+ */
+const blocksOf = (lines: readonly string[], finder: BlockFinder | undefined): Block[] => {
+  let found: readonly Block[] = [];
+  try {
+    found = finder?.(lines) ?? [];
+  } catch {
+    found = [];
+  }
+  return found
+    .filter(({ first, last }) => Number.isInteger(first) && Number.isInteger(last) && 0 <= first && first <= last && last < lines.length)
+    .map(({ first, last }) => ({ first, last }))
+    .sort((a, b) => a.first - b.first);
+};
+
+/**
  * project returns the clean text of the text of a file: without the start markers, the references and the definitions
- * of its notes, and without the comment of the format; with the option `footnotes`, also without the definitions of
- * the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
+ * of its notes, without the comment of the format, and without the blocks of other extensions; with the option
+ * `footnotes`, also without the definitions of the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
  * around it keep one blank line between them; at the end of the file it goes with the blank lines before it. Only a
  * note or a footnote with a reference is hidden: the other parts of the form of a note, and a definition without a
  * reference, stay in the text, where the user sees them.
@@ -116,14 +168,16 @@ export function project(text: string, options: Options = {}): Projection {
   const reading = readNotes(lines);
   const notes = reading.notes.filter((note): note is Note & { reference: Range } => note.reference !== undefined && !note.duplicate);
   const doctype = findDoctype(lines);
+  const blocks = blocksOf(lines, options.blocks);
   const footnotes = options.footnotes
     ? readFootnotes(lines, reading.blocks.length > 0 ? reading : undefined).filter((footnote) => footnote.references.length > 0 && (!options.only || options.only.includes(footnote.label)))
     : [];
-  /** wholes are the lines of the definitions and of the comment of the format, which the clean text leaves out. */
+  /** wholes are the lines of the definitions, of the comment of the format and of the blocks, which the clean text leaves out. */
   const wholes = [
     ...notes.map((note) => [note.start.line, note.end.line]),
     ...footnotes.map(({ definition }) => [definition.first, definition.last]),
     ...(doctype ? [[doctype.start, doctype.end]] : []),
+    ...blocks.map(({ first, last }) => [first, last]),
   ];
   /** blank tells whether a line is blank or left out, so that definitions that follow each other go as one. */
   const blank = (line: number): boolean => lines[line].trim() === '' || wholes.some(([first, last]) => first <= line && line <= last);
@@ -162,13 +216,16 @@ export function project(text: string, options: Options = {}): Projection {
   if (doctype) {
     parts.push(block('doctype', doctype.start, doctype.end));
   }
+  for (const { first, last } of blocks) {
+    parts.push(block('block', first, last));
+  }
   parts.sort((a, b) => a.start - b.start || a.end - b.end);
   const hidden: Hidden[] = [];
   for (const part of parts) {
     const last = hidden.at(-1);
     if (last && part.start < last.end) {
       last.end = Math.max(last.end, part.end);
-      last.kind = last.kind === 'doctype' || part.kind === 'doctype' ? 'doctype' : last.kind === 'footnote' && part.kind === 'footnote' ? 'footnote' : 'definition';
+      last.kind = mergedKind(last.kind, part.kind);
     } else {
       hidden.push({ ...part });
     }
@@ -278,7 +335,8 @@ export interface Result {
  * text becomes `insert`. The visible characters of that part go, and the hidden parts in it stay. Typed text goes
  * before the first start marker there, so that it stays out of a highlight that starts there and of one that ends
  * there; the new text of a replacement goes after the hidden parts at its start and before the hidden parts at its
- * end, so that it stays in a highlight whose text it replaces. Typed text that continues the text of a highlight at
+ * end, so that it stays in a highlight whose text it replaces. New text goes before the blocks of other extensions,
+ * which belong at the end of the file. Typed text that continues the text of a highlight at
  * its end (`continues`) goes before the hidden parts there, so that it stays in the highlight: VS Code types over a
  * selection as a replacement with the first letter and an insertion of each next letter. When that place changes the
  * clean text otherwise, for example in the text of a definition at the end of the
@@ -299,8 +357,11 @@ export function applyClean(projection: Projection, start: number, end: number, i
   const suffix = text.slice(afterRun(projection, end));
   const pieces = kept.map((part) => text.slice(part.start, part.end));
   const firstMarker = kept.findIndex((part) => part.kind === 'marker');
+  const firstBlock = kept.findIndex((part) => part.kind === 'block');
   // A replacement takes the place of the old text: after the parts at its start and before the parts at its end.
-  const preferred = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
+  const natural = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
+  // New text stays before the blocks of other extensions, which belong at the end of the file.
+  const preferred = firstBlock < 0 ? natural : Math.min(natural, firstBlock);
   const places = [...Array(kept.length + 1).keys()].sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred) || a - b);
   const options = editOptions(projection);
   for (const place of places) {
@@ -343,7 +404,8 @@ const moved = (offset: number, kind: 'marker' | 'reference', start: number, end:
  * of each note at their places in the new clean text, a highlight that a paragraph break splits ending before the
  * break, and the definitions of the notes after the outermost block of their references, in the order of the
  * references, and then the hidden definitions of the standard footnotes after the outermost block of their first
- * references; the comment of the format stays at its place at the top. A highlight whose text the edit replaces
+ * references; the comment of the format stays at its place at the top, and the blocks of other extensions go to the
+ * end of the file, in their order. A highlight whose text the edit replaces
  * becomes the new text; one whose text the edit deletes becomes a point, which the checks report.
  * @param projection - The projection of the file.
  * @param start - The offset of the start of the edit in the clean text.
@@ -433,6 +495,15 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     } else {
       output.splice(output[line].trim() === '' ? line + 1 : line, 0, ...block);
     }
+  }
+  const blocks = blocksOf(lines, projection.options.blocks);
+  if (blocks.length > 0) {
+    // The blocks go to the end of the file, before the blank lines there, each with a blank line before it.
+    let end = output.length;
+    while (end > 0 && output[end - 1].trim() === '') {
+      end--;
+    }
+    output.splice(end, 0, ...blocks.flatMap(({ first, last }, index) => [...(end > 0 || index > 0 ? [''] : []), ...lines.slice(first, last + 1)]));
   }
   if (doctype) {
     output.splice(frontMatterEnd(output), 0, ...lines.slice(doctype.start, doctype.end + 1), '');

@@ -14,12 +14,101 @@
  * ok"). It gives one edit of the lines that the formatter
  * ([src/format/format.ts](format/format.ts)) and the comment change, with the
  * line breaks of the document.
+ *
+ * Other extensions add steps to the formatter through the API of the extension
+ * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example nimblescape
+ * Markdown Paper for its citations, so that one formatter formats the notes and
+ * the parts of the other extension in one edit. A step runs after the steps of
+ * the notes on the text of a file; in the clean editing view, it runs with the
+ * save of the file.
  */
 
 import * as vscode from 'vscode';
+import { cleanScheme } from './cleanView';
 import { formatMarkdown } from './format/format';
 import { doctypeEdit, newerFormat } from './notes/doctype';
 import { applyEdit, editBetween } from './notes/edits';
+
+/** FormatStep is a step of the formatter that another extension adds, after the steps of the notes (R-GEN-012). */
+export interface FormatStep {
+  /**
+   * applies tells whether the step formats a file. A Markdown file that a step formats gets the format on save, also
+   * without notes.
+   * @param lines - The lines of the file.
+   * @param file - The URI of the file.
+   */
+  applies(lines: readonly string[], file: vscode.Uri): boolean;
+  /**
+   * format returns the formatted lines of a file.
+   * @param lines - The lines of the file, formatted by the steps before.
+   * @param file - The URI of the file.
+   */
+  format(lines: readonly string[], file: vscode.Uri): readonly string[];
+}
+
+/** FormatSteps are the steps of the formatter that other extensions add, in the order of their registration. */
+export class FormatSteps {
+  private readonly steps = new Set<FormatStep>();
+
+  /**
+   * register adds a step, until the disposal of the result.
+   * @param step - The step.
+   */
+  register(step: FormatStep): vscode.Disposable {
+    this.steps.add(step);
+    return new vscode.Disposable(() => this.steps.delete(step));
+  }
+
+  /**
+   * appliesTo tells whether a step formats a document: a file, not a document of the clean editing view, whose text
+   * has no hidden parts of the file. A step that fails formats nothing.
+   * @param document - The document.
+   */
+  appliesTo(document: vscode.TextDocument): boolean {
+    const lines = document.getText().split(/\r\n|\r|\n/);
+    return document.uri.scheme !== cleanScheme && [...this.steps].some((step) => applies(step, lines, document.uri));
+  }
+
+  /**
+   * run returns the lines of a document after the steps that format it. A step that fails, or that returns no lines,
+   * leaves the lines as they are.
+   * @param document - The document.
+   * @param lines - The lines, formatted by the steps of the notes.
+   */
+  run(document: vscode.TextDocument, lines: string[]): string[] {
+    if (document.uri.scheme === cleanScheme) {
+      return lines;
+    }
+    let changed = lines;
+    for (const step of this.steps) {
+      if (applies(step, changed, document.uri)) {
+        try {
+          const formatted = step.format(changed, document.uri);
+          if (Array.isArray(formatted) && formatted.every((line) => typeof line === 'string')) {
+            changed = [...formatted];
+          }
+        } catch {
+          // The step of the other extension failed: the lines stay as they are.
+        }
+      }
+    }
+    return changed;
+  }
+}
+
+/**
+ * applies tells whether a step formats the lines of a file; a step that fails does not.
+ * @param step - The step.
+ * @param lines - The lines of the file.
+ * @param file - The URI of the file.
+ */
+function applies(step: FormatStep, lines: readonly string[], file: vscode.Uri): boolean {
+  try {
+    return step.applies(lines, file) === true;
+  } catch {
+    return false;
+  }
+}
 
 /** SaveChanges are the changes of a document before its save: its format, and the comment of the format of the notes. */
 export interface SaveChanges {
@@ -49,10 +138,14 @@ function editsBetween(document: vscode.TextDocument, lines: readonly string[], c
  * the format gets no comment.
  * @param document - The document.
  * @param changes - The changes that the document gets.
+ * @param steps - The steps of the formatter of other extensions, which run after the steps of the notes.
  */
-export function saveEdits(document: vscode.TextDocument, changes: SaveChanges): vscode.TextEdit[] {
+export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, steps?: FormatSteps): vscode.TextEdit[] {
   const lines = document.getText().split(/\r\n|\r|\n/);
   let changed = changes.format ? formatMarkdown(lines) : lines;
+  if (changes.format && steps) {
+    changed = steps.run(document, changed);
+  }
   const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true) : undefined;
   if (comment) {
     changed = applyEdit(changed, comment);
@@ -63,8 +156,9 @@ export function saveEdits(document: vscode.TextDocument, changes: SaveChanges): 
 /**
  * formatEdits returns the edits that format a Markdown document, or none when it is formatted.
  * @param document - The document.
+ * @param steps - The steps of the formatter of other extensions.
  */
-export const formatEdits = (document: vscode.TextDocument): vscode.TextEdit[] => saveEdits(document, { format: true, comment: false });
+export const formatEdits = (document: vscode.TextDocument, steps?: FormatSteps): vscode.TextEdit[] => saveEdits(document, { format: true, comment: false }, steps);
 
 /**
  * changesOnSave returns the changes of a document before its save: of a Markdown document, the changes that the
@@ -93,13 +187,14 @@ export function changesOnSave(document: vscode.TextDocument, reason: vscode.Text
  * document before its save: its format, and the comment of the format of the notes.
  * @param extension - The identifier of this extension, the default formatter of Markdown.
  * @param wanted - Returns the changes that the settings of the extension and the notes of a document ask for.
+ * @param steps - The steps of the formatter of other extensions.
  */
-export const registerFormatter = (extension: string, wanted: (document: vscode.TextDocument) => SaveChanges): vscode.Disposable[] => [
-  vscode.languages.registerDocumentFormattingEditProvider({ language: 'markdown' }, { provideDocumentFormattingEdits: formatEdits }),
+export const registerFormatter = (extension: string, wanted: (document: vscode.TextDocument) => SaveChanges, steps?: FormatSteps): vscode.Disposable[] => [
+  vscode.languages.registerDocumentFormattingEditProvider({ language: 'markdown' }, { provideDocumentFormattingEdits: (document) => formatEdits(document, steps) }),
   vscode.workspace.onWillSaveTextDocument((event) => {
     const changes = changesOnSave(event.document, event.reason, extension, wanted);
     if (changes.format || changes.comment) {
-      event.waitUntil(Promise.resolve(saveEdits(event.document, changes)));
+      event.waitUntil(Promise.resolve(saveEdits(event.document, changes, steps)));
     }
   }),
 ];

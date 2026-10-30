@@ -12,7 +12,8 @@
  * (R-FMT-001); the buttons of the side view (R-SIDE-006); the links of the
  * preview; the comment of the format (R-NOTE-007); the reading of the notes
  * after a change; the warnings (R-TEXT-008); the folds (R-TEXT-005); and the
- * light bulb action of the selected text that adds a note (R-EDIT-006).
+ * light bulb action of the selected text that adds a note (R-EDIT-006), and the
+ * API for other extensions (R-GEN-012).
  */
 
 import MarkdownIt from 'markdown-it';
@@ -130,6 +131,50 @@ test('the export gives other extensions version 1 of the API, which names the fi
   expect(v1.fileOf(file as never)).toBeUndefined();
   expect(api.getAPI(2)).toBeUndefined();
   expect(api.getAPI(0)).toBeUndefined();
+});
+
+test('another extension adds a step of the formatter through the API, which runs after the steps of the notes and gives a file the format on save, until its disposal (R-FMT-001, R-GEN-012)', async () => {
+  fake.settings.set('workspace', { addFormatComment: false });
+  const { api } = await fake.activate();
+  const files: string[] = [];
+  const registration = api.getAPI(1)!.registerFormatStep({
+    applies: (lines: readonly string[]) => lines.some((line) => line.includes('(#hong2024)')),
+    format: (lines: readonly string[], file: { toString(): string }) => {
+      files.push(file.toString());
+      return lines.map((line) => line.replace('[Hong, 2024](#hong2024)', '[Hong et al., 2024](#hong2024)'));
+    },
+  } as never);
+  const cited = fake.open('The agents\nwork ([Hong, 2024](#hong2024)).\n', '/folder/cited.md');
+  // The steps of the notes run first: the paragraph is on one line before the step sees it.
+  expect(await saved(cited)).toBe('The agents work ([Hong et al., 2024](#hong2024)).\n');
+  expect(files).toEqual([cited.uri.toString()]);
+  const edits = fake.formatters.get('markdown')!.provideDocumentFormattingEdits(cited);
+  expect(edits.map((edit) => edit.newText)).toEqual(['The agents work ([Hong et al., 2024](#hong2024)).']);
+  // A file that no step formats keeps its text on a save.
+  expect(await save(fake.open('One\ntwo\n', '/folder/plain.md'))).toEqual([]);
+  // A step that fails changes nothing, and the other steps still run.
+  const failing = api.getAPI(1)!.registerFormatStep({
+    applies: () => true,
+    format: () => {
+      throw new Error('broken');
+    },
+  } as never);
+  expect(await saved(cited)).toBe('The agents work ([Hong et al., 2024](#hong2024)).\n');
+  failing.dispose();
+  registration.dispose();
+  expect(await save(cited)).toEqual([]);
+});
+
+test('another extension hides blocks at the end of a file in the clean editing view through the API, until its disposal (R-TEXT-009, R-GEN-012)', async () => {
+  const { api } = await fake.activate();
+  const { cleanUriOf } = await import('./cleanView');
+  const file = fake.open('Text.\n\n<!-- nimblescape-sources\n{"id":"a"}\n-->\n', '/folder/sources.md');
+  const provider = fake.providers.get('markdown-notes')!;
+  const read = async (): Promise<string> => new TextDecoder().decode(await provider.readFile(cleanUriOf(file.uri as never)));
+  const registration = api.getAPI(1)!.registerHiddenBlocks({ find: (lines: readonly string[]) => [{ first: lines.indexOf('<!-- nimblescape-sources'), last: lines.indexOf('-->') }] } as never);
+  expect(await read()).toBe('Text.\n');
+  registration.dispose();
+  expect(await read()).toContain('nimblescape-sources');
 });
 
 test('the export ends the page of an open document that can have notes with the link of "Add Note" of the preview (R-PREV-008)', async () => {

@@ -41,16 +41,17 @@ import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
 import { CleanView, fileOf } from './cleanView';
-import { registerFormatter, type SaveChanges } from './formatter';
+import { type FormatStep, FormatSteps, registerFormatter, type SaveChanges } from './formatter';
 import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
 import { findDoctype } from './notes/doctype';
+import type { BlockFinder } from './notes/clean';
 import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
-import { SlashCommands } from './slashCommands';
+import { type SlashCommand, SlashCommands } from './slashCommands';
 import { checkedSettings, type Settings, settingsSection } from './settings';
 
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
@@ -95,9 +96,20 @@ export const footnoteCommands = {
 /** footnotesContext is the context key that tells the menus whether the side view shows the footnotes. */
 export const footnotesContext = 'nimblescape.markdownNotes.footnotesShown';
 
+/** HiddenBlocks finds the blocks of a file that the clean editing view leaves out for another extension. */
+export interface HiddenBlocks {
+  /**
+   * find returns the blocks of whole lines of a file, from the first to the last line, that belong at the end of the
+   * file, such as a database of sources. Text typed in the view goes before them, and they stay at the end.
+   * @param lines - The lines of the file.
+   */
+  find: BlockFinder;
+}
+
 /**
  * ApiV1 is version 1 of the API of the extension for other extensions, for example nimblescape Markdown Paper, which
- * add their parts to the notes of a Markdown file without the extension knowing them.
+ * add their parts to the notes of a Markdown file without the extension knowing them. Each register call returns a
+ * disposable that removes the part again.
  */
 export interface ApiV1 {
   version: 1;
@@ -106,6 +118,25 @@ export interface ApiV1 {
    * ([R-TEXT-009](../docs/requirements.md#r-text-009)), or undefined for another document.
    */
   fileOf(document: vscode.Uri): vscode.Uri | undefined;
+  /**
+   * registerFormatStep adds a step to the formatter of Markdown files, after the steps of the notes, in "Format
+   * Document" of a file and in the format on save ([R-FMT-001](../docs/requirements.md#r-fmt-001)).
+   * @param step - The step.
+   */
+  registerFormatStep(step: FormatStep): vscode.Disposable;
+  /**
+   * registerHiddenBlocks makes the clean editing view leave out blocks at the end of a file
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009)).
+   * @param blocks - The finder of the blocks.
+   */
+  registerHiddenBlocks(blocks: HiddenBlocks): vscode.Disposable;
+  /**
+   * registerSlashCommand adds a slash command to the text editors of Markdown files
+   * ([R-EDIT-008](../docs/requirements.md#r-edit-008)), after the commands of the notes. Its label is a slash and
+   * small letters that no other command has, or the call throws.
+   * @param command - The command.
+   */
+  registerSlashCommand(command: SlashCommand): vscode.Disposable;
 }
 
 /** Api is the export of the extension. */
@@ -293,11 +324,21 @@ export function activate(context: vscode.ExtensionContext): Api {
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const editor = new NoteEditor(threads, showsHighlights, selected);
   const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
+  const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
+  const slash = new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);
+  /** apiV1 is version 1 of the API for other extensions (R-GEN-012). */
+  const apiV1: ApiV1 = {
+    version: 1,
+    fileOf,
+    registerFormatStep: (step) => steps.register(step),
+    registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
+    registerSlashCommand: (command) => slash.add(command),
+  };
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the
-   * format while the setting formatOnSave is on and the document has notes or the comment of the format (R-FMT-001),
-   * and the comment of the format while the setting addFormatComment is on and the document has notes (R-NOTE-007).
+   * format while the setting formatOnSave is on and the document has notes, the comment of the format or a part that a
+   * step of another extension formats (R-FMT-001, R-GEN-012), and the comment of the format while the setting addFormatComment is on and the document has notes (R-NOTE-007).
    * @param document - The document.
    */
   const saveChangesOf = (document: vscode.TextDocument): SaveChanges => {
@@ -307,7 +348,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       return { format: false, comment: false };
     }
     const notes = threads.notesOf(document).length > 0;
-    return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined), comment: settings.addFormatComment && notes };
+    return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined || steps.appliesTo(document)), comment: settings.addFormatComment && notes };
   };
   /** contextsChanged shows the buttons that fit the settings showHighlights and showFootnotes. */
   const contextsChanged = (): void => {
@@ -329,9 +370,9 @@ export function activate(context: vscode.ExtensionContext): Api {
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
-    ...registerFormatter(extensionId, saveChangesOf),
+    ...registerFormatter(extensionId, saveChangesOf, steps),
     new AddNoteAction(threads, viewCommands.newNote, clean).register(),
-    ...new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean).register(),
+    ...slash.register(),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);
@@ -380,7 +421,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         },
       }),
     notesOf: (document) => threads.entriesOf(document).map((entry) => entry.note),
-    getAPI: (version) => (version === 1 ? { version: 1, fileOf } : undefined),
+    getAPI: (version) => (version === 1 ? apiV1 : undefined),
   };
 }
 

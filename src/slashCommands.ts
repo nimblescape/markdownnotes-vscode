@@ -28,6 +28,11 @@
  * GitHub login of the user, the name that the notes give their author
  * (Hannes, 2026-10-29: "/user insert the current user name"); without a
  * sign-in, it asks for the sign-in first.
+ *
+ * Other extensions add slash commands through the API of the extension
+ * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
+ * nimblescape Markdown Paper (Hannes, 2026-10-29, 22:15: "it is also the slash
+ * commands"). They show after the commands of the notes, with the same rules.
  */
 
 import * as vscode from 'vscode';
@@ -43,7 +48,28 @@ export const slashCommandIds = {
   note: 'nimblescape.markdownNotes.slashNote',
   footnote: 'nimblescape.markdownNotes.slashFootnote',
   user: 'nimblescape.markdownNotes.slashUser',
+  other: 'nimblescape.markdownNotes.slashOther',
 };
+
+/** ownLabels are the slash commands of the notes, which no other extension can add. */
+const ownLabels = ['/note', '/todo', '/footnote', '/date', '/time', '/user'];
+
+/** SlashCommand is a slash command that another extension adds (R-GEN-012), after the commands of the notes. */
+export interface SlashCommand {
+  /** label is the command: a slash and small letters, for example `/source`. */
+  label: string;
+  /** description is the short text beside the label in the list of suggestions. */
+  description?: string;
+  /** detail is the longer text of the chosen suggestion. */
+  detail?: string;
+  /**
+   * run runs the command after VS Code removed the typed command from the text. An edit of the text editor of the
+   * clean editing view goes into the file, as every edit of the view does.
+   * @param editor - The text editor.
+   * @param range - The empty range at the place of the removed command.
+   */
+  run(editor: vscode.TextEditor, range: vscode.Range): unknown;
+}
 
 /** Replaced is the selected text that a typed slash replaced, at the version of the document after the slash. */
 interface Replaced {
@@ -82,6 +108,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
    * sessions, because the list of suggestions shows it at once.
    */
   private login: string | undefined;
+  /** others are the slash commands of other extensions, by their labels, in the order of their registration. */
+  private readonly others = new Map<string, SlashCommand>();
 
   /**
    * @param threads - The threads of the notes, which read each document once for each version.
@@ -107,12 +135,34 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       vscode.commands.registerCommand(slashCommandIds.note, (uri: vscode.Uri, range: vscode.Range, todo: boolean) => this.note(uri, range, todo)),
       vscode.commands.registerCommand(slashCommandIds.footnote, (uri: vscode.Uri) => this.footnote(uri)),
       vscode.commands.registerCommand(slashCommandIds.user, (uri: vscode.Uri) => this.user(uri)),
+      vscode.commands.registerCommand(slashCommandIds.other, (uri: vscode.Uri, label: string) => this.other(uri, label)),
       vscode.authentication.onDidChangeSessions((event) => {
         if (event.provider.id === githubProvider) {
           void this.readLogin();
         }
       }),
     ];
+  }
+
+  /**
+   * add adds the slash command of another extension, until the disposal of the result. The label is a slash and small
+   * letters, and no other command has it.
+   * @param command - The command.
+   */
+  add(command: SlashCommand): vscode.Disposable {
+    const { label } = command;
+    if (typeof label !== 'string' || !/^\/[a-z]+$/.test(label)) {
+      throw new Error(`The label of a slash command is a slash and small letters, not ${JSON.stringify(label)}.`);
+    }
+    if (ownLabels.includes(label) || this.others.has(label)) {
+      throw new Error(`The slash command ${label} exists already.`);
+    }
+    this.others.set(label, command);
+    return new vscode.Disposable(() => {
+      if (this.others.get(label) === command) {
+        this.others.delete(label);
+      }
+    });
   }
 
   /** readLogin reads the GitHub login of the user without a sign-in. */
@@ -248,6 +298,14 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       created.command = { command: slashCommandIds.user, title: 'Insert User', arguments: [document.uri] };
       items.push(created);
     }
+    // The commands of other extensions replace no selected text, and get the text editor at the place of the command.
+    if (!replaced) {
+      for (const [label, other] of this.others) {
+        const created = item(label, other.description ?? '', other.detail ?? '', vscode.CompletionItemKind.Function, range, '');
+        created.command = { command: slashCommandIds.other, title: label, arguments: [document.uri, label] };
+        items.push(created);
+      }
+    }
     // The list keeps the order of the commands.
     items.forEach((created, index) => (created.sortText = String(index).padStart(2, '0')));
     return items;
@@ -275,6 +333,26 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
     if (editor) {
       await this.addFootnote(editor);
+    }
+  }
+
+  /**
+   * other runs the slash command of another extension in a text editor, after VS Code removed the typed command, and
+   * shows a message when it fails.
+   * @param uri - The URI of the document.
+   * @param label - The label of the command.
+   */
+  private async other(uri: vscode.Uri, label: string): Promise<void> {
+    const command = this.others.get(label);
+    const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
+    if (!command || !editor) {
+      return;
+    }
+    const at = editor.selection.active;
+    try {
+      await command.run(editor, new vscode.Range(at, at));
+    } catch (error) {
+      void vscode.window.showErrorMessage(`The slash command ${label} failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

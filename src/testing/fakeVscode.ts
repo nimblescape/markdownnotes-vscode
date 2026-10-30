@@ -196,6 +196,15 @@ interface FakeCodeActionProvider {
   provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: [] }): FakeCodeAction[];
 }
 
+/** FakeDisposable is a disposable of the fake API, which calls its function on its disposal. */
+export class FakeDisposable {
+  constructor(private readonly call: () => void) {}
+
+  dispose(): void {
+    this.call();
+  }
+}
+
 /** FakeEventEmitter is an event of the fake API, which calls its listeners on fire. */
 export class FakeEventEmitter<T> {
   private readonly listeners: ((value: T) => void)[] = [];
@@ -584,6 +593,7 @@ export class Fake {
       CompletionItemKind: { Function: 2, Value: 11, Reference: 17 },
       WorkspaceEdit: FakeWorkspaceEdit,
       EventEmitter: FakeEventEmitter,
+      Disposable: FakeDisposable,
       FileSystemError: { NoPermissions: (message: string) => new Error(message), FileNotFound: (uri: FakeUri) => new Error(`no file ${uri.toString()}`) },
       TextEdit: FakeTextEdit,
       Diagnostic: FakeDiagnostic,

@@ -28,7 +28,7 @@
 
 import * as vscode from 'vscode';
 import { highlightStyles } from './noteEditor';
-import { applyClean, cleanLines, editOptions, endsHighlight, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, type Options, type Projection, project } from './notes/clean';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
@@ -99,13 +99,6 @@ async function fromFile<T>(uri: vscode.Uri, read: () => Thenable<T>): Promise<T>
     throw vscode.FileSystemError.FileNotFound(uri);
   }
 }
-
-/**
- * hasMarkup tells whether a text has the markup of notes: a start marker, a reference or a definition of a note, or the
- * comment of the format.
- * @param text - The text.
- */
-export const hasMarkup = (text: string): boolean => project(text).hidden.length > 0;
 
 /** Mirror is the link between a clean document and the document of its file. */
 interface Mirror {
@@ -251,6 +244,17 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   );
   /** log is the output channel of the view, which names each edit that the view could not keep in step. */
   private readonly log = vscode.window.createOutputChannel('Markdown Notes: Clean Editing View');
+  /** finders are the finders of the blocks that other extensions hide (R-GEN-012). */
+  private readonly finders = new Set<BlockFinder>();
+  /** blocks returns the blocks of all finders; a finder that fails gives none. */
+  private readonly blocks: BlockFinder = (lines) =>
+    [...this.finders].flatMap((finder) => {
+      try {
+        return [...finder(lines)];
+      } catch {
+        return [];
+      }
+    });
 
   /**
    * @param showsHighlights - Tells whether the highlights of a file show.
@@ -271,7 +275,43 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    * @param file - The URI of the file.
    */
   private optionsOf(file: vscode.Uri): Options {
-    return this.showsFootnotes(file) ? { footnotes: true } : {};
+    return { ...(this.showsFootnotes(file) ? { footnotes: true } : {}), blocks: this.blocks };
+  }
+
+  /**
+   * hasMarkup tells whether a text has the markup of notes: a start marker, a reference or a definition of a note, or the
+   * comment of the format; or a block that another extension hides.
+   * @param text - The text.
+   */
+  private hasMarkup(text: string): boolean {
+    return project(text, { blocks: this.blocks }).hidden.length > 0;
+  }
+
+  /**
+   * registerHiddenBlocks makes the view leave out the blocks that a finder of another extension returns
+   * ([R-GEN-012](../docs/requirements.md#r-gen-012)): blocks of whole lines that belong at the end of the file, such as
+   * the database of the sources of nimblescape Markdown Paper. A file with such a block opens in the view too.
+   * @param finder - Returns the blocks of the lines of a file.
+   */
+  registerHiddenBlocks(finder: BlockFinder): vscode.Disposable {
+    this.finders.add(finder);
+    this.blocksChanged();
+    return new vscode.Disposable(() => {
+      if (this.finders.delete(finder)) {
+        this.blocksChanged();
+      }
+    });
+  }
+
+  /** blocksChanged writes each view anew after a change of the finders of hidden blocks, and switches the text editors. */
+  private blocksChanged(): void {
+    for (const [key, mirror] of this.ready) {
+      mirror.typing = undefined;
+      mirror.projection = project(mirror.model, this.optionsOf(mirror.file));
+      mirror.history = [entryOf(mirror.projection)];
+      void this.writeClean(vscode.Uri.parse(key), mirror);
+    }
+    this.switchLater();
   }
 
   /** register registers the file system, the command and the listeners of the view, and makes the text editors of files with notes the view. */
@@ -503,7 +543,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // A file of a link of a view that is no Markdown file, which the file system of the view gives as it is.
       return document.uri.scheme === cleanScheme ? this.resourceOf(document.uri) : undefined;
     }
-    return document.languageId !== 'markdown' || !hasMarkup(mirror.model) ? mirror.file : undefined;
+    return document.languageId !== 'markdown' || !this.hasMarkup(mirror.model) ? mirror.file : undefined;
   }
 
   /**
@@ -536,7 +576,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       document.uri.scheme !== cleanScheme &&
       document.languageId === 'markdown' &&
       vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) === true &&
-      hasMarkup(document.getText())
+      this.hasMarkup(document.getText())
     );
   }
 
@@ -581,7 +621,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     for (const mirror of this.ready.values()) {
       const key = mirror.file.toString();
       const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === key);
-      if (!this.markup.has(key) && !this.switching.has(key) && !document?.isDirty && hasMarkup(mirror.model) && hasTab(cleanUriOf(mirror.file))) {
+      if (!this.markup.has(key) && !this.switching.has(key) && !document?.isDirty && this.hasMarkup(mirror.model) && hasTab(cleanUriOf(mirror.file))) {
         await this.closeTabsOf(mirror.file, false);
       }
     }

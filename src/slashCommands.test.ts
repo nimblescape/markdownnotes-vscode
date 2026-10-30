@@ -8,7 +8,8 @@
  * sentence before it and `/note` for the text that the slash replaced, which
  * open the editor of a new note in the side view, the todo notes that the side
  * view adds and completes (R-NOTE-008), `/footnote`, which opens the editor of
- * a new footnote in the side view, `/date`, `/time` and `/user`.
+ * a new footnote in the side view, `/date`, `/time` and `/user`, and the slash
+ * commands that other extensions add through the API (R-GEN-012).
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -47,10 +48,10 @@ const start = async (text: string, line: number, character: number) => {
   editor.selection = { active: new FakePosition(line, character) };
   fake.editors.push(editor);
   fake.activeEditor = editor;
-  await fake.activate();
+  const { api } = await fake.activate();
   const view = fake.resolveView(notesViewId);
   await send(view, { type: 'ready' });
-  return { document, editor, view };
+  return { document, editor, view, api };
 };
 
 /**
@@ -188,4 +189,45 @@ test('/user inserts the GitHub login of the user, and asks for the sign-in first
   await accept(editor, user);
   expect(document.text).toBe('Written by dora and dora \n');
   expect(fake.infos.at(-1)).toBe('/user inserts your GitHub login after a sign-in with GitHub.');
+});
+
+test('another extension adds a slash command through the API, which shows after the commands of the notes and runs at the place of the removed command, until its disposal (R-EDIT-008, R-GEN-012)', async () => {
+  const { document, editor, api } = await start('As shown /\n', 0, 10);
+  const runs: [string, number, number][] = [];
+  const v1 = api.getAPI(1)!;
+  const registration = v1.registerSlashCommand({
+    label: '/source',
+    description: 'Cite a Source',
+    detail: 'A source of the document',
+    run: async (target: FakeEditor, range: FakeRange) => {
+      runs.push([target.document.uri.toString(), range.start.line, range.start.character]);
+      await target.edit((builder) => builder.insert(range.start, '([Hong et al., 2024](#hong2024))'));
+    },
+  } as never);
+  // A label of the notes, a second command of the same label and a label of another form throw.
+  expect(() => v1.registerSlashCommand({ label: '/note', run: () => undefined } as never)).toThrow('The slash command /note exists already.');
+  expect(() => v1.registerSlashCommand({ label: '/source', run: () => undefined } as never)).toThrow('The slash command /source exists already.');
+  expect(() => v1.registerSlashCommand({ label: 'source', run: () => undefined } as never)).toThrow('a slash and small letters');
+  const items = fake.complete(document, new FakePosition(0, 10));
+  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/source']);
+  const source = items.at(-1)!;
+  expect([source.detail, source.insertText, source.range!.start.character, source.range!.end.character]).toEqual(['A source of the document', '', 9, 10]);
+  await editor.edit((builder) => builder.replace(source.range!, source.insertText!));
+  editor.selection = { active: new FakePosition(0, 9) };
+  await fake.run(source.command!.command, ...(source.command!.arguments ?? []));
+  await settle();
+  expect(runs).toEqual([[document.uri.toString(), 0, 9]]);
+  expect(document.text).toBe('As shown ([Hong et al., 2024](#hong2024))\n');
+  // A command that fails shows a message.
+  const failing = v1.registerSlashCommand({
+    label: '/broken',
+    run: () => {
+      throw new Error('no database');
+    },
+  } as never);
+  await fake.run(source.command!.command, document.uri, '/broken');
+  expect(fake.errors.at(-1)).toBe('The slash command /broken failed: no database');
+  failing.dispose();
+  registration.dispose();
+  expect(labels(fake.complete(document, new FakePosition(0, 41)))).not.toContain('/source');
 });

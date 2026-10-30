@@ -10,13 +10,14 @@
  * the edge of a highlight stays outside, deleted text never deletes a note, a
  * paragraph break ends a highlight, and random edits keep the clean text and
  * every note. While the side view shows the standard footnotes, the clean text
- * also leaves out their definitions.
+ * also leaves out their definitions. Blocks that other extensions hide stay at
+ * the end of the file (R-GEN-012).
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, cleanLines, editOptions, endsHighlight, labelsOf, project } from './clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, labelsOf, project } from './clean';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
 const example = fs.readFileSync(path.resolve(__dirname, '../../docs/example.md'), 'utf8');
@@ -259,5 +260,70 @@ describe('the definitions of the standard footnotes', () => {
     }
     expect(kept).toBeGreaterThan(200);
     expect(rebuilt).toBeGreaterThan(0);
+  });
+});
+
+describe('the blocks of other extensions', () => {
+  /** sourced is a file with a note and a database of sources at its end, as nimblescape Markdown Paper writes it. */
+  const sourced = [
+    'The agents <wbr><!--[note-7k2q-->change the work[^note-7k2q] of teams ([Hong et al., 2024](#hong2024)).',
+    '',
+    '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+    '',
+    '    Which work?',
+    '',
+    '<!-- nimblescape-sources',
+    '{"id":"hong2024","type":"book","title":"MetaGPT"}',
+    '-->',
+    '',
+  ].join('\n');
+  /** database is the end of the file with the database. */
+  const database = '\n\n<!-- nimblescape-sources\n{"id":"hong2024","type":"book","title":"MetaGPT"}\n-->\n';
+  /** sources finds the database: a comment that starts with nimblescape-sources and whose last line is only `-->`. */
+  const sources: BlockFinder = (lines) => {
+    const first = lines.findIndex((line) => line.startsWith('<!-- nimblescape-sources'));
+    const last = first < 0 ? -1 : lines.findIndex((line, index) => index > first && line.trim() === '-->');
+    return last < 0 ? [] : [{ first, last }];
+  };
+  /**
+   * blockEdit applies an edit of the clean text of a file whose blocks the finder hides, at the first place of a text.
+   * @param at - The text at the place of the edit.
+   * @param length - The length of the replaced text.
+   * @param insert - The new text.
+   * @param after - Whether the edit starts after the text.
+   */
+  const blockEdit = (at: string, length: number, insert: string, after = false) => {
+    const projection = project(sourced, { blocks: sources });
+    const start = projection.clean.indexOf(at) + (after ? at.length : 0);
+    const result = applyClean(projection, start, start + length, insert);
+    return { ...result, clean: project(result.text, { blocks: sources }).clean, expected: projection.clean.slice(0, start) + insert + projection.clean.slice(start + length) };
+  };
+
+  test('are left out of the clean text, also in a file without notes, and a finder that fails or names no lines of the file hides nothing (R-GEN-012)', () => {
+    const projection = project(sourced, { blocks: sources });
+    expect(projection.clean).toBe('The agents change the work of teams ([Hong et al., 2024](#hong2024)).\n');
+    expect(projection.hidden.map((part) => part.kind)).toEqual(['marker', 'reference', 'block']);
+    expect(project('Text.\n\n<!-- nimblescape-sources\n{"id":"a"}\n-->\n', { blocks: sources }).clean).toBe('Text.\n');
+    expect(project(sourced).clean).toContain('nimblescape-sources');
+    const failing: BlockFinder = () => {
+      throw new Error('broken');
+    };
+    expect(project('Text.\n', { blocks: failing }).clean).toBe('Text.\n');
+    expect(project('Text.\n', { blocks: () => [{ first: 0, last: 5 }, { first: 1, last: 0 }] }).clean).toBe('Text.\n');
+    // The options of an edit keep the finder.
+    expect(editOptions(projection).blocks).toBe(sources);
+  });
+
+  test('stay at the end of the file for an edit in the text and when the file is written anew (R-GEN-012)', () => {
+    const typed = blockEdit('teams', 0, 'all ');
+    expect(typed.way).toBe('direct');
+    expect(typed.text.endsWith(`    Which work?${database}`)).toBe(true);
+    const split = blockEdit('change the', 0, '\n\n', true);
+    expect(split.way).toBe('rebuilt');
+    expect(split.clean).toBe(split.expected);
+    expect(split.text.endsWith(database)).toBe(true);
+    const appended = blockEdit('(#hong2024)).', 0, '\n\nA new paragraph.', true);
+    expect(appended.clean).toBe(appended.expected);
+    expect(appended.text).toMatch(/A new paragraph\.[^]*<!-- nimblescape-sources/);
   });
 });
