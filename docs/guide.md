@@ -743,7 +743,10 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
   in a VS Code in German, until a link of the file uses another one
   ([R-XREF-003](requirements.md#r-xref-003)).
 - When you change the text of a heading, its ID changes, and its links
-  break, as on GitHub: run `/ref` again for them. The formatter numbers a
+  break, as on GitHub. Change a heading with F2 (Rename Symbol) of VS Code
+  instead: it updates the links to the heading in the workspace. The setting
+  `markdown.validate.enabled` of VS Code reports a link whose heading is
+  gone, and `/ref` inserts it anew. The formatter numbers a
   link to a heading only when its word is "Chapter", "Kapitel", "Section" or
   "Abschnitt", so that a link such as `[Step 2](#install)` keeps its text.
 - GitHub and the Markdown preview show the link with its number, and a click
