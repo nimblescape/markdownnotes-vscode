@@ -16,13 +16,13 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 108 requested features, 80 are built, among them the clean editing view
+Of 109 requested features, 82 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
-Paper, the figures, tables and sections with the links to them, and the
-values of the front matter in the text. 8 features are planned but not
-built: the features of the section
+Paper, the figures, tables and sections with the links to them, the
+values of the front matter in the text, and the listings of code from the
+source files of the repository. 7 features are planned but not built: the features of the section
 [Planned features](#planned-features). Four need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
 in Zen Mode, the new name of the repository, and the question whether the
@@ -129,6 +129,8 @@ breaks and the cursor next to the hidden markers.
 | `/figure` lists the images of the folder: "take on the first idea of the "/figure" command looking up all figures in the folder" | 10-30 02:45 | [R-XREF-001](requirements.md#r-xref-001) | Built | The images of the workspace (PNG, JPEG, GIF, SVG, WebP, AVIF) by their paths from the folder of the file; the chosen one becomes `![Caption](path)` with the caption selected |
 | A link to a figure or a table: "it adds a references to the figure or table in the text", "technically it is a link to it" | 10-30 02:33 | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) | Built | `/ref` lists the figures and tables of the file and inserts `[Table 1](#tab-grades)`; a figure or table without an anchor first gets `<a id="tab-…"></a>` at the end of its caption line. The formatter writes the numbers of the links from the order in the file; the clean editing view hides the anchors |
 | Values of the front matter in the text: "anything from frontmatter can be references in the document" | 10-30 03:10 | [R-XREF-004](requirements.md#r-xref-004) | Built | Step 52, the form proposed at 03:20: `/ref` inserts `<wbr><!--{title}-->A paper<!--{/title}-->`, the formatter writes the current value, the clean editing view hides the markers |
+| Code of the source files in the text: "a new slash command for that which "imports" a code block", "we may mark single functions but also complete source code files", "it is also part of the notes extension", "it is part of notes" | 10-30 02:58, 03:03, 03:10 | [R-CODE-001](requirements.md#r-code-001) | Built | Step 53: `/listing` lists the source files, then "Whole file" and the symbols that the language extension gives, and inserts `Listing: Caption`, `<!-- listing: ../src/x.ts#name -->` and the code block; `/ref` links it as `[Listing 1](#lst-…)` |
+| The formatter keeps the code blocks current: "the formatter assures the source code references / code blocks are uptodate" | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a symbol is found by its declaration and its braces or indentation, the same way in both |
 | `/ref` for sections: "/ref also adds chapter numbers" | 10-30 02:47, 03:19 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 51: `[Chapter 2.1](#sec-methods)` with an anchor at the end of the heading; the chapters are the headings of the highest level that more than one heading has |
 | Which command adds an entry and which adds a reference: "lets rethink which command adds an entry in the directory which adds a reference to it" | 10-30 02:45, 02:47 | [R-XREF-001](requirements.md#r-xref-001) | Built | [Decision 35](requirements.md#decisions): the commands named by a noun add an entry, `/ref` and `/cite` add a reference |
 | `/todo` at the start of the text of a new note in the side view | 10-29 17:58 | [R-NOTE-008](requirements.md#r-note-008) | Dropped | The part "in the side view" of [decision 30](requirements.md#decisions): "all slash commands are intended for the text editor" (18:40) |
@@ -198,7 +200,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-8 features are in the specification and the plan, or proposed, but not built. Steps 29
+7 features are in the specification and the plan, or proposed, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -211,8 +213,7 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| Marks in the source code and code blocks imported from them: "the extension shall allow to add marks into the source code", "a new slash command for that which "imports" a code block", "it is also part of the notes extension" | 10-30 02:58, 03:10 | proposal of 03:03: "Add Code Mark", `/listing` | after the choice of the form of the marks | Planned |
-| The formatter keeps the imported code blocks current: "the formatter assures the source code references / code blocks are uptodate" | 10-30 02:59 | proposal of 03:03 | with the marks | Planned |
+| Tags in the source code that a listing names, and "Add Code Tag": "the extension shall allow to add marks into the source code", "in the source code i want to add marks / tags that can later be referenced by the markdown" | 10-30 02:58, 03:03 | [R-CODE-003](requirements.md#r-code-003) | 54, after the choice of the form of the tags | Planned |
 
 ## Moved to nimblescape Markdown Paper
 
@@ -239,8 +240,8 @@ side view, and ESLint.
 The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 [decision 27](requirements.md#decisions)). The open work, in its order:
 
-1. The marks in the source code with the code blocks imported from them,
-   after Hannes chose the form of the marks.
+1. The tags in the source code for the listings (step 54), after Hannes
+   chose the form of the tags.
 2. Steps 29 and 30: the hidden form of the notes and its icon, before the
    first release, because it changes the markup that the clean editing view
    leaves out.

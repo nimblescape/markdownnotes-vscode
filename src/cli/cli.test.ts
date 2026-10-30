@@ -4,9 +4,9 @@
 
 /**
  * These tests check the command line tool of the formatter (R-FMT-004): the command `format` writes only the files
- * that change, with their line breaks and byte order mark, `--check` changes no file and exits with 1, `-` formats the
- * standard input, and a wrong command, a wrong option, a file that cannot be read or a file of a higher major version of
- * the format exits with 2.
+ * that change, with their line breaks and byte order mark, the current code of the listings (R-CODE-002), `--check`
+ * changes no file and exits with 1, `-` formats the standard input, and a wrong command, a wrong option, a file that
+ * cannot be read or a file of a higher major version of the format exits with 2.
  */
 
 import { describe, expect, test } from 'vitest';
@@ -128,6 +128,20 @@ describe('the command format', () => {
     expect(fake.stdout).toEqual([newer]);
     const minor = newer.replace('v2.0.0', 'v1.1.0');
     expect(formatText(minor)).toBe(minor.replace(unformatted, formatted));
+  });
+
+  test('writes the current code of each listing from its file, and reports a listing whose source it does not find (R-CODE-002)', () => {
+    const paper = ['Listing: Reading', '', '<!-- listing: ../src/read%20me.ts#read -->', '', '```typescript', 'old', '```', '', '<!-- listing: ../src/gone.ts -->', '', '```', 'kept', '```', ''].join('\n');
+    const code = 'export function read(path: string): string {\n  return path;\n}\n\nexport const other = 1;\n';
+    const fake = fakeOf({ 'paper/a.md': paper, 'src/read me.ts': code }, paper);
+    expect(run(['format', 'paper/a.md'], fake)).toBe(0);
+    const formatted = paper.replace('old', 'export function read(path: string): string {\n  return path;\n}');
+    expect(fake.files.get('paper/a.md')).toBe(formatted);
+    expect(fake.errors).toEqual(['paper/a.md:11: the source ../src/gone.ts of the listing was not found']);
+    // --check fails for a listing without its source, and the standard input reads the sources from the current folder.
+    expect(run(['format', '--check', 'paper/a.md'], fake)).toBe(1);
+    expect(run(['format', '-'], fake)).toBe(0);
+    expect(fake.stdout).toEqual([paper]);
   });
 
   test('exits with 2 for a file that it cannot write', () => {

@@ -41,6 +41,16 @@
  * `[Table 1](#tab-grades)`, after it gave it an anchor at the end of its line
  * ([src/notes/figures.ts](notes/figures.ts)).
  *
+ * `/listing` adds code of a file of the workspace as a listing
+ * ([R-CODE-001](../docs/requirements.md#r-code-001), Hannes, 2026-10-30: "a
+ * new slash command for that which "imports" a code block", "we may mark single
+ * functions but also complete source code files"; "it is part of notes"): the
+ * user chooses the file, and then the whole file or one of its symbols that the
+ * language extension of the file finds, such as a function, a class or a
+ * method. It lists only the symbols that the formatter finds again by their
+ * declaration ([src/notes/listings.ts](notes/listings.ts)), which writes the
+ * current code into the listing on each format.
+ *
  * Other extensions add slash commands through the API of the extension
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
  * nimblescape Markdown Paper (Hannes, 2026-10-29, 22:15: "it is also the slash
@@ -52,6 +62,7 @@ import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
+import { codeOf, listingBlock, sourceFiles, symbolLines } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -64,11 +75,12 @@ export const slashCommandIds = {
   user: 'nimblescape.markdownNotes.slashUser',
   figure: 'nimblescape.markdownNotes.slashFigure',
   ref: 'nimblescape.markdownNotes.slashRef',
+  listing: 'nimblescape.markdownNotes.slashListing',
   other: 'nimblescape.markdownNotes.slashOther',
 };
 
 /** ownLabels are the slash commands of the notes, which no other extension can add. */
-const ownLabels = ['/note', '/todo', '/footnote', '/figure', '/table', '/ref', '/date', '/time', '/user'];
+const ownLabels = ['/note', '/todo', '/footnote', '/figure', '/table', '/listing', '/ref', '/date', '/time', '/user'];
 
 /** imageFiles are the files that `/figure` lists: the images that the Markdown preview and GitHub show. */
 export const imageFiles = '**/*.{png,jpg,jpeg,gif,svg,webp,avif}';
@@ -98,6 +110,63 @@ export function relativePath(folder: string, file: string): string {
   return [...from.slice(shared).map(() => '..'), ...to.slice(shared)]
     .map((part) => (part === '..' ? part : encodeURIComponent(part).replace(/\(/g, '%28').replace(/\)/g, '%29')))
     .join('/');
+}
+
+/** containerKinds are the kinds of the symbols whose members `/listing` lists, for example the methods of a class. */
+const containerKinds = (): vscode.SymbolKind[] => [vscode.SymbolKind.Class, vscode.SymbolKind.Interface, vscode.SymbolKind.Struct, vscode.SymbolKind.Module, vscode.SymbolKind.Namespace, vscode.SymbolKind.Object];
+
+/** listedKinds are the kinds of the symbols that `/listing` lists; a variable or a constant only at the top of a file. */
+const listedKinds = (): vscode.SymbolKind[] => [...containerKinds(), vscode.SymbolKind.Enum, vscode.SymbolKind.Function, vscode.SymbolKind.Method, vscode.SymbolKind.Constructor];
+
+/** ListedSymbol is a symbol of a file that `/listing` lists: its name, with `.` after its container, its kind, and its line. */
+interface ListedSymbol {
+  name: string;
+  kind: vscode.SymbolKind;
+  line: number;
+}
+
+/**
+ * symbolsOf returns the symbols of a file that `/listing` lists, from the language extension of the file: the
+ * functions, classes, methods and other declarations that the formatter finds again at the same line, each name once.
+ * @param uri - The URI of the file.
+ * @param lines - The lines of the file.
+ */
+async function symbolsOf(uri: vscode.Uri, lines: readonly string[]): Promise<ListedSymbol[]> {
+  let found: (vscode.DocumentSymbol | vscode.SymbolInformation)[] | undefined;
+  try {
+    found = await vscode.commands.executeCommand<(vscode.DocumentSymbol | vscode.SymbolInformation)[]>('vscode.executeDocumentSymbolProvider', uri);
+  } catch {
+    found = undefined;
+  }
+  const listed: ListedSymbol[] = [];
+  const visit = (symbols: readonly vscode.DocumentSymbol[], container: string | undefined) => {
+    for (const symbol of symbols) {
+      const name = container ? `${container}.${symbol.name}` : symbol.name;
+      const top = container === undefined && (symbol.kind === vscode.SymbolKind.Variable || symbol.kind === vscode.SymbolKind.Constant);
+      if (top || listedKinds().includes(symbol.kind)) {
+        listed.push({ name, kind: symbol.kind, line: symbol.selectionRange.start.line });
+      }
+      if (containerKinds().includes(symbol.kind)) {
+        visit(symbol.children ?? [], name);
+      }
+    }
+  };
+  for (const symbol of found ?? []) {
+    if ('children' in symbol) {
+      visit([symbol], undefined);
+    } else if (listedKinds().includes(symbol.kind)) {
+      listed.push({ name: symbol.containerName ? `${symbol.containerName}.${symbol.name}` : symbol.name, kind: symbol.kind, line: symbol.location.range.start.line });
+    }
+  }
+  const names = new Set<string>();
+  return listed.filter(({ name, line }) => {
+    const range = /^[A-Za-z0-9_$.-]+$/.test(name) && !names.has(name) ? symbolLines(lines, name) : undefined;
+    if (!range || line < range.first || line > range.last) {
+      return false;
+    }
+    names.add(name);
+    return true;
+  });
 }
 
 /** SlashCommand is a slash command that another extension adds (R-GEN-012), after the commands of the notes. */
@@ -183,6 +252,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       vscode.commands.registerCommand(slashCommandIds.user, (uri: vscode.Uri) => this.user(uri)),
       vscode.commands.registerCommand(slashCommandIds.figure, (uri: vscode.Uri) => this.figure(uri)),
       vscode.commands.registerCommand(slashCommandIds.ref, (uri: vscode.Uri) => this.ref(uri)),
+      vscode.commands.registerCommand(slashCommandIds.listing, (uri: vscode.Uri) => this.listing(uri)),
       vscode.commands.registerCommand(slashCommandIds.other, (uri: vscode.Uri, label: string) => this.other(uri, label)),
       vscode.authentication.onDidChangeSessions((event) => {
         if (event.provider.id === githubProvider) {
@@ -365,16 +435,18 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       created.command = { command: slashCommandIds.footnote, title: 'Add Footnote', arguments: [document.uri] };
       items.push(created);
     }
-    // A figure and a table are blocks of their own: on a line of their own.
+    // A figure, a table and a listing are blocks of their own: on a line of their own.
     const found = !replaced ? this.fileOf(document) : undefined;
     if (found && line.slice(0, typed.slash).trim() === '' && line.slice(position.character).trim() === '' && !codeLines(lines).has(position.line)) {
       const figure = item('/figure', 'Add Figure', 'An image of the workspace as a figure, with its caption', vscode.CompletionItemKind.Function, range, '');
       figure.command = { command: slashCommandIds.figure, title: 'Add Figure', arguments: [document.uri] };
-      items.push(figure, item('/table', 'Add Table', 'A table with its caption line "Table:"', vscode.CompletionItemKind.Function, range, new vscode.SnippetString(tableSnippet)));
+      const listing = item('/listing', 'Add Listing', 'Code of a file of the workspace, which the formatter keeps current', vscode.CompletionItemKind.Function, range, '');
+      listing.command = { command: slashCommandIds.listing, title: 'Add Listing', arguments: [document.uri] };
+      items.push(figure, item('/table', 'Add Table', 'A table with its caption line "Table:"', vscode.CompletionItemKind.Function, range, new vscode.SnippetString(tableSnippet)), listing);
     }
     // A link stands where a reference of a footnote can stand, in the text of a block.
     if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && (findItems(linesOf(found.file)).length > 0 || readFields(linesOf(found.file)).size > 0)) {
-      const ref = item('/ref', 'Link a Figure, Table or Section', 'A link to a figure, a table or a section of the file', vscode.CompletionItemKind.Reference, range, '');
+      const ref = item('/ref', 'Link a Figure, Table or Section', 'A link to a figure, a table, a listing or a section of the file, or a value of the front matter', vscode.CompletionItemKind.Reference, range, '');
       ref.command = { command: slashCommandIds.ref, title: 'Link a Figure, Table or Section', arguments: [document.uri] };
       items.push(ref);
     }
@@ -465,6 +537,56 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       path = snippetText(chosen.relative);
     }
     await editor.insertSnippet(new vscode.SnippetString(`![\${1:Caption}](${path})`), editor.selection.active);
+  }
+
+  /**
+   * listing inserts code of a file of the workspace as a listing for `/listing`
+   * ([R-CODE-001](../docs/requirements.md#r-code-001)), after VS Code removed the typed command: the user chooses the
+   * file, then the whole file or one of its symbols, and the caption is selected for typing. A file without symbols
+   * gives its whole text.
+   * @param uri - The URI of the document.
+   */
+  private async listing(uri: vscode.Uri): Promise<void> {
+    const editor = this.editorOf(uri);
+    if (editor) {
+      await this.load(editor.document);
+    }
+    const found = editor && this.fileOf(editor.document);
+    if (!editor || !found) {
+      return;
+    }
+    const folder = found.file.uri.path.replace(/\/[^/]*$/, '');
+    const files = await vscode.workspace.findFiles(sourceFiles, '{**/node_modules/**,**/.git/**}', 2000);
+    const chosen = await vscode.window.showQuickPick(
+      files
+        .map((file) => ({ file, relative: relativePath(folder, file.path) }))
+        .sort((a, b) => a.relative.localeCompare(b.relative))
+        .map(({ file, relative }) => ({ label: decodeURIComponent(relative.split('/').at(-1)!), description: decodeURIComponent(relative), relative, file })),
+      { placeHolder: 'The file of the source code of the new listing', matchOnDescription: true },
+    );
+    if (!chosen) {
+      return;
+    }
+    const source = await vscode.workspace.openTextDocument(chosen.file);
+    const text = source.getText();
+    const symbols = await symbolsOf(source.uri, text.split(/\r\n|\r|\n/));
+    let symbol: string | undefined;
+    if (symbols.length > 0) {
+      const part = await vscode.window.showQuickPick(
+        [
+          { label: 'Whole file', description: chosen.description, name: undefined as string | undefined },
+          ...symbols.map(({ name, kind }) => ({ label: name, description: vscode.SymbolKind[kind] ?? '', name })),
+        ],
+        { placeHolder: 'The part of the file: the whole file, or a function, a class or a method', matchOnDescription: true },
+      );
+      if (!part) {
+        return;
+      }
+      symbol = part.name;
+    }
+    const [, ...block] = listingBlock('Caption', chosen.relative, symbol, codeOf(text, symbol) ?? []);
+    const snippet = ['Listing: ${1:Caption}', ...block.map(snippetText)].join('\n');
+    await editor.insertSnippet(new vscode.SnippetString(`${snippet}\n$0`), editor.selection.active, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
   }
 
   /**

@@ -104,8 +104,15 @@ describes each step and where its protection ends.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
   sentence before it), `/footnote` (the editor of a new footnote in the side
-  view), `/date`, `/time` and `/user` (your GitHub login); Tab takes the
-  chosen command.
+  view), `/figure`, `/table` and `/listing` (code of a source file), `/ref`
+  (a link to a figure, a table, a listing or a section, or a value of the
+  front matter), `/date`, `/time` and `/user` (your GitHub login); Tab takes
+  the chosen command.
+- **Code of the repository in the text.** `/listing` adds the code of a
+  source file, or of a function, a class or a method of it, as a code block
+  with the comment of its source, `<!-- listing: ../src/fields.ts#readFields -->`.
+  The formatter writes the current code of the source into it on each
+  format, also on the command line.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text

@@ -60,7 +60,7 @@ highlights in the text editor and the Markdown preview. The
     > 3. Shared notes
     > ```
 
-## Figures and tables
+## Figures, tables and listings
 
 [Figure 1](#fig-participants-study-grade) shows the participants of the study by their grades, and [Table 1](#tab-participants-grade) gives their numbers. `/figure` and `/table` add a figure and a table, and `/ref` adds a link to one of them. The formatter writes the numbers of the links from the order in the file.
 
@@ -73,6 +73,25 @@ Table: Participants by grade<a id="tab-participants-grade"></a>
 | 5     | 12           |
 | 6     | 15           |
 | 7     | 9            |
+
+[Listing 1](#lst-removing-common-indentation) shows code of the extension itself: `/listing` adds the code of a function of a source file, and the formatter keeps it current.
+
+Listing: Removing the common indentation<a id="lst-removing-common-indentation"></a>
+
+<!-- listing: ../src/notes/listings.ts#dedent -->
+
+```typescript
+export function dedent(lines: readonly string[]): string[] {
+  const indents = lines.filter((line) => line.trim() !== '').map((line) => /^[ \t]*/.exec(line)![0]);
+  let common = indents[0] ?? '';
+  for (const indent of indents) {
+    while (!indent.startsWith(common)) {
+      common = common.slice(0, -1);
+    }
+  }
+  return lines.map((line) => (line.trim() === '' ? '' : line.slice(common.length)));
+}
+```
 
 ## Tasks
 

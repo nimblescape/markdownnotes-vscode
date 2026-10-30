@@ -41,13 +41,14 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Filters of the side view](#filters-of-the-side-view) | side view | available | [R-SIDE-008](requirements.md#r-side-008) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-SIDE-003](requirements.md#r-side-003), [R-EDIT-003](requirements.md#r-edit-003), [R-EDIT-006](requirements.md#r-edit-006) |
 | [Todo notes](#todo-notes) | text editor, side view | available | [R-NOTE-008](requirements.md#r-note-008) |
-| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/ref`, `/date`, `/time`, `/user`: available; commands of other extensions, such as `/source` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
+| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/listing`, `/ref`, `/date`, `/time`, `/user`: available; commands of other extensions, such as `/source` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
 | [Figures, tables and links to them](#figures-tables-and-links-to-them), also to sections | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001) to [R-XREF-003](requirements.md#r-xref-003) |
 | [Values of the front matter](#values-of-the-front-matter) | text editor, formatter | available | [R-XREF-004](requirements.md#r-xref-004) |
+| [Listings of code](#listings-of-code) | text editor, formatter, command line | files and symbols: available; tags in the source code: proposed | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
 | Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
@@ -687,7 +688,8 @@ commands.
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as an image alone in its paragraph, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
 | `/table` | Adds a table: its caption line `Table: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
-| `/ref` | Adds a link to a figure, a table or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#sec-methods)`: lists them by their numbers and captions or headings. A figure, a table or a heading without an anchor gets one first. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
+| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the functions, classes and methods of the chosen file, and inserts the caption line `Listing: Caption`, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
+| `/ref` | Adds a link to a figure, a table, a listing or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#sec-methods)`: lists them by their numbers and captions or headings. A figure, a table, a listing or a heading without an anchor gets one first. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
 | `/user` | Inserts your GitHub login, for example `hannes`, the name that your notes give their author. The list shows the login. Without a sign-in, the list shows "Sign in with GitHub": VS Code asks you to sign in, and the login follows ([GitHub sign-in](#github-sign-in)). |
@@ -769,6 +771,44 @@ This is <wbr><!--{title}-->A paper<!--{/title}--> of <wbr><!--{author.name}-->Ha
   next format or save. Text typed inside a value goes with the next format.
 - A key under another key has the path of the keys, for example
   `author.name`; a list shows its items with commas.
+
+## Listings of code
+
+A Markdown file can live in a repository with other source code, for
+example a paper in the folder `paper/` of a project. `/listing` adds code of
+a file of the repository, and the formatter keeps it current:
+
+````markdown
+Listing: Reading the fields<a id="lst-reading-fields"></a>
+
+<!-- listing: ../src/notes/fields.ts#readFields -->
+
+```typescript
+export function readFields(lines: readonly string[]): Map<string, string> {
+  …
+}
+```
+````
+
+- On an empty line, type `/listing` and choose the file, then "Whole file"
+  or a function, a class or a method of it. The list of the symbols comes
+  from the language extension of the file, for example the TypeScript
+  extension of VS Code; a file without symbols gives its whole text. Type
+  the caption, which is selected.
+- The comment before the code block names the source: the path from the
+  Markdown file, and after `#` the name of the symbol, with `.` between a
+  class and its method, for example `#NotesView.addFromText`. You can also
+  write the comment yourself before a code block.
+- The formatter writes the current code of the source into the code block on
+  each format and each save, also on the command line. It reads an open
+  source file as it stands in VS Code, also before you save it. A listing
+  whose file or symbol it does not find keeps its code; the command line
+  names it, and `--check` fails.
+- The formatter finds a symbol by its declaration and its end by the braces,
+  or in Python by the indentation. This works for TypeScript, JavaScript,
+  Java, C#, Go, Rust, Kotlin and Python.
+- GitHub and the Markdown preview show the code block, without the comment.
+  `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
 
 ## Edit an answer
 
@@ -959,9 +999,11 @@ the mode "Markdown Preview" to see the highlights.
 
 The extension brings a formatter of Markdown files. It is the default
 formatter of Markdown, so "Format Document" (Shift+Alt+F) formats every
-Markdown file with it. When you save a Markdown file with notes, or with the
-comment of the format, the extension formats it too; a Markdown file without
-notes keeps its text on a save. It changes:
+Markdown file with it. When you save a Markdown file with notes, with the
+comment of the format, or with a part whose text the formatter keeps current
+(a listing, a value of the front matter, an anchor of a figure, a table, a
+listing or a section), the extension formats it too; another Markdown file
+keeps its text on a save. It changes:
 
 - Each paragraph stands on one line, also in a list item or a block quote.
   A hard line break stays: two spaces or a backslash at the end of a line.
@@ -976,9 +1018,13 @@ notes keeps its text on a save. It changes:
 - Each start marker of a note starts with `<wbr>`, and a note without a start
   marker gets one at the start of the text of its block, so that GitHub
   shows the paragraph whole and every note has its highlight.
-- The number of each link to a figure or a table follows the order of the
-  figures and the tables in the file
+- The number of each link to a figure, a table, a listing or a section
+  follows their order in the file
   ([Figures, tables and links to them](#figures-tables-and-links-to-them)).
+- Each value of the front matter in the text gets the current value of its
+  key ([Values of the front matter](#values-of-the-front-matter)).
+- Each listing gets the current code of its source
+  ([Listings of code](#listings-of-code)).
 
 It keeps code blocks, HTML and comments (also the comment of the format of
 the notes), a front matter, math blocks (`$$`), containers (`:::`), headings
@@ -1019,7 +1065,10 @@ After `npm install --global @nimblescape/markdownnotes`, the command is
 
 The first command formats the files and writes only those that change. With
 `--check` it changes no file, names each file that is not formatted, and
-exits with 1, for example in a check of a pull request. `-` formats the
+exits with 1, for example in a check of a pull request. It reads the source
+of each listing relative to the Markdown file, or to the current folder for
+the standard input, and names each listing whose source it does not find; with
+`--check`, such a file counts as not formatted. `-` formats the
 standard input to the standard output. The exit code 2 means a wrong command
 or a file that cannot be read or written. The specification of the format
 for AI agents ([docs/format.md](format.md)) tells them to run the command
@@ -1063,6 +1112,12 @@ you can remove them from your settings.
   GitHub shows them at the end of the page with the other footnotes.
 - The notes of the older form `<!-- note … -->` are not converted; the
   extension no longer reads them.
+- A listing finds a symbol by its declaration and its braces, not with the
+  language server, so that VS Code and the command line write the same code.
+  A brace in a regular expression of the code, such as `/\{/`, gives the
+  symbol a wrong end, and of two declarations of one name the listing takes
+  the first one.
+  List the whole file, or a symbol without such a brace.
 - The text editor and the side view show the notes of the open Markdown files
   only.
 - The side view stands next to the text editor only; next to the preview it

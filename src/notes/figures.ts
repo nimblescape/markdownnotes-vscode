@@ -22,8 +22,11 @@
  * `Table:` directly before it. A figure or a table that a link names has an
  * anchor at the end of the line of its image or its caption, for example
  * `<a id="tab-grades"></a>`, and a link to it has a word and a number as its
- * text, for example `[Table 1](#tab-grades)`. The formatter writes the number
- * of each link from the order of the figures and the tables in the text. The
+ * text, for example `[Table 1](#tab-grades)`. A listing of code
+ * ([R-CODE-001](../../docs/requirements.md#r-code-001)) has the caption
+ * `Listing:` before the comment of its source and its code block, and the
+ * anchor `lst-…`. The formatter writes the number of each link from the order
+ * of the figures, the tables, the listings and the sections in the text. The
  * module uses no API of VS Code.
  */
 
@@ -32,8 +35,8 @@ import { readFootnotes } from './footnotes';
 import { parse, readNotes } from './notes';
 import { noteCloseType, noteOpenType } from './syntax';
 
-/** ItemKind is the kind of an item: a figure, a table or a section, the part of the text under a heading. */
-export type ItemKind = 'figure' | 'table' | 'section';
+/** ItemKind is the kind of an item: a figure, a table, a listing of code or a section, the part of the text under a heading. */
+export type ItemKind = 'figure' | 'table' | 'listing' | 'section';
 
 /** Item is a figure, a table or a section of a Markdown text. */
 export interface Item {
@@ -52,13 +55,13 @@ export interface Item {
 }
 
 /** anchorPattern is the source of the pattern of an anchor of a figure, a table or a section, with its name. */
-const anchorPattern = String.raw`<a id="((?:fig|tab|sec)-[a-z0-9]+(?:-[a-z0-9]+)*)"></a>`;
+const anchorPattern = String.raw`<a id="((?:fig|tab|lst|sec)-[a-z0-9]+(?:-[a-z0-9]+)*)"></a>`;
 
 /** hasAnchor tells quickly whether a text can hold an anchor. */
-export const hasAnchor = (text: string): boolean => text.includes('<a id="fig-') || text.includes('<a id="tab-') || text.includes('<a id="sec-');
+export const hasAnchor = (text: string): boolean => /<a id="(?:fig|tab|lst|sec)-/.test(text);
 
 /** prefixes are the prefixes of the names of the anchors of each kind. */
-const prefixes: Record<ItemKind, string> = { figure: 'fig', table: 'tab', section: 'sec' };
+const prefixes: Record<ItemKind, string> = { figure: 'fig', table: 'tab', listing: 'lst', section: 'sec' };
 
 /**
  * anchorOf returns the anchor of a line: the last one at its end, after which only white space follows.
@@ -120,9 +123,12 @@ export function findItems(lines: readonly string[]): Item[] {
       items.push({ kind: 'figure', caption, line: last, ...located });
       return;
     }
-    const table = /^Table:\s*([^]*)$/.exec(inline.content.replace(new RegExp(anchorPattern, 'g'), '').trim());
-    if (table && tokens[index + 3]?.type === 'table_open') {
-      items.push({ kind: 'table', caption: table[1].replace(/\s+/g, ' ').trim(), line: last, ...located });
+    const captioned = /^(Table|Listing):\s*([^]*)$/.exec(inline.content.replace(new RegExp(anchorPattern, 'g'), '').trim());
+    const next = tokens[index + 3];
+    // The caption of a listing can have the comment of its source between it and the code block.
+    const code = next?.type === 'fence' || (next?.type === 'html_block' && tokens[index + 4]?.type === 'fence');
+    if (captioned && (captioned[1] === 'Table' ? next?.type === 'table_open' : code)) {
+      items.push({ kind: captioned[1] === 'Table' ? 'table' : 'listing', caption: captioned[2].replace(/\s+/g, ' ').trim(), line: last, ...located });
     }
   });
   const top = topLevel(items);
@@ -205,7 +211,7 @@ export function anchorName(item: Item, items: readonly Item[]): string {
 }
 
 /** linkSearch matches a link to an anchor of a figure, a table or a section with a word and a number as its text. */
-const linkSearch = /\[([^\[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#((?:fig|tab|sec)-[a-z0-9]+(?:-[a-z0-9]+)*)\)/g;
+const linkSearch = /\[([^\[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#((?:fig|tab|lst|sec)-[a-z0-9]+(?:-[a-z0-9]+)*)\)/g;
 
 /**
  * wordOf returns the word of the last link to an item of a kind in a text, for example "Tabelle", or undefined.
@@ -325,8 +331,8 @@ export const anchorText = (name: string): string => `<a id="${name}"></a>`;
 
 /** words are the words of the links of each kind, by the language of the user. */
 const words: Record<string, Record<ItemKind, string>> = {
-  de: { figure: 'Abbildung', table: 'Tabelle', section: 'Kapitel' },
-  en: { figure: 'Figure', table: 'Table', section: 'Chapter' },
+  de: { figure: 'Abbildung', table: 'Tabelle', listing: 'Listing', section: 'Kapitel' },
+  en: { figure: 'Figure', table: 'Table', listing: 'Listing', section: 'Chapter' },
 };
 
 /**

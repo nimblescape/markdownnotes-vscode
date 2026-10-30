@@ -8,14 +8,19 @@
  * accessible for agents"). It is the npm package @nimblescape/markdownnotes of cli/.
  * The command `format` formats each file as the formatter of the extension does on save
  * ([src/format/format.ts](../format/format.ts)), with the line breaks of the file; `-` formats the standard input to
- * the standard output. With `--check` it changes no file and lists the files that are not formatted. A file whose
+ * the standard output. It writes the current code of each listing from its file of source code, by its path relative to
+ * the Markdown file, or to the current folder for the standard input, and reports a listing whose source it does not
+ * find ([R-CODE-002](../../docs/requirements.md#r-code-002)). With `--check` it changes no file and lists the files
+ * that are not formatted, also a file with a listing whose source it does not find. A file whose
  * comment of the format names a higher major version stays as it is, as in the extension. The exit code is 0 when all
  * files are formatted, 1 when `--check` found a file to format, and 2 for a wrong command, a file that cannot be read
  * or written, or a file of a higher major version. The module uses no API of VS Code, and main.ts runs it in Node.js.
  */
 
+import * as path from 'node:path';
 import { version } from '../../package.json';
 import { formatMarkdown } from '../format/format';
+import { missingListings, type Source } from '../notes/listings';
 import { formatVersion, newerFormat, type Version, versionText } from '../notes/doctype';
 
 /** command is the name of the command, the `bin` of cli/package.json, as the shell calls it. */
@@ -29,6 +34,8 @@ export const usage = [
   'each paragraph on one line, aligned tables, no white space at the end of a line, one blank',
   'line between blocks, and <wbr> before each start marker of a note; a note without a start marker',
   'gets one. It keeps code blocks, HTML, front matter, math, containers and the answers of the notes.',
+  'It writes the current code of each listing (<!-- listing: path#symbol --> before a code block)',
+  'from its file, by its path relative to the Markdown file.',
   '',
   'Options:',
   '  --check    change no file; list the files that are not formatted, and exit with 1',
@@ -52,13 +59,30 @@ export interface Io {
 /**
  * formatText returns a formatted Markdown text, with the line breaks of the text and its byte order mark.
  * @param text - The text.
+ * @param source - Reads the files of the listings of the text.
  */
-export function formatText(text: string): string {
+export function formatText(text: string, source?: Source): string {
   const bom = text.startsWith('﻿') ? '﻿' : '';
   const body = text.slice(bom.length);
   const eol = /\r\n/.test(body) ? '\r\n' : '\n';
-  return bom + formatMarkdown(body.split(/\r\n|\r|\n/)).join(eol);
+  return bom + formatMarkdown(body.split(/\r\n|\r|\n/), { source }).join(eol);
 }
+
+/**
+ * sourceFor returns the reader of the files of the listings of a Markdown file: a path relative to the folder of the
+ * file, with `%` escapes for spaces and other characters, or relative to the current folder for the standard input.
+ * @param file - The path of the Markdown file, or `-`.
+ * @param io - The files.
+ */
+const sourceFor =
+  (file: string, io: Io): Source =>
+  (relative) => {
+    try {
+      return io.readFile(path.join(file === '-' ? '.' : path.dirname(file), decodeURIComponent(relative)));
+    } catch {
+      return undefined;
+    }
+  };
 
 /**
  * newerMessage returns the message for a text whose comment of the format names a higher major version.
@@ -118,7 +142,12 @@ export function run(args: readonly string[], io: Io): number {
         failed = true;
         continue;
       }
-      const formatted = formatText(text);
+      const source = sourceFor(file, io);
+      const formatted = formatText(text, source);
+      for (const listing of missingListings(formatted.split(/\r\n|\r|\n/), source)) {
+        io.err(`${file}:${listing.line + 1}: the source ${listing.path}${listing.symbol ? `#${listing.symbol}` : ''} of the listing was not found`);
+        unformatted ||= check;
+      }
       if (file === '-') {
         unformatted ||= formatted !== text;
         if (!check) {

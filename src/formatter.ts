@@ -21,13 +21,21 @@
  * the parts of the other extension in one edit. A step runs after the steps of
  * the notes on the text of a file; in the clean editing view, it runs with the
  * save of the file.
+ *
+ * The formatter writes the current code of the source of each listing of a
+ * file ([R-CODE-002](../docs/requirements.md#r-code-002)): it reads the file of
+ * the source by its path relative to the Markdown file, from its open document
+ * when it has one, so that unsaved changes of the source count, else from the
+ * disk.
  */
 
+import * as fs from 'node:fs';
 import * as vscode from 'vscode';
 import { cleanScheme } from './cleanView';
 import { formatMarkdown } from './format/format';
 import { doctypeEdit, newerFormat } from './notes/doctype';
 import { applyEdit, editBetween } from './notes/edits';
+import type { Source } from './notes/listings';
 
 /** FormatStep is a step of the formatter that another extension adds, after the steps of the notes (R-GEN-012). */
 export interface FormatStep {
@@ -132,6 +140,29 @@ function editsBetween(document: vscode.TextDocument, lines: readonly string[], c
 }
 
 /**
+ * sourceOf returns the reader of the files of the listings of a document
+ * ([R-CODE-002](../docs/requirements.md#r-code-002)): a path relative to the folder of its file, with `%` escapes, from
+ * the open document of the file, else from the disk. A document that is no file reads no source, and its listings keep
+ * their code.
+ * @param document - The document.
+ */
+export function sourceOf(document: vscode.TextDocument): Source | undefined {
+  if (document.uri.scheme !== 'file') {
+    return undefined;
+  }
+  const folder = vscode.Uri.joinPath(document.uri, '..');
+  return (relative) => {
+    try {
+      const file = vscode.Uri.joinPath(folder, decodeURIComponent(relative));
+      const open = vscode.workspace.textDocuments.find((other) => other.uri.toString() === file.toString());
+      return open ? open.getText() : fs.readFileSync(file.fsPath, 'utf8');
+    } catch {
+      return undefined;
+    }
+  };
+}
+
+/**
  * saveEdits returns the edits of a Markdown document before its save, or none: the format, and the comment of the
  * format of the notes at the top of the file when it has none or one of an older text
  * ([R-NOTE-007](../docs/requirements.md#r-note-007)), in one edit. A document whose comment names a newer version of
@@ -142,7 +173,7 @@ function editsBetween(document: vscode.TextDocument, lines: readonly string[], c
  */
 export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, steps?: FormatSteps): vscode.TextEdit[] {
   const lines = document.getText().split(/\r\n|\r|\n/);
-  let changed = changes.format ? formatMarkdown(lines) : lines;
+  let changed = changes.format ? formatMarkdown(lines, { source: sourceOf(document) }) : lines;
   if (changes.format && steps) {
     changed = steps.run(document, changed);
   }

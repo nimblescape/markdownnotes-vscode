@@ -527,6 +527,13 @@ export interface Registration {
   disposed: boolean;
 }
 
+/** symbolKind stands for vscode.SymbolKind, with the names of the numbers, as a numeric enum of TypeScript has them. */
+const symbolKind: Record<string | number, string | number> = {};
+['File', 'Module', 'Namespace', 'Package', 'Class', 'Method', 'Property', 'Field', 'Constructor', 'Enum', 'Interface', 'Function', 'Variable', 'Constant', 'String', 'Number', 'Boolean', 'Array', 'Object', 'Key', 'Null', 'EnumMember', 'Struct', 'Event', 'Operator', 'TypeParameter'].forEach((name, index) => {
+  symbolKind[name] = index;
+  symbolKind[index] = name;
+});
+
 /** Fake is the fake API with the records of what the extension did. */
 export class Fake {
   documents: FakeDocument[] = [];
@@ -551,6 +558,8 @@ export class Fake {
   pick: (items: { label: string; description?: string }[]) => unknown = (items) => items[0];
   /** found are the files that findFiles finds. */
   found: FakeUri[] = [];
+  /** symbols holds the symbols of the files, by their paths, that the command vscode.executeDocumentSymbolProvider gives. */
+  symbols = new Map<string, unknown[]>();
   /** updates records the changes of settings: the key, the value and the target. */
   updates: { key: string; value: unknown; target: number }[] = [];
   /** directories holds the paths of the folders of the file system. */
@@ -641,6 +650,7 @@ export class Fake {
       FileChangeType: { Changed: 1, Created: 2, Deleted: 3 },
       ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
       SnippetString: FakeSnippetString,
+      SymbolKind: symbolKind,
       env: {
         language: 'en',
         uriScheme: 'vscode',
@@ -685,6 +695,9 @@ export class Fake {
           this.executed.push(command);
           if (command !== 'markdown.api.render') {
             this.calls.push({ command, args });
+          }
+          if (command === 'vscode.executeDocumentSymbolProvider') {
+            return this.symbols.get((args[0] as FakeUri).path);
           }
           return command === 'markdown.api.render' && this.rendered ? this.rendered(args[0] as string) : undefined;
         },

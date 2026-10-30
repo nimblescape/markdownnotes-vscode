@@ -217,21 +217,23 @@ form of the notes in a file for programs and AI agents, and
 ## 9. Formatter
 
 - **Format on save** of a Markdown file with notes, with the comment of the
-  format, or with a part that a step of another extension formats; "Format
-  Document" for every Markdown file; setting `formatOnSave`
-  ([R-FMT-001](requirements.md#r-fmt-001)).
+  format, with a part whose text the formatter keeps current (a listing, a
+  value of the front matter, an anchor), or with a part that a step of
+  another extension formats; "Format Document" for every Markdown file;
+  setting `formatOnSave` ([R-FMT-001](requirements.md#r-fmt-001)).
 - **Changes:** one line per paragraph with its hard line breaks, aligned
   tables, no white space at line ends, one blank line between blocks,
-  `<wbr>` before each start marker, a start marker for each note, and the
-  numbers of the links to figures and tables
+  `<wbr>` before each start marker, a start marker for each note, the
+  numbers of the links to figures, tables, listings and sections, the
+  current values of the front matter, and the current code of the listings
   ([R-FMT-002](requirements.md#r-fmt-002)).
 - **Keeps** code blocks, HTML, front matter, math, containers, setext
   headings and the answers of the notes, and keeps the text when the result
   would render otherwise ([R-FMT-003](requirements.md#r-fmt-003)).
 - **Command line and library:** `npx -y @nimblescape/markdownnotes format
   [--check] <file>...` with Node.js 22 or later, and the library
-  `formatMarkdown(lines)` for programs such as `markdownpaper format`
-  ([R-FMT-004](requirements.md#r-fmt-004)).
+  `formatMarkdown(lines, { source })` for programs such as
+  `markdownpaper format` ([R-FMT-004](requirements.md#r-fmt-004)).
 
 ## 10. Standard footnotes
 
@@ -245,7 +247,7 @@ form of the notes in a file for programs and AI agents, and
   Footnote" ([R-FOOT-004](requirements.md#r-foot-004) to
   [R-FOOT-006](requirements.md#r-foot-006)).
 
-## 11. Figures and tables
+## 11. Figures, tables, sections and listings
 
 - `/figure` inserts a chosen image of the workspace as a figure with its
   caption, `/table` a table with its caption line `Table:` before it, and
@@ -265,6 +267,16 @@ form of the notes in a file for programs and AI agents, and
   such as `<wbr><!--{title}-->A paper<!--{/title}-->`; the formatter writes
   the current value of the key into it, and the clean editing view hides the
   markers ([R-XREF-004](requirements.md#r-xref-004)).
+- `/listing` inserts the code of a file of the workspace, or of a function,
+  a class or a method of it, as a listing: the caption line `Listing:`, the
+  comment `<!-- listing: ../src/fields.ts#readFields -->` and the code block.
+  `/ref` links it as `[Listing 1](#lst-…)`
+  ([R-CODE-001](requirements.md#r-code-001)).
+- The formatter writes the current code of the source into each listing, in
+  VS Code and on the command line, which reports a missing source and fails
+  with `--check` ([R-CODE-002](requirements.md#r-code-002)). Tags in the
+  source code for parts that are no symbol are proposed
+  ([R-CODE-003](requirements.md#r-code-003)).
 
 ## 12. API for other extensions
 

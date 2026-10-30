@@ -51,6 +51,19 @@ request.
 - Each start marker of a note of the extension starts with `<wbr>`, and a
   note without a start marker gets one at the start of the text of its block,
   so that GitHub shows the paragraph whole and every note has its highlight.
+- Each link to a figure, a table, a listing or a section, such as
+  `[Table 1](#tab-grades)`, gets its number from the order in the file.
+- Each value of the front matter in the text,
+  `<wbr><!--{title}-->A paper<!--{/title}-->`, gets the current value of its
+  key.
+- Each listing gets the current code of its source: a code block with a
+  comment before it that names a file, `<!-- listing: ../src/fields.ts -->`,
+  or a function, a class or a method of the file,
+  `<!-- listing: ../src/fields.ts#readFields -->`. The path is relative to
+  the Markdown file, or to the current folder for the standard input. A
+  listing whose source the command does not find keeps its code, and the
+  command names it on the standard error; with `--check`, such a file counts
+  as not formatted.
 
 It keeps code blocks, HTML and comments, a front matter, math blocks (`$$`),
 containers (`:::`), headings underlined with `===` or `---`, and the answers
@@ -79,6 +92,21 @@ const lines = formatMarkdown(text.split(/\r?\n/));
 
 `formatMarkdown(lines)` takes the lines of a text without their line breaks
 and returns the formatted lines. The package has the types of TypeScript.
+With the option `source`, it also writes the current code into the listings:
+
+```js
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+const source = (path) => {
+  try {
+    return readFileSync(join(dirname(file), decodeURIComponent(path)), 'utf8');
+  } catch {
+    return undefined;
+  }
+};
+const lines = formatMarkdown(text.split(/\r?\n/), { source });
+```
 
 ## Third-party code
 

@@ -42,6 +42,7 @@ import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
 import { CleanView, fileOf } from './cleanView';
 import { type FormatStep, FormatSteps, registerFormatter, type SaveChanges } from './formatter';
+import { keptCurrent } from './format/format';
 import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
@@ -337,7 +338,8 @@ export function activate(context: vscode.ExtensionContext): Api {
   };
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the
-   * format while the setting formatOnSave is on and the document has notes, the comment of the format or a part that a
+   * format while the setting formatOnSave is on and the document has notes, the comment of the format, a part whose
+   * text the formatter keeps current (a listing, a value of the front matter, an anchor), or a part that a
    * step of another extension formats (R-FMT-001, R-GEN-012), and the comment of the format while the setting addFormatComment is on and the document has notes (R-NOTE-007).
    * @param document - The document.
    */
@@ -348,7 +350,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       return { format: false, comment: false };
     }
     const notes = threads.notesOf(document).length > 0;
-    return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined || steps.appliesTo(document)), comment: settings.addFormatComment && notes };
+    return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined || keptCurrent(linesOf(document)) || steps.appliesTo(document)), comment: settings.addFormatComment && notes };
   };
   /** contextsChanged shows the buttons that fit the settings showHighlights and showFootnotes. */
   const contextsChanged = (): void => {

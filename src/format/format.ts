@@ -34,8 +34,9 @@
 
 import type { Token } from 'markdown-it';
 import { frontMatterEnd, newerFormat } from '../notes/doctype';
-import { fillFields } from '../notes/fields';
-import { numberLinks } from '../notes/figures';
+import { fillFields, findFields } from '../notes/fields';
+import { findItems, numberLinks } from '../notes/figures';
+import { findListings, refreshListings, type Source } from '../notes/listings';
 import { before, parse, read } from '../notes/notes';
 import { breakText, markerText, noteCloseType, noteOpenType } from '../notes/syntax';
 
@@ -523,10 +524,26 @@ const signature = (lines: readonly string[]): string =>
     .join('\n');
 
 /**
+ * keptCurrent tells whether a text has parts whose text the formatter keeps current, which a save formats as a file
+ * with notes ([R-FMT-001](../../docs/requirements.md#r-fmt-001)): a listing, a value of the front matter, or a figure,
+ * a table, a listing or a section with an anchor, whose links get their numbers from it.
+ * @param lines - The lines of the text.
+ */
+export const keptCurrent = (lines: readonly string[]): boolean =>
+  findListings(lines).length > 0 || findFields(lines).length > 0 || findItems(lines).some((item) => item.anchor !== undefined);
+
+/** FormatOptions are the options of the formatter. */
+export interface FormatOptions {
+  /** source reads a file of source code of a listing by its path relative to the Markdown file, or returns undefined. */
+  source?: Source;
+}
+
+/**
  * formatMarkdown returns the formatted lines of a Markdown text: a start marker for each note without one, `<wbr>`
  * before each start marker, the start markers at the start of a line joined to their paragraphs, the number of each link
  * to a figure, a table or a section from their order, the current value of the front matter in each field
- * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), each paragraph on one line
+ * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), with a source the current code of each listing
+ * ([R-CODE-002](../../docs/requirements.md#r-code-002)), each paragraph on one line
  * with its hard line breaks, the tables aligned, no white space at the end of a line, one blank line between blocks
  * and around the ATX headings, and one line break at the end. Code blocks, blocks of HTML, the front matter, blocks of
  * math, containers and notes stay as they are. When the preview would read the formatted text with other blocks or
@@ -534,12 +551,15 @@ const signature = (lines: readonly string[]): string =>
  * higher major version stays as it is, because its notes can have a form that this version does not know
  * ([R-NOTE-007](../../docs/requirements.md#r-note-007)).
  * @param lines - The lines of the text.
+ * @param options - The options: `source` reads the files of the listings, by their paths relative to the file of the
+ * text; without it, the listings keep their code.
  */
-export function formatMarkdown(lines: readonly string[]): string[] {
+export function formatMarkdown(lines: readonly string[], options: FormatOptions = {}): string[] {
   if (newerFormat(lines) !== undefined) {
     return [...lines];
   }
-  const repaired = fillFields(numberLinks(addMarkers(repairMarkers(lines))));
+  const filled = fillFields(numberLinks(addMarkers(repairMarkers(lines))));
+  const repaired = options.source ? refreshListings(filled, options.source) : filled;
   const formatted = formatLines(repaired);
   return signature(formatted) === signature(repaired) ? formatted : repaired;
 }

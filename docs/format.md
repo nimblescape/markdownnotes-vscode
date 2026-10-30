@@ -273,8 +273,9 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
   The first level of the numbers is the highest level that more than one
   heading has, or else the highest level of a heading
   ([R-XREF-003](requirements.md#r-xref-003)).
-- A figure, a table, a heading, an anchor or a link in a code block, in HTML,
-  in the front matter or in the text of a note does not count.
+- A figure, a table, a listing, a heading, an anchor or a link in a code
+  block, in HTML, in the front matter or in the text of a note does not
+  count.
 
 ## 9. Values of the front matter
 
@@ -291,6 +292,39 @@ A value of the front matter stands in the text between two markers
   spaces.
 - A program that changes the value in the text without the front matter
   loses the change with the next format: change the front matter.
+
+## 10. Listings of code
+
+A listing is a fenced code block whose code comes from a source file of the
+repository ([R-CODE-001](requirements.md#r-code-001)):
+
+````markdown
+Listing: Reading the fields<a id="lst-reading-fields"></a>
+
+<!-- listing: ../src/notes/fields.ts#readFields -->
+
+```typescript
+export function readFields(lines: readonly string[]): Map<string, string> {
+  …
+}
+```
+````
+
+- The comment of the source stands on its own line directly before the code
+  block, with a blank line or none between them: `<!-- listing: `, the path
+  of the file relative to the Markdown file with `/` and the escapes of a
+  link (`%20` for a space), and ` -->`. After the path, `#` and a name name
+  a symbol of the file, with `.` between a container and its member, for
+  example `#NotesView.addFromText`; without it, the listing is the whole
+  file.
+- The caption line `Listing:` before the comment, and the anchor `lst-…` at
+  its end, work as those of a table; a link to it is
+  `[Listing 1](#lst-reading-fields)`.
+- The formatter writes the current code of the source into the code block
+  ([R-CODE-002](requirements.md#r-code-002)). A program that changes the
+  code in the Markdown file loses the change with the next format: change
+  the source file. An AI agent that adds a listing writes the comment and an
+  empty code block, and runs `markdownnotes format`.
 
 ---
 

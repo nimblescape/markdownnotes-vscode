@@ -79,6 +79,8 @@ requirement, the plan and the decisions of Hannes.
 | 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
 | 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
 | 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
+| 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done |
+| 54 | Tags in the source code that a listing names, and "Add Code Tag" | [R-CODE-003](#r-code-003) | proposed; waits for the choice of the form of the tags |
 
 ## General
 
@@ -1270,6 +1272,10 @@ it shows no suggestions while the user types words.
   [decision 35](#decisions)). `/figure` and `/table` show on a line of their
   own, outside code blocks; `/ref` shows in text where a reference of a
   footnote can stand, in a file with figures or tables.
+- `/listing` adds the code of a file of the workspace, or of a function, a
+  class or a method of the file, as a listing ([R-CODE-001](#r-code-001)).
+  It shows on a line of its own, outside code blocks, as `/figure` and
+  `/table`.
 
 The editors of the side view have no slash commands (Hannes, 18:40), so
 `/todo` at the start of a new note, which [decision 30](#decisions) named,
@@ -1412,7 +1418,11 @@ default formatter of Markdown files, so VS Code runs it on "Format Document"
 for every Markdown file. A save formats only a Markdown file with notes or
 with the comment of the format ([R-NOTE-007](#r-note-007)), so that the
 Markdown files of other projects keep their text (Hannes, 2026-10-29: "Only
-files with notes", [decision 19](#decisions)). The save of such a file
+files with notes", [decision 19](#decisions)). A file with parts whose text
+the formatter keeps current counts as a file with notes: a listing
+([R-CODE-002](#r-code-002)), a value of the front matter
+([R-XREF-004](#r-xref-004)), or a figure, a table, a listing or a section
+with an anchor ([R-XREF-002](#r-xref-002)). The save of such a file
 formats it while the setting `nimblescape.markdownNotes.formatOnSave` is on
 (the default), unless:
 
@@ -1447,8 +1457,12 @@ on save too.
   the start of a line ends no paragraph on GitHub, and a note without a start
   marker gets one at the start of the text of the block of its reference
   ([R-NOTE-006](#r-note-006)). The color of a marker stays.
-- The number in the text of each link to a figure or a table follows the
-  order of the figures and tables in the file ([R-XREF-002](#r-xref-002)).
+- The number in the text of each link to a figure, a table, a listing or a
+  section follows their order in the file ([R-XREF-002](#r-xref-002)).
+- Each value of the front matter in the text gets the current value of its
+  key ([R-XREF-004](#r-xref-004)).
+- Each listing gets the current code of its source, in VS Code and on the
+  command line ([R-CODE-002](#r-code-002)).
 
 ### R-FMT-003
 
@@ -1654,7 +1668,9 @@ As [Table 1](#tab-grades) shows, …
 
 - A figure is an image that stands alone in its paragraph; its caption is the
   text of the image. A table has a caption: a paragraph that starts with
-  `Table:` directly before it.
+  `Table:` directly before it. A listing of code ([R-CODE-001](#r-code-001))
+  has the caption `Listing:` before its comment and its code block, an
+  anchor `lst-…`, and the word "Listing" in its links.
 - `/figure` lists the images of the workspace (PNG, JPEG, GIF, SVG, WebP and
   AVIF) by their paths from the folder of the file, and inserts the chosen
   one as a figure, `![Caption](images/plan.png)`, with the caption selected
@@ -1684,8 +1700,9 @@ As [Table 1](#tab-grades) shows, …
 ### R-XREF-002
 
 **The numbers of the links.** The formatter writes the number in the text of
-each link to a figure, a table or a section anew from the order of the
-figures, the tables and the headings in the file, so that a moved table keeps
+each link to a figure, a table, a listing ([R-CODE-001](#r-code-001)) or a
+section anew from the order of the figures, the tables, the listings and the
+headings in the file, so that a moved table keeps
 the right number in every link ([R-FMT-002](#r-fmt-002)). Markdown Paper can
 number them by the rules of its layout with its own step of the formatter,
 for example A1 for the first table of an appendix, no number for the table
@@ -1749,6 +1766,97 @@ This is <wbr><!--{title}-->A paper<!--{/title}--> of <wbr><!--{author.name}-->Ha
   ([R-FMT-002](#r-fmt-002)). A value of a key that the front matter does not
   have stays as it is. A field in a code block, a code span, the front
   matter or the text of a note does not count.
+
+## Listings of code
+
+### R-CODE-001
+
+**Code of a source file in the text.** A Markdown file can live in a
+repository with other source code, and `/listing` adds code of a file of
+the repository to it (Hannes, 2026-10-30, 02:58: "a paper can be in a repo
+along with other source code", "there is a new slash command for that which
+"imports" a code block", "it is also part of the notes extension"; 03:03:
+"we may mark single functions but also complete source code files"; 03:10:
+"it is part of notes"). The form, proposed in the thread on 2026-10-30:
+
+````markdown
+Listing: Reading the fields<a id="lst-reading-fields"></a>
+
+<!-- listing: ../src/notes/fields.ts#readFields -->
+
+```typescript
+export function readFields(lines: readonly string[]): Map<string, string> {
+  …
+}
+```
+````
+
+- A listing is a fenced code block with a comment of HTML on the line
+  before it, with a blank line or none between them, that names its
+  source: a whole file, `<!-- listing: ../src/fields.ts -->`, or a symbol
+  of the file, `<!-- listing: ../src/fields.ts#readFields -->`, with `.`
+  between a container and its member, for example `NotesView.addFromText`.
+  The path is relative to the Markdown file, with `/`, and encodes spaces
+  and other characters as in a link. A listing in the text of a note does
+  not count.
+- GitHub and the Markdown preview show the code block; the comment is
+  hidden there and stays visible in the text editor and the clean editing
+  view.
+- `/listing` lists the source files of the workspace by their paths from the
+  folder of the Markdown file, then "Whole file" and the symbols of the
+  chosen file that the language extension of VS Code gives: the classes,
+  interfaces, functions, methods and other declarations, and the variables
+  and constants at the top of the file. It lists only a symbol that the
+  formatter finds at the same line ([R-CODE-002](#r-code-002)). It inserts
+  the caption line `Listing: Caption`, the comment and the code block with
+  the language of the file, with the caption selected for typing. A file
+  without symbols gives its whole text.
+- `/ref` links a listing as a figure or a table, for example
+  `[Listing 1](#lst-reading-fields)` ([R-XREF-001](#r-xref-001)).
+
+### R-CODE-002
+
+**The formatter keeps the code current.** On each format, the formatter
+reads the source of each listing again and writes its current code into the
+code block (Hannes, 2026-10-30, 02:59: "the formatter assures the source code
+references / code blocks are uptodate").
+
+- A symbol is found the same way in VS Code and on the command line, so
+  that both write the same code: by the line of its declaration (for
+  example `function`, `class`, `def`, `fn`, `func`, `const`, or a method
+  with its modifiers), outside comments, inside the container of a name
+  with `.`, with the decorators and attributes directly before it (`@…`,
+  `#[…]`). It ends with the brace that closes its first `{`, or with a `;`
+  before it, or in Python with the last line of its indented body. This
+  works for TypeScript, JavaScript, Java, C#, Go, Rust, Kotlin and Python.
+- The code of a symbol loses the indentation that all its lines have; a
+  whole file and a symbol lose their blank lines at the start and the end.
+  The code block keeps its fence, its indentation and its info string; the
+  fence gets longer when the code holds a fence of its length.
+- In VS Code, the formatter reads a source from its open document, so that
+  a change that is not saved yet counts, or else from the disk. On the
+  command line, it reads the source relative to the Markdown file, or to
+  the current folder for the standard input.
+- A listing whose file or symbol is not found keeps its code. The command
+  line names it on the standard error, for example
+  `paper.md:12: the source ../src/gone.ts of the listing was not found`, and
+  with `--check` the file counts as not formatted, so that a check of a pull
+  request finds it.
+- The library of the npm package takes the reader of the sources as the
+  option `source` of `formatMarkdown` ([R-FMT-004](#r-fmt-004)).
+
+### R-CODE-003
+
+**Tags in the source code (proposed).** Code that is no symbol, such as a
+part of a function, gets tags in the source code that a listing names
+(Hannes, 2026-10-30, 03:03: "in the source code i want to add marks / tags
+that can later be referenced by the markdown"). The proposal: comments
+`begin-snippet: name` and `end-snippet` in the comment syntax of the
+language, or `#region name` and `#endregion`; "Add Code Tag" writes them
+around the selected lines of a source file; `<!-- listing: ../src/x.ts#name -->`
+names a tag, and a tag wins over a symbol of the same name. Hannes chooses
+the form on a card in the thread; until then, only files and symbols are
+built.
 
 ## Hidden notes
 

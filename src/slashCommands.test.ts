@@ -9,7 +9,7 @@
  * open the editor of a new note in the side view, the todo notes that the side
  * view adds and completes (R-NOTE-008), `/footnote`, which opens the editor of
  * a new footnote in the side view, `/date`, `/time` and `/user`, `/figure`,
- * `/table` and `/ref` (R-XREF-001), and the slash commands that other
+ * `/table`, `/listing` (R-CODE-001) and `/ref` (R-XREF-001), and the slash commands that other
  * extensions add through the API (R-GEN-012).
  */
 
@@ -119,7 +119,7 @@ test('a slash after a space offers /todo for the sentence before it, /footnote, 
 test('/todo shows only where a note can highlight the sentence, and a slash in a word offers nothing (R-EDIT-008)', async () => {
   const { document } = await start('/\n\n```\ncode /\n```\n\nand/\n', 0, 1);
   // A slash on a line of its own also offers a figure and a table (R-XREF-001).
-  expect(labels(fake.complete(document, new FakePosition(0, 1)))).toEqual(['/figure', '/table', '/date', '/time', '/user']);
+  expect(labels(fake.complete(document, new FakePosition(0, 1)))).toEqual(['/figure', '/table', '/listing', '/date', '/time', '/user']);
   expect(labels(fake.complete(document, new FakePosition(3, 6)))).toEqual(['/date', '/time', '/user']);
   expect(fake.complete(document, new FakePosition(6, 4))).toEqual([]);
 });
@@ -239,7 +239,7 @@ test('on a line of its own, /figure inserts a chosen image of the workspace as a
   fake.found = [new FakeUri('file', '/folder/images/plan (v2).png'), new FakeUri('file', '/other/logo.svg')];
   const items = fake.complete(document, new FakePosition(2, 1));
   // The heading starts a section, which /ref links (R-XREF-003).
-  expect(labels(items)).toEqual(['/figure', '/table', '/ref', '/date', '/time', '/user']);
+  expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user']);
   const table = items[1];
   expect((table.insertText as unknown as FakeSnippetString).value).toBe('Table: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0');
   // /figure lists the images by their paths from the folder of the file, and inserts the chosen one.
@@ -251,6 +251,39 @@ test('on a line of its own, /figure inserts a chosen image of the workspace as a
   const inText = fake.open('A sentence /\n\n```\n/\n```\n', '/folder/b.md');
   expect(labels(fake.complete(inText, new FakePosition(0, 12)))).not.toContain('/figure');
   expect(labels(fake.complete(inText, new FakePosition(3, 1)))).toEqual(['/date', '/time', '/user']);
+});
+
+test('on a line of its own, /listing inserts the whole file or a chosen symbol of a source file as a listing (R-EDIT-008, R-CODE-001)', async () => {
+  const { document, editor } = await start('# Code\n\n/\n\nMore.\n', 2, 1);
+  const code = 'export function read(path: string): string {\n  return `${path}`;\n}\n\nexport class Reader {\n  open(): void {\n    read(\'a\');\n  }\n}\n';
+  fake.files.set('/folder/src/read me.ts', code);
+  fake.found = [new FakeUri('file', '/folder/src/read me.ts'), new FakeUri('file', '/folder/docs/b.py')];
+  const range = (line: number) => new FakeRange(new FakePosition(line, 0), new FakePosition(line, 1));
+  const symbol = (name: string, kind: number, line: number, children: unknown[] = []) => ({ name, kind, range: range(line), selectionRange: range(line), children });
+  // The language extension gives the symbols; the local variable and the call are not listed.
+  fake.symbols.set('/folder/src/read me.ts', [symbol('read', 11, 0, [symbol('local', 12, 1)]), symbol('Reader', 4, 4, [symbol('open', 5, 5), symbol('missing', 5, 6)])]);
+  const items = fake.complete(document, new FakePosition(2, 1));
+  expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user']);
+  fake.pick = (choices) => (fake.picks.length === 1 ? choices.find((choice) => choice.label === 'read me.ts') : choices.find((choice) => choice.label === 'Reader.open'));
+  await accept(editor, items[2]);
+  expect(fake.picks[0].map((choice) => choice.description)).toEqual(['docs/b.py', 'src/read me.ts']);
+  expect(fake.picks[1].map((choice) => [choice.label, choice.description])).toEqual([
+    ['Whole file', 'src/read me.ts'],
+    ['read', 'Function'],
+    ['Reader', 'Class'],
+    ['Reader.open', 'Method'],
+  ]);
+  expect(document.text).toBe("# Code\n\nListing: Caption\n\n<!-- listing: src/read%20me.ts#Reader.open -->\n\n```typescript\nopen(): void {\n  read('a');\n}\n```\n\n\nMore.\n");
+  // The whole file: its code, with the characters that a snippet escapes.
+  const other = fake.open('/\n', '/folder/c.md');
+  const otherEditor = new FakeEditor(other, 0);
+  otherEditor.selection = { active: new FakePosition(0, 1) };
+  fake.editors.push(otherEditor);
+  fake.activeEditor = otherEditor;
+  fake.picks = [];
+  fake.pick = (choices) => (fake.picks.length === 1 ? choices.find((choice) => choice.label === 'read me.ts') : choices[0]);
+  await accept(otherEditor, fake.complete(other, new FakePosition(0, 1)).find((item) => labels([item])[0] === '/listing')!);
+  expect(other.text).toBe(`Listing: Caption\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${code.trimEnd()}\n\`\`\`\n\n`);
 });
 
 test('in text, /ref links a chosen figure or table, and gives it an anchor at the end of its line when it has none (R-EDIT-008, R-XREF-001)', async () => {

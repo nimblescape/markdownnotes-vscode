@@ -432,7 +432,7 @@ test('the bundle of the command markdownnotes imports only modules of Node.js, a
     });
     return Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((imported) => imported.path));
   };
-  expect(await importsOf('src/cli/main.ts')).toEqual(['node:fs']);
+  expect((await importsOf('src/cli/main.ts')).sort()).toEqual(['node:fs', 'node:path']);
   expect(await importsOf('src/cli/index.ts')).toEqual([]);
 });
 

@@ -4,7 +4,7 @@
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
 // R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
-// format on save of a file with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
@@ -273,6 +273,35 @@ describe('nimblescape Markdown Notes', () => {
     await waitFor(() => (view.document.getText().includes('\nSee A paper.\n') ? true : undefined), 'the hidden markers in the view');
     await vscode.workspace.saveAll(false);
     await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
+  });
+
+  it('writes the current code of the source of each listing into a file on its save, from the open document of the source or the disk (R-CODE-002, R-FMT-001)', async () => {
+    fs.mkdirSync(path.join(folder, 'src'), { recursive: true });
+    const source = vscode.Uri.file(path.join(folder, 'src', 'read me.ts'));
+    const code = 'export function read(path: string): string {\n  return path;\n}\n\nexport const other = 1;\n';
+    fs.writeFileSync(source.fsPath, code);
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    const listing = (comment: string) => `${comment}\n\n\`\`\`typescript\nold\n\`\`\`\n`;
+    fs.writeFileSync(file.fsPath, `Listing: Reading\n\n${listing('<!-- listing: src/read%20me.ts#read -->')}\n${listing('<!-- listing: src/read%20me.ts -->')}`);
+    const document = await vscode.workspace.openTextDocument(file);
+    const editor = await vscode.window.showTextDocument(document);
+    // A file without notes gets the format on save, because the formatter keeps its listings current.
+    await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), '\nEnd.\n'));
+    assert.ok(await document.save(), 'the save of the file');
+    const read = 'export function read(path: string): string {\n  return path;\n}';
+    assert.equal(
+      document.getText(),
+      `Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${code.trimEnd()}\n\`\`\`\n\nEnd.\n`,
+    );
+    // A change of the source that is not saved yet counts.
+    const opened = await vscode.workspace.openTextDocument(source);
+    const change = new vscode.WorkspaceEdit();
+    change.replace(source, new vscode.Range(1, 9, 1, 13), 'path.trim()');
+    assert.ok(await vscode.workspace.applyEdit(change), 'the change of the source');
+    await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), 'More.\n'));
+    assert.ok(await document.save(), 'the second save of the file');
+    assert.ok(document.getText().startsWith('Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n```typescript\nexport function read(path: string): string {\n  return path.trim();\n}\n```\n'), document.getText());
+    assert.ok(await opened.save(), 'the save of the source');
   });
 
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {

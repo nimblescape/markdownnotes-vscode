@@ -97,6 +97,13 @@ The first version.
   of the front matter between hidden markers, for example
   `<wbr><!--{title}-->A paper<!--{/title}-->`, and the formatter writes the
   current value into it on each format.
+- Listings of code: `/listing` inserts the code of a source file of the
+  workspace, or of a function, a class or a method of it, as a code block
+  with its caption line `Listing: Caption` and the comment of its source,
+  for example `<!-- listing: ../src/fields.ts#readFields -->`. The formatter
+  writes the current code of the source into each listing, in VS Code and on
+  the command line, which names a listing whose source it does not find.
+  `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side
@@ -147,7 +154,10 @@ The first version.
   breaks, aligned columns of the tables, no white space at the end of a line,
   one blank line between blocks, one line break at the end of the file,
   `<wbr>` before each start marker, a start marker for each note without
-  one, and the numbers of the links to figures and tables. It keeps code blocks, HTML, a front matter, math, containers and the
+  one, the numbers of the links to figures, tables, listings and sections,
+  the current values of the front matter and the current code of the
+  listings. A file with a listing, a value of the front matter or an anchor
+  is formatted on a save as a file with notes. It keeps code blocks, HTML, a front matter, math, containers and the
   notes, and keeps the text as it was when the preview would show it
   differently.
 - The formatter on the command line for programs and AI agents: the command
