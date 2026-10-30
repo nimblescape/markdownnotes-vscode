@@ -317,6 +317,12 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   a symbol of the file, with `.` between a container and its member, for
   example `#NotesView.addFromText`; without it, the listing is the whole
   file.
+- The name after `#` can also name a snippet of the file: the lines between
+  the comments `markdownnotes: snippet <name>` and
+  `markdownnotes: /snippet <name>`, in any comment form of the language, for
+  example `// markdownnotes: snippet keep-lines`. A snippet wins over a symbol
+  of the same name, and the code of a listing leaves out the marks of all
+  snippets ([R-CODE-003](requirements.md#r-code-003)).
 - The caption line `Listing:` before the comment, and the anchor `lst-…` at
   its end, work as those of a table; a link to it is
   `[Listing 1](#lst-reading-fields)`.

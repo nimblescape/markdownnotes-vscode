@@ -112,7 +112,8 @@ describes each step and where its protection ends.
   source file, or of a function, a class or a method of it, as a code block
   with the comment of its source, `<!-- listing: ../src/fields.ts#readFields -->`.
   The formatter writes the current code of the source into it on each
-  format, also on the command line.
+  format, also on the command line. `/snippet` in a source file marks a part
+  of a function as a snippet that a listing can show.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text

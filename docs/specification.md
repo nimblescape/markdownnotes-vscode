@@ -277,8 +277,11 @@ form of the notes in a file for programs and AI agents, and
   ([R-CODE-001](requirements.md#r-code-001)).
 - The formatter writes the current code of the source into each listing, in
   VS Code and on the command line, which reports a missing source and fails
-  with `--check` ([R-CODE-002](requirements.md#r-code-002)). Tags in the
-  source code for parts that are no symbol are proposed
+  with `--check` ([R-CODE-002](requirements.md#r-code-002)).
+- A snippet is code between the marks `markdownnotes: snippet <name>` and
+  `markdownnotes: /snippet <name>` in comments of a source file; `/snippet`
+  and "Add Snippet" write them around selected lines, a listing names it as
+  `#<name>`, and the comment of a listing is a link to its source
   ([R-CODE-003](requirements.md#r-code-003)).
 
 ## 12. API for other extensions

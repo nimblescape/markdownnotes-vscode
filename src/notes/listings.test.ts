@@ -11,7 +11,7 @@
 import { describe, expect, test } from 'vitest';
 import { formatMarkdown, keptCurrent } from '../format/format';
 import { anchorName, findItems, numberLinks } from './figures';
-import { codeOf, findListings, languageOf, listingBlock, missingListings, refreshListings, type Source, sourceFiles, symbolLines } from './listings';
+import { codeOf, findListings, isSnippetName, languageOf, listingBlock, missingListings, refreshListings, snippetLines, snippetsOf, type Source, sourceFiles, symbolLines } from './listings';
 
 /** typescript is a file of TypeScript with a function, a class with a method, an interface and a constant. */
 const typescript = [
@@ -81,6 +81,51 @@ describe('the symbols of a source', () => {
 
   test('give the whole file without a symbol, without its blank lines at the start and the end (R-CODE-001)', () => {
     expect(codeOf('﻿\n\nline 1\r\n\r\nline 2\n\n')).toEqual(['line 1', '', 'line 2']);
+  });
+});
+
+describe('the snippets of a source', () => {
+  /** marked is a file with a snippet in a function, a snippet of the same name as a function, and a mark without an end. */
+  const marked = [
+    'export function parse(lines: string[]): string[] {',
+    '  const kept: string[] = [];',
+    '  // markdownnotes: snippet keep-lines',
+    '  for (const line of lines) {',
+    '    kept.push(line);',
+    '  }',
+    '  // markdownnotes: /snippet keep-lines',
+    '  return kept;',
+    '}',
+    '',
+    '# markdownnotes: snippet parse',
+    'other = 1',
+    '# markdownnotes: /snippet parse',
+    '/* markdownnotes: snippet open-only */',
+  ].join('\n');
+
+  test('are the lines between their marks in any form of a comment, and win over a symbol of the same name (R-CODE-003)', () => {
+    expect(snippetsOf(marked.split('\n'))).toEqual([
+      { name: 'keep-lines', first: 3, last: 5 },
+      { name: 'parse', first: 11, last: 11 },
+    ]);
+    expect(codeOf(marked, 'keep-lines')).toEqual(['for (const line of lines) {', '  kept.push(line);', '}']);
+    expect(codeOf(marked, 'parse')).toEqual(['other = 1']);
+    expect(codeOf(marked, 'open-only')).toBeUndefined();
+  });
+
+  test('leave their marks out of the code of a symbol and of a whole file (R-CODE-003)', () => {
+    expect(symbolLines(marked.split('\n'), 'parse')).toEqual({ first: 0, last: 8 });
+    expect(codeOf(marked)).not.toContain('  // markdownnotes: snippet keep-lines');
+    expect(codeOf(marked)!.filter((line) => line.includes('markdownnotes:'))).toEqual([]);
+  });
+
+  test('get marks in the comment form of the language of their file (R-CODE-003)', () => {
+    expect(snippetLines('src/a.ts', 'keep-lines', '  ')).toEqual(['  // markdownnotes: snippet keep-lines', '  // markdownnotes: /snippet keep-lines']);
+    expect(snippetLines('a.py', 'x')).toEqual(['# markdownnotes: snippet x', '# markdownnotes: /snippet x']);
+    expect(snippetLines('a.html', 'x')).toEqual(['<!-- markdownnotes: snippet x -->', '<!-- markdownnotes: /snippet x -->']);
+    expect(snippetLines('a.css', 'x')).toEqual(['/* markdownnotes: snippet x */', '/* markdownnotes: /snippet x */']);
+    expect(snippetLines('a.json', 'x')).toBeUndefined();
+    expect([isSnippetName('parse-notes'), isSnippetName('Parse'), isSnippetName('a--b'), isSnippetName('')]).toEqual([true, false, false, false]);
   });
 });
 

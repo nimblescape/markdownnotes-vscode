@@ -80,7 +80,7 @@ requirement, the plan and the decisions of Hannes.
 | 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
 | 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
 | 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done |
-| 54 | Tags in the source code that a listing names, and "Add Code Tag" | [R-CODE-003](#r-code-003) | proposed; waits for the choice of the form of the tags |
+| 54 | Snippets between marks in the source code, which a listing names; `/snippet` and "Add Snippet" in a source file; the comment of a listing as a link to its source | [R-CODE-003](#r-code-003) | done, in the form that Claude recommended; the card on the form of the marks is open |
 | 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
 
 ## General
@@ -1871,16 +1871,54 @@ references / code blocks are uptodate").
 
 ### R-CODE-003
 
-**Tags in the source code (proposed).** Code that is no symbol, such as a
-part of a function, gets tags in the source code that a listing names
-(Hannes, 2026-10-30, 03:03: "in the source code i want to add marks / tags
-that can later be referenced by the markdown"). The proposal: comments
-`begin-snippet: name` and `end-snippet` in the comment syntax of the
-language, or `#region name` and `#endregion`; "Add Code Tag" writes them
-around the selected lines of a source file; `<!-- listing: ../src/x.ts#name -->`
-names a tag, and a tag wins over a symbol of the same name. Hannes chooses
-the form on a card in the thread; until then, only files and symbols are
-built.
+**Snippets in the source code.** Code that is no symbol, such as a part of a
+function, is a snippet between two marks in comments of the source file,
+which a listing names (Hannes, 2026-10-30, 03:03: "in the source code i want
+to add marks / tags that can later be referenced by the markdown"; 03:20: "a
+slash command in the source code editor /snippet adds the mark, but the mark
+must be more clear it belongs to the notes plugin, do not like the
+begin-snippet tag, whereas snippet is the correct name for it", "propose
+something that is better aligned with what we already have"). The form,
+proposed on 2026-10-30 at about 04:10:
+
+```ts
+// markdownnotes: snippet parse-notes
+export function parse(lines: readonly string[]): Token[] {
+  …
+}
+// markdownnotes: /snippet parse-notes
+```
+
+- The marks name the extension as the command and the format do, without a
+  hyphen ([decision 33](#decisions)), and the end mark has the `/` of the
+  end marker of a value of the front matter ([R-XREF-004](#r-xref-004)).
+  The name has small letters and digits, with `-` between them. The other
+  form on the card is `@snippet` and `@endsnippet`.
+- The marks stand in the comment form of the language: `//` (TypeScript,
+  JavaScript, Java, C#, C, C++, Go, Rust, Kotlin, Swift, PHP, Scala), `#`
+  (Python, R, Ruby, shell, PowerShell, YAML, TOML), `--` (SQL), `%` (LaTeX,
+  MATLAB), `<!-- -->` (HTML, XML, Markdown) and `/* */` (CSS). The
+  formatter finds them by their text in any comment.
+- A listing names a snippet as a symbol,
+  `<!-- listing: ../src/notes/notes.ts#parse-notes -->`, and a snippet wins
+  over a symbol of the same name. The code of every listing, also of a whole
+  file or a symbol, leaves out the marks of all snippets. A start mark
+  without its end mark is no snippet; of two snippets of one name, the first
+  one counts.
+- In a source file, the user selects lines and types `/`: VS Code replaces
+  them with the slash, and `/snippet` puts them back, asks for the name (the
+  first declared name of the lines, in small letters, is the default), and
+  writes the marks around the lines with the indentation of the first one.
+  "Add Snippet" in the Command Palette and in the light bulb of selected
+  lines (a refactoring) does the same.
+- `/listing` lists the snippets of the chosen file after "Whole file" and
+  before its symbols.
+- The comment of a listing in a Markdown file is a link, as a Markdown link
+  to a file (Hannes, 03:20: "it is like markdown links extension"):
+  Ctrl+Click opens the source file at the first line of the snippet or the
+  symbol.
+- `/snippet` shows once the extension is active, after a Markdown file was
+  opened; "Add Snippet" in the Command Palette starts the extension.
 
 ## Hidden notes
 

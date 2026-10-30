@@ -22,6 +22,7 @@ import { deselectPath, extensionId, footnoteCommands, footnotesContext, highligh
 import { deleteCommands, markerContexts } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { defaultSettings, linkTargets, settingsSection } from './settings';
+import { snippetCommands } from './snippets';
 
 // The modules of the extension import the editor API; these tests read only their constants.
 vi.mock('vscode', () => ({}));
@@ -139,10 +140,10 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the side view, of the highlights, of the footnotes and of the keys next to a hidden marker, and no other', () => {
+test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker and "Add Snippet", and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
   expect([...contributed].sort()).toEqual(
-    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands)].sort(),
+    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), snippetCommands.add].sort(),
   );
 });
 

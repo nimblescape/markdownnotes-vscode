@@ -16,13 +16,13 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 110 requested features, 83 are built, among them the clean editing view
+Of 110 requested features, 84 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
 Paper, the figures, tables and sections with the links to them, the
 values of the front matter in the text, and the listings of code from the
-source files of the repository. 7 features are planned but not built: the features of the section
+source files of the repository with the snippets in them. 6 features are planned but not built: the features of the section
 [Planned features](#planned-features). Four need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
 in Zen Mode, the new name of the repository, and the question whether the
@@ -131,6 +131,7 @@ breaks and the cursor next to the hidden markers.
 | Values of the front matter in the text: "anything from frontmatter can be references in the document" | 10-30 03:10 | [R-XREF-004](requirements.md#r-xref-004) | Built | Step 52, the form proposed at 03:20: `/ref` inserts `<wbr><!--{title}-->A paper<!--{/title}-->`, the formatter writes the current value, the clean editing view hides the markers |
 | The functions of the notes in the pages of a paper: "all plugin functionality shall work in the rendered aper as well, such as marking a passage and adding a comment to it etc.", "as it would in the rendered markdown preview" | 10-30 03:55 | [R-PREV-009](requirements.md#r-prev-009) | Built | Step 55: the script of the preview finds the highlights and "Add Note" in the pages of Markdown Paper, which copies the content of the preview into its pages; checked in Chromium with copied pages |
 | Code of the source files in the text: "a new slash command for that which "imports" a code block", "we may mark single functions but also complete source code files", "it is also part of the notes extension", "it is part of notes" | 10-30 02:58, 03:03, 03:10 | [R-CODE-001](requirements.md#r-code-001) | Built | Step 53: `/listing` lists the source files, then "Whole file" and the symbols that the language extension gives, and inserts `Listing: Caption`, `<!-- listing: ../src/x.ts#name -->` and the code block; `/ref` links it as `[Listing 1](#lst-…)` |
+| Snippets in the source code that a listing names: "the extension shall allow to add marks into the source code", "in the source code i want to add marks / tags that can later be referenced by the markdown", "a slash command in the source code editor /snippet adds the mark", "it is like markdown links extension" | 10-30 02:58, 03:03, 03:20 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 54, in the form of the proposal: `// markdownnotes: snippet name` and `// markdownnotes: /snippet name`; the card with the other form `@snippet`/`@endsnippet` is open. `/snippet` and "Add Snippet" write the marks; Ctrl+Click on the comment of a listing opens the source |
 | The formatter keeps the code blocks current: "the formatter assures the source code references / code blocks are uptodate" | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a symbol is found by its declaration and its braces or indentation, the same way in both |
 | `/ref` for sections: "/ref also adds chapter numbers" | 10-30 02:47, 03:19 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 51: `[Chapter 2.1](#sec-methods)` with an anchor at the end of the heading; the chapters are the headings of the highest level that more than one heading has |
 | Which command adds an entry and which adds a reference: "lets rethink which command adds an entry in the directory which adds a reference to it" | 10-30 02:45, 02:47 | [R-XREF-001](requirements.md#r-xref-001) | Built | [Decision 35](requirements.md#decisions): the commands named by a noun add an entry, `/ref` and `/cite` add a reference |
@@ -201,7 +202,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-7 features are in the specification and the plan, or proposed, but not built. Steps 29
+6 features are in the specification and the plan, or proposed, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -214,7 +215,6 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| Tags in the source code that a listing names, and "Add Code Tag": "the extension shall allow to add marks into the source code", "in the source code i want to add marks / tags that can later be referenced by the markdown" | 10-30 02:58, 03:03 | [R-CODE-003](requirements.md#r-code-003) | 54, after the choice of the form of the tags | Planned |
 
 ## Moved to nimblescape Markdown Paper
 
@@ -241,19 +241,17 @@ side view, and ESLint.
 The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 [decision 27](requirements.md#decisions)). The open work, in its order:
 
-1. The tags in the source code for the listings (step 54), after Hannes
-   chose the form of the tags.
-2. Steps 29 and 30: the hidden form of the notes and its icon, before the
+1. Steps 29 and 30: the hidden form of the notes and its icon, before the
    first release, because it changes the markup that the clean editing view
    leaves out.
-3. The merge of
+2. The merge of
    [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
    the new name of the repository, the first release and the npm package:
    these need Hannes. The rename comes before the first publish of the npm
    package, because the trusted publisher of npmjs.com names the repository.
-4. Steps 31, 34 and 35: the text without notes, the checks of the
+3. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
-5. Step 14: the visual editing in the side view.
+4. Step 14: the visual editing in the side view.
 
 ---
 

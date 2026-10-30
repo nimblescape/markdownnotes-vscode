@@ -14,7 +14,14 @@
  * `<!-- listing: ../src/fields.ts#readFields -->`, with `.` between a class and its method. The formatter reads the
  * source again and writes its code into the block. The module finds a symbol by its declaration and its end by the
  * braces or, in Python, by the indentation, the same way in VS Code and on the command line, so that both write the
- * same code. It uses no API of VS Code.
+ * same code.
+ *
+ * Code that is no symbol, such as a part of a function, is a snippet between two marks in comments of the source
+ * ([R-CODE-003](../../docs/requirements.md#r-code-003); Hannes, 2026-10-30, 03:20: "a slash command in the source code
+ * editor /snippet adds the mark, but the mark must be more clear it belongs to the notes plugin", "snippet is the correct
+ * name for it"): `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment
+ * form of the language. A listing names a snippet as a symbol, and a snippet wins over a symbol of the same name. The
+ * code of a listing leaves out the marks of all snippets. It uses no API of VS Code.
  */
 
 import { parse } from './notes';
@@ -229,19 +236,83 @@ export function symbolLines(lines: readonly string[], symbol: string): { first: 
   return found;
 }
 
+/** snippetName is the source of the pattern of the name of a snippet: small letters and digits, with `-` between them. */
+const snippetName = '[a-z0-9]+(?:-[a-z0-9]+)*';
+
+/** snippetMark matches a line with a mark of a snippet, in any form of a comment: `/` before `snippet` closes it. */
+const snippetMark = new RegExp(String.raw`\bmarkdownnotes:\s*(\/?)snippet\s+(${snippetName})\b`);
+
+/** isSnippetName tells whether a text is the name of a snippet. */
+export const isSnippetName = (name: string): boolean => new RegExp(`^${snippetName}$`).test(name);
+
 /**
- * codeOf returns the code of the source of a listing: the whole text of the file, or the lines of its symbol without
- * their common indentation, without blank lines at the start and the end; undefined when the symbol is not in it.
+ * snippetText returns the text of the marks of a snippet, without the form of the comment: the start and the end.
+ * @param name - The name of the snippet.
+ */
+export const snippetText = (name: string): [string, string] => [`markdownnotes: snippet ${name}`, `markdownnotes: /snippet ${name}`];
+
+/** comments are the forms of a comment of a line by the extensions of the files: the text before and after it. */
+const comments: Record<string, [string, string]> = {
+  ...Object.fromEntries(['c', 'cc', 'cpp', 'cs', 'go', 'h', 'hpp', 'java', 'js', 'jsx', 'kt', 'mjs', 'cjs', 'php', 'rs', 'scala', 'swift', 'ts', 'tsx'].map((extension) => [extension, ['// ', '']])),
+  ...Object.fromEntries(['py', 'r', 'rb', 'sh', 'ps1', 'toml', 'yaml', 'yml'].map((extension) => [extension, ['# ', '']])),
+  ...Object.fromEntries(['sql'].map((extension) => [extension, ['-- ', '']])),
+  ...Object.fromEntries(['m', 'tex'].map((extension) => [extension, ['% ', '']])),
+  ...Object.fromEntries(['html', 'xml', 'md'].map((extension) => [extension, ['<!-- ', ' -->']])),
+  css: ['/* ', ' */'],
+};
+
+/**
+ * snippetLines returns the marks of a snippet in the comment form of the language of a file, or undefined for a file
+ * whose language has no comment of a line, such as JSON.
+ * @param path - The path of the file.
+ * @param name - The name of the snippet.
+ * @param indent - The white space before the marks.
+ */
+export function snippetLines(path: string, name: string, indent = ''): [string, string] | undefined {
+  const form = comments[/\.([^./]+)$/.exec(path)?.[1].toLowerCase() ?? ''];
+  return form ? (snippetText(name).map((text) => `${indent}${form[0]}${text}${form[1]}`) as [string, string]) : undefined;
+}
+
+/**
+ * snippetsOf returns the snippets of the lines of a source: the name, and the index of the first and the last line of
+ * its code between its marks, in the order of their start marks. A start mark without an end mark after it is no
+ * snippet; of two snippets of one name, the first one counts.
+ * @param lines - The lines of the source.
+ */
+export function snippetsOf(lines: readonly string[]): { name: string; first: number; last: number }[] {
+  const snippets: { name: string; first: number; last: number }[] = [];
+  const open = new Map<string, number>();
+  lines.forEach((line, index) => {
+    const mark = snippetMark.exec(line);
+    if (!mark) {
+      return;
+    }
+    const [, close, name] = mark;
+    if (!close && !open.has(name) && !snippets.some((snippet) => snippet.name === name)) {
+      open.set(name, index);
+    } else if (close && open.has(name)) {
+      snippets.push({ name, first: open.get(name)! + 1, last: index - 1 });
+      open.delete(name);
+    }
+  });
+  return snippets.sort((a, b) => a.first - b.first);
+}
+
+/**
+ * codeOf returns the code of the source of a listing: the whole text of the file, or the lines of its snippet or its
+ * symbol without their common indentation, without the marks of the snippets and without blank lines at the start and
+ * the end; undefined when the snippet or the symbol is not in it.
  * @param text - The text of the file.
  * @param symbol - The name of the symbol, or undefined for the whole file.
  */
 export function codeOf(text: string, symbol?: string): string[] | undefined {
   const lines = text.replace(/^﻿/, '').split(/\r\n|\r|\n/);
+  const code = (part: readonly string[]) => trimBlank(dedent(part.filter((line) => !snippetMark.test(line))));
   if (symbol === undefined) {
-    return trimBlank(lines);
+    return code(lines);
   }
-  const range = symbolLines(lines, symbol);
-  return range ? trimBlank(dedent(lines.slice(range.first, range.last + 1))) : undefined;
+  const range = snippetsOf(lines).find((snippet) => snippet.name === symbol) ?? symbolLines(lines, symbol);
+  return range ? code(lines.slice(range.first, range.last + 1)) : undefined;
 }
 
 /** Source reads the text of a file of source code by its path relative to the Markdown file, or returns undefined. */

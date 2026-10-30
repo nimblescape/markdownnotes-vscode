@@ -48,7 +48,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
 | [Figures, tables and links to them](#figures-tables-and-links-to-them), also to sections | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001) to [R-XREF-003](requirements.md#r-xref-003) |
 | [Values of the front matter](#values-of-the-front-matter) | text editor, formatter | available | [R-XREF-004](requirements.md#r-xref-004) |
-| [Listings of code](#listings-of-code) | text editor, formatter, command line | files and symbols: available; tags in the source code: proposed | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) |
+| [Listings of code](#listings-of-code) | text editor, formatter, command line | available | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
 | Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
@@ -809,6 +809,36 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   Java, C#, Go, Rust, Kotlin and Python.
 - GitHub and the Markdown preview show the code block, without the comment.
   `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
+- Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the
+  source file at the snippet or the symbol.
+
+### Snippets
+
+A snippet is a part of a source file that is no function or class, for
+example a few lines of a function. Two comments mark it:
+
+```ts
+export function parse(lines: readonly string[]): Token[] {
+  // markdownnotes: snippet keep-lines
+  const kept = lines.filter(Boolean);
+  // markdownnotes: /snippet keep-lines
+  return kept;
+}
+```
+
+- Select the lines in the source file and type `/`, then choose `/snippet`;
+  or choose "Add Snippet" in the light bulb or the Command Palette. Type the
+  name: small letters and digits, with `-` between them. The extension
+  writes the two marks in the comment form of the language, for example
+  `#` in Python.
+- `/listing` lists the snippets of a file after "Whole file". A listing
+  names a snippet after `#`, as a symbol:
+  `<!-- listing: ../src/parse.ts#keep-lines -->`. A snippet wins over a
+  symbol of the same name.
+- The code of a listing never shows the marks of the snippets.
+- `/snippet` shows once the extension is active, after a Markdown file was
+  opened in the window; "Add Snippet" in the Command Palette works at any
+  time.
 
 ## Edit an answer
 

@@ -302,6 +302,16 @@ describe('nimblescape Markdown Notes', () => {
     assert.ok(await document.save(), 'the second save of the file');
     assert.ok(document.getText().startsWith('Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n```typescript\nexport function read(path: string): string {\n  return path.trim();\n}\n```\n'), document.getText());
     assert.ok(await opened.save(), 'the save of the source');
+    // A snippet between its marks, and the comment of its listing as a link to its first line (R-CODE-003).
+    const snippet = vscode.Uri.file(path.join(folder, 'src', 'snippet.py'));
+    fs.writeFileSync(snippet.fsPath, 'def read(path):\n    # markdownnotes: snippet open-file\n    with open(path) as file:\n        return file.read()\n    # markdownnotes: /snippet open-file\n');
+    await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), '<!-- listing: src/snippet.py#open-file -->\n\n```python\n```\n'));
+    assert.ok(await document.save(), 'the third save of the file');
+    assert.ok(document.getText().endsWith('<!-- listing: src/snippet.py#open-file -->\n\n```python\nwith open(path) as file:\n    return file.read()\n```\n'), document.getText());
+    const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>('vscode.executeLinkProvider', document.uri);
+    const link = links.find((candidate) => candidate.range.start.line === document.lineCount - 7);
+    assert.equal(link?.target?.path, snippet.path);
+    assert.equal(link?.target?.fragment, 'L3');
   });
 
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {

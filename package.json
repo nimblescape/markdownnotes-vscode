@@ -127,6 +127,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "nimblescape.markdownNotes.addSnippet",
+        "title": "Add Snippet",
+        "category": "Markdown Notes"
+      },
+      {
         "command": "nimblescape.markdownNotes.addFootnote",
         "title": "Add Footnote",
         "category": "Markdown Notes",
@@ -284,6 +289,10 @@
         {
           "command": "nimblescape.markdownNotes.addFootnote",
           "when": "editorLangId == markdown && !editorReadonly"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addSnippet",
+          "when": "editorLangId != markdown && !editorReadonly && editorHasSelection"
         },
         {
           "command": "nimblescape.markdownNotes.showHighlights",

@@ -140,22 +140,22 @@ function editsBetween(document: vscode.TextDocument, lines: readonly string[], c
 }
 
 /**
- * sourceOf returns the reader of the files of the listings of a document
- * ([R-CODE-002](../docs/requirements.md#r-code-002)): a path relative to the folder of its file, with `%` escapes, from
+ * sourceOf returns the reader of the files of the listings of a Markdown file
+ * ([R-CODE-002](../docs/requirements.md#r-code-002)): a path relative to the folder of the file, with `%` escapes, from
  * the open document of the file, else from the disk. A document that is no file reads no source, and its listings keep
  * their code.
- * @param document - The document.
+ * @param file - The URI of the Markdown file.
  */
-export function sourceOf(document: vscode.TextDocument): Source | undefined {
-  if (document.uri.scheme !== 'file') {
+export function sourceOf(file: vscode.Uri): Source | undefined {
+  if (file.scheme !== 'file') {
     return undefined;
   }
-  const folder = vscode.Uri.joinPath(document.uri, '..');
+  const folder = vscode.Uri.joinPath(file, '..');
   return (relative) => {
     try {
-      const file = vscode.Uri.joinPath(folder, decodeURIComponent(relative));
-      const open = vscode.workspace.textDocuments.find((other) => other.uri.toString() === file.toString());
-      return open ? open.getText() : fs.readFileSync(file.fsPath, 'utf8');
+      const path = vscode.Uri.joinPath(folder, decodeURIComponent(relative));
+      const open = vscode.workspace.textDocuments.find((other) => other.uri.toString() === path.toString());
+      return open ? open.getText() : fs.readFileSync(path.fsPath, 'utf8');
     } catch {
       return undefined;
     }
@@ -173,7 +173,7 @@ export function sourceOf(document: vscode.TextDocument): Source | undefined {
  */
 export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, steps?: FormatSteps): vscode.TextEdit[] {
   const lines = document.getText().split(/\r\n|\r|\n/);
-  let changed = changes.format ? formatMarkdown(lines, { source: sourceOf(document) }) : lines;
+  let changed = changes.format ? formatMarkdown(lines, { source: sourceOf(document.uri) }) : lines;
   if (changes.format && steps) {
     changed = steps.run(document, changed);
   }

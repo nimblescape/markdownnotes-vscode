@@ -62,7 +62,7 @@ import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
-import { codeOf, listingBlock, sourceFiles, symbolLines } from './notes/listings';
+import { codeOf, listingBlock, snippetsOf, sourceFiles, symbolLines } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -569,15 +569,19 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const source = await vscode.workspace.openTextDocument(chosen.file);
     const text = source.getText();
-    const symbols = await symbolsOf(source.uri, text.split(/\r\n|\r|\n/));
+    const lines = text.split(/\r\n|\r|\n/);
+    // The snippets come first, and a snippet wins over a symbol of the same name (R-CODE-003).
+    const snippets = snippetsOf(lines).map(({ name }) => ({ label: name, description: 'Snippet', name: name as string | undefined }));
+    const symbols = (await symbolsOf(source.uri, lines)).filter(({ name }) => !snippets.some((snippet) => snippet.name === name));
     let symbol: string | undefined;
-    if (symbols.length > 0) {
+    if (snippets.length + symbols.length > 0) {
       const part = await vscode.window.showQuickPick(
         [
           { label: 'Whole file', description: chosen.description, name: undefined as string | undefined },
+          ...snippets,
           ...symbols.map(({ name, kind }) => ({ label: name, description: vscode.SymbolKind[kind] ?? '', name })),
         ],
-        { placeHolder: 'The part of the file: the whole file, or a function, a class or a method', matchOnDescription: true },
+        { placeHolder: 'The part of the file: the whole file, a snippet, or a function, a class or a method', matchOnDescription: true },
       );
       if (!part) {
         return;

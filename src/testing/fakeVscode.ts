@@ -149,6 +149,7 @@ export class FakeHover {
 export class FakeCodeActionKind {
   static readonly Empty = new FakeCodeActionKind('');
   static readonly QuickFix = new FakeCodeActionKind('quickfix');
+  static readonly Refactor = new FakeCodeActionKind('refactor');
 
   constructor(readonly value: string) {}
 
@@ -194,6 +195,16 @@ interface FakeCompletionProvider {
 /** FakeCodeActionProvider stands for a vscode.CodeActionProvider. */
 interface FakeCodeActionProvider {
   provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: [] }): FakeCodeAction[];
+}
+
+/** FakeDocumentLink stands for a vscode.DocumentLink. */
+export class FakeDocumentLink {
+  tooltip: string | undefined;
+
+  constructor(
+    readonly range: FakeRange,
+    readonly target?: FakeUri,
+  ) {}
 }
 
 /** FakeDisposable is a disposable of the fake API, which calls its function on its disposal. */
@@ -527,6 +538,15 @@ export interface Registration {
   disposed: boolean;
 }
 
+/** Selector is a document selector of a provider: a language, or the scheme of the documents of every language. */
+type Selector = string | { scheme: string };
+
+/**
+ * keyOf returns the key of the providers of a selector: the language, or `scheme:` and the scheme.
+ * @param selector - The selector.
+ */
+const keyOf = (selector: Selector): string => (typeof selector === 'string' ? selector : `scheme:${selector.scheme}`);
+
 /** symbolKind stands for vscode.SymbolKind, with the names of the numbers, as a numeric enum of TypeScript has them. */
 const symbolKind: Record<string | number, string | number> = {};
 ['File', 'Module', 'Namespace', 'Package', 'Class', 'Method', 'Property', 'Field', 'Constructor', 'Enum', 'Interface', 'Function', 'Variable', 'Constant', 'String', 'Number', 'Boolean', 'Array', 'Object', 'Key', 'Null', 'EnumMember', 'Struct', 'Event', 'Operator', 'TypeParameter'].forEach((name, index) => {
@@ -553,6 +573,11 @@ export class Fake {
   /** warnings records the questions of the extension; the answer is the item that the user picks, or undefined. */
   warnings: string[] = [];
   answer: string | undefined;
+  /** inputs records the options of each input box; input is its answer, or undefined when the user cancels it. */
+  inputs: { value?: string; validateInput?: (value: string) => string | undefined }[] = [];
+  input: string | undefined;
+  /** links holds the providers of the links of each language. */
+  links = new Map<string, { provideDocumentLinks(document: FakeDocument): FakeDocumentLink[] }>();
   /** picks records the items of each quick pick, and pick chooses the answer, the first item by default. */
   picks: { label: string; description?: string }[][] = [];
   pick: (items: { label: string; description?: string }[]) => unknown = (items) => items[0];
@@ -626,6 +651,7 @@ export class Fake {
       Hover: FakeHover,
       CodeAction: FakeCodeAction,
       CodeActionKind: FakeCodeActionKind,
+      DocumentLink: FakeDocumentLink,
       CodeActionTriggerKind: { Invoke: 1, Automatic: 2 },
       CompletionItem: FakeCompletionItem,
       CompletionItemKind: { Function: 2, Value: 11, Reference: 17 },
@@ -669,12 +695,18 @@ export class Fake {
           this.folding.set(language, provider);
           return this.registration();
         },
-        registerCodeActionsProvider: (language: string, provider: FakeCodeActionProvider, metadata: { providedCodeActionKinds: readonly FakeCodeActionKind[] }) => {
+        registerCodeActionsProvider: (selector: Selector, provider: FakeCodeActionProvider, metadata: { providedCodeActionKinds: readonly FakeCodeActionKind[] }) => {
+          const language = keyOf(selector);
           this.codeActions.set(language, [...(this.codeActions.get(language) ?? []), { provider, kinds: metadata.providedCodeActionKinds }]);
           return this.registration();
         },
-        registerCompletionItemProvider: (language: string, provider: FakeCompletionProvider, ...triggers: string[]) => {
+        registerCompletionItemProvider: (selector: Selector, provider: FakeCompletionProvider, ...triggers: string[]) => {
+          const language = keyOf(selector);
           this.completions.set(language, [...(this.completions.get(language) ?? []), { provider, triggers }]);
+          return this.registration();
+        },
+        registerDocumentLinkProvider: (language: string, provider: { provideDocumentLinks(document: FakeDocument): FakeDocumentLink[] }) => {
+          this.links.set(language, provider);
           return this.registration();
         },
         registerHoverProvider: (language: string, provider: { provideHover(document: FakeDocument, position: FakePosition): FakeHover | undefined }) => {
@@ -706,6 +738,10 @@ export class Fake {
         showQuickPick: async (items: { label: string; description?: string }[]) => {
           this.picks.push(items);
           return this.pick(items);
+        },
+        showInputBox: async (options: { value?: string; validateInput?: (value: string) => string | undefined }) => {
+          this.inputs.push(options);
+          return this.input;
         },
         showErrorMessage: async (message: string) => {
           this.errors.push(message);
@@ -990,7 +1026,7 @@ export class Fake {
    * @param only - The kind that VS Code asks for, or undefined for every kind.
    */
   codeActionsAt(document: FakeDocument, range: FakeRange, only?: FakeCodeActionKind): { title: string; kind: string | undefined; command: string | undefined }[] {
-    return (this.codeActions.get(document.languageId) ?? []).flatMap(({ provider }) =>
+    return [...(this.codeActions.get(document.languageId) ?? []), ...(this.codeActions.get(`scheme:${document.uri.scheme}`) ?? [])].flatMap(({ provider }) =>
       provider.provideCodeActions(document, range, { only, triggerKind: 2, diagnostics: [] }).map((action) => ({ title: action.title, kind: action.kind?.value, command: action.command?.command })),
     );
   }
@@ -1002,7 +1038,7 @@ export class Fake {
    * @param position - The position of the cursor.
    */
   complete(document: FakeDocument, position: FakePosition): FakeCompletionItem[] {
-    return (this.completions.get(document.languageId) ?? []).flatMap(({ provider }) => {
+    return [...(this.completions.get(document.languageId) ?? []), ...(this.completions.get(`scheme:${document.uri.scheme}`) ?? [])].flatMap(({ provider }) => {
       const items = provider.provideCompletionItems(document, position);
       if (items instanceof Promise) {
         throw new Error('The provider waits for the document of a file, which the fake always has open.');

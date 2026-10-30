@@ -59,7 +59,9 @@ request.
 - Each listing gets the current code of its source: a code block with a
   comment before it that names a file, `<!-- listing: ../src/fields.ts -->`,
   or a function, a class or a method of the file,
-  `<!-- listing: ../src/fields.ts#readFields -->`. The path is relative to
+  `<!-- listing: ../src/fields.ts#readFields -->`, or a snippet between the
+  comments `markdownnotes: snippet <name>` and `markdownnotes: /snippet <name>`
+  of the file. The path is relative to
   the Markdown file, or to the current folder for the standard input. A
   listing whose source the command does not find keeps its code, and the
   command names it on the standard error; with `--check`, such a file counts
