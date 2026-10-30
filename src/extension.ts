@@ -23,7 +23,9 @@
  * button "Add Note" at the selected text of the preview, which add a note to
  * that text ([R-PREV-008](../docs/requirements.md#r-prev-008)), and the
  * buttons "Show Highlights" and "Hide Highlights", and refreshes the previews
- * and the notes when a setting of the extension changes.
+ * and the notes when a setting of the extension changes. Its export `getAPI`
+ * gives other extensions, such as nimblescape Markdown Paper, a versioned API
+ * ([R-GEN-012](../docs/requirements.md#r-gen-012)).
  *
  * The highlights show while the setting `showHighlights` is on, also while
  * the side view is closed (Hannes, 2026-10-29: "clicking the highlight button
@@ -52,7 +54,7 @@ import { SlashCommands } from './slashCommands';
 import { checkedSettings, type Settings, settingsSection } from './settings';
 
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
-export const extensionId = 'nimblescape.nimblescape-markdown-notes';
+export const extensionId = 'nimblescape.nimblescape-markdownnotes';
 
 /** openPath is the path of the links that select a note and open the side view, for a double click on its highlight. */
 export const openPath = '/open';
@@ -93,12 +95,31 @@ export const footnoteCommands = {
 /** footnotesContext is the context key that tells the menus whether the side view shows the footnotes. */
 export const footnotesContext = 'nimblescape.markdownNotes.footnotesShown';
 
+/**
+ * ApiV1 is version 1 of the API of the extension for other extensions, for example nimblescape Markdown Paper, which
+ * add their parts to the notes of a Markdown file without the extension knowing them.
+ */
+export interface ApiV1 {
+  version: 1;
+  /**
+   * fileOf returns the URI of the file behind a document of the clean editing view
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009)), or undefined for another document.
+   */
+  fileOf(document: vscode.Uri): vscode.Uri | undefined;
+}
+
 /** Api is the export of the extension. */
 export interface Api {
   /** extendMarkdownIt adds the notes to the markdown-it instance of the Markdown preview. */
   extendMarkdownIt(md: MarkdownIt): MarkdownIt;
   /** notesOf returns the notes of an open document, for the tests in VS Code. */
   notesOf(document: vscode.Uri): readonly Note[];
+  /**
+   * getAPI returns the API for other extensions in a version, as the Git extension of VS Code does, or undefined for a
+   * version that the extension does not know.
+   * @param version - The version of the API.
+   */
+  getAPI(version: number): ApiV1 | undefined;
 }
 
 /**
@@ -359,6 +380,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         },
       }),
     notesOf: (document) => threads.entriesOf(document).map((entry) => entry.note),
+    getAPI: (version) => (version === 1 ? { version: 1, fileOf } : undefined),
   };
 }
 

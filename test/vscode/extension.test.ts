@@ -18,7 +18,7 @@ import { headingLine } from '../../src/links';
 import { doctypeLines } from '../../src/notes/doctype';
 
 /** extensionId is the identifier of the extension. */
-const extensionId = 'nimblescape.nimblescape-markdown-notes';
+const extensionId = 'nimblescape.nimblescape-markdownnotes';
 
 /** marked returns a text with the comment of the format at its top, as a change of the extension writes it (R-NOTE-007). */
 const marked = (text: string): string => `${doctypeLines.join('\n')}\n\n${text}`;
@@ -203,6 +203,8 @@ describe('nimblescape Markdown Notes', () => {
     await vscode.commands.executeCommand('vscode.open', file);
     const view = await viewOf(file);
     assert.equal(view.document.getText(), '# Title\n\nThe text of the page and a highlight here.\n\nMore.\n');
+    // Version 1 of the API for other extensions names the file behind the view (R-GEN-012).
+    assert.equal((await api()).getAPI(1)?.fileOf(view.document.uri)?.toString(), file.toString());
     const fileTab = () => vscode.window.tabGroups.all.flatMap((group) => group.tabs).find((tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === file.toString());
     await waitFor(() => (fileTab() ? undefined : true), 'the close of the tab of the file');
     // Text typed at the end of a highlight stays outside of it.

@@ -291,7 +291,7 @@ the extension. Add the file `.vscode/extensions.json` to the repository:
 
 ```json
 {
-  "recommendations": ["nimblescape.nimblescape-markdown-notes"]
+  "recommendations": ["nimblescape.nimblescape-markdownnotes"]
 }
 ```
 

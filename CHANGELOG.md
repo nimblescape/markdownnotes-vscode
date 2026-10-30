@@ -147,6 +147,9 @@ The first version.
   for example the extensions of Matt Bierner for Mermaid diagrams, emoji,
   footnotes, checkboxes and the GitHub styles. A footnote in a note is a
   footnote of the page.
+- An API for other extensions, such as nimblescape Markdown Paper:
+  `getAPI(1)` of the export of the extension, with `fileOf`, which names the
+  file behind a clean editing view.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,

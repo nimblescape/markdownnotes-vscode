@@ -120,6 +120,18 @@ test('the export renders the highlights with the link of the rendered document, 
   expect(md.render(note, { currentDocument: document })).not.toContain('An answer');
 });
 
+test('the export gives other extensions version 1 of the API, which names the file behind a clean editing view, and no other version (R-GEN-012)', async () => {
+  const { api } = await fake.activate();
+  const { cleanUriOf } = await import('./cleanView');
+  const v1 = api.getAPI(1)!;
+  expect(v1.version).toBe(1);
+  const file = new FakeUri('file', '/folder/a.md');
+  expect(v1.fileOf(cleanUriOf(file as never))?.toString()).toBe(file.toString());
+  expect(v1.fileOf(file as never)).toBeUndefined();
+  expect(api.getAPI(2)).toBeUndefined();
+  expect(api.getAPI(0)).toBeUndefined();
+});
+
 test('the export ends the page of an open document that can have notes with the link of "Add Note" of the preview (R-PREV-008)', async () => {
   const document = fake.open(note);
   const { api, extension } = await fake.activate();
@@ -266,7 +278,7 @@ test('a save formats a Markdown file with notes or with the comment of the forma
   expect(await save(withNotes)).toEqual([]);
   fake.settings.set('', { 'editor.defaultFormatter': 'other.formatter' });
   expect(await save(withNotes)).toEqual([]);
-  fake.settings.set('', { 'editor.defaultFormatter': 'nimblescape.nimblescape-markdown-notes' });
+  fake.settings.set('', { 'editor.defaultFormatter': 'nimblescape.nimblescape-markdownnotes' });
   expect(await save(withNotes)).toHaveLength(1);
 });
 

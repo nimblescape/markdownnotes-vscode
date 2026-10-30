@@ -1,5 +1,5 @@
 {
-  "name": "nimblescape-markdown-notes",
+  "name": "nimblescape-markdownnotes",
   "displayName": "nimblescape Markdown Notes",
   "description": "Notes in Markdown files, written as footnotes that GitHub shows: threads of replies with their authors and dates. A side view shows each note next to its passage in the text editor, and edits and answers the notes; the text editor and the Markdown preview highlight the passages. Every change goes back into the footnote in the file.",
   "publisher": "nimblescape",
@@ -90,7 +90,7 @@
   "contributes": {
     "configurationDefaults": {
       "[markdown]": {
-        "editor.defaultFormatter": "nimblescape.nimblescape-markdown-notes",
+        "editor.defaultFormatter": "nimblescape.nimblescape-markdownnotes",
         "editor.smoothScrolling": true
       }
     },

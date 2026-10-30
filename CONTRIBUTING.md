@@ -12,7 +12,7 @@ describes its security model.
 
 | File | Purpose |
 | --- | --- |
-| `src/extension.ts` | The editor wiring: activation starts the threads of the notes, the overlay of the text editor, the side view and the light bulb action of the selected text, returns the markdown-it plugin for the Markdown preview with the settings, the selected note and the links of the rendered document, handles the links of the highlights of the preview (`vscode://nimblescape.nimblescape-markdown-notes/open` and `/deselect`), the buttons "Show Highlights" and "Hide Highlights" with the context key `nimblescape.markdownNotes.highlightsShown`, the buttons "Show Footnotes" and "Hide Footnotes" with the context key `nimblescape.markdownNotes.footnotesShown`, and refreshes the previews and the threads when a setting of the extension or the visibility of the side view changes. |
+| `src/extension.ts` | The editor wiring: activation starts the threads of the notes, the overlay of the text editor, the side view and the light bulb action of the selected text, returns the markdown-it plugin for the Markdown preview with the settings, the selected note and the links of the rendered document, handles the links of the highlights of the preview (`vscode://nimblescape.nimblescape-markdownnotes/open` and `/deselect`), the buttons "Show Highlights" and "Hide Highlights" with the context key `nimblescape.markdownNotes.highlightsShown`, the buttons "Show Footnotes" and "Hide Footnotes" with the context key `nimblescape.markdownNotes.footnotesShown`, refreshes the previews and the threads when a setting of the extension or the visibility of the side view changes, and exports `getAPI(1)`, the API for other extensions such as nimblescape Markdown Paper, with `fileOf` for the file behind a clean editing view ([R-GEN-012](docs/requirements.md#r-gen-012)). |
 | `src/github.ts` | The GitHub sign-in: the login of the GitHub session of VS Code, the author of new notes and answers. |
 | `src/settings.ts` | The settings of the extension, their defaults, and the check of their values. It uses no API of VS Code. |
 | `src/notes/syntax.ts` | The syntax of one note: the label `note-` and four random small letters or digits, the header line of an answer (`**login** · date`), the start marker `<wbr><!--[note-7k2q-->` with the name of a color, and the reference `[^note-7k2q]`, the tree of answers with their depths and parents, the lines of a note for a list of answers, the dates of a header in the local time of the reader and of the author, and the rules of markdown-it 14 for the definitions, the references and the start markers of the notes. It uses no API of VS Code, so the extension and the plugin share it. |
@@ -104,7 +104,7 @@ command `markdown-notes` of the npm package runs on the Node.js of the
 | `npm run package` | Builds `nimblescape-markdown-notes-<version>.vsix` with vsce, which first runs the production build (`vscode:prepublish`). vsce also validates the manifest and the README. |
 | `npm pack ./cli` | Builds the npm package `nimblescape-markdown-notes-<version>.tgz` from `cli/`, after a production build (`node esbuild.mjs --production`). `npx -y ./nimblescape-markdown-notes-<version>.tgz format <file>` runs it. |
 | `npm run install-local` | Builds the package and installs it into every profile of the VS Code of this computer; `-- --profile <name>` installs into one profile. Reload the window after an update of an active extension. |
-| `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdown-notes` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
+| `npm run uninstall-local` | Removes `nimblescape.nimblescape-markdownnotes` from every profile of the VS Code of this computer; `-- --profile <name>` removes it from one profile. |
 
 The launch configuration "Run the extension" builds the bundle and starts a
 second VS Code window that loads the extension from this folder, so that a
@@ -130,7 +130,7 @@ commit of the build.
 
 `package.json` is the extension manifest. It has these parts:
 
-- The name and the publisher define the extension ID `nimblescape.nimblescape-markdown-notes`; the section [Naming](#naming) explains the name.
+- The name and the publisher define the extension ID `nimblescape.nimblescape-markdownnotes`; the section [Naming](#naming) explains the name.
 - The description, the keywords, the categories, the banner (`galleryBanner`), `preview` and `qna` make the page of the Marketplace. vsce turns some words of the description into search tags; a test checks that the description adds no tag. `preview` shows the label "Preview" on the page, and `qna` sends the questions of the page to the GitHub issues.
 - The version is the only source of the package version, and the tag of a release names it.
 - The engine range defines the compatible VS Code versions. `@types/vscode` stays at the lowest version of that range, so that the code compiles only with the API of that version. The manifest enables no proposed API (`enabledApiProposals`), because the Marketplace does not accept an extension that uses one. A test checks both.
@@ -710,7 +710,7 @@ plugins:
   the ID of the highlight (`data-selection`) and `data-edge="start"` or
   `"end"`. The end holds the number of the color (`data-color`), the label
   (`data-note`) and the link that selects the note in the side view
-  (`data-href`, `vscode://nimblescape.nimblescape-markdown-notes/open` with
+  (`data-href`, `vscode://nimblescape.nimblescape-markdownnotes/open` with
   the document and the line of the note,
   [R-PREV-003](docs/requirements.md#r-prev-003)); `data-hidden="true"` while
   the highlights are hidden, and for the selected note `data-selected`, the
@@ -722,7 +722,7 @@ plugins:
 - Every other footnote renders as without the plugin.
 - The core rule `nimblescape_page` adds a block token at the end of the
   page: a hidden element `div.nimblescape-note-page` with the link of "Add
-  Note" of the preview (`data-add`, `vscode://nimblescape.nimblescape-markdown-notes/add`
+  Note" of the preview (`data-add`, `vscode://nimblescape.nimblescape-markdownnotes/add`
   with the rendered document, [R-PREV-008](docs/requirements.md#r-prev-008)),
   for a document that is open and can have notes; else it renders nothing.
 
@@ -740,7 +740,7 @@ content of the page into a link of an open shadow tree of the body, with the
 CSS `display: contents`, and gives it the address of `data-href` or of
 `data-deselect` only for the time of a click, and only when the address is a
 link to the extension (`ownLink`: the scheme of VS Code, the host
-`nimblescape.nimblescape-markdown-notes` and the path `/open`, `/deselect` or `/add`),
+`nimblescape.nimblescape-markdownnotes` and the path `/open`, `/deselect` or `/add`),
 because a document can write such an element in raw HTML
 ([docs/security.md](docs/security.md#links-to-the-extension)). The preview
 loads the scripts of the extensions with `async` and adds its content to the
@@ -836,21 +836,29 @@ version.
 ## Naming
 
 Every extension of the publisher `nimblescape` uses one name,
-`nimblescape-<name>`, for the repository, the package and the extension:
+`nimblescape-<name>`, for the package and the extension, and the repository
+`<name>-vscode`:
 
 | What | Form | This extension |
 | --- | --- | --- |
-| Repository | `nimblescape/nimblescape-<name>` | `nimblescape/nimblescape-markdown-notes` |
-| `name` in `package.json` | `nimblescape-<name>` | `nimblescape-markdown-notes` |
-| Extension ID | `nimblescape.nimblescape-<name>` | `nimblescape.nimblescape-markdown-notes` |
-| Package file | `nimblescape-<name>-<version>.vsix` | `nimblescape-markdown-notes-<version>.vsix` |
+| Repository | `nimblescape/<name>-vscode` | `nimblescape/markdownnotes-vscode`, after the rename; until then `nimblescape/nimblescape-markdown-notes` |
+| `name` in `package.json` | `nimblescape-<name>` | `nimblescape-markdownnotes` |
+| Extension ID | `nimblescape.nimblescape-<name>` | `nimblescape.nimblescape-markdownnotes` |
+| Package file | `nimblescape-<name>-<version>.vsix` | `nimblescape-markdownnotes-<version>.vsix` |
 | Display name | `nimblescape <Title>` | `nimblescape Markdown Notes` |
 
 The repository was created as `nimblescape/nimblescape-markdown` and renamed
-to `nimblescape/nimblescape-markdown-notes` on 2026-10-28, before the
-[Marketplace setup](#setup-of-a-repository), because
-`scripts/marketplace-setup.sh` requires that the name of the repository equals
-the `name` of `package.json`. GitHub forwards the old address to the new one.
+to `nimblescape/nimblescape-markdown-notes` on 2026-10-28. On 2026-10-30 Hannes
+gave the extension the ID `nimblescape.nimblescape-markdownnotes` and the
+repository the name `markdownnotes-vscode`, which it gets when the
+implementation is complete; its sister extension nimblescape Markdown Paper is
+`nimblescape.nimblescape-markdownpaper` in `nimblescape/markdownpaper-vscode`.
+GitHub forwards the old address of a renamed repository to the new one. After
+the rename, the addresses of the repository in `package.json` and in the
+documents change, and the [Marketplace setup](#setup-of-a-repository) runs
+again, because its federated credential names the repository;
+`scripts/marketplace-setup.sh` accepts the repository `<name>-vscode` for the
+`name` `nimblescape-<name>`.
 
 The prefix keeps the name apart from the names of other publishers, because
 the Marketplace accepts a `name` only once. The Marketplace cannot rename an

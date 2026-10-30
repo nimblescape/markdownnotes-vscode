@@ -64,13 +64,19 @@ const sourceFiles = (folder: string): string[] =>
     .filter((file) => file.endsWith('.ts'))
     .map((file) => path.join(folder, file));
 
+/**
+ * repositoryName is the name of the repository of the extension on GitHub. It gets the name markdownnotes-vscode when
+ * the implementation is complete (R-GEN-005); until then it keeps its name of 2026-10-28.
+ */
+const repositoryName = 'nimblescape-markdown-notes';
+
 test('the manifest follows the naming scheme of the publisher nimblescape', () => {
   expect(manifest.publisher).toBe('nimblescape');
-  expect(manifest.name).toBe('nimblescape-markdown-notes');
+  expect(manifest.name).toBe('nimblescape-markdownnotes');
   expect(manifest.displayName).toBe('nimblescape Markdown Notes');
-  expect(manifest.repository.url).toBe(`https://github.com/nimblescape/${manifest.name}.git`);
-  expect(manifest.bugs.url).toBe(`https://github.com/nimblescape/${manifest.name}/issues`);
-  expect(manifest.qna).toBe(`https://github.com/nimblescape/${manifest.name}/issues`);
+  expect(manifest.repository.url).toBe(`https://github.com/nimblescape/${repositoryName}.git`);
+  expect(manifest.bugs.url).toBe(`https://github.com/nimblescape/${repositoryName}/issues`);
+  expect(manifest.qna).toBe(`https://github.com/nimblescape/${repositoryName}/issues`);
   expect(manifest.license).toBe('MIT');
 });
 
@@ -468,7 +474,7 @@ test('the documents of the package use full links, so that each link works in th
 
 test('the images of the README are GIF or PNG files of docs/images/ on the branch main, as the Marketplace requires', () => {
   // The Marketplace shows no SVG image and no image with a relative address.
-  const base = `https://raw.githubusercontent.com/nimblescape/${manifest.name}/main/`;
+  const base = `https://raw.githubusercontent.com/nimblescape/${repositoryName}/main/`;
   const signatures = { gif: 'GIF8', png: '\x89PNG' };
   const images = [...read('README.md').matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)].map((match) => match[1]);
   expect(images.length).toBeGreaterThan(0);

@@ -348,14 +348,14 @@
    * ownLink matches the addresses of the extension that the plugin writes: a URI of VS Code for the extension that opens,
    * selects or deselects a note, or adds one.
    */
-  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes\/(open|select|deselect|add)(\?|$)/;
+  const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes\/(open|select|deselect|add)(\?|$)/;
 
   /**
    * selectLink returns the address that only selects the note of the address of the end of a highlight, which also
    * opens the side view.
    * @param {string} href - The address of the end of the highlight.
    */
-  const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdown-notes)\/open(?=\?|$)/, '$1/select');
+  const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes)\/open(?=\?|$)/, '$1/select');
 
   /**
    * arm gives the link of the page an address of the extension for the time of a click.

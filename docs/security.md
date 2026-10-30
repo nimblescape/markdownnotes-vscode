@@ -49,7 +49,7 @@ links to its details.
   (`extensionPack`). It is an extension of its own, with its own markdown-it
   plugin for the preview; you can disable or uninstall it.
 - **Links of the preview.** A click on the highlight of a note opens a link
-  `vscode://nimblescape.nimblescape-markdown-notes/select?document=…&line=…`,
+  `vscode://nimblescape.nimblescape-markdownnotes/select?document=…&line=…`,
   and a double click a link with the path `/open`.
   The extension opens only a Markdown file that is open or that belongs to
   the workspace, and only shows its notes. See
@@ -113,7 +113,7 @@ connection of VS Code, as the text of an open file does.
   passes the click to the extension
   ([Links to the extension](#links-to-the-extension)). It gives only a link
   to the extension, with the scheme of VS Code, the host
-  `nimblescape.nimblescape-markdown-notes` and the path `/open`, `/select`,
+  `nimblescape.nimblescape-markdownnotes` and the path `/open`, `/select`,
   `/deselect` or `/add`, because a document can write an element with the same classes
   in raw HTML. It sends no message. It reads the text of the page only for
   "Add Note" of the preview: a click on the button "Add Note" above selected

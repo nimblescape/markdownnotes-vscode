@@ -67,7 +67,8 @@ as the highlights of a marker pen on paper.
 | 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
 | 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
-| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format; the citations are footnotes with CSL ([decision 31](#decisions)) | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned |
+| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format; the citations are footnotes with CSL ([decision 31](#decisions)) | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; built in the form of links on 2026-10-29 and not pushed, because the citations may move to nimblescape Markdown Paper (Hannes, 22:11: "we want a clean split") |
+| 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository gets its new name `markdownnotes-vscode` when the implementation is complete |
 | 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
 
 ## General
@@ -116,11 +117,16 @@ source code, and holds the text of each license.
 
 ### R-GEN-005
 
-**Name and release.** The name is `nimblescape-markdown-notes`, the display
+**Name and release.** The name is `nimblescape-markdownnotes`, the display
 name "nimblescape Markdown Notes", and the extension ID
-`nimblescape.nimblescape-markdown-notes` (Hannes, 2026-10-28). The repository
-gets the same name, `nimblescape/nimblescape-markdown-notes`. The publisher is
-`nimblescape`. The release uses the same workflows and checks as the other
+`nimblescape.nimblescape-markdownnotes` (Hannes, 2026-10-30, 02:04; before
+it, `nimblescape.nimblescape-markdown-notes` of 2026-10-28). The repository
+gets the name `nimblescape/markdownnotes-vscode` when the implementation is
+complete ("will be renamed when impl is completed"); until then it is
+`nimblescape/nimblescape-markdown-notes`. Its sister extension nimblescape
+Markdown Paper is `nimblescape.nimblescape-markdownpaper` in
+`nimblescape/markdownpaper-vscode` (Hannes, 2026-10-30, 02:01). The
+publisher is `nimblescape`. The release uses the same workflows and checks as the other
 extensions of the publisher (`release.yml`, `release-dry-run.yml`,
 `marketplace-identity.yml`, `scripts/release-checks.mjs`) and follows the
 [release rules](../CONTRIBUTING.md#release-rules) of the publisher. Nobody
@@ -271,6 +277,29 @@ be viewed or hidden, when viewd make it good constrast"):
   stay.
 
 A change of the setting renders the open previews again.
+
+### R-GEN-012
+
+**API for other extensions.** The extension gives other extensions a
+versioned API, so that nimblescape Markdown Paper adds its parts to a
+Markdown file with notes without this extension knowing anything of papers
+(Hannes, 2026-10-29, 22:11: "we want a clean split and and the notes shall
+still be markdown related"; 22:15: "it is also the slash commands"; 22:16:
+"and maybe even more things"):
+
+- The export of the extension has `getAPI(version)`, as the Git extension of
+  VS Code: `getAPI(1)` returns version 1 of the API, and a version that the
+  extension does not know returns `undefined`.
+- Version 1 has `fileOf(uri)`: the URI of the file behind a document of the
+  clean editing view ([R-TEXT-009](#r-text-009)), or `undefined` for another
+  document, because the page preview and the PDF of Markdown Paper read the
+  file with its notes and footnotes.
+- Later points each get a call that registers a part and returns a handle that
+  removes it again: slash commands ([R-EDIT-008](#r-edit-008)), hidden blocks
+  of the clean editing view, steps of the formatter
+  ([R-FMT-001](#r-fmt-001)), checks ([R-TEXT-008](#r-text-008)), and lines of
+  the comment of the format ([R-NOTE-007](#r-note-007)). A point that changes
+  the meaning of an earlier one raises the version.
 
 ## Notes
 

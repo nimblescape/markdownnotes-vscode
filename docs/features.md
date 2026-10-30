@@ -9,24 +9,25 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 This document lists each feature that Hannes asked for in the threads of the
 project, with the date of the request, the requirement of the
 [specification](requirements.md) that describes it, and its state on
-2026-10-29. The [user guide](guide.md) describes how to use the features that
+2026-10-30. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 91 requested features, 68 are built, among them the clean editing view
+Of 94 requested features, 70 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, and
 the standard footnotes in the side view. 10 features are planned but not built: the features of the section
-[Planned features](#planned-features). Two need Hannes: the npm package with
-the first release, and a setting of VS Code for the width of the text editor
-in Zen Mode. 11 requests were replaced or dropped by later decisions of
+[Planned features](#planned-features). Three need Hannes: the npm package with
+the first release, a setting of VS Code for the width of the text editor
+in Zen Mode, and the new name of the repository. 11 requests were replaced or dropped by later decisions of
 Hannes; each row names the decision.
 
 The main gaps are the visual editing in the side view, the hidden form of the
 notes, the checks of the footnotes, and the citations and sources
 in the style of the PHT (APA 7) with the slash commands `/research` and
-`/source`. Hannes chose their form on 2026-10-29 at 20:48: footnotes with
-the metadata of the source as CSL
-([decision 31](requirements.md#decisions)).
+`/source`. They are built as links to their entries but not pushed, because
+on 2026-10-29 at 22:11 Hannes asked for a clean split: nimblescape Markdown
+Notes stays about notes in Markdown, and the paper workflow goes to the new
+extension nimblescape Markdown Paper, which may take the citations.
 
 The columns of the tables:
 
@@ -159,6 +160,9 @@ need Hannes after the merge of
 | Format on save only for files with notes | 10-29 06:37 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Setting `formatOnSave` |
 | The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdown-notes format` |
 | The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | After the merge; the thread "Publish formatter to npmjs" has the steps |
+| The extension ID `nimblescape.nimblescape-markdownnotes` | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 47 |
+| The new name of the repository, `markdownnotes-vscode`, "when impl is completed" | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | Then the addresses of the repository change and the Marketplace setup runs again |
+| An API for other extensions: "it is also the slash commands", "and maybe even more things" | 10-29 22:15-22:16 | [R-GEN-012](requirements.md#r-gen-012) | Built | Version 1 with `fileOf`, for nimblescape Markdown Paper; the other points follow with it |
 
 ## Footnotes
 
