@@ -245,7 +245,7 @@ notes, and links to the [specification of the format](format.md), so that an
 agent can read, answer and add notes itself:
 
 ```markdown
-<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 …
@@ -1153,7 +1153,9 @@ cat paper.md | npx -y @nimblescape/markdownnotes format -
 ```
 
 After `npm install --global @nimblescape/markdownnotes`, the command is
-`markdownnotes format paper.md`.
+`markdownnotes format paper.md`. Before the first release, the package is
+not on npmjs.com yet: [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package)
+shows how to build it from a clone of the repository and install it.
 
 The first command formats the files and writes only those that change. With
 `--check` it changes no file, names each file that is not formatted, and
@@ -1234,4 +1236,4 @@ you can remove them from your settings.
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).

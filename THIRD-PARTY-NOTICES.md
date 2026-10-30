@@ -13,7 +13,7 @@ VS Code does. The command `markdownnotes` of the npm package
 `@nimblescape/markdownnotes`, `cli/dist/markdownnotes.js`, contains the
 same packages, and the npm package holds this file. This file names each of these packages, its
 license and the place of its source code. The code of the extension itself is under the
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).
 
 The Markdown preview renders the callouts of the notes with its own copy of
 markdown-it, which is part of VS Code, not of this package.

@@ -74,7 +74,7 @@ describe('the command format', () => {
 
   test('keeps the notes and the comment of the format', () => {
     const text = [
-      '<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md',
+      '<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md',
       '-->',
       '',
       'Some <!--[note-7k2q-->text[^note-7k2q] of',

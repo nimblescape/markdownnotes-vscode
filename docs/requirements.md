@@ -73,7 +73,7 @@ requirement, the plan and the decisions of Hannes.
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
 | 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the citation style, which the layout of Markdown Paper names and not the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` | [R-EDIT-008](#r-edit-008) | moved to nimblescape Markdown Paper ([decision 32](#decisions)); built there on the API of [R-GEN-012](#r-gen-012) |
 | 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
-| 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository gets its new name `markdownnotes-vscode` when the implementation is complete |
+| 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository has the name `markdownnotes-vscode` since 2026-10-30 (step 70) |
 | 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
 | 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
 | 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
@@ -96,6 +96,8 @@ requirement, the plan and the decisions of Hannes.
 | 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
 | 68 | Listings of files of other repositories as Git submodules: the link of the caption to the other repository at the commit of the submodule ([decision 46](#decisions)) | [R-CODE-006](#r-code-006) | planned |
 | 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
+| 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
+| 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
 
 ## General
 
@@ -145,9 +147,10 @@ source code, and holds the text of each license.
 
 **Name and release.** The name is `nimblescape-markdownnotes`, the display
 name "nimblescape Markdown Notes", and the extension ID
-`nimblescape.nimblescape-markdownnotes`. The repository gets the name
-`nimblescape/markdownnotes-vscode` when the implementation is complete;
-until then it is `nimblescape/nimblescape-markdown-notes`. Its sister
+`nimblescape.nimblescape-markdownnotes`. The repository is
+`nimblescape/markdownnotes-vscode`; Hannes renamed it from
+`nimblescape/nimblescape-markdown-notes` on 2026-10-30, and GitHub forwards
+the earlier addresses to it. Its sister
 extension nimblescape Markdown Paper is
 `nimblescape.nimblescape-markdownpaper` in
 `nimblescape/markdownpaper-vscode`. All other names have no hyphen in
@@ -156,14 +159,18 @@ extension nimblescape Markdown Paper is
 ([R-FMT-004](#r-fmt-004)), the name `nimblescape-markdownnotes` of the
 format in the comment of the format ([R-NOTE-007](#r-note-007)) and the
 scheme `markdownnotes` of the clean editing view. The settings and commands
-keep the form `nimblescape.markdownNotes.*`. The repository gets its new
+keep the form `nimblescape.markdownNotes.*`. The repository got its new
 name before the first publish of the npm package, because the trusted
-publisher of npmjs.com names the repository. The publisher is `nimblescape`.
+publisher of npmjs.com names the repository. The federated credential of the
+Marketplace also names the repository, so its
+[setup](../CONTRIBUTING.md#setup-of-a-repository) runs again before the
+first release. The publisher is `nimblescape`.
 The release uses the same workflows and checks as the other extensions of
 the publisher (`release.yml`, `release-dry-run.yml`,
 `marketplace-identity.yml`, `scripts/release-checks.mjs`) and follows the
 [release rules](../CONTRIBUTING.md#release-rules) of the publisher. Nobody
-publishes the extension until Hannes asks for it.
+publishes the extension until Hannes asks for it, and nothing is published
+before the release ([R-GEN-017](#r-gen-017)).
 
 ### R-GEN-006
 
@@ -421,6 +428,23 @@ so that each entry of the list links to it:
 <!-- /lol -->
 ```
 
+### R-GEN-017
+
+**Nothing published before the release.** Neither the extension nor the npm
+package `@nimblescape/markdownnotes` is published before the release: no
+version goes to the Visual Studio Marketplace or to npmjs.com outside the
+release workflow, which Hannes starts ([R-GEN-005](#r-gen-005),
+[decision 47](#decisions)). Until the first release, a test, an AI agent or
+another repository, for example nimblescape Markdown Paper or a paper
+project, installs the package from this GitHub repository: it builds the
+package from a clone at a fixed commit with
+`npm ci --ignore-scripts && node esbuild.mjs --production && npm pack ./cli`
+and installs the file `nimblescape-markdownnotes-<version>.tgz` that
+`npm pack` writes ([CONTRIBUTING.md](../CONTRIBUTING.md#npm-package)).
+`npm install github:nimblescape/markdownnotes-vscode` does not give the
+package, because it installs the extension at the root of the repository,
+and the bundles of `cli/dist/` are not in Git.
+
 ## Notes
 
 ### R-NOTE-001
@@ -594,10 +618,12 @@ file is a document with notes and how to read it. The
 
 - The first line names the format, its version and the address of the
   specification:
-  `<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`.
+  `<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md`.
   The name of the format has no hyphen in "markdownnotes" since 2026-10-30
   ([decision 33](#decisions)); a comment of the earlier name
-  `nimblescape-markdown-notes` counts as older and is written anew. Short
+  `nimblescape-markdown-notes` counts as older and is written anew. A
+  comment with the address of the repository before its rename on
+  2026-10-30 stays as it is, because GitHub forwards that address. Short
   lines of words follow, which tell an AI agent to read the specification
   before it reads, changes or adds a note, and the last line is `-->`.
   GitHub and the Markdown preview do not show the comment.
@@ -1536,7 +1562,9 @@ The command is the npm package `@nimblescape/markdownnotes` in the folder
 the extension nimblescape TypeScript. It has the version of the extension,
 and the release publishes it to npmjs.com, so that
 `npx -y @nimblescape/markdownnotes format <file>` runs it without an
-installation. The specification of the format of the notes for AI agents
+installation. Before the first release, a test or another repository builds
+the package from a clone of this repository ([R-GEN-017](#r-gen-017)). The
+specification of the format of the notes for AI agents
 ([docs/format.md](format.md)) tells agents to run the tool after a change of
 a file with notes.
 
@@ -2461,11 +2489,12 @@ requirements above follow them.
     [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007)): the npm package
     `@nimblescape/markdownnotes`, the command `markdownnotes`, the name
     `nimblescape-markdownnotes` of the format and the scheme `markdownnotes`
-    of the clean editing view. The addresses of the repository keep its old
-    name until its rename to `markdownnotes-vscode`.
+    of the clean editing view. The addresses of the repository kept the old
+    name until its rename to `markdownnotes-vscode` on 2026-10-30.
 34. **One formatter command for a paper project** ([R-FMT-004](#r-fmt-004),
     [R-GEN-012](#r-gen-012)): `@nimblescape/markdownpaper` depends on
-    `@nimblescape/markdownnotes` and calls its library `formatMarkdown`
+    `@nimblescape/markdownnotes`, after the first release (before it, see
+    [decision 47](#decisions)), and calls its library `formatMarkdown`
     before its own steps, so that
     `npx -y @nimblescape/markdownpaper format <file>` formats every file of
     a paper project, and `markdownnotes format` stays the command for notes
@@ -2562,8 +2591,16 @@ requirements above follow them.
     a list of repositories with versions in the front matter, whose files
     the tools fetch over the network, which needs a new form, network access
     and tokens for private repositories.
+47. **Nothing published before the release** ([R-GEN-017](#r-gen-017),
+    [R-GEN-005](#r-gen-005)): no version of the extension or of the npm
+    package goes to the Marketplace or to npmjs.com before the release.
+    Until then, the tests of other projects and the AI agents build the npm
+    package from a clone of this repository at a fixed commit and install
+    the file of `npm pack`. The other choice was to publish the npm package
+    before the release, so that nimblescape Markdown Paper could depend on
+    it from npmjs.com.
 
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).

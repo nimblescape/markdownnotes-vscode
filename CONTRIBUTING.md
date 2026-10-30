@@ -202,7 +202,7 @@ the formatter on the command line for programs and AI agents
 same form. Its manifest `cli/package.json` has these parts:
 
 - The name `@nimblescape/markdownnotes` and the command `markdownnotes` (`bin`), without a hyphen, as the extension ID ([decision 33](docs/requirements.md#decisions)). The Marketplace has no scopes, so the extension keeps the form of [Naming](#naming).
-- The library of the formatter: `main` and `exports` name the bundle `dist/index.js` of [src/cli/index.ts](src/cli/index.ts), which exports `formatMarkdown(lines)` and runs nothing on its load, and `types` names `index.d.ts`, which is written by hand and names no type of another package. nimblescape Markdown Paper calls it in its command `markdownpaper format` before its own steps, so that one command formats a paper project. A test in `test/cli/` loads the library with `require` and `import` and checks a program in TypeScript against the types. The package has the version of the extension: a change of `formatMarkdown` that breaks a program needs a new minor version while the version is 0.x, and Markdown Paper depends on a `~` range, for example `~0.2.0`.
+- The library of the formatter: `main` and `exports` name the bundle `dist/index.js` of [src/cli/index.ts](src/cli/index.ts), which exports `formatMarkdown(lines)` and runs nothing on its load, and `types` names `index.d.ts`, which is written by hand and names no type of another package. nimblescape Markdown Paper calls it in its command `markdownpaper format` before its own steps, so that one command formats a paper project. A test in `test/cli/` loads the library with `require` and `import` and checks a program in TypeScript against the types. The package has the version of the extension: a change of `formatMarkdown` that breaks a program needs a new minor version while the version is 0.x, and Markdown Paper depends on a `~` range after the first release, for example `~0.2.0`.
 - The version, which the release sets to the version of the extension. A test checks that both manifests and `cli/package-lock.json` have one version.
 - `files` keeps the bundles of `dist/`, `index.d.ts` and `THIRD-PARTY-NOTICES.md`, which the build copies into `cli/`, because the bundles hold markdown-it; npm adds `package.json`, `README.md` and `LICENSE`. A test checks the list with `npm pack --dry-run`.
 - `engines.node` is `>=22`, and the package has no dependency: the bundle imports only modules of Node.js, which a test checks.
@@ -211,6 +211,29 @@ same form. Its manifest `cli/package.json` has these parts:
 `cli/README.md` is the page of the package on npmjs.com, with full
 `https://…` links only. The package of the extension holds no file of
 `cli/`: the extension formats with its own copy of the formatter.
+
+Nothing is published before a release
+([R-GEN-017](docs/requirements.md#r-gen-017)), so the package is on
+npmjs.com only after the first release. Until then, a test of another
+project, for example of nimblescape Markdown Paper, or an AI agent builds the
+package from a clone of this repository at a fixed commit and installs the
+file that `npm pack` writes:
+
+```sh
+git clone https://github.com/nimblescape/markdownnotes-vscode.git
+cd markdownnotes-vscode
+git checkout <commit>
+npm ci --ignore-scripts && node esbuild.mjs --production && npm pack ./cli
+npm install --global "$PWD/nimblescape-markdownnotes-<version>.tgz"
+```
+
+In another project, `npm install --no-save <path>/nimblescape-markdownnotes-<version>.tgz`
+installs it for the tests, and
+`npx -y --package "<absolute path>/nimblescape-markdownnotes-<version>.tgz" markdownnotes format <file>`
+runs it once; npx needs the absolute path of the file.
+`npm install github:nimblescape/markdownnotes-vscode` does not work, because
+it installs the extension at the root of the repository, and `cli/dist/` is
+not in Git.
 
 ## Notes
 
@@ -871,7 +894,7 @@ Every extension of the publisher `nimblescape` uses one name,
 
 | What | Form | This extension |
 | --- | --- | --- |
-| Repository | `nimblescape/<name>-vscode` | `nimblescape/markdownnotes-vscode`, after the rename; until then `nimblescape/nimblescape-markdown-notes` |
+| Repository | `nimblescape/<name>-vscode` | `nimblescape/markdownnotes-vscode` |
 | `name` in `package.json` | `nimblescape-<name>` | `nimblescape-markdownnotes` |
 | Extension ID | `nimblescape.nimblescape-<name>` | `nimblescape.nimblescape-markdownnotes` |
 | Package file | `nimblescape-<name>-<version>.vsix` | `nimblescape-markdownnotes-<version>.vsix` |
@@ -879,14 +902,15 @@ Every extension of the publisher `nimblescape` uses one name,
 
 The repository was created as `nimblescape/nimblescape-markdown` and renamed
 to `nimblescape/nimblescape-markdown-notes` on 2026-10-28. On 2026-10-30 Hannes
-gave the extension the ID `nimblescape.nimblescape-markdownnotes` and the
-repository the name `markdownnotes-vscode`, which it gets when the
-implementation is complete; its sister extension nimblescape Markdown Paper is
-`nimblescape.nimblescape-markdownpaper` in `nimblescape/markdownpaper-vscode`.
-GitHub forwards the old address of a renamed repository to the new one. After
-the rename, the addresses of the repository in `package.json` and in the
-documents change, and the [Marketplace setup](#setup-of-a-repository) runs
-again, because its federated credential names the repository;
+gave the extension the ID `nimblescape.nimblescape-markdownnotes` and renamed
+the repository to `nimblescape/markdownnotes-vscode`; its sister extension
+nimblescape Markdown Paper is `nimblescape.nimblescape-markdownpaper` in
+`nimblescape/markdownpaper-vscode`. GitHub forwards the old addresses of a
+renamed repository to the new one, so a comment of the format with the old
+address of the specification stays as it is. With the rename, the addresses
+of the repository in the manifests and in the documents changed. The
+[Marketplace setup](#setup-of-a-repository) runs again before the first
+release, because its federated credential names the repository;
 `scripts/marketplace-setup.sh` accepts the repository `<name>-vscode` for the
 `name` `nimblescape-<name>`.
 
@@ -1014,7 +1038,7 @@ The script gives the credential these values. For this repository:
 | Field of the federated credential | Value |
 | --- | --- |
 | Issuer | `https://token.actions.githubusercontent.com` |
-| Subject | `repo:nimblescape@156021698/nimblescape-markdown-notes@1436834257:environment:marketplace` |
+| Subject | `repo:nimblescape@156021698/markdownnotes-vscode@1436834257:environment:marketplace` |
 | Audience | `api://AzureADTokenExchange` |
 
 GitHub puts the owner ID and the repository ID into the subject of every
@@ -1047,12 +1071,12 @@ No npm token is stored in GitHub.
 | --- | --- | --- |
 | Organization | [npmjs.com](https://www.npmjs.com/org/nimblescape) | `nimblescape`, the scope of the package |
 | Package | npmjs.com | `@nimblescape/markdownnotes`, public |
-| Trusted publisher | the settings of the package on npmjs.com, "Trusted Publisher" | GitHub Actions, the repository `nimblescape/nimblescape-markdown-notes`, the workflow `release.yml`, the environment `npm` |
+| Trusted publisher | the settings of the package on npmjs.com, "Trusted Publisher" | GitHub Actions, the repository `nimblescape/markdownnotes-vscode`, the workflow `release.yml`, the environment `npm` |
 | Environment | the settings of the repository, "Environments" | `npm`, reachable from the tags `v*` and the branch `main` only |
 
 ### Setup
 
-The repository gets its new name `markdownnotes-vscode` before the first
+The repository got its new name `markdownnotes-vscode` before the first
 publish: the trusted publisher names the repository, and `npm publish` with
 provenance fails when `repository.url` of `cli/package.json` names another
 repository, so a later rename needs the trusted publisher again. The setup

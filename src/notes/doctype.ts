@@ -51,7 +51,7 @@ export const versionText = (version: Version): string => `${version.major}.${ver
 export const compareVersions = (a: Version, b: Version): number => a.major - b.major || a.minor - b.minor || a.patch - b.patch;
 
 /** specUrl is the address of the specification of the format, docs/format.md of the repository on the branch main. */
-export const specUrl = 'https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md';
+export const specUrl = 'https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md';
 
 /** doctypeName is the name of the format in the first line of the comment. */
 export const doctypeName = 'nimblescape-markdownnotes';

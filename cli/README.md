@@ -1,7 +1,7 @@
 # @nimblescape/markdownnotes
 
 The command `markdownnotes` formats Markdown files as the VS Code extension
-[nimblescape Markdown Notes](https://github.com/nimblescape/nimblescape-markdown-notes)
+[nimblescape Markdown Notes](https://github.com/nimblescape/markdownnotes-vscode)
 does on save. Programs and AI agents that change a Markdown file outside
 VS Code run it after the change, so that a file that an agent changed and a
 file that a person saved in VS Code look the same: `markdownnotes format
@@ -83,7 +83,7 @@ its line breaks (LF or CRLF) and its byte order mark.
 
 A file with notes of the extension starts with a comment that names the
 format of the notes and links to its
-[specification](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md).
+[specification](https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md).
 An AI agent reads it before it reads, changes or adds a note, and runs
 `markdownnotes format` after the change.
 
@@ -123,10 +123,10 @@ it uses. `THIRD-PARTY-NOTICES.md` in the package names their licenses.
 
 ---
 
-[Source and documentation](https://github.com/nimblescape/nimblescape-markdown-notes) ·
-[Change log](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/CHANGELOG.md) ·
-[Issues](https://github.com/nimblescape/nimblescape-markdown-notes/issues) ·
-[Support](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/SUPPORT.md)
+[Source and documentation](https://github.com/nimblescape/markdownnotes-vscode) ·
+[Change log](https://github.com/nimblescape/markdownnotes-vscode/blob/main/CHANGELOG.md) ·
+[Issues](https://github.com/nimblescape/markdownnotes-vscode/issues) ·
+[Support](https://github.com/nimblescape/markdownnotes-vscode/blob/main/SUPPORT.md)
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).

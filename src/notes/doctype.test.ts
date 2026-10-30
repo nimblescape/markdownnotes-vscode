@@ -43,7 +43,7 @@ describe('the comment of the format', () => {
   test('names the format, its version and its specification in its first line, and ends only in its last line', () => {
     expect(doctypeLines[0]).toBe(`<!-- nimblescape-markdownnotes v1.0.0 spec=${specUrl}`);
     expect(versionText(formatVersion)).toBe('1.0.0');
-    expect(specUrl).toBe('https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md');
+    expect(specUrl).toBe('https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md');
     expect(doctypeLines.slice(0, -1).some((line) => line.includes('-->') || line.includes('<!--', 4))).toBe(false);
     expect(doctypeLines.at(-1)).toBe('-->');
     // No line has a blank line, which a reader of Markdown could take for the end of the block.
@@ -110,10 +110,11 @@ describe('the edit of the comment', () => {
     expect(after('---\ntitle: A\n---', [doctypeEdit(['---', 'title: A', '---'], true)!])).toBe(`---\ntitle: A\n---\n${comment}`);
   });
 
-  test('keeps a comment of the same or a higher version also with another text, writes an older one anew, and removes the comment from a text without notes', () => {
+  test('keeps a comment of the same or a higher version also with another text or the address of the repository before its rename, writes an older one anew, and removes the comment from a text without notes', () => {
     expect(doctypeEdit(lines(`${comment}\n\n${noted}`), true)).toBeUndefined();
-    // Only a higher version writes the comment anew.
-    for (const kept of ['<!-- nimblescape-markdownnotes v1.0.0 spec=x\nOther words.\n-->', '<!-- nimblescape-markdownnotes v1.0.1 -->', '<!-- nimblescape-markdownnotes v1.2.0 -->', '<!-- nimblescape-markdownnotes v2.0.0 -->']) {
+    // Only a higher version writes the comment anew. GitHub forwards the address of the repository before its rename.
+    const renamed = '<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md\n-->';
+    for (const kept of [renamed, '<!-- nimblescape-markdownnotes v1.0.0 spec=x\nOther words.\n-->', '<!-- nimblescape-markdownnotes v1.0.1 -->', '<!-- nimblescape-markdownnotes v1.2.0 -->', '<!-- nimblescape-markdownnotes v2.0.0 -->']) {
       expect(doctypeEdit(lines(`${kept}\n\n${noted}`), true), kept).toBeUndefined();
     }
     for (const old of ['<!-- nimblescape-markdownnotes v0.9.9 -->', '<!-- nimblescape-markdownnotes format=1 spec=x\n-->', '<!-- nimblescape-markdownnotes\n-->', '<!-- nimblescape-markdown-notes v1.0.0 spec=x\n-->']) {

@@ -66,11 +66,8 @@ const sourceFiles = (folder: string): string[] =>
     .filter((file) => file.endsWith('.ts'))
     .map((file) => path.join(folder, file));
 
-/**
- * repositoryName is the name of the repository of the extension on GitHub. It gets the name markdownnotes-vscode when
- * the implementation is complete (R-GEN-005); until then it keeps its name of 2026-10-28.
- */
-const repositoryName = 'nimblescape-markdown-notes';
+/** repositoryName is the name of the repository of the extension on GitHub, `<name>-vscode` (R-GEN-005). */
+const repositoryName = 'markdownnotes-vscode';
 
 test('the manifest follows the naming scheme of the publisher nimblescape', () => {
   expect(manifest.publisher).toBe('nimblescape');

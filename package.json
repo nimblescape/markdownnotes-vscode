@@ -26,10 +26,10 @@
   "homepage": "https://nimblescape.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nimblescape/nimblescape-markdown-notes.git"
+    "url": "https://github.com/nimblescape/markdownnotes-vscode.git"
   },
   "bugs": {
-    "url": "https://github.com/nimblescape/nimblescape-markdown-notes/issues"
+    "url": "https://github.com/nimblescape/markdownnotes-vscode/issues"
   },
   "pricing": "Free",
   "icon": "resources/icon.png",
@@ -38,7 +38,7 @@
     "theme": "light"
   },
   "preview": true,
-  "qna": "https://github.com/nimblescape/nimblescape-markdown-notes/issues",
+  "qna": "https://github.com/nimblescape/markdownnotes-vscode/issues",
   "main": "./dist/extension.js",
   "scripts": {
     "build": "node esbuild.mjs",

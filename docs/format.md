@@ -20,7 +20,7 @@ or GitHub does not show as intended.
 ## Example
 
 ```markdown
-<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md
+<!-- nimblescape-markdownnotes v1.0.0 spec=https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md
 This comment marks a Markdown file with notes of the VS Code extension nimblescape Markdown Notes.
 AI agents: read the spec above before you read, change or add a note, and keep this comment as it is.
 A note is a footnote with the label "note-" and four small letters or digits, for example [^note-7k2q].
@@ -60,9 +60,12 @@ A file with notes starts with a comment that names the format, like a
 DOCTYPE. GitHub and the Markdown preview do not show it.
 
 - The first line is exactly `<!-- nimblescape-markdownnotes v1.0.0
-  spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`,
+  spec=https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md`,
   on one line. `v1.0.0` is the version of this format, and `spec=` is the
-  address of this document.
+  address of this document. A comment with the address
+  `https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`,
+  of the repository before its rename on 2026-10-30, is valid too and stays
+  as it is: GitHub forwards that address to this document.
 - The lines after it are a short hint in words. They must not hold `-->`,
   because `-->` ends the comment, and they hold no blank line.
 - The last line is `-->`.
@@ -228,7 +231,10 @@ A program, for example an AI agent, follows these steps:
   `<wbr>`, adds the start marker of a note without one, writes the numbers of
   the captions and of the links to figures and tables
   ([8](#8-figures-tables-and-links-to-them)), and keeps the answers of the
-  notes, code blocks and HTML as they are.
+  notes, code blocks and HTML as they are. Before the first release, the
+  package is not on npmjs.com: build it from a clone of the repository, as
+  [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package) describes, and run
+  `markdownnotes format <file>`.
 - **Add a figure or a table:** write its caption line before it, for example
   `Figure: Plan of the study`, a blank line and the image; the formatter
   writes the number ([8](#8-figures-tables-and-links-to-them)).
@@ -379,4 +385,4 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).

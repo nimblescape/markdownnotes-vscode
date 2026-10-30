@@ -12,7 +12,7 @@ shortcut, in the context menu, or with the button above the selected text of
 the Markdown preview. Every change goes back into the footnote in
 the file, with the GitHub login of the author.
 
-![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the list of the two threads, the selected blue thread at its top with a frame, and the dimmed green thread](https://raw.githubusercontent.com/nimblescape/nimblescape-markdown-notes/main/docs/images/notes.png)
+![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the list of the two threads, the selected blue thread at its top with a frame, and the dimmed green thread](https://raw.githubusercontent.com/nimblescape/markdownnotes-vscode/main/docs/images/notes.png)
 
 ## What the extension does on your computer
 
@@ -54,7 +54,7 @@ the file, with the GitHub login of the author.
   features in both, because it only reads and changes the text of the open
   Markdown files, as described above, and runs no program of the workspace.
 
-[Security](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/security.md#what-the-extension-does-on-your-computer)
+[Security](https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/security.md#what-the-extension-does-on-your-computer)
 describes each step and where its protection ends.
 
 ## Features
@@ -146,7 +146,7 @@ describes each step and where its protection ends.
   which changes nothing and exits with 1 when a file is not formatted.
 - **For AI agents.** A comment at the top of each file with notes names the
   format of the notes and its version, like a DOCTYPE, and links to its
-  [specification](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md),
+  [specification](https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md),
   so that an AI agent can read, answer and add notes itself. A front matter
   stays the first block of the file.
 - **Warnings.** The text editor and the Problems view warn at each form of a
@@ -209,7 +209,7 @@ VS Code may ask once whether the extension may open the link.
 
 The first time you add or answer a note, VS Code asks you to sign in with
 GitHub. On macOS, use Cmd instead of Ctrl. The
-[user guide](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/guide.md)
+[user guide](https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/guide.md)
 describes every feature, also how a repository of documents recommends the
 extension to everyone who opens it.
 
@@ -259,6 +259,6 @@ on a save; "Save without Formatting" saves a file without the formatter.
 
 ---
 
-[Change log](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/CHANGELOG.md) · [Contributing](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/CONTRIBUTING.md) · [User guide](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/guide.md) · [Support](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/SUPPORT.md) · [Issues](https://github.com/nimblescape/nimblescape-markdown-notes/issues) · [Source](https://github.com/nimblescape/nimblescape-markdown-notes)
+[Change log](https://github.com/nimblescape/markdownnotes-vscode/blob/main/CHANGELOG.md) · [Contributing](https://github.com/nimblescape/markdownnotes-vscode/blob/main/CONTRIBUTING.md) · [User guide](https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/guide.md) · [Support](https://github.com/nimblescape/markdownnotes-vscode/blob/main/SUPPORT.md) · [Issues](https://github.com/nimblescape/markdownnotes-vscode/issues) · [Source](https://github.com/nimblescape/markdownnotes-vscode)
 
-© 2026 Hannes Stauss (scalarion@nimblescape.com) · [MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+© 2026 Hannes Stauss (scalarion@nimblescape.com) · [MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).

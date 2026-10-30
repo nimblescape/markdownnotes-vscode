@@ -54,10 +54,14 @@ form of the notes in a file for programs and AI agents, and
 - **Names:** extension ID `nimblescape.nimblescape-markdownnotes`, display
   name "nimblescape Markdown Notes", npm package `@nimblescape/markdownnotes`
   with the command `markdownnotes`, format name `nimblescape-markdownnotes`;
-  no hyphen in "markdownnotes". The repository becomes
-  `nimblescape/markdownnotes-vscode` when the implementation is complete, and
-  before the first npm publish. Nobody publishes until Hannes asks for it
+  no hyphen in "markdownnotes". The repository is
+  `nimblescape/markdownnotes-vscode` since 2026-10-30
   ([R-GEN-005](requirements.md#r-gen-005)).
+- **Nothing published before the release:** no version goes to the
+  Marketplace or to npmjs.com before the release, which Hannes starts. Until
+  then, tests, AI agents and other repositories build the npm package from a
+  clone of this repository at a fixed commit and install the file of
+  `npm pack` ([R-GEN-017](requirements.md#r-gen-017)).
 - **GitHub sign-in:** a new note or answer needs the GitHub sign-in of VS
   Code, and its author is the GitHub login; reading, editing and deleting
   need no sign-in ([R-GEN-006](requirements.md#r-gen-006)).
@@ -339,4 +343,4 @@ Checks of another extension go on the file that `fileOf` names
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).

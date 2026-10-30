@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 132 requested features, 102 are built, among them the clean editing view
+Of 133 requested features, 104 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -25,10 +25,10 @@ section by the ID that GitHub gives its heading), the
 values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
 the captions and the cite of a listing in the file by the principle "document driven". 8 features are planned but not built: the features of the section
-[Planned features](#planned-features). Four need Hannes: the npm package with
+[Planned features](#planned-features). Three need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
-in Zen Mode, the new name of the repository, and the question whether the
-comment of the format becomes front matter. 11 requests were replaced or
+in Zen Mode, and the question whether the comment of the format becomes
+front matter. 11 requests were replaced or
 dropped by later decisions of Hannes; each row names the decision. 7 requests
 moved to nimblescape Markdown Paper: the citations, the sources, the line
 numbers of a rendered listing, and the generated lists
@@ -60,7 +60,7 @@ The side view has what Hannes asked for, apart from the visual editing,
 which is in the section [Planned features](#planned-features). The
 tooltips, the lighter dimming and the list that scrolls on its own came on
 2026-10-29 (commit
-[a508cdf](https://github.com/nimblescape/nimblescape-markdown-notes/commit/a508cdf)),
+[a508cdf](https://github.com/nimblescape/markdownnotes-vscode/commit/a508cdf)),
 the header with the filters and the smooth scrolling of the text in the
 evening of 2026-10-29.
 
@@ -105,7 +105,7 @@ breaks and the cursor next to the hidden markers.
 | Line breaks and editing next to the hidden markers | 10-29 09:09 | [R-TEXT-005](requirements.md#r-text-005) | Built | VS Code wraps a line by all its characters, also the hidden ones, so a row ended early. Fixed by the clean editing view of [decision 27](requirements.md#decisions) (10-29 09:37), which shows no hidden characters |
 | The notes markup has no effect on the editing | 10-29 09:17 | [R-TEXT-009](requirements.md#r-text-009) | Built | [Decision 27](requirements.md#decisions): the clean editing view, step 38 of the plan; a prototype shown at 10:20, the full build checked in VS Code 1.144. Its limits are in [R-TEXT-009](requirements.md#r-text-009) |
 | A file with notes always in the clean editing view | 10-29 11:11 | [R-TEXT-009](requirements.md#r-text-009) | Built | From the Explorer, a search, a link, the last session and the first note; "Open File with Markup" in the Command Palette shows the file itself, and the view of the changes of git shows the file |
-| A better icon for "Show Highlights" | 10-29 08:57 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 26](requirements.md#decisions) (10-29 09:35): a highlighter pen from an icon font of the extension, in place of the eye; commit [8ab9937](https://github.com/nimblescape/nimblescape-markdown-notes/commit/8ab9937) |
+| A better icon for "Show Highlights" | 10-29 08:57 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 26](requirements.md#decisions) (10-29 09:35): a highlighter pen from an icon font of the extension, in place of the eye; commit [8ab9937](https://github.com/nimblescape/markdownnotes-vscode/commit/8ab9937) |
 | Notes always collapsed | 10-28 20:02 | [R-TEXT-005](requirements.md#r-text-005) | Built | Also at the start of VS Code (10-28 14:37) |
 | Markers and header lines never editable; the cursor steps over them; Backspace and Delete act on the other side | 10-28 | [R-NOTE-006](requirements.md#r-note-006) | Built | In the text editor of the file itself; the clean editing view shows no markers |
 | The header of an answer written by the extension and shown rendered | 10-28 11:51 | [R-TEXT-007](requirements.md#r-text-007) | Built | |
@@ -185,9 +185,11 @@ extension no place of its text, and Hannes chose the list
 
 ## Note format, formatter and command line
 
-The format and the formatter are built. The npm package and the first release
+The format and the formatter are built. Nothing is published before the
+release; until then, tests and AI agents build the npm package from a clone
+of the repository. The npm package and the first release
 need Hannes after the merge of
-[pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1).
+[pull request #1](https://github.com/nimblescape/markdownnotes-vscode/pull/1).
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
@@ -199,10 +201,11 @@ need Hannes after the merge of
 | The comment of the format as front matter | 10-30 02:49 | [R-NOTE-007](requirements.md#r-note-007) | Needs Hannes | Recommendation of 03:03: keep the comment, because GitHub shows the front matter of a Markdown file as a table at the top of the page; the front matter holds the data of a paper |
 | An own formatter with format on save: tables, blank lines, one line per paragraph | 10-28 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Also [R-FMT-002](requirements.md#r-fmt-002), [R-FMT-003](requirements.md#r-fmt-003) |
 | Format on save only for files with notes | 10-29 06:37 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Setting `formatOnSave` |
-| The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdownnotes format` |
+| The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdownnotes format`; before the first release from a clone (step 71) |
 | The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | After the merge; the thread "Publish formatter to npmjs" has the steps |
 | The extension ID `nimblescape.nimblescape-markdownnotes` | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 47 |
-| The new name of the repository, `markdownnotes-vscode` | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | Then the addresses of the repository change and the Marketplace setup runs again |
+| The new name of the repository, `markdownnotes-vscode` | 10-30 02:04, 09:37 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 70: Hannes renamed the repository on 2026-10-30, and the addresses in the manifests and the documents changed; the Marketplace setup runs again before the first release |
+| Nothing published before the release; tests and other repositories install the package from the GitHub repository | 10-30 09:36 | [R-GEN-017](requirements.md#r-gen-017) | Built | [Decision 47](requirements.md#decisions), step 71: a clone at a fixed commit and `npm pack ./cli` |
 | An API for other extensions | 10-29 22:15-22:16 | [R-GEN-012](requirements.md#r-gen-012) | Built | Version 1 with `fileOf`, `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand`, for nimblescape Markdown Paper (steps 47 and 48) |
 | A clean split; the citations and the sources go into nimblescape Markdown Paper | 10-29 22:11, 10-30 02:25 | [R-GEN-012](requirements.md#r-gen-012) | Built | [Decision 32](requirements.md#decisions); the format of the notes stays `v1.0.0`, and Markdown Paper adds the citations through the API |
 | Names without a hyphen, "markdown-notes" → "markdownnotes" | 10-30 02:27, 02:30 | [R-GEN-005](requirements.md#r-gen-005), [R-FMT-004](requirements.md#r-fmt-004), [R-NOTE-007](requirements.md#r-note-007) | Built | [Decision 33](requirements.md#decisions), step 49: `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes`, the scheme `markdownnotes` |
@@ -278,10 +281,10 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
    first release, because it changes the markup that the clean editing view
    leaves out.
 2. The merge of
-   [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
-   the new name of the repository, the first release and the npm package:
-   these need Hannes. The rename comes before the first publish of the npm
-   package, because the trusted publisher of npmjs.com names the repository.
+   [pull request #1](https://github.com/nimblescape/markdownnotes-vscode/pull/1),
+   the first release and the npm package: these need Hannes. The repository
+   has its new name since 2026-10-30; before the first release, the
+   Marketplace setup runs again for it.
 3. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
 4. Step 14: the visual editing in the side view.
@@ -289,4 +292,4 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 ---
 
 © 2026 Hannes Stauss (scalarion@nimblescape.com) ·
-[MIT License](https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/LICENSE).
+[MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).
