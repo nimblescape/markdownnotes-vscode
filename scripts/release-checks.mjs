@@ -10,7 +10,10 @@
 //   node scripts/release-checks.mjs dry-run
 //     Environment GITHUB_REPOSITORY, GH_TOKEN and HEAD_SHA. A successful dry run of the workflow "Release" tested the
 //     files of the release process, release.yml, ci.yml and this script, as they are at the commit HEAD_SHA. On a pull
-//     request (also PR_NUMBER and HEAD_REF), the check applies only when the pull request changes one of these files.
+//     request (also PR_NUMBER and HEAD_REF), the check applies only when the pull request changes one of these files,
+//     and it passes with a notice when the base branch has no release.yml yet: GitHub starts the workflow "Release"
+//     only from the default branch, so the first pull request of the release process cannot meet the rule, and the
+//     job "Version commit" of the first release runs the check on main.
 //
 // The script is the same in every extension repository of nimblescape.
 import { execFileSync } from 'child_process';
@@ -114,6 +117,15 @@ async function checkDryRun() {
     touched = RELEASE_FILES.filter((file) => changed.has(file));
     if (touched.length === 0) {
       console.log('The pull request changes no file of the release process.');
+      return;
+    }
+    // Without release.yml on the base branch, GitHub can start no dry run: the pull request adds the release process.
+    const base = (await api(`repos/${repository}/pulls/${number}`)).base.ref;
+    if ((await api(`repos/${repository}/contents/${RELEASE_WORKFLOW}?ref=${encodeURIComponent(base)}`, true)) === undefined) {
+      console.log(
+        `::notice::The base branch ${base} has no ${RELEASE_WORKFLOW} yet, so GitHub can start no dry run of this pull ` +
+          'request. The job "Version commit" of the first release checks rule 4 on main.',
+      );
       return;
     }
   }
