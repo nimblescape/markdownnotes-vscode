@@ -688,7 +688,7 @@ commands.
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as a figure: its caption line with the next number, for example `Figure 2: Caption`, a blank line and the image, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
 | `/table` | Adds a table: its caption line with the next number, for example `Table 1: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
-| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the snippets of the chosen file, and inserts the caption line with the next number, `Listing 2: [Caption](…)`, with the link to the source, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
+| `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the snippets of the chosen file, and inserts the caption line with the next number, `Listing 2: [Caption](…) (…)`, with the link to the source and its cite, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
 | `/ref` | Adds a link to a figure, a table, a listing or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#methods)`: lists them by their numbers and captions or headings. A figure, a table or a listing without an anchor gets one first; a link to a heading names the ID that GitHub gives it. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
@@ -805,7 +805,7 @@ a file of the repository, or a snippet of it, and the formatter keeps it
 current:
 
 ````markdown
-Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
+Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30) (fields.ts, L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -821,8 +821,10 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   its whole text. Type the caption, which is selected.
 - The caption after `Listing 1:` is your own text, and a link to the source:
   a click on it on GitHub opens the source file at the lines of the
-  snippet. The formatter writes the link and keeps its lines current; you
-  write only the text.
+  snippet. After the link, the formatter writes the cite of the source, the
+  file and the lines, for example `(fields.ts, L12-L30)`, for a reader of a
+  printed page. It keeps the link and the cite current; you write only the
+  text.
 - The comment before the code block names the source: the path from the
   Markdown file, and after `#` the name of a snippet, for example
   `#read-fields`. You can also write the comment yourself before a code
@@ -845,7 +847,8 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   `[Listing 1](#lst-reading-fields)`. The formatter writes the numbers into
   the captions and the links.
 - The clean editing view shows only the text of the caption and the code
-  block: it hides the comment and the link around the caption. Ctrl+Click
+  block: it hides the comment, and the link around the caption with the
+  cite. Ctrl+Click
   (Cmd+Click on a Mac) on the caption there, or on the path in the comment
   in the text editor of the file with markup, opens the source file at the
   snippet.

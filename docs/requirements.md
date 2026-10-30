@@ -93,6 +93,8 @@ requirement, the plan and the decisions of Hannes.
 | 64 | The principle "document driven" ([decision 42](#decisions)): the numbers of the captions of the figures, the tables and the listings from the formatter; the caption line of a figure before its image, which `/figure` inserts and the formatter writes for a figure of the older form; the anchors of the captions whose generated list the file holds | [R-GEN-016](#r-gen-016), [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-CODE-001](#r-code-001) | done |
 | 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
 | 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
+| 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
+| 68 | Listings of files of other repositories as Git submodules: the link of the caption to the other repository at the commit of the submodule ([decision 46](#decisions)) | [R-CODE-006](#r-code-006) | planned |
 
 ## General
 
@@ -374,8 +376,8 @@ the concept documents in Claude.
 **Document driven.** The Markdown file holds everything that a reader needs
 on GitHub, in another viewer of Markdown or as an AI agent. The formatter
 writes it into the file and keeps it current, in VS Code and on the command
-line: the code of each listing and the link of its caption
-([R-CODE-002](#r-code-002)), the numbers of the captions and of the links
+line: the code of each listing, the link of its caption and the cite of its
+source ([R-CODE-002](#r-code-002)), the numbers of the captions and of the links
 ([R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002)), the values of the
 front matter in the text ([R-XREF-004](#r-xref-004)), and the generated lists
 and the reference list of Markdown Paper ([R-GEN-012](#r-gen-012)). Two
@@ -390,9 +392,9 @@ limits apply ([decision 42](#decisions)):
   GitHub gives the heading ([R-XREF-003](#r-xref-003)); a link shows the
   number of its chapter instead, for example `[Chapter 2.1](#methods)`.
 
-The renderer of Markdown Paper adds only the look: the layout, the cite after
-a caption, line numbers in front of code, the numbers of the headings, page
-numbers and the dotted lines of the lists. It does not number the captions
+The renderer of Markdown Paper adds only the look: the layout, line numbers
+in front of code, the numbers of the headings, page numbers and the dotted
+lines of the lists. It does not number the captions
 again.
 
 Markdown Paper writes the table of contents, the list of figures, the list of
@@ -817,8 +819,8 @@ file at once, and keeps each note at its text:
   code and the definitions, also one that an edit moved away from the end of
   its line. Text typed at the end of the line of an anchor goes before it.
 - The view leaves out the comment of each listing with the blank line after
-  it, and the `[` and the `](…)` of the link of its caption
-  ([R-CODE-001](#r-code-001)). Text typed at the start or the end of the
+  it, and the `[` and the `](…)` of the link of its caption with the cite
+  after it ([R-CODE-001](#r-code-001)). Text typed at the start or the end of the
   caption goes into the link. An edit that deletes the text on both sides of
   the comment or of the link takes them away, and so does an edit after
   which the text is no caption of the listing, such as a paragraph break in
@@ -1814,7 +1816,7 @@ repository with other source code, and `/listing` adds code of a file of the
 repository to it. The form:
 
 ````markdown
-Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
+Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30) (fields.ts, L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -1845,18 +1847,24 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   the number of the caption ([R-XREF-002](#r-xref-002)); the text of the
   caption stays as the person wrote it ([decision 41](#decisions),
   [decision 42](#decisions)).
+- After the link, the formatter writes the cite of the source: the name of
+  the file and the lines, for example `(fields.ts, L12-L30)`, or only the
+  name for a whole file, `(fields.ts)`. So a reader of a printed page or of
+  a viewer without links knows the source, and Markdown Paper renders no
+  cite of its own ([decision 45](#decisions)).
 - GitHub and the Markdown preview show the caption and the code block; the
   comment is hidden there. The text editor of the file with markup shows
   everything. The clean editing view hides the comment, the `[` and the
-  `](…)` of the link of the caption and its anchor, so that only the text of
-  the caption is edited ([R-TEXT-009](#r-text-009)); there Ctrl+Click on the
+  `](…)` of the link of the caption with the cite after it, and its anchor,
+  so that only the text of the caption is edited ([R-TEXT-009](#r-text-009)); there Ctrl+Click on the
   caption opens the source file at the first line of the snippet, as
   Ctrl+Click on the comment does in the text editor of the file with markup.
 - `/listing` lists the source files of the workspace by their paths from the
   folder of the Markdown file, then "Whole file" and the snippets of the
   chosen file. It inserts the caption line with the next number,
-  `Listing 2: [Caption](…)`, with the link to the source, the comment and the code block with the language of
-  the file, with the caption selected for typing. A file without snippets
+  `Listing 2: [Caption](…) (…)`, with the link to the source and its cite,
+  the comment and the code block with the language of the file, with the
+  caption selected for typing. A file without snippets
   gives its whole text. In the clean editing view, the view gets the caption
   and the code block, and the link and the comment go into the file.
 - `/ref` links a listing as a figure or a table, for example
@@ -1884,6 +1892,11 @@ code block.
   lines. A caption that is no link becomes the text of the link; a link to
   the source inside it, for example after text typed outside of the old
   link, goes into the new link. A caption without text stays as it is.
+- The formatter writes the cite after the link and keeps it current with
+  the link: the name of the file, decoded, and the lines of the link, for
+  example `(read me.ts, L2-L4)`. A cite after the link that differs, such
+  as an old one or one typed by hand, gets the current cite
+  ([decision 45](#decisions)).
 - In VS Code, the formatter reads a source from its open document, so that
   a change that is not saved yet counts, or else from the disk. On the
   command line, it reads the source relative to the Markdown file, or to
@@ -2037,6 +2050,38 @@ class or a method ([decision 38](#decisions)):
   `Reader.Read`), the functions of a shell script, the key paths of YAML,
   JSON and JSONC (for example `services.web`), a rule of CSS by its
   selector, and an element of HTML by its `id`.
+
+### R-CODE-006
+
+**Sources in other repositories.** A paper about a project of more than one
+repository shows code of each repository. Each other repository is a Git
+submodule of the repository of the paper, at a fixed commit
+([decision 46](#decisions)). This requirement is planned and not built
+yet ([step 68](#plan)).
+
+```text
+paper-repo/
+  paper/paper.md
+  repos/server/   (submodule)
+  repos/client/   (submodule)
+```
+
+- The comment of a listing names a file of a submodule by its path, as any
+  other file, for example `<!-- listing: ../repos/server/src/api.ts#read -->`.
+- VS Code, the command line and the check of a pull request read the files
+  from the disk. The check of a pull request checks out the submodules, for
+  example with `submodules: true` of `actions/checkout`. No network access
+  and no tokens are needed.
+- The commit of the submodule is the version of the code that the paper
+  shows. For a new version, the author updates the submodule and commits
+  it; the formatter then writes the current code and lines.
+- GitHub opens no relative link into a submodule. For a file of a
+  submodule, the formatter writes the link of the caption to the other
+  repository at the commit of the submodule, for example
+  `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`. It reads
+  the address of the repository from `.gitmodules` and the commit from the
+  submodule. The cite after the link stays `(api.ts, L12-L30)`
+  ([R-CODE-001](#r-code-001)).
 
 ## Hidden notes
 
@@ -2464,15 +2509,11 @@ requirements above follow them.
     at the comment of a listing whose source file or snippet is not found,
     as the command line names it; the listing keeps its code. The other
     choice was the message of the command line only.
-41. **The caption of a listing cites its source** ([R-CODE-001](#r-code-001),
+41. **The caption of a listing links its source** ([R-CODE-001](#r-code-001),
     [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009)): the caption is
     free text and a link to the lines of the source, which the formatter
     keeps current; the clean editing view shows only the text of the caption
-    and hides the comment of the listing. A
-    cite with the file and the lines after the caption, such as
-    `(fields.ts, L12-L30)`, and line numbers in front of the code are
-    options of the layout of nimblescape Markdown Paper, which renders
-    them; the Markdown file holds neither. The other choices were the file
+    and hides the comment of the listing. The other choices were the file
     and the lines as text in the caption, and a visible comment of the
     listing in the clean editing view.
 42. **Document driven** ([R-GEN-016](#r-gen-016), [R-XREF-001](#r-xref-001),
@@ -2496,6 +2537,23 @@ requirements above follow them.
 44. **No left out lines in a listing** ([R-CODE-001](#r-code-001)): a
     listing shows all lines of its snippet or its file. The other choice was
     a mark that leaves out lines in the middle of a listing, shown as `…`.
+45. **The cite of a listing in the file** ([R-CODE-001](#r-code-001),
+    [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016)): following the
+    principle "document driven", the formatter writes the cite of the source
+    after the link of the caption, `(fields.ts, L12-L30)`, and keeps it
+    current; the clean editing view hides it with the link. Markdown Paper
+    renders no cite of its own. Line numbers in front of the code stay an
+    option of the layout of Markdown Paper, off by default. The other choice
+    was the cite as an option of the layout of Markdown Paper.
+46. **Sources in other repositories as Git submodules**
+    ([R-CODE-006](#r-code-006)): the other repositories of a project are Git
+    submodules of the repository of the paper, at a fixed commit; the
+    listings name their files by path, and the formatter reads them from the
+    disk. The link of a caption to a file of a submodule goes to the other
+    repository at that commit. Planned; not built yet. The other choice was
+    a list of repositories with versions in the front matter, whose files
+    the tools fetch over the network, which needs a new form, network access
+    and tokens for private repositories.
 
 ---
 

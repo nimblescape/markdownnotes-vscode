@@ -78,7 +78,7 @@ Table 1: Participants by grade<a id="tab-participants-grade"></a>
 
 [Listing 1](#lst-removing-common-indentation) shows code of the extension itself: `/listing` adds the code of a function of a source file, and the formatter keeps it current.
 
-Listing 1: [Removing the common indentation](../src/notes/listings.ts#L215-L224)<a id="lst-removing-common-indentation"></a>
+Listing 1: [Removing the common indentation](../src/notes/listings.ts#L240-L249) (listings.ts, L240-L249)<a id="lst-removing-common-indentation"></a>
 
 <!-- listing: ../src/notes/listings.ts#dedent -->
 

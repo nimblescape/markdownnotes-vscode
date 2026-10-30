@@ -273,7 +273,7 @@ test('on a line of its own, /listing inserts the whole file or a chosen snippet 
     ['Whole file', 'src/read me.ts'],
     ['open-reader', 'Snippet'],
   ]);
-  expect(document.text).toBe("# Code\n\nListing 1: [Caption](src/read%20me.ts#L7-L9)\n\n<!-- listing: src/read%20me.ts#open-reader -->\n\n```typescript\nopen(): void {\n  read('a');\n}\n```\n\n\nMore.\n");
+  expect(document.text).toBe("# Code\n\nListing 1: [Caption](src/read%20me.ts#L7-L9) (read me.ts, L7-L9)\n\n<!-- listing: src/read%20me.ts#open-reader -->\n\n```typescript\nopen(): void {\n  read('a');\n}\n```\n\n\nMore.\n");
   // The whole file: its code without the marks of the snippet, with the characters that a snippet escapes.
   const other = fake.open('/\n', '/folder/c.md');
   const otherEditor = new FakeEditor(other, 0);
@@ -284,7 +284,7 @@ test('on a line of its own, /listing inserts the whole file or a chosen snippet 
   fake.pick = (choices) => (fake.picks.length === 1 ? choices.find((choice) => choice.label === 'read me.ts') : choices[0]);
   await accept(otherEditor, fake.complete(other, new FakePosition(0, 1)).find((item) => labels([item])[0] === '/listing')!);
   const whole = code.split('\n').filter((line) => !line.includes('markdownnotes:')).join('\n').trimEnd();
-  expect(other.text).toBe(`Listing 1: [Caption](src/read%20me.ts)\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\n`);
+  expect(other.text).toBe(`Listing 1: [Caption](src/read%20me.ts) (read me.ts)\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\n`);
 });
 
 test('in text, /ref links a chosen figure or table, and gives it an anchor at the end of its caption when it has none (R-EDIT-008, R-XREF-001)', async () => {

@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 130 requested features, 101 are built, among them the clean editing view
+Of 132 requested features, 102 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -24,16 +24,16 @@ Paper, the figures, tables and sections with the links to them (to a
 section by the ID that GitHub gives its heading), the
 values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
-the captions in the file by the principle "document driven". 7 features are planned but not built: the features of the section
+the captions and the cite of a listing in the file by the principle "document driven". 8 features are planned but not built: the features of the section
 [Planned features](#planned-features). Four need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
 in Zen Mode, the new name of the repository, and the question whether the
 comment of the format becomes front matter. 11 requests were replaced or
 dropped by later decisions of Hannes; each row names the decision. 7 requests
-moved to nimblescape Markdown Paper: the citations, the sources, the cite
-and the line numbers of a rendered listing, and the generated lists
+moved to nimblescape Markdown Paper: the citations, the sources, the line
+numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
-[decision 41](requirements.md#decisions), [decision 42](requirements.md#decisions)).
+[decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
 The main gaps are the visual editing in the side view, the hidden form of the
 notes, and the checks of the footnotes.
@@ -149,7 +149,8 @@ breaks and the cursor next to the hidden markers.
 | The formatter keeps the code blocks current | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a snippet is found by its marks, the same way in both |
 | The comment of a listing hidden in the clean editing view, and the caption as the link to the source | 10-30 06:36 | [R-CODE-001](requirements.md#r-code-001), [R-TEXT-009](requirements.md#r-text-009) | Built | Step 63, [decision 41](requirements.md#decisions): the view hides the comment and the `[` and `](…)` of the link of the caption, so that only the text of the caption is edited; Ctrl+Click on the caption opens the source at the snippet; `/listing` in the view writes the hidden parts into the file |
 | The caption cites the source file and the lines, and the formatter keeps the lines current | 10-30 06:36, 06:40, 06:48 | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) | Built | Step 63: the caption is free text and a link to the source, `Listing: [Reading the fields](../src/fields.ts#L12-L30)`, so that a click on GitHub opens the lines; the formatter writes the link and its target, the text stays as written; the number of the caption came with step 64 |
-| Line numbers in front of the code and a cite after the caption in the rendered listing | 10-30 06:30, 06:40, 06:43 | [R-CODE-001](requirements.md#r-code-001) | Moved | [Decision 41](requirements.md#decisions): options of the layout of nimblescape Markdown Paper, for example `(server.ts, L20-L40)` after the caption; the line numbers are off by default and start at 1 in each listing |
+| Line numbers in front of the code in the rendered listing | 10-30 06:30, 06:40 | [R-CODE-001](requirements.md#r-code-001) | Moved | [Decision 45](requirements.md#decisions): an option of the layout of nimblescape Markdown Paper, off by default, from 1 in each listing |
+| The cite of the source after the caption, in the file | 10-30 06:43, 07:35 | [R-CODE-001](requirements.md#r-code-001), [R-CODE-002](requirements.md#r-code-002) | Built | Step 67, [decision 45](requirements.md#decisions): by the principle "document driven", the formatter writes `(fields.ts, L12-L30)` after the link of the caption and keeps it current; the clean editing view hides it with the link; Markdown Paper renders no cite of its own |
 | The file holds everything, and the formatter keeps it current | 10-30 06:58, 07:03, 07:10 | [R-GEN-016](requirements.md#r-gen-016) | Built | [Decision 42](requirements.md#decisions): "document driven" with two limits: the formatter writes only what it computes from the file and its sources, and changes nothing that other files link to, so the headings get no numbers; the renderer adds only the look |
 | Numbers in the captions | 10-30 06:48, 07:03 | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) | Built | Step 64: the formatter writes `Figure 1:`, `Table 2:` and `Listing 3:` (also `Abbildung`, `Tabelle`) from the order in the file; `/figure`, `/table` and `/listing` insert the next number |
 | Figures get captions | 10-30 07:10 | [R-XREF-001](requirements.md#r-xref-001) | Built | Step 64: a caption line before the image, as APA 7 has it; an image without a caption is no figure; the formatter gives an image of the older form with an anchor a caption line from the text of the image |
@@ -225,7 +226,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-7 features are in the specification and the plan, or proposed, but not built. Steps 29
+8 features are in the specification and the plan, or proposed, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -239,6 +240,7 @@ hidden form changes the markup that the clean view leaves out.
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, later | Planned |
+| Listings of files of other repositories, as Git submodules of the repository of the paper; the link of the caption goes to the other repository at the commit of the submodule | 10-30 07:34, 07:39 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 46](requirements.md#decisions)) | Planned |
 
 ## Moved to nimblescape Markdown Paper
 

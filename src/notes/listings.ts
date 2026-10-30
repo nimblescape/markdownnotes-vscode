@@ -10,9 +10,9 @@
  * `<!-- listing: ../src/fields.ts -->`, or a snippet of the file, `<!-- listing: ../src/fields.ts#parse-notes -->`. The
  * formatter reads the source again and writes its code into the block, the same way in VS Code and on the command line.
  * The caption of a listing, the free text after `Listing` and its number, is a link to its source, so that a click on it
- * in any viewer of Markdown opens the file at the lines of the snippet:
- * `Listing 1: [Parsing the notes](../src/fields.ts#L12-L30)`. The formatter writes the link around the caption and keeps
- * its target current with the code.
+ * in any viewer of Markdown opens the file at the lines of the snippet, and the cite of the file and the lines follows
+ * it: `Listing 1: [Parsing the notes](../src/fields.ts#L12-L30) (fields.ts, L12-L30)`. The formatter writes the link
+ * around the caption and the cite after it, and keeps both current with the code.
  *
  * A snippet is code between two marks in comments of the source ([R-CODE-003](../../docs/requirements.md#r-code-003)):
  * `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment form of the
@@ -93,8 +93,11 @@ const captionHead = /^(\s*Listing(?:[ \t]+\d+)?:[ \t]*)/;
 /** captionTail matches the end of the last line of the caption of a listing after its text: its anchor, if any. */
 const captionTail = /[ \t]*(?:<a id="lst-[a-z0-9]+(?:-[a-z0-9]+)*"><\/a>)?[ \t]*$/;
 
-/** linkEnd matches the end of a link at the end of a text: `](` and its target, without white space. */
-const linkEnd = /\]\(([^()\s]*)\)$/;
+/**
+ * linkEnd matches the end of a link at the end of a text: `](` and its target, without white space, and the cite after
+ * it in parentheses, if any.
+ */
+const linkEnd = /\]\(([^()\s]*)\)(?:[ \t]+\([^()\n]*\))?$/;
 
 /** balanced tells whether the square brackets of a text are balanced, so that the text can be the text of one link. */
 function balanced(text: string): boolean {
@@ -115,7 +118,10 @@ export interface Place {
   end: number;
 }
 
-/** CaptionLink is the link of the caption of a listing: its `[` before the text, its `](…)` after it, and its target. */
+/**
+ * CaptionLink is the link of the caption of a listing: its `[` before the text, its `](…)` after it with the cite after
+ * the link, and its target.
+ */
 export interface CaptionLink {
   open: Place;
   close: Place;
@@ -176,9 +182,28 @@ export function listingTarget(path: string, text: string, snippet?: string): str
 }
 
 /**
- * linkedCaption writes the text of the caption of a listing as a link to a target into the lines: a link of its own
- * gets the target, and a text that is no link becomes the text of the link, without the links to the source of the
- * listing in it, such as the old link around a part of it. A caption without text stays as it is.
+ * listingCite returns the cite of the source of a listing after its caption: the name of the file and the lines of the
+ * target, for example `(fields.ts, L12-L30)`, or `(fields.ts)` for a whole file
+ * ([R-GEN-016](../../docs/requirements.md#r-gen-016)).
+ * @param target - The target of the link of the caption, for example `../src/fields.ts#L12-L30`.
+ */
+export function listingCite(target: string): string {
+  const [path, lines] = target.split('#');
+  const name = path.split('/').at(-1)!;
+  let file = name;
+  try {
+    file = decodeURIComponent(name);
+  } catch {
+    // A name with a `%` that is no escape stays as it is written.
+  }
+  return `(${file}${lines ? `, ${lines}` : ''})`;
+}
+
+/**
+ * linkedCaption writes the text of the caption of a listing as a link to a target into the lines, with the cite of the
+ * target after it: a link of its own gets the target and the cite, and a text that is no link becomes the text of the
+ * link, without the links to the source of the listing in it and their cites, such as the old link around a part of
+ * it. A caption without text stays as it is.
  * @param lines - The lines of the text.
  * @param caption - The caption.
  * @param listing - The listing of the caption.
@@ -188,7 +213,7 @@ function linkedCaption(lines: string[], caption: Item, listing: Listing, target:
   const link = captionLinkOf(lines, caption);
   if (link) {
     const line = lines[link.close.line];
-    lines[link.close.line] = `${line.slice(0, link.close.start)}](${target})${line.slice(link.close.end)}`;
+    lines[link.close.line] = `${line.slice(0, link.close.start)}](${target}) ${listingCite(target)}${line.slice(link.close.end)}`;
     return;
   }
   const parts = captionParts(lines, caption);
@@ -198,11 +223,11 @@ function linkedCaption(lines: string[], caption: Item, listing: Listing, target:
   const last = lines[caption.line];
   const paragraph = [...lines.slice(parts.first, caption.line), last.slice(0, parts.end)].join('\n');
   const escaped = listing.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const text = paragraph.slice(parts.start).replace(new RegExp(String.raw`\[([^\[\]]*)\]\(${escaped}(?:#L\d+(?:-L\d+)?)?\)`, 'g'), '$1');
+  const text = paragraph.slice(parts.start).replace(new RegExp(String.raw`\[([^\[\]]*)\]\(${escaped}(?:#L\d+(?:-L\d+)?)?\)(?:[ \t]+\([^()\n]*\))?`, 'g'), '$1');
   if (text.trim() === '') {
     return;
   }
-  const linked = `${paragraph.slice(0, parts.start)}[${text}](${target})${last.slice(parts.end)}`.split('\n');
+  const linked = `${paragraph.slice(0, parts.start)}[${text}](${target}) ${listingCite(target)}${last.slice(parts.end)}`.split('\n');
   lines.splice(parts.first, linked.length, ...linked);
 }
 
@@ -432,8 +457,8 @@ export const sourceFiles = `{${[
 export const languageOf = (path: string): string => languages[fileTypeOf(path)] ?? '';
 
 /**
- * listingBlock returns the lines of a new listing: its caption line with the caption as a link to its source, its
- * comment and its code block, with a blank line between them, as the formatter writes them.
+ * listingBlock returns the lines of a new listing: its caption line with the caption as a link to its source and the
+ * cite after it, its comment and its code block, with a blank line between them, as the formatter writes them.
  * @param caption - The caption.
  * @param path - The path of the file of the source.
  * @param snippet - The name of the snippet, or undefined for the whole file.
@@ -443,5 +468,6 @@ export function listingBlock(caption: string, path: string, snippet: string | un
   const code = codeOf(text, snippet) ?? [];
   const longest = Math.max(0, ...code.map((line) => (line.trim().startsWith('`') ? /^\s*(`+)/.exec(line)![1].length : 0)));
   const fence = '`'.repeat(Math.max(3, longest + 1));
-  return [`Listing: [${caption}](${listingTarget(path, text, snippet)})`, '', listingText(path, snippet), '', `${fence}${languageOf(path)}`, ...code, fence];
+  const target = listingTarget(path, text, snippet);
+  return [`Listing: [${caption}](${target}) ${listingCite(target)}`, '', listingText(path, snippet), '', `${fence}${languageOf(path)}`, ...code, fence];
 }

@@ -496,7 +496,7 @@ test('opens the document of a file again that VS Code closes behind its view, fo
 });
 
 test('shows a listing without its comment and the link of its caption, and takes a listing of /listing into the file with them (R-CODE-001)', async () => {
-  const listing = 'Listing 1: [Keeping](src/keep.ts#L2)\n\n<!-- listing: src/keep.ts#keep -->\n\n```typescript\nconst kept = 1;\n```\n';
+  const listing = 'Listing 1: [Keeping](src/keep.ts#L2) (keep.ts, L2)\n\n<!-- listing: src/keep.ts#keep -->\n\n```typescript\nconst kept = 1;\n```\n';
   const { view, real, document, editor } = await opened(`${text}\n${listing}\n`);
   expect(document.getText()).toBe(`${clean}\nListing 1: Keeping\n\n\`\`\`typescript\nconst kept = 1;\n\`\`\`\n\n`);
   const { SlashCommands } = await import('./slashCommands');
@@ -513,11 +513,11 @@ test('shows a listing without its comment and the link of its caption, and takes
   editor.selection = { active: document.positionAt(document.text.length) };
   await fake.run('nimblescape.markdownNotes.slashListing', document.uri);
   await settle();
-  expect(real.text.endsWith(`\n${listing}\nListing 2: [Caption](src/other.ts)\n\n<!-- listing: src/other.ts -->\n\n\`\`\`typescript\nexport const other = 2;\n\`\`\`\n`)).toBe(true);
+  expect(real.text.endsWith(`\n${listing}\nListing 2: [Caption](src/other.ts) (other.ts)\n\n<!-- listing: src/other.ts -->\n\n\`\`\`typescript\nexport const other = 2;\n\`\`\`\n`)).toBe(true);
   expect(document.getText().endsWith('```\n\nListing 2: Caption\n\n```typescript\nexport const other = 2;\n```\n')).toBe(true);
   // Text typed over the caption goes into its link.
   const caption = document.text.lastIndexOf('Caption');
   typeIn(document, caption, caption + 'Caption'.length, 'Other');
   await settle();
-  expect(real.text).toContain('\nListing 2: [Other](src/other.ts)\n\n<!-- listing: src/other.ts -->\n');
+  expect(real.text).toContain('\nListing 2: [Other](src/other.ts) (other.ts)\n\n<!-- listing: src/other.ts -->\n');
 });

@@ -112,8 +112,9 @@ describes each step and where its protection ends.
 - **Code of the repository in the text.** `/listing` adds the code of a
   source file, or of a snippet of it, as a code block with the comment of
   its source, `<!-- listing: ../src/fields.ts#read-fields -->`, and a caption
-  that links to the lines of the source. The formatter writes the current
-  code and lines into it on each format, also on the command line.
+  that links to the lines of the source, with the cite of the source after
+  it, `(fields.ts, L12-L30)`. The formatter writes the current code, lines
+  and cite into it on each format, also on the command line.
   `/snippet` in a source file marks a function, a class or a few lines as a
   snippet that a listing can show.
 - **New notes.** Select the text that the note is about, then choose "Add

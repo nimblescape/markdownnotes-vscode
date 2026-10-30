@@ -65,7 +65,8 @@ request.
   `markdownnotes: snippet <name>` and `markdownnotes: /snippet <name>`,
   `<!-- listing: ../src/fields.ts#read-fields -->`. The caption line before
   it, `Listing: Reading the fields`, becomes a link to the lines of the
-  snippet in the source, `Listing 1: [Reading the fields](../src/fields.ts#L12-L30)`,
+  snippet in the source with the cite of the source after it,
+  `Listing 1: [Reading the fields](../src/fields.ts#L12-L30) (fields.ts, L12-L30)`,
   which the command keeps current. The path is relative to the Markdown
   file, or to the current folder for the standard input. A listing whose
   source the command does not find keeps its code and its caption, and the

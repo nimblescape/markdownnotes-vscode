@@ -199,8 +199,8 @@ export function findItems(lines: readonly string[]): Item[] {
     if (kind === 'figure') {
       pictures.add(index + 3);
     }
-    // The caption of a listing is the text of the link to its source.
-    const text = kind === 'listing' ? (/^\[([^]*)\]\([^()\s]*\)$/.exec(captioned[2])?.[1] ?? captioned[2]) : captioned[2];
+    // The caption of a listing is the text of the link to its source, without the cite of the source after it.
+    const text = kind === 'listing' ? (/^\[([^]*)\]\([^()\s]*\)(?:[ \t]+\([^()\n]*\))?$/.exec(captioned[2])?.[1] ?? captioned[2]) : captioned[2];
     items.push({ kind, caption: text.replace(/\s+/g, ' ').trim(), line: last, head: token.map[0], ...located });
   });
   const top = topLevel(items);

@@ -326,7 +326,7 @@ A listing is a fenced code block whose code comes from a source file of the
 repository ([R-CODE-001](requirements.md#r-code-001)):
 
 ````markdown
-Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30)<a id="lst-reading-fields"></a>
+Listing 1: [Reading the fields](../src/notes/fields.ts#L12-L30) (fields.ts, L12-L30)<a id="lst-reading-fields"></a>
 
 <!-- listing: ../src/notes/fields.ts#read-fields -->
 
@@ -361,14 +361,20 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   start mark to the line before the end mark, for example
   `../src/notes/fields.ts#L12-L30`, or `#L12` for one line. A whole file has
   no lines.
+- After the link, separated by one space, stands the cite of the source in
+  parentheses: the name of the file without its folders and with its
+  escapes decoded, `, ` and the lines of the link, for example
+  `(fields.ts, L12-L30)`, or only the name for a whole file, `(fields.ts)`.
+  A reader of a printed page or of a viewer without links sees the source
+  in it ([decision 45](requirements.md#decisions)).
 - The formatter writes the current code of the source into the code block,
-  and the link around the caption with the current lines
-  ([R-CODE-002](requirements.md#r-code-002)). A program that changes the
-  code in the Markdown file, or the lines of the link, loses the change with
-  the next format: change the source file. An AI agent that adds a listing
-  writes the caption line `Listing: ` with its text, the comment and an
-  empty code block, and runs `markdownnotes format`, which writes the number,
-  the link and the code.
+  and the link around the caption with the current lines and the cite after
+  it ([R-CODE-002](requirements.md#r-code-002)). A program that changes the
+  code in the Markdown file, the lines of the link or the cite loses the
+  change with the next format: change the source file. An AI agent that
+  adds a listing writes the caption line `Listing: ` with its text, the
+  comment and an empty code block, and runs `markdownnotes format`, which
+  writes the number, the link, the cite and the code.
 
 ---
 

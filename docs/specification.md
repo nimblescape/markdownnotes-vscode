@@ -284,21 +284,22 @@ form of the notes in a file for programs and AI agents, and
   markers ([R-XREF-004](requirements.md#r-xref-004)).
 - `/listing` inserts the code of a file of the workspace, or of a snippet of
   it, as a listing: the caption line `Listing 2:` with the caption as a link
-  to the lines of the source, `[Reading](../src/fields.ts#L12-L30)`, the
+  to the lines of the source and the cite of the source after it,
+  `[Reading](../src/fields.ts#L12-L30) (fields.ts, L12-L30)`, the
   comment `<!-- listing: ../src/fields.ts#read-fields -->` and the code
   block. The clean editing view shows only the text of the caption and the
   code block, and Ctrl+Click on the caption opens the source. `/ref` links
   it as `[Listing 1](#lst-…)` ([R-CODE-001](requirements.md#r-code-001)).
-  Markdown Paper renders a cite with the file and the lines after the
-  caption, and line numbers in front of the code, as options of its layout
-  ([decision 41](requirements.md#decisions)).
+  Markdown Paper renders no cite of its own; line numbers in front of the
+  code are an option of its layout ([decision 45](requirements.md#decisions)).
 - A listing shows a whole file or a snippet, and no symbol of a language,
   such as a function: a function is a snippet around it. Symbols come later
   with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python,
   HTML, CSS, YAML, JSON, JSONC and shell scripts
   ([R-CODE-005](requirements.md#r-code-005)).
 - The formatter writes the current code of the source into each listing,
-  and the current lines into the link of its caption, in VS Code and on the
+  and the current lines into the link of its caption and into the cite
+  after it, in VS Code and on the
   command line, which reports a missing source or
   snippet and fails with `--check`; the text editor and the Problems view
   show a warning at such a listing
@@ -318,6 +319,12 @@ form of the notes in a file for programs and AI agents, and
   "Rename Snippet" and "Remove Snippet", and the buttons "Show Used
   Snippets" and "Hide Used Snippets" color the used snippets
   ([R-CODE-004](requirements.md#r-code-004), decision 37).
+- **Sources in other repositories, planned:** each other repository of a
+  project is a Git submodule of the repository of the paper, at a fixed
+  commit; a listing names a file of it by its path, the tools read it from
+  the disk, and the link of the caption goes to the other repository at
+  the commit of the submodule, read from `.gitmodules`
+  ([R-CODE-006](requirements.md#r-code-006), decision 46).
 
 ## 12. API for other extensions
 

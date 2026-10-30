@@ -53,7 +53,7 @@ import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, captionWord, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
-import { listingBlock, listingTarget, snippetsOf, sourceFiles } from './notes/listings';
+import { listingBlock, listingCite, listingTarget, snippetsOf, sourceFiles } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -542,7 +542,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     // The clean editing view hides the link of the caption and the comment: the view gets the caption and the code block.
     const at = editor.selection.active;
     const head = `${captionStart(editor.document.getText().split(/\r\n|\r|\n/), 'listing', at.line)} `;
-    const lines = file ? [`${head}\${1:Caption}`, '', ...code.map(snippetText)] : [`${head}[\${1:Caption}](${snippetText(target)})`, '', snippetText(comment), '', ...code.map(snippetText)];
+    const link = `](${target}) ${listingCite(target)}`;
+    const lines = file ? [`${head}\${1:Caption}`, '', ...code.map(snippetText)] : [`${head}[\${1:Caption}${snippetText(link)}`, '', snippetText(comment), '', ...code.map(snippetText)];
     await editor.insertSnippet(new vscode.SnippetString(`${lines.join('\n')}\n$0`), at, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
     if (file) {
       // The hidden parts go into the file after the view wrote the caption and the code block there.
@@ -553,7 +554,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       if (start && end && fence) {
         const edit = new vscode.WorkspaceEdit();
         edit.insert(file, start, '[');
-        edit.insert(file, end, `](${target})`);
+        edit.insert(file, end, link);
         edit.insert(file, fence, `${comment}\n\n`);
         await vscode.workspace.applyEdit(edit);
       }

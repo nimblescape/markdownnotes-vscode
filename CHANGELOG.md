@@ -104,10 +104,11 @@ The first version.
   workspace, or of a snippet of it, as a code block with its caption line
   and the comment of its source, for example
   `<!-- listing: ../src/fields.ts#read-fields -->`. The caption is free
-  text and a link to the lines of the source, for example
-  `Listing 1: [Reading](../src/fields.ts#L12-L30)`. The formatter writes the
-  current code of the source into each listing and the current lines into
-  the link of its caption, in VS Code and on the command line, which names
+  text and a link to the lines of the source, with the cite of the source
+  after it, for example
+  `Listing 1: [Reading](../src/fields.ts#L12-L30) (fields.ts, L12-L30)`. The
+  formatter writes the current code of the source into each listing and the
+  current lines into the link of its caption and its cite, in VS Code and on the command line, which names
   a listing whose source it does not find; the text editor shows a warning
   at such a listing. The clean editing view shows only the text of the
   caption and the code block; Ctrl+Click on the caption opens the source.
