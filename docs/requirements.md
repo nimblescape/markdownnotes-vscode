@@ -81,6 +81,7 @@ requirement, the plan and the decisions of Hannes.
 | 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
 | 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done |
 | 54 | Tags in the source code that a listing names, and "Add Code Tag" | [R-CODE-003](#r-code-003) | proposed; waits for the choice of the form of the tags |
+| 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
 
 ## General
 
@@ -1406,6 +1407,29 @@ the preview view, but this should be possible as well"):
   and a message tells the user to select the text in the text editor.
 
 Built in step 40.
+
+### R-PREV-009
+
+**The notes in the pages of a paper.** nimblescape Markdown Paper shows the
+pages of a paper document in the Markdown preview of VS Code, and the
+functions of the notes work in the pages as in the preview of any other
+file (Hannes, 2026-10-30, 03:55: "all plugin functionality shall work in the
+rendered aper as well, such as marking a passage and adding a comment to it
+etc.", "as it would in the rendered markdown preview"): the highlights, the
+click that selects a note, the double click that opens the side view, and
+"Add Note" above selected text ([R-PREV-001](#r-prev-001) to
+[R-PREV-008](#r-prev-008)).
+
+- The script of Markdown Paper copies the content of the preview into its
+  pages in the element `.nimblescape-paper-pages` and hides the content
+  itself. The script of the notes then looks for the highlights and the
+  address of "Add Note" in the pages, which the user sees, and finds them
+  again after the event `nimblescape-paper-rendered` of each new set of
+  pages.
+- The PDF has no notes: the renderer of Markdown Paper makes it without the
+  plugin, the script and the style of the notes.
+
+Built in step 55.
 
 ## Formatter
 

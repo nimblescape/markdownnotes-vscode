@@ -213,6 +213,9 @@ form of the notes in a file for programs and AI agents, and
   ([R-PREV-005](requirements.md#r-prev-005)).
 - "Add Note" above selected text of one block
   ([R-PREV-008](requirements.md#r-prev-008)).
+- The same functions in the pages of a paper of nimblescape Markdown Paper,
+  which it shows in the Markdown preview; the PDF has no notes
+  ([R-PREV-009](requirements.md#r-prev-009)).
 
 ## 9. Formatter
 

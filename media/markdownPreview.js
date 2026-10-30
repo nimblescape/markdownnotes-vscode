@@ -59,6 +59,15 @@
 // the preview to scroll to the note; the script scrolls once for each number
 // of the attribute, smoothly as the side view (Hannes, 2026-10-29: "use smooth
 // scrolling as in the side view"), unless the system asks for less motion.
+//
+// nimblescape Markdown Paper shows the pages of a paper document in this
+// preview (Hannes, 2026-10-30: "all plugin functionality shall work in the
+// rendered paper as well, such as marking a passage and adding a comment to
+// it"): its script copies the content of the page into the pages of the
+// element `.nimblescape-paper-pages` and hides the content itself, and sends
+// the event `nimblescape-paper-rendered` for each new set of pages. The script
+// then finds the highlights and the address of "Add Note" in the pages, which
+// are copies without the listeners of the content.
 
 (() => {
   'use strict';
@@ -77,6 +86,9 @@
 
   /** textSelector finds the element of the text that a note can highlight: a table cell, or a block with its line. */
   const textSelector = 'td, th, [data-line]';
+
+  /** pagesSelector finds the pages of nimblescape Markdown Paper, the copies of the content that the user sees. */
+  const pagesSelector = '.nimblescape-paper-pages';
 
   /** controlSelector finds the elements whose click is their own: links and form controls. */
   const controlSelector = 'a, button, input, textarea, select, summary, label, [contenteditable]';
@@ -141,6 +153,12 @@
    */
   const registryOf = () => (typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight === 'function' ? CSS.highlights : undefined);
 
+  /**
+   * scope returns the part of the page that the user sees: the pages of nimblescape Markdown Paper, or else the document.
+   * @returns {ParentNode}
+   */
+  const scope = () => document.querySelector(pagesSelector) ?? document;
+
   /** motion returns how the preview scrolls to a note: smoothly, as the side view, unless the system asks for less motion. */
   const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
 
@@ -156,7 +174,7 @@
    * @returns {Element | undefined}
    */
   const chosen = () => {
-    const end = document.querySelector(`${endSelector}[data-selected]`) ?? undefined;
+    const end = scope().querySelector(`${endSelector}[data-selected]`) ?? undefined;
     return end && keyOf(end) !== dismissed ? end : undefined;
   };
 
@@ -168,7 +186,7 @@
    */
   const rangeOf = (end) => {
     const id = end.getAttribute('data-selection');
-    const start = [...document.querySelectorAll(edgeSelector)].find(
+    const start = [...scope().querySelectorAll(edgeSelector)].find(
       (edge) => edge.getAttribute('data-selection') === id && edge.getAttribute('data-edge') === 'start' && edge.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING,
     );
     const block = start ? undefined : end.closest(blockSelector);
@@ -188,17 +206,17 @@
   /** highlight finds the highlight of each note, and paints them. */
   const highlight = () => {
     highlights = new Map();
-    for (const end of document.querySelectorAll(endSelector)) {
+    for (const end of scope().querySelectorAll(endSelector)) {
       const range = rangeOf(end);
       if (range) {
         highlights.set(end, { range, color: end.getAttribute('data-color') ?? '1', shown: !end.hasAttribute('data-hidden') });
       }
     }
-    if (!document.querySelector(`${endSelector}[data-selected]`)) {
+    if (!scope().querySelector(`${endSelector}[data-selected]`)) {
       dismissed = undefined;
     }
     // The link of the page exists before the first click, so that a click changes nothing of the page.
-    if (document.body && (highlights.size > 0 || document.querySelector(pageSelector))) {
+    if (document.body && (highlights.size > 0 || scope().querySelector(pageSelector))) {
       linkOfPage();
     }
     hovered = undefined;
@@ -390,7 +408,7 @@
    * @returns {{ href: string, rects: DOMRect[] } | undefined}
    */
   const selectedText = () => {
-    const base = [...document.querySelectorAll(pageSelector)].at(-1)?.getAttribute('data-add');
+    const base = [...scope().querySelectorAll(pageSelector)].at(-1)?.getAttribute('data-add');
     const selection = document.getSelection();
     if (!base || !ownLink.test(base) || !selection || selection.rangeCount !== 1 || selection.isCollapsed) {
       return undefined;
@@ -588,6 +606,10 @@
     showAddLater();
   });
   window.addEventListener('vscode.markdown.updateContent', () => {
+    highlight();
+    showAddLater();
+  });
+  window.addEventListener('nimblescape-paper-rendered', () => {
     highlight();
     showAddLater();
   });

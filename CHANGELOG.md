@@ -104,6 +104,9 @@ The first version.
   writes the current code of the source into each listing, in VS Code and on
   the command line, which names a listing whose source it does not find.
   `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
+- The notes in the pages of a paper: the highlights, the selection of a
+  note and "Add Note" work in the pages that nimblescape Markdown Paper shows
+  in the Markdown preview.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side

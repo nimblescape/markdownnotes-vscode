@@ -976,6 +976,11 @@ The preview passes a click to the extension as a link of the scheme
 open it. Outside the highlights, the preview shows the file as without the
 extension.
 
+For a paper document, nimblescape Markdown Paper shows the pages of its
+layout in the Markdown preview. The highlights, the selection of a note and
+"Add Note" work in these pages in the same way; the PDF of the paper has no
+notes.
+
 ## Modes of a Markdown file
 
 VS Code 1.143 shows a Markdown file in one of three modes. The switch at the
