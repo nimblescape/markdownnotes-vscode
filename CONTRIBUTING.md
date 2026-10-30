@@ -213,11 +213,12 @@ same form. Its manifest `cli/package.json` has these parts:
 `cli/`: the extension formats with its own copy of the formatter.
 
 Nothing is published before a release
-([R-GEN-017](docs/requirements.md#r-gen-017)), so the package is on
-npmjs.com only after the first release. Until then, a test of another
-project, for example of nimblescape Markdown Paper, or an AI agent builds the
-package from a clone of this repository at a fixed commit and installs the
-file that `npm pack` writes:
+([R-GEN-017](docs/requirements.md#r-gen-017)), and for now there is no
+release ([decision 48](docs/requirements.md#decisions)), so the package is
+not on npmjs.com. The install from GitHub is the only way to get it: a
+person, a test of another project, for example of nimblescape Markdown
+Paper, or an AI agent builds the package from a clone of this repository at
+a fixed commit and installs the file that `npm pack` writes:
 
 ```sh
 git clone https://github.com/nimblescape/markdownnotes-vscode.git

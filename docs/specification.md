@@ -58,10 +58,11 @@ form of the notes in a file for programs and AI agents, and
   `nimblescape/markdownnotes-vscode` since 2026-10-30
   ([R-GEN-005](requirements.md#r-gen-005)).
 - **Nothing published before the release:** no version goes to the
-  Marketplace or to npmjs.com before the release, which Hannes starts. Until
-  then, tests, AI agents and other repositories build the npm package from a
-  clone of this repository at a fixed commit and install the file of
-  `npm pack` ([R-GEN-017](requirements.md#r-gen-017)).
+  Marketplace or to npmjs.com before the release, which Hannes starts. For
+  now there is no release ([decision 48](requirements.md#decisions)). Until
+  then, people, tests, AI agents and other repositories build the npm
+  package from a clone of this repository at a fixed commit and install the
+  file of `npm pack` ([R-GEN-017](requirements.md#r-gen-017)).
 - **GitHub sign-in:** a new note or answer needs the GitHub sign-in of VS
   Code, and its author is the GitHub login; reading, editing and deleting
   need no sign-in ([R-GEN-006](requirements.md#r-gen-006)).
@@ -237,8 +238,9 @@ form of the notes in a file for programs and AI agents, and
 - **Keeps** code blocks, HTML, front matter, math, containers, setext
   headings and the answers of the notes, and keeps the text when the result
   would render otherwise ([R-FMT-003](requirements.md#r-fmt-003)).
-- **Command line and library:** `npx -y @nimblescape/markdownnotes format
-  [--check] <file>...` with Node.js 22 or later, and the library
+- **Command line and library:** `markdownnotes format [--check] <file>...`
+  with Node.js 22 or later, installed from GitHub for now
+  ([decision 48](requirements.md#decisions)), and the library
   `formatMarkdown(lines, { source })` for programs such as
   `markdownpaper format` ([R-FMT-004](requirements.md#r-fmt-004)).
 

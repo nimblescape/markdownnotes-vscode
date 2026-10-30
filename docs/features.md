@@ -25,10 +25,14 @@ section by the ID that GitHub gives its heading), the
 values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
 the captions and the cite of a listing in the file by the principle "document driven". 8 features are planned but not built: the features of the section
-[Planned features](#planned-features). Three need Hannes: the npm package with
-the first release, a setting of VS Code for the width of the text editor
-in Zen Mode, and the question whether the comment of the format becomes
-front matter. 11 requests were replaced or
+[Planned features](#planned-features). Three questions are decided without a
+change of the code: there is no release for now, so the npm package is
+installed from GitHub only ([decision 48](requirements.md#decisions)); the
+user turns on a setting of VS Code for the width of the text editor in Zen
+Mode, which the user guide and the README name
+([decision 49](requirements.md#decisions)); and the comment of the format
+stays a comment and does not become front matter
+([decision 50](requirements.md#decisions)). 11 requests were replaced or
 dropped by later decisions of Hannes; each row names the decision. 7 requests
 moved to nimblescape Markdown Paper: the citations, the sources, the line
 numbers of a rendered listing, and the generated lists
@@ -47,7 +51,9 @@ The columns of the tables:
 - **Spec**: the requirement or requirements that describe the feature.
 - **State**: Built (in the branch of the pull request), Bug (built, with an
   open bug), Planned (in the specification and the [plan](requirements.md#plan),
-  not built), Needs Hannes (an action that only Hannes can take), Replaced (a
+  not built), Needs Hannes (an action that only Hannes can take), Decided
+  (Hannes decided it, and the code does not change), Postponed (Hannes moved
+  it to a later time), Replaced (a
   later decision changed the request), Dropped (a later decision removed it),
   Moved (the request belongs to nimblescape Markdown Paper).
 - **Detail**: the setting, the decision or the cause behind the state.
@@ -92,7 +98,7 @@ evening of 2026-10-29.
 | Smooth scrolling of the text | 10-29 19:01 | [R-SIDE-007](requirements.md#r-side-007) | Built | VS Code scrolls a text editor smoothly only with its setting `editor.smoothScrolling`, which the extension now turns on for Markdown files; the preview scrolls smoothly unless the system asks for less motion |
 | The text editor scrolls smoothly over the whole way | 10-29 19:50 | [R-SIDE-007](requirements.md#r-side-007) | Built | VS Code scrolls a text editor in 125 milliseconds and jumps over most of a long way; the extension now scrolls it itself in small steps, in about half a second, slowly at the start and at the end (checked in VS Code 1.144) |
 | The view that a double click opens scrolls to the note | 10-29 19:26 | [R-SIDE-007](requirements.md#r-side-007) | Built | A hidden view cannot scroll; the view now scrolls to a thread that was selected while it was hidden when it shows again |
-| The width of the text editor in Zen Mode when the side view opens | 10-29 19:29 | [R-SIDE-001](requirements.md#r-side-001) | Needs Hannes | The setting `"workbench.editor.centeredLayoutFixedWidth": true` of VS Code keeps the width (checked in VS Code 1.144: 900 pixels with the side view, 701 in place of 884 without the setting); it changes the centered layout of all files, so the extension does not set it |
+| The width of the text editor in Zen Mode when the side view opens | 10-29 19:29 | [R-SIDE-001](requirements.md#r-side-001) | Decided | [Decision 49](requirements.md#decisions) (10-30 18:22), step 74: the user turns on the setting `"workbench.editor.centeredLayoutFixedWidth": true` of VS Code, which keeps the width (checked in VS Code 1.144: 900 pixels with the side view, 701 in place of 884 without the setting); the user guide and the README name the issue and the setting. The extension does not set it, because it changes the centered layout of all files |
 
 ## Text editor
 
@@ -198,13 +204,13 @@ need Hannes after the merge of
 | A start marker for every note, always with `<wbr>`, the color in the marker, the reference as the end marker | 10-28 20:09-20:24 | [R-NOTE-006](requirements.md#r-note-006) | Built | |
 | The comment of the format for AI agents, with a link to the specification | 10-28 16:25 | [R-NOTE-007](requirements.md#r-note-007) | Built | |
 | The comment only with a change or a save, with the version `v1.0.0` as a semantic version | 10-29 07:36, 07:40 | [R-NOTE-007](requirements.md#r-note-007) | Built | |
-| The comment of the format as front matter | 10-30 02:49 | [R-NOTE-007](requirements.md#r-note-007) | Needs Hannes | Recommendation of 03:03: keep the comment, because GitHub shows the front matter of a Markdown file as a table at the top of the page; the front matter holds the data of a paper |
+| The comment of the format as front matter | 10-30 02:49 | [R-NOTE-007](requirements.md#r-note-007) | Decided | [Decision 50](requirements.md#decisions) (10-30 18:24), step 75: the comment stays, because GitHub shows the front matter of a Markdown file as a table at the top of the page; the front matter holds the data of a paper |
 | An own formatter with format on save: tables, blank lines, one line per paragraph | 10-28 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Also [R-FMT-002](requirements.md#r-fmt-002), [R-FMT-003](requirements.md#r-fmt-003) |
 | Format on save only for files with notes | 10-29 06:37 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Setting `formatOnSave` |
-| The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdownnotes format`; before the first release from a clone (step 71) |
-| The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | After the merge; the thread "Publish formatter to npmjs" has the steps |
+| The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `markdownnotes format`, installed from GitHub with a clone while there is no release (steps 71 and 73) |
+| The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Postponed | [Decision 48](requirements.md#decisions) (10-30 18:21), step 73: no release for now; the npm package is installed from GitHub only. The steps of the first publish stay in [CONTRIBUTING.md](../CONTRIBUTING.md#npmjscom-setup) |
 | The extension ID `nimblescape.nimblescape-markdownnotes` | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 47 |
-| The new name of the repository, `markdownnotes-vscode` | 10-30 02:04, 09:37 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 70: Hannes renamed the repository on 2026-10-30, and the addresses in the manifests and the documents changed; the Marketplace setup runs again before the first release |
+| The new name of the repository, `markdownnotes-vscode` | 10-30 02:04, 09:37 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 70: Hannes renamed the repository on 2026-10-30, and the addresses in the manifests and the documents changed; the Marketplace setup runs again before the first release, which is not planned for now |
 | Nothing published before the release; tests and other repositories install the package from the GitHub repository | 10-30 09:36 | [R-GEN-017](requirements.md#r-gen-017) | Built | [Decision 47](requirements.md#decisions), step 71: a clone at a fixed commit and `npm pack ./cli` |
 | An API for other extensions | 10-29 22:15-22:16 | [R-GEN-012](requirements.md#r-gen-012) | Built | Version 1 with `fileOf`, `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand`, for nimblescape Markdown Paper (steps 47 and 48) |
 | `/research` of Markdown Paper on selected text, with its hidden start marker | 10-30 | [R-GEN-012](requirements.md#r-gen-012) | Built | Step 72: slash commands of other extensions with `selection: true`, and `registerHiddenMarkers` for markers that the clean editing view hides |

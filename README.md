@@ -142,8 +142,11 @@ describes each step and where its protection ends.
   before each start marker, which every note gets. Code, HTML, a front matter
   and the answers of the notes stay as they are. Programs and AI agents run the same formatter on the command line
   with Node.js 22 or later, from the npm package `@nimblescape/markdownnotes`:
-  `npx -y @nimblescape/markdownnotes format paper.md`, or with `--check`,
-  which changes nothing and exits with 1 when a file is not formatted.
+  `markdownnotes format paper.md`, or with `--check`, which changes nothing
+  and exits with 1 when a file is not formatted. For now there is no
+  release, so the package is installed from GitHub, as
+  [CONTRIBUTING.md](https://github.com/nimblescape/markdownnotes-vscode/blob/main/CONTRIBUTING.md#npm-package)
+  shows.
 - **For AI agents.** A comment at the top of each file with notes names the
   format of the notes and its version, like a DOCTYPE, and links to its
   [specification](https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md),
@@ -223,6 +226,11 @@ extension to everyone who opens it.
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |
 
+For Zen Mode, turn on the setting
+`"workbench.editor.centeredLayoutFixedWidth": true` of VS Code in your user
+settings. Without it, the centered text editor gets narrower when the side
+view opens, and the lines wrap again.
+
 The formatter is the default formatter of Markdown files, so "Format
 Document" formats every Markdown file. With `"editor.formatOnSave": true` in
 a `"[markdown]"` block of your settings, VS Code formats every Markdown file
@@ -243,6 +251,11 @@ on a save; "Save without Formatting" saves a file without the formatter.
 - The side view stands next to the text editor only; next to the preview it
   lists the threads, because the preview tells an extension no place of its
   text. Where lines wrap, the heights of the threads are estimates.
+- In Zen Mode, VS Code makes the centered text editor narrower when the side
+  view opens, so the lines wrap again. Turn on the fixed width with
+  `"workbench.editor.centeredLayoutFixedWidth": true` in your user settings.
+  The extension does not change this setting, because it changes the
+  centered layout of all files.
 - In the Markdown preview, the button above the selected text adds a note;
   the light bulb, the shortcut and the context menu work in the text editor
   only. "Add Footnote" works in the text editor only.

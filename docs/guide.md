@@ -524,10 +524,21 @@ text of the notes, and their editor:
   own button "Hide Notes" (×). The command "Markdown Notes: Show or Hide
   Notes" of the Command Palette shows or hides the view.
 
-In Zen Mode, VS Code makes the centered text editor narrower when the side
-view opens, so that the lines of the text wrap again. The setting
-`"workbench.editor.centeredLayoutFixedWidth": true` of VS Code keeps the width
-of the text editor while the window has room for it.
+> [!IMPORTANT]
+> **Zen Mode: turn on the fixed width.** In Zen Mode, VS Code centers the
+> text editor and gives it a share of the width of the editor area. When the
+> side view opens, the editor area gets smaller, so the text editor gets
+> narrower and the lines of the text wrap again. Turn on the fixed width of
+> the centered layout of VS Code in your user settings:
+>
+> ```json
+> "workbench.editor.centeredLayoutFixedWidth": true
+> ```
+>
+> The text editor then keeps its width when the side view opens, while the
+> window has room for it. The extension does not change this setting for
+> you, because it changes the centered layout of all files, not only of
+> Markdown files.
 
 ### The view next to the text
 
@@ -1145,19 +1156,20 @@ file on a save.
 
 Programs and AI agents that change a Markdown file outside VS Code run the
 same formatter on the command line: the command `markdownnotes` of the npm
-package [`@nimblescape/markdownnotes`](https://www.npmjs.com/package/@nimblescape/markdownnotes),
-with Node.js 22 or later. `npx` runs it without an installation:
+package `@nimblescape/markdownnotes`, with Node.js 22 or later. For now
+there is no release, so the package is not on npmjs.com: install it from
+GitHub, with a clone of the repository at a fixed commit, as
+[CONTRIBUTING.md](../CONTRIBUTING.md#npm-package) shows. Then the command
+runs as follows:
 
 ```sh
-npx -y @nimblescape/markdownnotes format paper.md notes/*.md
-npx -y @nimblescape/markdownnotes format --check paper.md
-cat paper.md | npx -y @nimblescape/markdownnotes format -
+markdownnotes format paper.md notes/*.md
+markdownnotes format --check paper.md
+cat paper.md | markdownnotes format -
 ```
 
-After `npm install --global @nimblescape/markdownnotes`, the command is
-`markdownnotes format paper.md`. Before the first release, the package is
-not on npmjs.com yet: [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package)
-shows how to build it from a clone of the repository and install it.
+After a release, `npx -y @nimblescape/markdownnotes format paper.md` runs it
+from npmjs.com without an installation.
 
 The first command formats the files and writes only those that change. With
 `--check` it changes no file, names each file that is not formatted, and
@@ -1179,6 +1191,11 @@ after a change of a file with notes.
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens from the side view: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. A folder of a workspace can have its own value. |
+
+For Zen Mode, turn on the setting
+`"workbench.editor.centeredLayoutFixedWidth": true` of VS Code, so that the
+text editor keeps its width when the side view opens
+([Side view "Notes"](#side-view-notes)).
 
 The settings `showNotesIn`, `expandInEditor`, `collapseInEditor`,
 `keepNotesCollapsed`, `showCalloutOnHover`, `showInPreview`,
@@ -1215,6 +1232,10 @@ you can remove them from your settings.
 - The side view stands next to the text editor only; next to the preview it
   lists the threads. Where lines wrap, the heights of the threads are
   estimates.
+- In Zen Mode, the text editor gets narrower when the side view opens,
+  unless you turn on the fixed width with
+  `"workbench.editor.centeredLayoutFixedWidth": true` in your user settings
+  ([Side view "Notes"](#side-view-notes)).
 - A hidden highlight in the text editor stays visible after the pointer left
   it, until the pointer rests on other text or the cursor moves.
 - In the Markdown preview, the button above the selected text adds a note;

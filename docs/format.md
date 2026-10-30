@@ -224,17 +224,19 @@ A program, for example an AI agent, follows these steps:
   write a note without a start marker or a highlight without text, never put a
   definition into a block quote, and never write a note into a code block.
 - **Format the file** after a change, as the extension does on save: run
-  `npx -y @nimblescape/markdownnotes format <file>` with Node.js 22 or
-  later. `npx -y @nimblescape/markdownnotes format --check <file>` changes
-  nothing and exits with 1 when the file is not formatted. The formatter puts
+  `markdownnotes format <file>` with Node.js 22 or later.
+  `markdownnotes format --check <file>` changes nothing and exits with 1
+  when the file is not formatted. The formatter puts
   each paragraph on one line, aligns the tables, gives each start marker its
   `<wbr>`, adds the start marker of a note without one, writes the numbers of
   the captions and of the links to figures and tables
   ([8](#8-figures-tables-and-links-to-them)), and keeps the answers of the
-  notes, code blocks and HTML as they are. Before the first release, the
-  package is not on npmjs.com: build it from a clone of the repository, as
-  [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package) describes, and run
-  `markdownnotes format <file>`.
+  notes, code blocks and HTML as they are. For now there is no release, so
+  the npm package `@nimblescape/markdownnotes` is not on npmjs.com: install
+  it from GitHub, with a clone of the repository, as
+  [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package) describes. After a
+  release, `npx -y @nimblescape/markdownnotes format <file>` runs it without
+  an installation.
 - **Add a figure or a table:** write its caption line before it, for example
   `Figure: Plan of the study`, a blank line and the image; the formatter
   writes the number ([8](#8-figures-tables-and-links-to-them)).

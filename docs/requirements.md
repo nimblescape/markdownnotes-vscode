@@ -99,6 +99,9 @@ requirement, the plan and the decisions of Hannes.
 | 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
 | 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
 | 72 | Slash commands of other extensions on selected text (`selection: true`), such as `/research` of Markdown Paper, and `registerHiddenMarkers` for markers in the lines of a file that the clean editing view hides, such as `<wbr><!--[research-->` | [R-GEN-012](#r-gen-012), [R-EDIT-008](#r-edit-008), [R-TEXT-009](#r-text-009) | done |
+| 73 | No release for now: the npm package is installed from GitHub only, in the documents for people and AI agents ([decision 48](#decisions)) | [R-GEN-005](#r-gen-005), [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
+| 74 | The fixed width of the text editor in Zen Mode: the user guide and the README tell the user to turn on the setting of VS Code ([decision 49](#decisions)) | [R-SIDE-001](#r-side-001) | done |
+| 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
 
 ## General
 
@@ -171,7 +174,9 @@ the publisher (`release.yml`, `release-dry-run.yml`,
 `marketplace-identity.yml`, `scripts/release-checks.mjs`) and follows the
 [release rules](../CONTRIBUTING.md#release-rules) of the publisher. Nobody
 publishes the extension until Hannes asks for it, and nothing is published
-before the release ([R-GEN-017](#r-gen-017)).
+before the release ([R-GEN-017](#r-gen-017)). For now there is no release
+([decision 48](#decisions)): the extension and the npm package are not
+published, and the npm package is installed from GitHub only.
 
 ### R-GEN-006
 
@@ -448,7 +453,9 @@ so that each entry of the list links to it:
 package `@nimblescape/markdownnotes` is published before the release: no
 version goes to the Visual Studio Marketplace or to npmjs.com outside the
 release workflow, which Hannes starts ([R-GEN-005](#r-gen-005),
-[decision 47](#decisions)). Until the first release, a test, an AI agent or
+[decision 47](#decisions)). For now there is no release
+([decision 48](#decisions)), so the install from GitHub is the only way to
+get the package. Until the first release, a person, a test, an AI agent or
 another repository, for example nimblescape Markdown Paper or a paper
 project, installs the package from this GitHub repository: it builds the
 package from a clone at a fixed commit with
@@ -649,7 +656,8 @@ file is a document with notes and how to read it. The
 - The comment stands at the top of the file, with a blank line after it. It
   does not interfere with a front matter: a YAML (`---`) or TOML (`+++`)
   front matter stays the first block of the file, and the comment follows
-  it.
+  it. The comment stays an HTML comment and does not move into the front
+  matter ([decision 50](#decisions)).
 - The extension writes the comment with a change of a note and with the save
   of a file with notes, never because an editor only shows a file
   ([decision 20](#decisions)): a file that an editor, a diff view or the
@@ -968,6 +976,14 @@ the GitHub account at its top, which the user scrolls on its own
 ([R-SIDE-007](#r-side-007), [decision 25](#decisions)). It shows the
 selected thread at its top; an empty part after the last thread lets also
 the last thread scroll to the top.
+
+In Zen Mode, VS Code centers the text editor with a share of the width of
+the editor area, so the text editor gets narrower when the view opens, and
+the lines wrap again. The setting
+`"workbench.editor.centeredLayoutFixedWidth": true` of VS Code keeps its
+width. The user guide and the README name this issue and tell the user to
+turn on the setting; the extension does not set it, because it changes the
+centered layout of all files ([decision 49](#decisions)).
 
 ### R-SIDE-002
 
@@ -1580,8 +1596,10 @@ The command is the npm package `@nimblescape/markdownnotes` in the folder
 the extension nimblescape TypeScript. It has the version of the extension,
 and the release publishes it to npmjs.com, so that
 `npx -y @nimblescape/markdownnotes format <file>` runs it without an
-installation. Before the first release, a test or another repository builds
-the package from a clone of this repository ([R-GEN-017](#r-gen-017)). The
+installation after a release. For now there is no release
+([decision 48](#decisions)), so a person, a test, an AI agent or another
+repository builds the package from a clone of this repository
+([R-GEN-017](#r-gen-017)). The
 specification of the format of the notes for AI agents
 ([docs/format.md](format.md)) tells agents to run the tool after a change of
 a file with notes.
@@ -2618,6 +2636,26 @@ requirements above follow them.
     the file of `npm pack`. The other choice was to publish the npm package
     before the release, so that nimblescape Markdown Paper could depend on
     it from npmjs.com.
+48. **No release for now** ([R-GEN-005](#r-gen-005),
+    [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004)): the extension and
+    the npm package are not released and not published for now, and no date
+    is set. The npm package is installed from GitHub only: a clone of this
+    repository at a fixed commit, built and installed as
+    [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package) shows. The documents
+    for people and AI agents name this install first, and `npx` from
+    npmjs.com only for after a release.
+49. **The width of the text editor in Zen Mode is a setting of the user**
+    ([R-SIDE-001](#r-side-001)): the user guide and the README say that the
+    text editor gets narrower in Zen Mode when the side view opens, and
+    tell the user to turn on `"workbench.editor.centeredLayoutFixedWidth":
+    true` of VS Code. The other choice was a default of the extension for
+    this setting, which would change the centered layout of all files.
+50. **The comment of the format stays a comment** ([R-NOTE-007](#r-note-007)):
+    the format, its version and the address of its specification stay in
+    the HTML comment at the top of a file with notes. The other choice was
+    keys in the front matter, but GitHub shows the front matter of a
+    Markdown file as a table at the top of the page, and the front matter
+    holds the data of a paper.
 
 ---
 
