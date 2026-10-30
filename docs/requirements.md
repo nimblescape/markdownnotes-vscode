@@ -1967,7 +1967,10 @@ export function parse(lines: readonly string[]): Token[] {
 - The comment of a listing in a Markdown file is a link, as a Markdown link
   to a file (Hannes, 03:20: "it is like markdown links extension"):
   Ctrl+Click opens the source file at the first line of the snippet, or at
-  the start of the file for a name that is no snippet.
+  the start of the file for a name that is no snippet. Ctrl+Click stays the
+  only gesture, as for every link in VS Code; a double click, which opens
+  the side view at a highlight of a note, does not open the source (Hannes,
+  06:15, "ok" to this proposal).
 - `/snippet` shows once the extension is active, after a Markdown file was
   opened; "Add Snippet" in the Command Palette starts the extension.
 - "Add Snippet" takes the name as an optional third argument, after the URI
