@@ -843,8 +843,9 @@ export function parse(lines: readonly string[]): Token[] {
   name: small letters and digits, with `-` between them. The extension
   writes the two marks in the comment form of the type of the file, for
   example `#` in Python, YAML, TOML and `.env`, `//` in JSONC and SCSS,
-  `/* */` in CSS and `<!-- -->` in HTML. JSON has no comments, so a JSON
-  file has no snippets.
+  `/* */` in CSS and `<!-- -->` in HTML. In a file type that the extension
+  does not know, VS Code writes the comments, as with "Add Line Comment".
+  JSON has no comments, so a JSON file has no snippets.
 - `/listing` lists the snippets of a file after "Whole file". A listing
   names a snippet after `#`, as a symbol:
   `<!-- listing: ../src/parse.ts#keep-lines -->`. A snippet wins over a

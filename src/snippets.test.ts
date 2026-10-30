@@ -96,6 +96,32 @@ test('/snippet after a slash that replaced selected lines puts them back with th
   expect(fake.complete(document, new FakePosition(0, 1)).map(labelOf)).toEqual([]);
 });
 
+test('"Add Snippet" in a file type that the extension does not know writes the marks in the comment form of VS Code for its language (R-CODE-003)', async () => {
+  await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
+  const nim = fake.open('proc keep() =\n  echo "kept"\n', '/folder/src/keep.nim', { languageId: 'nim' });
+  const editor = new FakeEditor(nim, 1);
+  editor.selection = new FakeSelection(new FakePosition(1, 0), new FakePosition(1, 13));
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  fake.lineComments.set('nim', '#');
+  fake.input = 'echo';
+  await fake.run('nimblescape.markdownNotes.addSnippet');
+  expect(nim.text).toBe('proc keep() =\n  # markdownnotes: snippet echo\n  echo "kept"\n  # markdownnotes: /snippet echo\n');
+  // A language without line comments in VS Code leaves the file as it was, with a message.
+  const text = fake.open('a = 1\n', '/folder/src/a.weird', { languageId: 'weird' });
+  const other = new FakeEditor(text, 0);
+  other.selection = new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 5));
+  fake.editors.push(other);
+  fake.activeEditor = other;
+  await fake.run('nimblescape.markdownNotes.addSnippet');
+  expect(text.text).toBe('a = 1\n');
+  expect(fake.infos.at(-1)).toMatch(/weird has no comments/);
+  // A JSON file has no comments, so it offers no "Add Snippet".
+  const json = fake.open('{}\n', '/folder/a.json', { languageId: 'json' });
+  expect(fake.codeActionsAt(json, new FakeRange(0, 0, 0, 2))).toEqual([]);
+  expect(fake.codeActionsAt(fake.open('{}\n', '/folder/tsconfig.json', { languageId: 'jsonc' }), new FakeRange(0, 0, 0, 2))).toHaveLength(1);
+});
+
 test('the comment of a listing is a link to its source file, at the line of its snippet or its symbol (R-CODE-003)', async () => {
   await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
   const paper = fake.open('<!-- listing: ../src/keep.ts#keepLines -->\n\n```typescript\n```\n\n<!-- listing: ../src/keep.ts -->\n\n```\n```\n', '/folder/paper/a.md');

@@ -585,6 +585,11 @@ export class Fake {
   found: FakeUri[] = [];
   /** symbols holds the symbols of the files, by their paths, that the command vscode.executeDocumentSymbolProvider gives. */
   symbols = new Map<string, unknown[]>();
+  /**
+   * lineComments holds the line comments of the languages, by their IDs, that the command editor.action.addCommentLine
+   * writes at the indentation of the line of each cursor of the active editor; a language without one changes nothing.
+   */
+  lineComments = new Map<string, string>();
   /** updates records the changes of settings: the key, the value and the target. */
   updates: { key: string; value: unknown; target: number }[] = [];
   /** directories holds the paths of the folders of the file system. */
@@ -730,6 +735,17 @@ export class Fake {
           }
           if (command === 'vscode.executeDocumentSymbolProvider') {
             return this.symbols.get((args[0] as FakeUri).path);
+          }
+          const editor = this.activeEditor;
+          const comment = editor && this.lineComments.get(editor.document.languageId);
+          if (command === 'editor.action.addCommentLine' && editor && comment) {
+            const lines = [...new Set(editor.selections.map((selection) => selection.active.line))];
+            await editor.edit((builder) => {
+              for (const line of lines) {
+                const indent = /^\s*/.exec(editor.document.lineAt(line).text)![0].length;
+                builder.insert(new FakePosition(line, indent), `${comment} `);
+              }
+            });
           }
           return command === 'markdown.api.render' && this.rendered ? this.rendered(args[0] as string) : undefined;
         },

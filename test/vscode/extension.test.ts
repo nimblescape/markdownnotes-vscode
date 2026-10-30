@@ -330,6 +330,21 @@ describe('nimblescape Markdown Notes', () => {
     await vscode.commands.executeCommand('workbench.action.files.revert');
   });
 
+  it('writes the marks of a snippet in the comment form that VS Code knows for a language that the extension does not know (R-CODE-003)', async () => {
+    for (const [name, text, expected] of [
+      ['keep.coffee', 'keep = (lines) ->\n  kept = lines.filter(Boolean)\n  kept\n', 'keep = (lines) ->\n  # markdownnotes: snippet kept\n  kept = lines.filter(Boolean)\n  # markdownnotes: /snippet kept\n  kept\n'],
+      ['keep.fs', 'let keep lines =\n    let kept = List.filter id lines\n    kept\n', 'let keep lines =\n    // markdownnotes: snippet kept\n    let kept = List.filter id lines\n    // markdownnotes: /snippet kept\n    kept\n'],
+    ]) {
+      const source = vscode.Uri.file(path.join(folder, 'src', `${++count}-${name}`));
+      fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });
+      fs.writeFileSync(source.fsPath, text);
+      const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(source));
+      await vscode.commands.executeCommand(commandOf('addSnippet'), source, new vscode.Range(1, 0, 2, 0), 'kept');
+      assert.equal(editor.document.getText(), expected);
+      await vscode.commands.executeCommand('workbench.action.files.revert');
+    }
+  });
+
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nMore.[^1]\n\n[^1]: A source.\n'));

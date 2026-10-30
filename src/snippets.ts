@@ -22,13 +22,19 @@
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
 import { sourceOf } from './formatter';
-import { findListings, hasSymbols, isSnippetName, snippetLines, snippetsOf, symbolLines } from './notes/listings';
+import { findListings, hasSymbols, isSnippetName, snippetLines, snippetsOf, snippetText, symbolLines } from './notes/listings';
 
 /** snippetCommands are the commands of the snippets: the one of the Command Palette, and the one of `/snippet`. */
 export const snippetCommands = {
   add: 'nimblescape.markdownNotes.addSnippet',
   slash: 'nimblescape.markdownNotes.slashSnippet',
 };
+
+/**
+ * uncommented are the IDs of the languages without comments, whose files get no marks: JSON (a `.json` file with
+ * comments, such as `tsconfig.json`, has the language `jsonc`), plain text and tables of values.
+ */
+const uncommented = new Set(['json', 'plaintext', 'csv', 'tsv', 'log', 'binary']);
 
 /** Selected is the selected text of a source file that a typed slash can replace, at the version of the document. */
 interface Selected {
@@ -79,18 +85,19 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       vscode.window.onDidChangeTextEditorSelection((event) => this.remember(event.textEditor)),
       vscode.workspace.onDidChangeTextDocument((event) => this.replace(event)),
       vscode.workspace.onDidCloseTextDocument((document) => this.selections.delete(document.uri.toString())),
-      vscode.commands.registerCommand(snippetCommands.add, (uri?: vscode.Uri, range?: vscode.Range) => this.add(uri, range)),
+      vscode.commands.registerCommand(snippetCommands.add, (uri?: vscode.Uri, range?: vscode.Range, name?: string) => this.add(uri, range, name)),
       vscode.commands.registerCommand(snippetCommands.slash, (uri: vscode.Uri, range: vscode.Range) => this.add(uri, range)),
     ];
   }
 
   /**
-   * marked tells whether the extension can mark a snippet in a document: a source file whose language has comments of
-   * a line, not a Markdown file.
+   * marked tells whether the extension can mark a snippet in a document: a source file of any language that has
+   * comments, not a Markdown file. A file type that the extension knows gets the marks in its comment form
+   * (`snippetLines`), and another one in the comment form that VS Code knows for its language.
    * @param document - The document.
    */
   private marked(document: vscode.TextDocument): boolean {
-    return document.languageId !== 'markdown' && snippetLines(document.uri.path, 'x') !== undefined;
+    return document.languageId !== 'markdown' && (snippetLines(document.uri.path, 'x') !== undefined || !uncommented.has(document.languageId));
   }
 
   /**
@@ -163,8 +170,9 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
    * line and the end mark after the last one, with the indentation of the first line.
    * @param uri - The URI of the document, or undefined for the active text editor.
    * @param range - The lines, or undefined for the selection of the text editor.
+   * @param given - The name of the snippet, for a keyboard shortcut or another extension, or undefined to ask for it.
    */
-  private async add(uri?: vscode.Uri, range?: vscode.Range): Promise<void> {
+  private async add(uri?: vscode.Uri, range?: vscode.Range, given?: string): Promise<void> {
     const editor = uri ? vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.toString() === uri.toString()) : vscode.window.activeTextEditor;
     const document = editor?.document;
     const lines = range ?? editor?.selection;
@@ -176,20 +184,51 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
     const last = lines.end.character === 0 && lines.end.line > first ? lines.end.line - 1 : lines.end.line;
     const text = document.getText(new vscode.Range(first, 0, last, document.lineAt(last).text.length));
     const taken = new Set(snippetsOf(document.getText().split(/\r\n|\r|\n/)).map((snippet) => snippet.name));
-    const name = await vscode.window.showInputBox({
-      title: 'Add Snippet',
-      prompt: 'The name of the snippet, which a listing of a Markdown file names after #',
-      value: suggestedName(text),
-      validateInput: (value) =>
-        !isSnippetName(value) ? 'Small letters and digits, with - between them, for example parse-notes.' : taken.has(value) ? 'The file has a snippet of this name.' : undefined,
-    });
+    const name =
+      given ??
+      (await vscode.window.showInputBox({
+        title: 'Add Snippet',
+        prompt: 'The name of the snippet, which a listing of a Markdown file names after #',
+        value: suggestedName(text),
+        validateInput: (value) =>
+          !isSnippetName(value) ? 'Small letters and digits, with - between them, for example parse-notes.' : taken.has(value) ? 'The file has a snippet of this name.' : undefined,
+      }));
     if (!name || !isSnippetName(name) || taken.has(name)) {
       return;
     }
     const indent = /^\s*/.exec(document.lineAt(first).text)![0];
-    const [open, close] = snippetLines(document.uri.path, name, indent)!;
+    const known = snippetLines(document.uri.path, name, indent);
+    const [open, close] = known ?? snippetText(name).map((mark) => `${indent}${mark}`);
     const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
     await editor.edit((builder) => builder.replace(new vscode.Range(first, 0, last, document.lineAt(last).text.length), `${open}${eol}${text}${eol}${close}`));
+    if (!known) {
+      await this.comment(editor, first, last + 2);
+    }
+  }
+
+  /**
+   * comment turns the two marks of a new snippet of a file type that the extension does not know into comments: VS Code
+   * writes them in the comment form of the language of the file with its command "Add Line Comment". A language
+   * without comments leaves the marks as they are, and they go again, with a message.
+   * @param editor - The text editor.
+   * @param open - The line of the start mark.
+   * @param close - The line of the end mark.
+   */
+  private async comment(editor: vscode.TextEditor, open: number, close: number): Promise<void> {
+    const { document } = editor;
+    const bare = (line: number) => snippetText('').some((mark) => document.lineAt(line).text.trim().startsWith(mark.trim()));
+    const at = (line: number) => new vscode.Position(line, 0);
+    editor.selections = [new vscode.Selection(at(open), at(open)), new vscode.Selection(at(close), at(close))];
+    await vscode.commands.executeCommand('editor.action.addCommentLine');
+    const end = new vscode.Position(open + 1, 0);
+    editor.selection = new vscode.Selection(end, end);
+    if (bare(open) || bare(close)) {
+      await editor.edit((builder) => {
+        builder.delete(new vscode.Range(open, 0, open + 1, 0));
+        builder.delete(new vscode.Range(close - 1, document.lineAt(close - 1).text.length, close, document.lineAt(close).text.length));
+      });
+      void vscode.window.showInformationMessage(`The language ${document.languageId} has no comments for the marks of a snippet. A listing can show the whole file.`);
+    }
   }
 
   /**

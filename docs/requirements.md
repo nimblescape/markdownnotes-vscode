@@ -1946,9 +1946,13 @@ export function parse(lines: readonly string[]): Token[] {
   Clojure, Lisp, Scheme), `<!-- -->` (HTML, XML, SVG, XSLT), `/* */` (CSS),
   `REM` (batch files) and `'` (Visual Basic). A file is of its type by its
   extension, or by its name: `.env` and `.env.*`, `Dockerfile` and
-  `Makefile`. JSON has no comments, and a Vue or Svelte file has parts of
-  several languages: they get no marks, and a listing shows them whole. The
-  formatter finds the marks by their text in any comment.
+  `Makefile`. A file of another type gets the marks in the comment form
+  that VS Code knows for its language, through its command "Add Line
+  Comment", so that the marks work in any source (Hannes, 04:30: "it can be
+  any sources"). JSON has no comments, and a language for which VS Code
+  knows no comment leaves the file as it was, with a message: such a file
+  gets no marks, and a listing shows it whole. The formatter finds the marks
+  by their text in any comment, also on the command line.
 - A listing names a snippet as a symbol,
   `<!-- listing: ../src/notes/notes.ts#parse-notes -->`, and a snippet wins
   over a symbol of the same name. The code of every listing, also of a whole
