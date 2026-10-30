@@ -17,9 +17,9 @@ export declare function formatMarkdown(lines: readonly string[], options?: Forma
 /** FormatOptions are the options of formatMarkdown. */
 export interface FormatOptions {
   /**
-   * source reads a file of source code of a listing (`<!-- listing: path#symbol -->` before a code block) by its path
+   * source reads a file of source code of a listing (`<!-- listing: path#snippet -->` before a code block) by its path
    * relative to the Markdown file, as written in the comment, or returns undefined. The formatter then writes the
-   * current code of the file, or of the symbol of the file, into the code block. Without it, the listings keep their
+   * current code of the file, or of the snippet of the file, into the code block. Without it, the listings keep their
    * code.
    */
   source?: (path: string) => string | undefined;

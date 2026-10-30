@@ -278,8 +278,9 @@ describe('nimblescape Markdown Notes', () => {
   it('writes the current code of the source of each listing into a file on its save, from the open document of the source or the disk (R-CODE-002, R-FMT-001)', async () => {
     fs.mkdirSync(path.join(folder, 'src'), { recursive: true });
     const source = vscode.Uri.file(path.join(folder, 'src', 'read me.ts'));
-    const code = 'export function read(path: string): string {\n  return path;\n}\n\nexport const other = 1;\n';
+    const code = '// markdownnotes: snippet read\nexport function read(path: string): string {\n  return path;\n}\n// markdownnotes: /snippet read\n\nexport const other = 1;\n';
     fs.writeFileSync(source.fsPath, code);
+    const whole = code.split('\n').filter((line) => !line.includes('markdownnotes:')).join('\n').trimEnd();
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     const listing = (comment: string) => `${comment}\n\n\`\`\`typescript\nold\n\`\`\`\n`;
     fs.writeFileSync(file.fsPath, `Listing: Reading\n\n${listing('<!-- listing: src/read%20me.ts#read -->')}\n${listing('<!-- listing: src/read%20me.ts -->')}`);
@@ -291,12 +292,12 @@ describe('nimblescape Markdown Notes', () => {
     const read = 'export function read(path: string): string {\n  return path;\n}';
     assert.equal(
       document.getText(),
-      `Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${code.trimEnd()}\n\`\`\`\n\nEnd.\n`,
+      `Listing: Reading\n\n<!-- listing: src/read%20me.ts#read -->\n\n\`\`\`typescript\n${read}\n\`\`\`\n\n<!-- listing: src/read%20me.ts -->\n\n\`\`\`typescript\n${whole}\n\`\`\`\n\nEnd.\n`,
     );
     // A change of the source that is not saved yet counts.
     const opened = await vscode.workspace.openTextDocument(source);
     const change = new vscode.WorkspaceEdit();
-    change.replace(source, new vscode.Range(1, 9, 1, 13), 'path.trim()');
+    change.replace(source, new vscode.Range(2, 9, 2, 13), 'path.trim()');
     assert.ok(await vscode.workspace.applyEdit(change), 'the change of the source');
     await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), 'More.\n'));
     assert.ok(await document.save(), 'the second save of the file');
@@ -312,6 +313,10 @@ describe('nimblescape Markdown Notes', () => {
     const link = links.find((candidate) => candidate.range.start.line === document.lineCount - 7);
     assert.equal(link?.target?.path, snippet.path);
     assert.equal(link?.target?.fragment, 'L3');
+    // A listing that names no snippet, such as a function, keeps its code and gets a warning (R-CODE-005).
+    await editor.edit((edit) => edit.insert(new vscode.Position(document.lineCount - 1, 0), '<!-- listing: src/snippet.py#read -->\n\n```python\n```\n'));
+    const warning = await waitFor(() => vscode.languages.getDiagnostics(document.uri).find((diagnostic) => diagnostic.message.includes('has no snippet "read"')), 'the warning at the listing');
+    assert.equal(warning.range.start.line, document.lineCount - 5);
   });
 
   it('offers /snippet in the text editor of a source file after a slash that replaced selected lines (R-CODE-003)', async () => {

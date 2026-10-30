@@ -5,11 +5,11 @@
 /**
  * These tests check the warnings of the notes of a Markdown text (R-TEXT-008): each form that GitHub or another
  * Markdown viewer shows differently from the extension gets one, and a note in the form that the extension writes
- * gets none.
+ * gets none. A listing whose source file or snippet is not found gets one too (R-CODE-005).
  */
 
 import { describe, expect, test } from 'vitest';
-import { checksOf } from './checks';
+import { checksOf, listingChecksOf } from './checks';
 import { readNotes } from './notes';
 
 /**
@@ -81,4 +81,20 @@ describe('checksOf', () => {
       [12, 'warning', 'No reference [^note-cccc] names this note'],
     ]);
   });
+});
+
+test('a listing whose file or snippet is not found gets a warning at its comment, for example a listing of a function (R-CODE-005)', () => {
+  const lines = ['<!-- listing: ../src/parse.ts#keep-lines -->', '```ts', '```', '', '<!-- listing: ../src/parse.ts#parse -->', '```ts', '```', '', '<!-- listing: ../src/my%20gone.ts -->', '```', '```', ''];
+  const code = 'export function parse(lines: string[]): string[] {\n  // markdownnotes: snippet keep-lines\n  return lines;\n  // markdownnotes: /snippet keep-lines\n}\n';
+  let reads = 0;
+  const found = listingChecksOf(lines, (path) => {
+    reads++;
+    return path === '../src/parse.ts' ? code : undefined;
+  });
+  expect(found.map((check) => [check.range.start.line, check.range.end.character, check.severity, check.message])).toEqual([
+    [4, lines[4].length, 'warning', 'The file ../src/parse.ts has no snippet "parse". A listing shows a whole file or a snippet: mark the code in the source file with /snippet. The listing keeps its code.'],
+    [8, lines[8].length, 'warning', 'The source file ../src/my gone.ts of the listing was not found. The listing keeps its code.'],
+  ]);
+  // Each file is read once.
+  expect(reads).toBe(2);
 });

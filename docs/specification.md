@@ -272,16 +272,21 @@ form of the notes in a file for programs and AI agents, and
   such as `<wbr><!--{title}-->A paper<!--{/title}-->`; the formatter writes
   the current value of the key into it, and the clean editing view hides the
   markers ([R-XREF-004](requirements.md#r-xref-004)).
-- `/listing` inserts the code of a file of the workspace, or of a function,
-  a class or a method of it, as a listing: the caption line `Listing:`, the
-  comment `<!-- listing: ../src/fields.ts#readFields -->` and the code block.
-  `/ref` links it as `[Listing 1](#lst-…)`. Symbols exist in the languages
-  with braces (TypeScript, JavaScript, JSX, TSX, Java, C#, C, C++, Go, Rust,
-  Kotlin, Swift, Scala, PHP, Dart, Groovy) and in Python
+- `/listing` inserts the code of a file of the workspace, or of a snippet of
+  it, as a listing: the caption line `Listing:`, the comment
+  `<!-- listing: ../src/fields.ts#read-fields -->` and the code block.
+  `/ref` links it as `[Listing 1](#lst-…)`
   ([R-CODE-001](requirements.md#r-code-001)).
+- A listing shows a whole file or a snippet, and no symbol of a language,
+  such as a function: a function is a snippet around it. Symbols come later
+  with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python,
+  HTML, CSS, YAML, JSON, JSONC and shell scripts
+  ([R-CODE-005](requirements.md#r-code-005)).
 - The formatter writes the current code of the source into each listing, in
-  VS Code and on the command line, which reports a missing source and fails
-  with `--check` ([R-CODE-002](requirements.md#r-code-002)).
+  VS Code and on the command line, which reports a missing source or
+  snippet and fails with `--check`; the text editor and the Problems view
+  show a warning at such a listing
+  ([R-CODE-002](requirements.md#r-code-002)).
 - A snippet is code between the marks `markdownnotes: snippet <name>` and
   `markdownnotes: /snippet <name>` in comments of a source file; `/snippet`
   and "Add Snippet" write them around selected lines in the comment form of

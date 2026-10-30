@@ -16,14 +16,14 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 117 requested features, 91 are built, among them the clean editing view
+Of 119 requested features, 92 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
 Paper, the figures, tables and sections with the links to them (to a
 section by the ID that GitHub gives its heading), the
 values of the front matter in the text, and the listings of code from the
-source files of the repository with the snippets in them. 6 features are planned but not built: the features of the section
+source files of the repository with the snippets in them. 7 features are planned but not built: the features of the section
 [Planned features](#planned-features). Four need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
 in Zen Mode, the new name of the repository, and the question whether the
@@ -131,13 +131,14 @@ breaks and the cursor next to the hidden markers.
 | A link to a figure or a table: "it adds a references to the figure or table in the text", "technically it is a link to it" | 10-30 02:33 | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) | Built | `/ref` lists the figures and tables of the file and inserts `[Table 1](#tab-grades)`; a figure or table without an anchor first gets `<a id="tab-…"></a>` at the end of its caption line. The formatter writes the numbers of the links from the order in the file; the clean editing view hides the anchors |
 | Values of the front matter in the text: "anything from frontmatter can be references in the document" | 10-30 03:10 | [R-XREF-004](requirements.md#r-xref-004) | Built | Step 52, the form proposed at 03:20: `/ref` inserts `<wbr><!--{title}-->A paper<!--{/title}-->`, the formatter writes the current value, the clean editing view hides the markers |
 | The functions of the notes in the pages of a paper: "all plugin functionality shall work in the rendered aper as well, such as marking a passage and adding a comment to it etc.", "as it would in the rendered markdown preview" | 10-30 03:55 | [R-PREV-009](requirements.md#r-prev-009) | Built | Step 55: the script of the preview finds the highlights and "Add Note" in the pages of Markdown Paper, which copies the content of the preview into its pages; checked in Chromium with copied pages |
-| Code of the source files in the text: "a new slash command for that which "imports" a code block", "we may mark single functions but also complete source code files", "it is also part of the notes extension", "it is part of notes" | 10-30 02:58, 03:03, 03:10 | [R-CODE-001](requirements.md#r-code-001) | Built | Step 53: `/listing` lists the source files, then "Whole file" and the symbols that the language extension gives, and inserts `Listing: Caption`, `<!-- listing: ../src/x.ts#name -->` and the code block; `/ref` links it as `[Listing 1](#lst-…)` |
+| Code of the source files in the text: "a new slash command for that which "imports" a code block", "we may mark single functions but also complete source code files", "it is also part of the notes extension", "it is part of notes" | 10-30 02:58, 03:03, 03:10 | [R-CODE-001](requirements.md#r-code-001) | Built | Step 53: `/listing` lists the source files, then "Whole file" and the snippets of the file (the symbols of step 53 are removed in step 60), and inserts `Listing: Caption`, `<!-- listing: ../src/x.ts#name -->` and the code block; `/ref` links it as `[Listing 1](#lst-…)` |
 | Snippets in the source code that a listing names: "the extension shall allow to add marks into the source code", "in the source code i want to add marks / tags that can later be referenced by the markdown", "a slash command in the source code editor /snippet adds the mark", "it is like markdown links extension" | 10-30 02:58, 03:03, 03:20 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 54, in the form of the proposal: `// markdownnotes: snippet name` and `// markdownnotes: /snippet name`; the card with the other form `@snippet`/`@endsnippet` is open. `/snippet` and "Add Snippet" write the marks; Ctrl+Click on the comment of a listing opens the source |
-| Snippets and listings in more file types: "we also may have jsonc and yaml, toml, .env files, etc.", "css, html, jsx, tsx, etc." | 10-30 04:29, 04:30 | [R-CODE-003](requirements.md#r-code-003), [R-CODE-001](requirements.md#r-code-001) | Built | Step 57: the marks in the comment form of more than 80 file types, also by the name of a file (`.env`, `Dockerfile`, `Makefile`); symbols only in the languages with braces and in Python |
+| Snippets and listings in more file types: "we also may have jsonc and yaml, toml, .env files, etc.", "css, html, jsx, tsx, etc." | 10-30 04:29, 04:30 | [R-CODE-003](requirements.md#r-code-003), [R-CODE-001](requirements.md#r-code-001) | Built | Step 57: the marks in the comment form of more than 80 file types, also by the name of a file (`.env`, `Dockerfile`, `Makefile`); the symbols of the languages with braces and of Python are removed in step 60 |
 | Snippets in any source: "it can be any sources" | 10-30 04:30 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 58: a file type that the extension does not know gets the comment form of VS Code for its language ("Add Line Comment") |
 | The snippet as a tag in the source editor: "the editor shall sow it as a rendered tag, unobstrusive, similar to the small font annotations that are there sometimes" | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58, [decision 37](requirements.md#decisions): a code lens above the start mark with the listings that show the snippet; the marks dimmed |
 | A toggle button that highlights the used snippets: "the source code text editor gets an icon toggle button the highlights the used snippets" | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58: "Show Used Snippets" and "Hide Used Snippets" in the title of the text editor of a source file with snippets |
-| The formatter keeps the code blocks current: "the formatter assures the source code references / code blocks are uptodate" | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a symbol is found by its declaration and its braces or indentation, the same way in both |
+| Listings of whole files and snippets, symbols only with parsers: "it will only reliably work when we use ast parsers", "but I agree, for now, whole files and snippets are sufficient" | 10-30 04:43, 05:38 | [R-CODE-005](requirements.md#r-code-005) | Built | Step 60, [decision 38](requirements.md#decisions): a listing shows a whole file or a snippet; the rules that found functions by their declarations are removed; the text editor warns at a listing whose file or snippet is not found |
+| The formatter keeps the code blocks current: "the formatter assures the source code references / code blocks are uptodate" | 10-30 02:59 | [R-CODE-002](requirements.md#r-code-002) | Built | Step 53: in VS Code (also from unsaved source files) and on the command line, which names a missing source and fails with `--check`; a snippet is found by its marks, the same way in both |
 | `/ref` for sections: "/ref also adds chapter numbers" | 10-30 02:47, 03:19 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 51, changed by step 56: `[Chapter 2.1](#methods)`; the chapters are the headings of the highest level that more than one heading has |
 | Links to headings without anchors: "why do headings required anchors?" | 10-30 03:28 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 56, [decision 36](requirements.md#decisions): the link names the ID that GitHub gives the heading, and the heading gets no anchor; an anchor of the earlier form still counts |
 | Plain Markdown first: "we shall stay as close to markdown as possible" | 10-30 03:29 | [R-GEN-013](requirements.md#r-gen-013) | Built | A rule for each new form in the file; the links to headings follow it |
@@ -210,7 +211,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-6 features are in the specification and the plan, or proposed, but not built. Steps 29
+7 features are in the specification and the plan, or proposed, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -223,6 +224,7 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
+| Symbols of a listing with parsers: "support for ast comes from plugins, is there already a common approach we can reuse", "must have: go, typescript, javascript, python, html, css, yaml, tsx, jsx, json, jsonc", "shell script" | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, later | Planned |
 
 ## Moved to nimblescape Markdown Paper
 

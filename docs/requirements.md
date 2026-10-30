@@ -79,13 +79,15 @@ requirement, the plan and the decisions of Hannes.
 | 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
 | 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading; replaced by step 56 | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
 | 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
-| 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done |
+| 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done; the symbols are removed in step 60 |
 | 54 | Snippets between marks in the source code, which a listing names; `/snippet` and "Add Snippet" in a source file; the comment of a listing as a link to its source | [R-CODE-003](#r-code-003) | done, in the form that Claude recommended; the card on the form of the marks is open |
 | 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
 | 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
-| 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done |
+| 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done; the symbols are removed in step 60 |
 | 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it; the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
 | 59 | The frame of a highlight in the pages of a paper only in the text area of each page; "Add Note" without the soft hyphens of the pages | [R-PREV-009](#r-prev-009) | done |
+| 60 | Listings of whole files and snippets only: no symbols of a language in `/listing`, the formatter and the links of the listings; a warning at a listing whose file or snippet is not found ([decision 38](#decisions)) | [R-CODE-005](#r-code-005), [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-CODE-003](#r-code-003) | done |
+| 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | planned |
 
 ## General
 
@@ -1299,8 +1301,8 @@ it shows no suggestions while the user types words.
   [decision 35](#decisions)). `/figure` and `/table` show on a line of their
   own, outside code blocks; `/ref` shows in text where a reference of a
   footnote can stand, in a file with figures or tables.
-- `/listing` adds the code of a file of the workspace, or of a function, a
-  class or a method of the file, as a listing ([R-CODE-001](#r-code-001)).
+- `/listing` adds the code of a file of the workspace, or of a snippet of
+  the file, as a listing ([R-CODE-001](#r-code-001)).
   It shows on a line of its own, outside code blocks, as `/figure` and
   `/table`.
 
@@ -1849,7 +1851,7 @@ along with other source code", "there is a new slash command for that which
 ````markdown
 Listing: Reading the fields<a id="lst-reading-fields"></a>
 
-<!-- listing: ../src/notes/fields.ts#readFields -->
+<!-- listing: ../src/notes/fields.ts#read-fields -->
 
 ```typescript
 export function readFields(lines: readonly string[]): Map<string, string> {
@@ -1860,24 +1862,20 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 
 - A listing is a fenced code block with a comment of HTML on the line
   before it, with a blank line or none between them, that names its
-  source: a whole file, `<!-- listing: ../src/fields.ts -->`, or a symbol
-  of the file, `<!-- listing: ../src/fields.ts#readFields -->`, with `.`
-  between a container and its member, for example `NotesView.addFromText`.
-  The path is relative to the Markdown file, with `/`, and encodes spaces
+  source: a whole file, `<!-- listing: ../src/fields.ts -->`, or a snippet
+  of the file, `<!-- listing: ../src/fields.ts#read-fields -->`
+  ([R-CODE-003](#r-code-003)), and no symbol of the language
+  ([R-CODE-005](#r-code-005)). The path is relative to the Markdown file, with `/`, and encodes spaces
   and other characters as in a link. A listing in the text of a note does
   not count.
 - GitHub and the Markdown preview show the code block; the comment is
   hidden there and stays visible in the text editor and the clean editing
   view.
 - `/listing` lists the source files of the workspace by their paths from the
-  folder of the Markdown file, then "Whole file" and the symbols of the
-  chosen file that the language extension of VS Code gives: the classes,
-  interfaces, functions, methods and other declarations, and the variables
-  and constants at the top of the file. It lists only a symbol that the
-  formatter finds at the same line ([R-CODE-002](#r-code-002)). It inserts
-  the caption line `Listing: Caption`, the comment and the code block with
-  the language of the file, with the caption selected for typing. A file
-  without symbols gives its whole text.
+  folder of the Markdown file, then "Whole file" and the snippets of the
+  chosen file. It inserts the caption line `Listing: Caption`, the comment
+  and the code block with the language of the file, with the caption
+  selected for typing. A file without snippets gives its whole text.
 - `/ref` links a listing as a figure or a table, for example
   `[Listing 1](#lst-reading-fields)` ([R-XREF-001](#r-xref-001)).
 
@@ -1888,29 +1886,22 @@ reads the source of each listing again and writes its current code into the
 code block (Hannes, 2026-10-30, 02:59: "the formatter assures the source code
 references / code blocks are uptodate").
 
-- A symbol is found the same way in VS Code and on the command line, so
-  that both write the same code: by the line of its declaration (for
-  example `function`, `class`, `def`, `fn`, `func`, `const`, or a method
-  with its modifiers), outside comments, inside the container of a name
-  with `.`, with the decorators and attributes directly before it (`@…`,
-  `#[…]`). It ends with the brace that closes its first `{`, or with a `;`
-  before it, or in Python with the last line of its indented body. This
-  works for the languages with braces and for Python: TypeScript and
-  JavaScript (also JSX and TSX), Java, C#, C, C++, Go, Rust, Kotlin, Swift,
-  Scala, PHP, Dart and Groovy. A file of another type, such as YAML, TOML,
-  `.env`, CSS, HTML or Ruby, has no symbols, only the whole file and
-  snippets ([R-CODE-003](#r-code-003)), so that a listing never shows a
-  wrong part of it.
-- The code of a symbol loses the indentation that all its lines have; a
-  whole file and a symbol lose their blank lines at the start and the end.
+- A snippet is found by its marks the same way in VS Code and on the
+  command line, so that both write the same code
+  ([R-CODE-003](#r-code-003)). The formatter finds no symbol of a language,
+  such as a function or a class ([R-CODE-005](#r-code-005)).
+- The code of a snippet loses the indentation that all its lines have; a
+  whole file and a snippet lose their blank lines at the start and the end.
   The code block keeps its fence, its indentation and its info string; the
   fence gets longer when the code holds a fence of its length.
 - In VS Code, the formatter reads a source from its open document, so that
   a change that is not saved yet counts, or else from the disk. On the
   command line, it reads the source relative to the Markdown file, or to
   the current folder for the standard input.
-- A listing whose file or symbol is not found keeps its code. The command
-  line names it on the standard error, for example
+- A listing whose file or snippet is not found keeps its code. The text
+  editor and the Problems view show a warning at its comment
+  ([R-CODE-005](#r-code-005)). The command line names it on the standard
+  error, for example
   `paper.md:12: the source ../src/gone.ts of the listing was not found`, and
   with `--check` the file counts as not formatted, so that a check of a pull
   request finds it.
@@ -1919,9 +1910,9 @@ references / code blocks are uptodate").
 
 ### R-CODE-003
 
-**Snippets in the source code.** Code that is no symbol, such as a part of a
-function, is a snippet between two marks in comments of the source file,
-which a listing names (Hannes, 2026-10-30, 03:03: "in the source code i want
+**Snippets in the source code.** Code of a source file, such as a function,
+a class or a part of a function, is a snippet between two marks in comments
+of the source file, which a listing names (Hannes, 2026-10-30, 03:03: "in the source code i want
 to add marks / tags that can later be referenced by the markdown"; 03:20: "a
 slash command in the source code editor /snippet adds the mark, but the mark
 must be more clear it belongs to the notes plugin, do not like the
@@ -1960,10 +1951,9 @@ export function parse(lines: readonly string[]): Token[] {
   knows no comment leaves the file as it was, with a message: such a file
   gets no marks, and a listing shows it whole. The formatter finds the marks
   by their text in any comment, also on the command line.
-- A listing names a snippet as a symbol,
-  `<!-- listing: ../src/notes/notes.ts#parse-notes -->`, and a snippet wins
-  over a symbol of the same name. The code of every listing, also of a whole
-  file or a symbol, leaves out the marks of all snippets. A start mark
+- A listing names a snippet after `#`,
+  `<!-- listing: ../src/notes/notes.ts#parse-notes -->`. The code of every
+  listing, also of a whole file, leaves out the marks of all snippets. A start mark
   without its end mark is no snippet; of two snippets of one name, the first
   one counts.
 - In a source file, the user selects lines and types `/`: VS Code replaces
@@ -1972,12 +1962,11 @@ export function parse(lines: readonly string[]): Token[] {
   writes the marks around the lines with the indentation of the first one.
   "Add Snippet" in the Command Palette and in the light bulb of selected
   lines (a refactoring) does the same.
-- `/listing` lists the snippets of the chosen file after "Whole file" and
-  before its symbols.
+- `/listing` lists the snippets of the chosen file after "Whole file".
 - The comment of a listing in a Markdown file is a link, as a Markdown link
   to a file (Hannes, 03:20: "it is like markdown links extension"):
-  Ctrl+Click opens the source file at the first line of the snippet or the
-  symbol.
+  Ctrl+Click opens the source file at the first line of the snippet, or at
+  the start of the file for a name that is no snippet.
 - `/snippet` shows once the extension is active, after a Markdown file was
   opened; "Add Snippet" in the Command Palette starts the extension.
 - "Add Snippet" takes the name as an optional third argument, after the URI
@@ -2016,6 +2005,38 @@ a source code view"; [decision 37](#decisions)):
   without `node_modules` and `.git`, an open file as it stands, and are read
   again half a second after a change of a Markdown file.
 - The code lenses show while the setting `editor.codeLens` of VS Code is on.
+
+### R-CODE-005
+
+**Whole files and snippets, no symbols.** A listing shows a whole file or a
+snippet, and never a symbol of a language by its name, such as a function, a
+class or a method (Hannes, 2026-10-30, 04:43, on open question 3 of the
+concept document: "it will only reliably work when we use ast parsers";
+05:38: "but I agree, for now, whole files and snippets are sufficient";
+[decision 38](#decisions)):
+
+- A function, a class or a method is a listing through a snippet around it
+  ([R-CODE-003](#r-code-003)). A snippet works in every language with
+  comments, and the command line finds it as VS Code does.
+- A listing whose name after `#` is no snippet of its file, for example
+  `#readFields` or `#NotesView.addFromText`, is not found: it keeps its code,
+  and the command line names it ([R-CODE-002](#r-code-002)). The text editor
+  and the Problems view show a warning at its comment, with the hint to mark
+  the code in the source file with `/snippet`, and also at a listing whose
+  file is not found. The warnings are read again with each change of the
+  Markdown file.
+- Later, symbols come with a real parser of each language: tree-sitter, with
+  the "tags" query of each grammar, which GitHub uses for its code
+  navigation, the same in VS Code and on the command line. The file types
+  that must have symbols then (Hannes, 05:36: "must have: go, typescript,
+  javascript, python, html, css, yaml, tsx, jsx, json, jsonc", "shell
+  script"): Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML,
+  JSON, JSONC and shell scripts. The proposal for their names: functions,
+  classes and methods with `.` between a container and its member (in Go, a
+  method after the type of its receiver, for example `Reader.Read`), the
+  functions of a shell script, the key paths of YAML, JSON and JSONC (for
+  example `services.web`), a rule of CSS by its selector, and an element of
+  HTML by its `id`.
 
 ## Hidden notes
 
@@ -2491,6 +2512,14 @@ requirements above follow them.
     character of the source changes (Claude's form, open to the other form:
     the tag in place of the text of the comment). The other proposal of the
     question was the dimmed marks without a tag.
+38. **Symbols of a listing** ([R-CODE-005](#r-code-005), open question 3 of
+    the concept document "Listings and snippets"): for now, a listing shows
+    a whole file or a snippet, and the extension finds no symbols of a
+    language. Symbols come later with tree-sitter parsers, first for Go,
+    TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC
+    and shell scripts. The other proposals were the rules of the
+    declarations, built in step 57 and removed in step 60, because only a
+    parser knows the code, and the parsers now.
 
 ---
 

@@ -98,11 +98,12 @@ The first version.
   `<wbr><!--{title}-->A paper<!--{/title}-->`, and the formatter writes the
   current value into it on each format.
 - Listings of code: `/listing` inserts the code of a source file of the
-  workspace, or of a function, a class or a method of it, as a code block
-  with its caption line `Listing: Caption` and the comment of its source,
-  for example `<!-- listing: ../src/fields.ts#readFields -->`. The formatter
-  writes the current code of the source into each listing, in VS Code and on
-  the command line, which names a listing whose source it does not find.
+  workspace, or of a snippet of it, as a code block with its caption line
+  `Listing: Caption` and the comment of its source, for example
+  `<!-- listing: ../src/fields.ts#read-fields -->`. The formatter writes the
+  current code of the source into each listing, in VS Code and on the
+  command line, which names a listing whose source it does not find; the
+  text editor shows a warning at such a listing.
   `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
 - Snippets in the source code: `/snippet` after selected lines of a source
   file, or "Add Snippet", writes the marks
@@ -111,8 +112,9 @@ The first version.
   configuration files such as JSONC, YAML, TOML and `.env`, and in any
   other language that VS Code knows, and a listing names the snippet as
   `#<name>`. A small line above each snippet names the listings that show
-  it, and the button "Show Used Snippets" colors the used snippets. Ctrl+Click on the comment of a listing opens its
-  source at the snippet or the symbol.
+  it, and the button "Show Used Snippets" colors the used snippets. A
+  function, a class or a method is a listing through a snippet around it.
+  Ctrl+Click on the comment of a listing opens its source at the snippet.
 - The notes in the pages of a paper: the highlights, the selection of a
   note and "Add Note" work in the pages that nimblescape Markdown Paper shows
   in the Markdown preview.

@@ -783,12 +783,13 @@ This is <wbr><!--{title}-->A paper<!--{/title}--> of <wbr><!--{author.name}-->Ha
 
 A Markdown file can live in a repository with other source code, for
 example a paper in the folder `paper/` of a project. `/listing` adds code of
-a file of the repository, and the formatter keeps it current:
+a file of the repository, or a snippet of it, and the formatter keeps it
+current:
 
 ````markdown
 Listing: Reading the fields<a id="lst-reading-fields"></a>
 
-<!-- listing: ../src/notes/fields.ts#readFields -->
+<!-- listing: ../src/notes/fields.ts#read-fields -->
 
 ```typescript
 export function readFields(lines: readonly string[]): Map<string, string> {
@@ -798,36 +799,34 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 ````
 
 - On an empty line, type `/listing` and choose the file, then "Whole file"
-  or a function, a class or a method of it. The list of the symbols comes
-  from the language extension of the file, for example the TypeScript
-  extension of VS Code; a file without symbols gives its whole text. Type
-  the caption, which is selected.
+  or a snippet of it ([Snippets](#snippets)); a file without snippets gives
+  its whole text. Type the caption, which is selected.
 - The comment before the code block names the source: the path from the
-  Markdown file, and after `#` the name of the symbol, with `.` between a
-  class and its method, for example `#NotesView.addFromText`. You can also
-  write the comment yourself before a code block.
+  Markdown file, and after `#` the name of a snippet, for example
+  `#read-fields`. You can also write the comment yourself before a code
+  block.
 - The formatter writes the current code of the source into the code block on
   each format and each save, also on the command line. It reads an open
   source file as it stands in VS Code, also before you save it. A listing
-  whose file or symbol it does not find keeps its code; the command line
-  names it, and `--check` fails.
-- The formatter finds a symbol by its declaration and its end by the braces,
-  or in Python by the indentation. This works for TypeScript, JavaScript
-  (also JSX and TSX), Java, C#, C, C++, Go, Rust, Kotlin, Swift, Scala, PHP,
-  Dart, Groovy and Python. Other files, such as YAML, TOML, `.env`, CSS,
-  HTML or Ruby, have no symbols: list the whole file, or mark a snippet.
-- `/listing` lists the files of more than 80 types: the languages above, the
-  configuration files (JSON, JSONC, YAML, TOML, `.env`, INI, Dockerfile,
+  whose file or snippet it does not find keeps its code; the text editor and
+  the Problems view show a warning at its comment, the command line names
+  it, and `--check` fails.
+- A listing of a function, a class or a method is a snippet around it. The
+  name after `#` never names a function by itself, for example
+  `#readFields`: such a listing is not found. Only a parser of the language
+  finds functions reliably, and these come later.
+- `/listing` lists the files of more than 80 types: the programming
+  languages, the configuration files (JSON, JSONC, YAML, TOML, `.env`, INI, Dockerfile,
   Makefile), CSS, SCSS, HTML, XML, SQL, shell scripts and others.
 - GitHub and the Markdown preview show the code block, without the comment.
   `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
 - Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the
-  source file at the snippet or the symbol.
+  source file at the snippet.
 
 ### Snippets
 
-A snippet is a part of a source file that is no function or class, for
-example a few lines of a function. Two comments mark it:
+A snippet is a part of a source file, for example a function, a class or a
+few lines of a function. Two comments mark it:
 
 ```ts
 export function parse(lines: readonly string[]): Token[] {
@@ -847,9 +846,8 @@ export function parse(lines: readonly string[]): Token[] {
   does not know, VS Code writes the comments, as with "Add Line Comment".
   JSON has no comments, so a JSON file has no snippets.
 - `/listing` lists the snippets of a file after "Whole file". A listing
-  names a snippet after `#`, as a symbol:
-  `<!-- listing: ../src/parse.ts#keep-lines -->`. A snippet wins over a
-  symbol of the same name.
+  names a snippet after `#`:
+  `<!-- listing: ../src/parse.ts#keep-lines -->`.
 - The code of a listing never shows the marks of the snippets.
 - `/snippet` shows once the extension is active, after a Markdown file was
   opened in the window; "Add Snippet" in the Command Palette works at any
@@ -1170,12 +1168,8 @@ you can remove them from your settings.
   GitHub shows them at the end of the page with the other footnotes.
 - The notes of the older form `<!-- note … -->` are not converted; the
   extension no longer reads them.
-- A listing finds a symbol by its declaration and its braces, not with the
-  language server, so that VS Code and the command line write the same code.
-  A brace in a regular expression of the code, such as `/\{/`, gives the
-  symbol a wrong end, and of two declarations of one name the listing takes
-  the first one.
-  List the whole file, or a symbol without such a brace.
+- A listing shows a whole file or a snippet, and never a function, a class
+  or a method by its name: mark it as a snippet.
 - The text editor and the side view show the notes of the open Markdown files
   only.
 - The side view stands next to the text editor only; next to the preview it

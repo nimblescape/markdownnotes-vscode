@@ -132,7 +132,7 @@ describe('the command format', () => {
 
   test('writes the current code of each listing from its file, and reports a listing whose source it does not find (R-CODE-002)', () => {
     const paper = ['Listing: Reading', '', '<!-- listing: ../src/read%20me.ts#read -->', '', '```typescript', 'old', '```', '', '<!-- listing: ../src/gone.ts -->', '', '```', 'kept', '```', ''].join('\n');
-    const code = 'export function read(path: string): string {\n  return path;\n}\n\nexport const other = 1;\n';
+    const code = '// markdownnotes: snippet read\nexport function read(path: string): string {\n  return path;\n}\n// markdownnotes: /snippet read\n\nexport const other = 1;\n';
     const fake = fakeOf({ 'paper/a.md': paper, 'src/read me.ts': code }, paper);
     expect(run(['format', 'paper/a.md'], fake)).toBe(0);
     const formatted = paper.replace('old', 'export function read(path: string): string {\n  return path;\n}');

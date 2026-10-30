@@ -38,8 +38,9 @@
  */
 
 import * as vscode from 'vscode';
+import { sourceOf } from './formatter';
 import { appendAnswer, colorNote, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, replaceNoteText, type Result, todoNote, withDoctype } from './notes/edits';
-import { checksOf } from './notes/checks';
+import { checksOf, listingChecksOf } from './notes/checks';
 import { formatVersion, newerFormat, versionText } from './notes/doctype';
 import { deleteFootnote, type Footnote, type FootnoteResult, insertFootnote, readFootnotes, replaceFootnote } from './notes/footnotes';
 import { findNotes, type Note, noteAt, type Position, type Reading, read, readNotes } from './notes/notes';
@@ -350,9 +351,11 @@ export class NoteThreads implements vscode.Disposable {
       return entry;
     });
     this.entries.set(key, entries);
+    const lines = linesOf(document);
+    const source = sourceOf(document.uri);
     this.diagnostics.set(
       document.uri,
-      checksOf(linesOf(document), this.readingOf(document)).map((check) => {
+      [...checksOf(lines, this.readingOf(document)), ...(source ? listingChecksOf(lines, source) : [])].map((check) => {
         const range = new vscode.Range(check.range.start.line, check.range.start.character, check.range.end.line, check.range.end.character);
         const severity = check.severity === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Information;
         const diagnostic = new vscode.Diagnostic(range, check.message, severity);

@@ -307,7 +307,7 @@ repository ([R-CODE-001](requirements.md#r-code-001)):
 ````markdown
 Listing: Reading the fields<a id="lst-reading-fields"></a>
 
-<!-- listing: ../src/notes/fields.ts#readFields -->
+<!-- listing: ../src/notes/fields.ts#read-fields -->
 
 ```typescript
 export function readFields(lines: readonly string[]): Map<string, string> {
@@ -319,16 +319,18 @@ export function readFields(lines: readonly string[]): Map<string, string> {
 - The comment of the source stands on its own line directly before the code
   block, with a blank line or none between them: `<!-- listing: `, the path
   of the file relative to the Markdown file with `/` and the escapes of a
-  link (`%20` for a space), and ` -->`. After the path, `#` and a name name
-  a symbol of the file, with `.` between a container and its member, for
-  example `#NotesView.addFromText`; without it, the listing is the whole
-  file.
-- The name after `#` can also name a snippet of the file: the lines between
-  the comments `markdownnotes: snippet <name>` and
+  link (`%20` for a space), and ` -->`. Without `#` after the path, the
+  listing is the whole file.
+- After the path, `#` and a name name a snippet of the file: the lines
+  between the comments `markdownnotes: snippet <name>` and
   `markdownnotes: /snippet <name>`, in any comment form of the language, for
-  example `// markdownnotes: snippet keep-lines`. A snippet wins over a symbol
-  of the same name, and the code of a listing leaves out the marks of all
-  snippets ([R-CODE-003](requirements.md#r-code-003)).
+  example `// markdownnotes: snippet read-fields`
+  ([R-CODE-003](requirements.md#r-code-003)). The name has small letters and
+  digits, with `-` between them. The code of a listing leaves out the marks
+  of all snippets. A function, a class or a method is a snippet around it:
+  the name never names a symbol of the language
+  ([R-CODE-005](requirements.md#r-code-005)), and the formatter reports a
+  listing whose snippet the file does not have as not found.
 - The caption line `Listing:` before the comment, and the anchor `lst-…` at
   its end, work as those of a table; a link to it is
   `[Listing 1](#lst-reading-fields)`.

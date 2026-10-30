@@ -16,13 +16,13 @@
  * ([src/notes/listings.ts](notes/listings.ts)). "Add Snippet" in the Command
  * Palette and in the light bulb of selected lines does the same. The comment of
  * a listing in a Markdown file is a link: Ctrl+Click opens its source file at
- * the snippet or the symbol, as a Markdown link opens its file.
+ * the snippet, as a Markdown link opens its file.
  */
 
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
 import { sourceOf } from './formatter';
-import { findListings, hasSymbols, isSnippetName, snippetLines, snippetsOf, snippetText, symbolLines } from './notes/listings';
+import { findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
 
 /** snippetCommands are the commands of the snippets: the one of the Command Palette, and the one of `/snippet`. */
 export const snippetCommands = {
@@ -233,7 +233,7 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
 
   /**
    * provideDocumentLinks returns the links of the comments of the listings of a Markdown file: each opens its source
-   * file at the first line of its snippet or its symbol.
+   * file at the first line of its snippet.
    * @param document - The document.
    */
   provideDocumentLinks(document: vscode.TextDocument): vscode.DocumentLink[] {
@@ -245,7 +245,7 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
     const source = sourceOf(file);
     return findListings(lines).flatMap((listing) => {
       const text = lines[listing.line];
-      const reference = `${listing.path}${listing.symbol ? `#${listing.symbol}` : ''}`;
+      const reference = `${listing.path}${listing.snippet ? `#${listing.snippet}` : ''}`;
       const column = text.indexOf(reference);
       let target: vscode.Uri;
       try {
@@ -253,12 +253,12 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       } catch {
         return [];
       }
-      const code = listing.symbol ? source?.(listing.path)?.split(/\r\n|\r|\n/) : undefined;
-      const found = code && (snippetsOf(code).find((snippet) => snippet.name === listing.symbol) ?? (hasSymbols(listing.path) ? symbolLines(code, listing.symbol!) : undefined));
-      // The number of the first line of the snippet or the symbol, from 1.
+      const code = listing.snippet ? source?.(listing.path)?.split(/\r\n|\r|\n/) : undefined;
+      const found = code && snippetsOf(code).find(({ name }) => name === listing.snippet);
+      // The number of the first line of the snippet, from 1.
       const line = found ? found.first + 1 : undefined;
       const link = new vscode.DocumentLink(new vscode.Range(listing.line, column, listing.line, column + reference.length), line ? target.with({ fragment: `L${line}` }) : target);
-      link.tooltip = listing.symbol ? `Open ${listing.symbol} in ${decodeURIComponent(listing.path)}` : `Open ${decodeURIComponent(listing.path)}`;
+      link.tooltip = listing.snippet ? `Open ${listing.snippet} in ${decodeURIComponent(listing.path)}` : `Open ${decodeURIComponent(listing.path)}`;
       return [link];
     });
   }

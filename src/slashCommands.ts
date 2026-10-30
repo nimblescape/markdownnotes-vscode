@@ -47,11 +47,12 @@
  * ([R-CODE-001](../docs/requirements.md#r-code-001), Hannes, 2026-10-30: "a
  * new slash command for that which "imports" a code block", "we may mark single
  * functions but also complete source code files"; "it is part of notes"): the
- * user chooses the file, and then the whole file or one of its symbols that the
- * language extension of the file finds, such as a function, a class or a
- * method. It lists only the symbols that the formatter finds again by their
- * declaration ([src/notes/listings.ts](notes/listings.ts)), which writes the
- * current code into the listing on each format.
+ * user chooses the file, and then the whole file or one of its snippets
+ * ([src/notes/listings.ts](notes/listings.ts)). The formatter writes the
+ * current code into the listing on each format. A function, a class or a
+ * method is a snippet too: the extension lists no symbols of a language
+ * ([R-CODE-005](../docs/requirements.md#r-code-005), Hannes, 2026-10-30,
+ * 05:38: "for now, whole files and snippets are sufficient").
  *
  * Other extensions add slash commands through the API of the extension
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
@@ -64,7 +65,7 @@ import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
-import { codeOf, hasSymbols, listingBlock, snippetsOf, sourceFiles, symbolLines } from './notes/listings';
+import { codeOf, listingBlock, snippetsOf, sourceFiles } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -112,63 +113,6 @@ export function relativePath(folder: string, file: string): string {
   return [...from.slice(shared).map(() => '..'), ...to.slice(shared)]
     .map((part) => (part === '..' ? part : encodeURIComponent(part).replace(/\(/g, '%28').replace(/\)/g, '%29')))
     .join('/');
-}
-
-/** containerKinds are the kinds of the symbols whose members `/listing` lists, for example the methods of a class. */
-const containerKinds = (): vscode.SymbolKind[] => [vscode.SymbolKind.Class, vscode.SymbolKind.Interface, vscode.SymbolKind.Struct, vscode.SymbolKind.Module, vscode.SymbolKind.Namespace, vscode.SymbolKind.Object];
-
-/** listedKinds are the kinds of the symbols that `/listing` lists; a variable or a constant only at the top of a file. */
-const listedKinds = (): vscode.SymbolKind[] => [...containerKinds(), vscode.SymbolKind.Enum, vscode.SymbolKind.Function, vscode.SymbolKind.Method, vscode.SymbolKind.Constructor];
-
-/** ListedSymbol is a symbol of a file that `/listing` lists: its name, with `.` after its container, its kind, and its line. */
-interface ListedSymbol {
-  name: string;
-  kind: vscode.SymbolKind;
-  line: number;
-}
-
-/**
- * symbolsOf returns the symbols of a file that `/listing` lists, from the language extension of the file: the
- * functions, classes, methods and other declarations that the formatter finds again at the same line, each name once.
- * @param uri - The URI of the file.
- * @param lines - The lines of the file.
- */
-async function symbolsOf(uri: vscode.Uri, lines: readonly string[]): Promise<ListedSymbol[]> {
-  let found: (vscode.DocumentSymbol | vscode.SymbolInformation)[] | undefined;
-  try {
-    found = await vscode.commands.executeCommand<(vscode.DocumentSymbol | vscode.SymbolInformation)[]>('vscode.executeDocumentSymbolProvider', uri);
-  } catch {
-    found = undefined;
-  }
-  const listed: ListedSymbol[] = [];
-  const visit = (symbols: readonly vscode.DocumentSymbol[], container: string | undefined) => {
-    for (const symbol of symbols) {
-      const name = container ? `${container}.${symbol.name}` : symbol.name;
-      const top = container === undefined && (symbol.kind === vscode.SymbolKind.Variable || symbol.kind === vscode.SymbolKind.Constant);
-      if (top || listedKinds().includes(symbol.kind)) {
-        listed.push({ name, kind: symbol.kind, line: symbol.selectionRange.start.line });
-      }
-      if (containerKinds().includes(symbol.kind)) {
-        visit(symbol.children ?? [], name);
-      }
-    }
-  };
-  for (const symbol of found ?? []) {
-    if ('children' in symbol) {
-      visit([symbol], undefined);
-    } else if (listedKinds().includes(symbol.kind)) {
-      listed.push({ name: symbol.containerName ? `${symbol.containerName}.${symbol.name}` : symbol.name, kind: symbol.kind, line: symbol.location.range.start.line });
-    }
-  }
-  const names = new Set<string>();
-  return listed.filter(({ name, line }) => {
-    const range = /^[A-Za-z0-9_$.-]+$/.test(name) && !names.has(name) ? symbolLines(lines, name) : undefined;
-    if (!range || line < range.first || line > range.last) {
-      return false;
-    }
-    names.add(name);
-    return true;
-  });
 }
 
 /** SlashCommand is a slash command that another extension adds (R-GEN-012), after the commands of the notes. */
@@ -544,7 +488,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   /**
    * listing inserts code of a file of the workspace as a listing for `/listing`
    * ([R-CODE-001](../docs/requirements.md#r-code-001)), after VS Code removed the typed command: the user chooses the
-   * file, then the whole file or one of its symbols, and the caption is selected for typing. A file without symbols
+   * file, then the whole file or one of its snippets, and the caption is selected for typing. A file without snippets
    * gives its whole text.
    * @param uri - The URI of the document.
    */
@@ -571,26 +515,19 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const source = await vscode.workspace.openTextDocument(chosen.file);
     const text = source.getText();
-    const lines = text.split(/\r\n|\r|\n/);
-    // The snippets come first, and a snippet wins over a symbol of the same name (R-CODE-003).
-    const snippets = snippetsOf(lines).map(({ name }) => ({ label: name, description: 'Snippet', name: name as string | undefined }));
-    const symbols = hasSymbols(chosen.file.path) ? (await symbolsOf(source.uri, lines)).filter(({ name }) => !snippets.some((snippet) => snippet.name === name)) : [];
-    let symbol: string | undefined;
-    if (snippets.length + symbols.length > 0) {
-      const part = await vscode.window.showQuickPick(
-        [
-          { label: 'Whole file', description: chosen.description, name: undefined as string | undefined },
-          ...snippets,
-          ...symbols.map(({ name, kind }) => ({ label: name, description: vscode.SymbolKind[kind] ?? '', name })),
-        ],
-        { placeHolder: 'The part of the file: the whole file, a snippet, or a function, a class or a method', matchOnDescription: true },
-      );
+    const snippets = snippetsOf(text.split(/\r\n|\r|\n/)).map(({ name }) => ({ label: name, description: 'Snippet', name: name as string | undefined }));
+    let name: string | undefined;
+    if (snippets.length > 0) {
+      const part = await vscode.window.showQuickPick([{ label: 'Whole file', description: chosen.description, name: undefined as string | undefined }, ...snippets], {
+        placeHolder: 'The part of the file: the whole file or a snippet',
+        matchOnDescription: true,
+      });
       if (!part) {
         return;
       }
-      symbol = part.name;
+      name = part.name;
     }
-    const [, ...block] = listingBlock('Caption', chosen.relative, symbol, codeOf(text, symbol, chosen.file.path) ?? []);
+    const [, ...block] = listingBlock('Caption', chosen.relative, name, codeOf(text, name) ?? []);
     const snippet = ['Listing: ${1:Caption}', ...block.map(snippetText)].join('\n');
     await editor.insertSnippet(new vscode.SnippetString(`${snippet}\n$0`), editor.selection.active, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
   }

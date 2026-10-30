@@ -122,17 +122,20 @@ test('"Add Snippet" in a file type that the extension does not know writes the m
   expect(fake.codeActionsAt(fake.open('{}\n', '/folder/tsconfig.json', { languageId: 'jsonc' }), new FakeRange(0, 0, 0, 2))).toHaveLength(1);
 });
 
-test('the comment of a listing is a link to its source file, at the line of its snippet or its symbol (R-CODE-003)', async () => {
-  await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
-  const paper = fake.open('<!-- listing: ../src/keep.ts#keepLines -->\n\n```typescript\n```\n\n<!-- listing: ../src/keep.ts -->\n\n```\n```\n', '/folder/paper/a.md');
+test('the comment of a listing is a link to its source file, at the line of its snippet (R-CODE-003)', async () => {
+  const { document } = await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
+  document.text = 'export function keepLines(lines: string[]): string[] {\n  // markdownnotes: snippet filter\n  const kept = lines.filter(Boolean);\n  // markdownnotes: /snippet filter\n  return kept;\n}\n';
+  const paper = fake.open('<!-- listing: ../src/keep.ts#filter -->\n\n```typescript\n```\n\n<!-- listing: ../src/keep.ts -->\n\n```\n```\n\n<!-- listing: ../src/keep.ts#keepLines -->\n\n```\n```\n', '/folder/paper/a.md');
   const links = fake.links.get('markdown')!.provideDocumentLinks(paper);
+  // A function is no snippet: its link opens the file at its start.
   expect(links.map((link) => [link.range.start.line, link.range.start.character, link.range.end.character, link.target?.path, link.target?.fragment, link.tooltip])).toEqual([
-    [0, 14, 38, '/folder/src/keep.ts', 'L1', 'Open keepLines in ../src/keep.ts'],
+    [0, 14, 35, '/folder/src/keep.ts', 'L3', 'Open filter in ../src/keep.ts'],
     [5, 14, 28, '/folder/src/keep.ts', '', 'Open ../src/keep.ts'],
+    [10, 14, 38, '/folder/src/keep.ts', '', 'Open keepLines in ../src/keep.ts'],
   ]);
 });
 
-test('/listing in a Markdown file lists the snippets of the chosen file before its symbols, and inserts the code of a snippet without its marks (R-CODE-001, R-CODE-003)', async () => {
+test('/listing in a Markdown file lists the whole file and the snippets of the chosen file, and inserts the code of a snippet without its marks (R-CODE-001, R-CODE-003)', async () => {
   await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
   const source = fake.documents.find((document) => document.uri.path === '/folder/src/keep.ts')!;
   source.text = 'export function keepLines(lines: string[]): string[] {\n  // markdownnotes: snippet filter\n  const kept = lines.filter(Boolean);\n  // markdownnotes: /snippet filter\n  return kept;\n}\n';

@@ -34,7 +34,7 @@ export const usage = [
   'each paragraph on one line, aligned tables, no white space at the end of a line, one blank',
   'line between blocks, and <wbr> before each start marker of a note; a note without a start marker',
   'gets one. It keeps code blocks, HTML, front matter, math, containers and the answers of the notes.',
-  'It writes the current code of each listing (<!-- listing: path#symbol --> before a code block)',
+  'It writes the current code of each listing (<!-- listing: path#snippet --> before a code block)',
   'from its file, by its path relative to the Markdown file.',
   '',
   'Options:',
@@ -145,7 +145,7 @@ export function run(args: readonly string[], io: Io): number {
       const source = sourceFor(file, io);
       const formatted = formatText(text, source);
       for (const listing of missingListings(formatted.split(/\r\n|\r|\n/), source)) {
-        io.err(`${file}:${listing.line + 1}: the source ${listing.path}${listing.symbol ? `#${listing.symbol}` : ''} of the listing was not found`);
+        io.err(`${file}:${listing.line + 1}: the source ${listing.path}${listing.snippet ? `#${listing.snippet}` : ''} of the listing was not found`);
         unformatted ||= check;
       }
       if (file === '-') {

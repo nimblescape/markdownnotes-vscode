@@ -12,10 +12,13 @@
  * a reference, a note in a block quote, a reference in the text of a link or
  * of a note, a reference in a heading, a note without a start marker or
  * without highlighted text, and a
- * start marker at the start of a line without `<wbr>` before it. The module
- * uses no API of VS Code.
+ * start marker at the start of a line without `<wbr>` before it. A listing
+ * whose source file or snippet is not found gets a warning too
+ * ([R-CODE-005](../../docs/requirements.md#r-code-005)). The module uses no
+ * API of VS Code.
  */
 
+import { missingListings, type Source } from './listings';
 import { type Range, type Reading, same } from './notes';
 
 /** Check is one finding of the checks: the part of the text, the message, and whether it is a warning or a hint. */
@@ -99,4 +102,34 @@ export function checksOf(lines: readonly string[], reading: Reading): Check[] {
     add(lineRange(lines, position.line, position.character), 'A start marker at the start of a line ends the paragraph. Put <wbr> before it; "Format Document" does it.');
   }
   return checks.sort((a, b) => a.range.start.line - b.range.start.line || a.range.start.character - b.range.start.character);
+}
+
+/**
+ * listingChecksOf returns a warning at the comment of each listing of a Markdown text whose file or snippet the source
+ * does not have, for example a listing that names a function, which is no snippet
+ * ([R-CODE-005](../../docs/requirements.md#r-code-005)). The formatter keeps the code of such a listing.
+ * @param lines - The lines of the text.
+ * @param source - Reads the files of the listings.
+ */
+export function listingChecksOf(lines: readonly string[], source: Source): Check[] {
+  const texts = new Map<string, string | undefined>();
+  const read: Source = (path) => {
+    if (!texts.has(path)) {
+      texts.set(path, source(path));
+    }
+    return texts.get(path);
+  };
+  return missingListings(lines, read).map((listing) => {
+    let path = listing.path;
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      // The path keeps its escapes.
+    }
+    const message =
+      read(listing.path) === undefined
+        ? `The source file ${path} of the listing was not found. The listing keeps its code.`
+        : `The file ${path} has no snippet "${listing.snippet}". A listing shows a whole file or a snippet: mark the code in the source file with /snippet. The listing keeps its code.`;
+    return { range: lineRange(lines, listing.line), message, severity: 'warning' };
+  });
 }

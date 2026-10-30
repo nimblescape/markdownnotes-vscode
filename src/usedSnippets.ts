@@ -49,7 +49,7 @@ export interface Use {
 
 /**
  * usesOfText returns the uses of the snippets of a Markdown text, by the path of the source file and the name of the
- * snippet after `#`: each listing that names a snippet or a symbol, with its number when it has a caption line.
+ * snippet after `#`: each listing that names a snippet, with its number when it has a caption line.
  * @param lines - The lines of the Markdown text.
  * @param file - The URI of the Markdown file.
  * @param where - The path of the Markdown file that the labels name.
@@ -64,7 +64,7 @@ export function usesOfText(lines: readonly string[], file: vscode.Uri, where: st
   const captions = items.filter((item) => item.kind === 'listing');
   const word = wordOf(lines, 'listing') ?? 'Listing';
   listings.forEach((listing, index) => {
-    if (!listing.symbol) {
+    if (!listing.snippet) {
       return;
     }
     let source: vscode.Uri;
@@ -77,7 +77,7 @@ export function usesOfText(lines: readonly string[], file: vscode.Uri, where: st
     const previous = index > 0 ? listings[index - 1].close : -1;
     const caption = captions.find((item) => item.line > previous && item.line < listing.line && listing.line - item.line <= 2);
     const label = caption ? `${word} ${labelOf(items, caption)} in ${where}` : where;
-    const key = `${source.path}#${listing.symbol}`;
+    const key = `${source.path}#${listing.snippet}`;
     uses.set(key, [...(uses.get(key) ?? []), { markdown: file, line: listing.line, label }]);
   });
   return uses;
