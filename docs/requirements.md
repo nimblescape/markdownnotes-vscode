@@ -1934,6 +1934,12 @@ export function parse(lines: readonly string[]): Token[] {
   end marker of a value of the front matter ([R-XREF-004](#r-xref-004)).
   The name has small letters and digits, with `-` between them. The other
   form on the card is `@snippet` and `@endsnippet`.
+- The end mark names the snippet again (Hannes, 06:19: "ok, name stays"):
+  when an edit loses one mark, the listing finds no snippet of that name
+  and warns ([R-CODE-005](#r-code-005)), and does not show other code; two
+  snippets can cross, not only nest; and the end mark shows which snippet
+  ends in the file on GitHub or in a diff. `/snippet` writes the name in
+  both marks, and "Rename Snippet" changes both ([R-CODE-004](#r-code-004)).
 - The marks stand in the comment form of the type of the file (Hannes,
   2026-10-30, 04:29: "we also may have jsonc and yaml, toml, .env files,
   etc.", "css, html, jsx, tsx, etc."): `//` (TypeScript, JavaScript, JSX,
