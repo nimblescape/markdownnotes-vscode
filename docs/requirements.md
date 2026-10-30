@@ -84,10 +84,11 @@ requirement, the plan and the decisions of Hannes.
 | 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
 | 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
 | 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done; the symbols are removed in step 60 |
-| 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it; the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
+| 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it (in place of the marks since step 62); the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
 | 59 | The frame of a highlight in the pages of a paper only in the text area of each page; "Add Note" without the soft hyphens of the pages | [R-PREV-009](#r-prev-009) | done |
 | 60 | Listings of whole files and snippets only: no symbols of a language in `/listing`, the formatter and the links of the listings; a warning at a listing whose file or snippet is not found ([decision 38](#decisions)) | [R-CODE-005](#r-code-005), [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-CODE-003](#r-code-003) | done |
 | 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | planned |
+| 62 | The marks of a snippet as tags in the look of a code lens in place of the mark lines; the cursor jumps over them; a click on an end tag goes to the start; "Rename Snippet" and "Remove Snippet" in the light bulb ([decision 37](#decisions)) | [R-CODE-004](#r-code-004) | done |
 
 ## General
 
@@ -1976,24 +1977,44 @@ export function parse(lines: readonly string[]): Token[] {
 ### R-CODE-004
 
 **The snippets in the text editor of a source file.** The text editor shows
-each snippet with a small tag, and a button highlights the snippets that a
-listing shows (Hannes, 2026-10-30, 04:34, on open question 2 of the concept
-document: "the editor shall sow it as a rendered tag, unobstrusive, similar
-to the small font annotations that are there sometimes", "the source code
-text editor gets an icon toggle button the highlights the used snippets in
-a source code view"; [decision 37](#decisions)):
+each mark of a snippet as a small tag in place of the mark line, and a
+button highlights the snippets that a listing shows (Hannes, 2026-10-30,
+04:34, on open question 2 of the concept document: "the editor shall sow it
+as a rendered tag, unobstrusive, similar to the small font annotations that
+are there sometimes", "the source code text editor gets an icon toggle
+button the highlights the used snippets in a source code view"; 05:49: "what
+about B but in a rendered way", "we do not want it to be editable", "it is a
+whole line comment so jumping cursors is not a problem"; 05:53: "can t we
+just jump over it?"; 05:57: "the complete mark shall appear as a code lens
+line instead of the line itself", "the clicking the end tag jumps to the
+start tag"; [decision 37](#decisions)):
 
-- Above the start mark of each snippet, VS Code shows a code lens, the small
-  gray line that it shows as "3 references" above a function: the name of
-  the snippet and the listings of the Markdown files of the workspace that
-  show it, for example `snippet keep-lines · Listing 2 in paper/paper.md`,
-  or `in no listing`. A click on it opens the Markdown file at the comment
-  of the listing; with several listings, the user chooses one first.
-- The two marks of each snippet show dimmed. The extension changes no
-  character of the source file, and the cursor moves through the marks as
-  through any line, because the source must stay exact for the compiler and
-  for git, and hidden characters caused the bugs of the cursor of the notes
-  ([R-TEXT-009](#r-text-009)).
+- Each mark line shows a tag in the small gray letters of a code lens, the
+  line that VS Code shows as "3 references" above a function, in place of
+  the comment. The tag of the start mark has the name of the snippet and the
+  listings of the Markdown files of the workspace that show it, for example
+  `snippet keep-lines · Listing 2 in paper/paper.md`, or `in no listing`; the
+  tag of the end mark is `/snippet keep-lines`. The indentation of the line
+  stays, and the line keeps the height of a line of code, because the API of
+  VS Code for extensions cannot remove a line or make it lower.
+- The extension changes no character of the source file: it only hides the
+  comment, because the source must stay exact for the compiler and for git.
+- The cursor jumps over a mark line in the direction of its move, with the
+  arrow keys, Page Up, Page Down and a click, as over the header line of a
+  note ([R-TEXT-009](#r-text-009)). Backspace and Delete next to a mark line,
+  which would join the two lines, do nothing. A selection of text that
+  covers a mark line stays as it is. The hidden characters fill a whole line
+  and never stand between visible characters, which caused the bugs of the
+  cursor at the hidden markers of the notes.
+- A click on the tag of a start mark opens the Markdown file at the comment
+  of the listing; with several listings, the user chooses one first. A click
+  on the tag of an end mark puts the cursor on the first line of the code of
+  the snippet and scrolls the start tag into view, when it is not visible.
+- The light bulb of the code of a snippet has "Rename Snippet", which renames
+  the snippet in both marks and in the listings of the Markdown files of the
+  workspace that show it, in one change of the workspace, and "Remove
+  Snippet", which deletes both mark lines and asks first when a listing
+  shows the snippet. The Command Palette has both commands.
 - The title of the text editor of a source file with snippets has the button
   "Show Used Snippets" or "Hide Used Snippets", with the highlighter pen of
   "Show Highlights" ([R-GEN-011](#r-gen-011)). While they show, the lines of
@@ -2004,7 +2025,6 @@ a source code view"; [decision 37](#decisions)):
   "Listing 2". The uses come from the Markdown files of the workspace,
   without `node_modules` and `.git`, an open file as it stands, and are read
   again half a second after a change of a Markdown file.
-- The code lenses show while the setting `editor.codeLens` of VS Code is on.
 
 ### R-CODE-005
 
@@ -2505,13 +2525,14 @@ requirements above follow them.
     when the text of the heading changes.
 37. **The tag of a snippet and the used snippets** ([R-CODE-004](#r-code-004),
     Hannes, 2026-10-30, 04:34, on open question 2 of the concept document
-    "Listings and snippets"): the text editor of a source file shows each
-    snippet with an unobtrusive tag in small letters, and a toggle button
-    highlights the snippets that a listing shows. The tag is a code lens of
-    VS Code above the start mark, and the marks show dimmed, so that no
-    character of the source changes (Claude's form, open to the other form:
-    the tag in place of the text of the comment). The other proposal of the
-    question was the dimmed marks without a tag.
+    "Listings and snippets"; 05:49 and 05:57): the text editor of a source
+    file shows each mark line of a snippet as an unobtrusive tag in the
+    small gray letters of a code lens in place of the comment, the cursor
+    jumps over the mark lines, and a toggle button highlights the snippets
+    that a listing shows. No character of the source changes. The other
+    forms were the dimmed marks without a tag, and a code lens above the
+    dimmed start mark, built first in step 58, which needed one more line
+    and let the cursor stand in the marks.
 38. **Symbols of a listing** ([R-CODE-005](#r-code-005), open question 3 of
     the concept document "Listings and snippets"): for now, a listing shows
     a whole file or a snippet, and the extension finds no symbols of a

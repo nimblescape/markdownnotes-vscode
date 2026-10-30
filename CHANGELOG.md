@@ -111,8 +111,12 @@ The first version.
   around them in the comment form of the type of the file, also in
   configuration files such as JSONC, YAML, TOML and `.env`, and in any
   other language that VS Code knows, and a listing names the snippet as
-  `#<name>`. A small line above each snippet names the listings that show
-  it, and the button "Show Used Snippets" colors the used snippets. A
+  `#<name>`. In the text editor of the source file, each mark line shows as
+  a small gray tag in place of the comment, the start tag with the listings
+  that show the snippet; the cursor jumps over the mark lines, a click on
+  the end tag goes to the start, "Rename Snippet" and "Remove Snippet" are
+  in the light bulb, and the button "Show Used Snippets" colors the used
+  snippets. A
   function, a class or a method is a listing through a snippet around it.
   Ctrl+Click on the comment of a listing opens its source at the snippet.
 - The notes in the pages of a paper: the highlights, the selection of a

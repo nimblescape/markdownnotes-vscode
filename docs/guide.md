@@ -852,11 +852,17 @@ export function parse(lines: readonly string[]): Token[] {
 - `/snippet` shows once the extension is active, after a Markdown file was
   opened in the window; "Add Snippet" in the Command Palette works at any
   time.
-- Above the start mark of each snippet, a small gray line names the snippet
-  and the listings that show it, for example
-  `snippet keep-lines · Listing 2 in paper/paper.md`. Click it to open the
-  Markdown file at the listing. The two marks show dimmed; the file itself
-  does not change.
+- In the text editor of a source file, each mark line shows a small gray tag
+  in place of the comment. The start tag names the snippet and the listings
+  that show it, for example
+  `snippet keep-lines · Listing 2 in paper/paper.md`; click it to open the
+  Markdown file at the listing. The end tag is `/snippet keep-lines`; click
+  it to go to the start of the snippet. The file itself does not change.
+- The cursor jumps over the mark lines, and Backspace and Delete next to
+  them do nothing. To change the marks, put the cursor in the code of the
+  snippet and open the light bulb (Ctrl+.): "Rename Snippet" also renames
+  the snippet in the listings that show it, and "Remove Snippet" deletes
+  both marks.
 - The highlighter pen in the title of the text editor of a source file with
   snippets, "Show Used Snippets", gives each snippet that a listing shows a
   yellow background; "Hide Used Snippets" removes it.

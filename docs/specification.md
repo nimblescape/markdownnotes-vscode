@@ -295,10 +295,13 @@ form of the notes in a file for programs and AI agents, and
   names it as `#<name>`, and the comment of a listing is a link to its
   source ([R-CODE-003](requirements.md#r-code-003)). A file type that the
   extension does not know gets the comment form of VS Code for its language.
-- The text editor of a source file shows a code lens above the start mark of
-  each snippet with the listings that show it, dims the marks, and has the
-  buttons "Show Used Snippets" and "Hide Used Snippets", which color the
-  used snippets ([R-CODE-004](requirements.md#r-code-004)).
+- The text editor of a source file shows each mark line of a snippet as a
+  tag in the look of a code lens in place of the comment, with the listings
+  that show the snippet in the start tag; the cursor jumps over the mark
+  lines, a click on the end tag goes to the start, the light bulb has
+  "Rename Snippet" and "Remove Snippet", and the buttons "Show Used
+  Snippets" and "Hide Used Snippets" color the used snippets
+  ([R-CODE-004](requirements.md#r-code-004), decision 37).
 
 ## 12. API for other extensions
 

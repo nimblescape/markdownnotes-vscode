@@ -141,22 +141,36 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker, "Add Snippet" and the buttons of the used snippets, and no other', () => {
+test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker, of the snippets and of the used snippets, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
   expect([...contributed].sort()).toEqual(
-    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), snippetCommands.add, usedSnippetCommands.show, usedSnippetCommands.hide].sort(),
+    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), snippetCommands.add, usedSnippetCommands.show, usedSnippetCommands.hide, usedSnippetCommands.rename, usedSnippetCommands.remove, usedSnippetCommands.keep].sort(),
   );
 });
 
 test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
   const base = 'editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections';
-  expect(manifest.contributes.keybindings.slice(2)).toEqual([
+  expect(manifest.contributes.keybindings.slice(2, 6)).toEqual([
     { command: deleteCommands.left, key: 'backspace', when: `${base} && ${markerContexts.left}` },
     { command: deleteCommands.right, key: 'delete', when: `${base} && ${markerContexts.right}` },
     { command: deleteCommands.wordLeft, key: 'ctrl+backspace', mac: 'alt+backspace', when: `${base} && ${markerContexts.left}` },
     { command: deleteCommands.wordRight, key: 'ctrl+delete', mac: 'alt+delete', when: `${base} && ${markerContexts.right}` },
   ]);
   expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining(Object.values(deleteCommands).map((command) => ({ command, when: 'false' }))));
+});
+
+test('Backspace and Delete next to a mark line of a snippet in a source file do nothing, so that no key joins the hidden mark with the code (R-CODE-004)', () => {
+  const base = 'editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections';
+  const keep = usedSnippetCommands.keep;
+  expect(manifest.contributes.keybindings.slice(6)).toEqual([
+    { command: keep, key: 'backspace', when: `${base} && ${usedSnippetContexts.left}` },
+    { command: keep, key: 'ctrl+backspace', mac: 'alt+backspace', when: `${base} && ${usedSnippetContexts.left}` },
+    { command: keep, key: 'delete', when: `${base} && ${usedSnippetContexts.right}` },
+    { command: keep, key: 'ctrl+delete', mac: 'alt+delete', when: `${base} && ${usedSnippetContexts.right}` },
+  ]);
+  const palette = manifest.contributes.menus.commandPalette;
+  const sources = `editorLangId != markdown && !editorReadonly && ${usedSnippetContexts.has}`;
+  expect(palette).toEqual(expect.arrayContaining([{ command: keep, when: 'false' }, { command: usedSnippetCommands.rename, when: sources }, { command: usedSnippetCommands.remove, when: sources }]));
 });
 
 test('Add Note is a button of the title of the side view, an item of the context menu of the text editor and a shortcut, and needs selected text (R-EDIT-003, R-EDIT-006)', () => {

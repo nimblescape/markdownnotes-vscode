@@ -361,9 +361,9 @@ export class FakeDocument {
     return new FakePosition(before.length - 1, before.at(-1)!.length);
   }
 
-  lineAt(line: number): { text: string; range: FakeRange } {
+  lineAt(line: number): { text: string; range: FakeRange; firstNonWhitespaceCharacterIndex: number } {
     const text = this.text.split(/\r\n|\r|\n/)[line];
-    return { text, range: new FakeRange(line, 0, line, text.length) };
+    return { text, range: new FakeRange(line, 0, line, text.length), firstNonWhitespaceCharacterIndex: /^\s*/.exec(text)![0].length };
   }
 
   async save(): Promise<boolean> {

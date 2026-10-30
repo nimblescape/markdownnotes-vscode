@@ -209,6 +209,21 @@
         "command": "nimblescape.markdownNotes.deleteWordRight",
         "title": "Delete Word Right of a Hidden Marker",
         "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.renameSnippet",
+        "title": "Rename Snippet",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.removeSnippet",
+        "title": "Remove Snippet",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "title": "Keep the Mark of a Snippet",
+        "category": "Markdown Notes"
       }
     ],
     "icons": {
@@ -363,6 +378,18 @@
         {
           "command": "nimblescape.markdownNotes.deleteWordRight",
           "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.renameSnippet",
+          "when": "editorLangId != markdown && !editorReadonly && nimblescape.markdownNotes.hasSnippets"
+        },
+        {
+          "command": "nimblescape.markdownNotes.removeSnippet",
+          "when": "editorLangId != markdown && !editorReadonly && nimblescape.markdownNotes.hasSnippets"
+        },
+        {
+          "command": "nimblescape.markdownNotes.keepSnippetMark",
+          "when": "false"
         }
       ],
       "editor/context": [
@@ -412,6 +439,28 @@
         "key": "ctrl+delete",
         "mac": "alt+delete",
         "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerRight"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "ctrl+backspace",
+        "mac": "alt+backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkRight"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "ctrl+delete",
+        "mac": "alt+delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkRight"
       }
     ],
     "configuration": {

@@ -350,21 +350,19 @@ describe('nimblescape Markdown Notes', () => {
     }
   });
 
-  it('shows a code lens above the start mark of each snippet of a source file (R-CODE-004)', async () => {
-    const source = vscode.Uri.file(path.join(folder, 'src', `lens-${++count}.py`));
+  it('moves the cursor over the mark lines of a snippet, which show as tags (R-CODE-004)', async () => {
+    const source = vscode.Uri.file(path.join(folder, 'src', `tag-${++count}.py`));
     fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });
-    fs.writeFileSync(source.fsPath, 'def read(path):\n    # markdownnotes: snippet open-file\n    return open(path).read()\n    # markdownnotes: /snippet open-file\n');
-    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(source));
-    let lens: vscode.CodeLens | undefined;
-    for (const end = Date.now() + 10_000; !lens && Date.now() < end; await new Promise((resolve) => setTimeout(resolve, 100))) {
-      // The command resolves the code lenses with the number given, so that each has its command.
-      const found = await vscode.commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', source, 10);
-      lens = found.find((candidate) => candidate.command?.title.startsWith('snippet open-file'));
-    }
-    assert.ok(lens, 'the code lens of the snippet');
-    assert.equal(lens.range.start.line, 1);
-    // The tests open no folder, so no Markdown file of a workspace shows the snippet.
-    assert.equal(lens.command?.title, 'snippet open-file · in no listing');
+    fs.writeFileSync(source.fsPath, 'def read(path):\n    # markdownnotes: snippet open-file\n    return open(path).read()\n    # markdownnotes: /snippet open-file\n\n');
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(source));
+    editor.selection = new vscode.Selection(0, 4, 0, 4);
+    await vscode.commands.executeCommand('cursorDown');
+    // The cursor does not stop on the start mark: it goes on to the first line of the code.
+    await waitFor(() => (editor.selection.active.line === 2 ? true : undefined), 'the cursor on the code line');
+    await vscode.commands.executeCommand('cursorDown');
+    await waitFor(() => (editor.selection.active.line === 4 ? true : undefined), 'the cursor below the end mark');
+    await vscode.commands.executeCommand('cursorUp');
+    await waitFor(() => (editor.selection.active.line === 2 ? true : undefined), 'the cursor back on the code line');
   });
 
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {

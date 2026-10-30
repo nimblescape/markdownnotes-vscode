@@ -63,10 +63,15 @@ test('"Add Snippet" writes the marks of the snippet around the selected lines, w
   expect(document.text).toBe(
     'export function keepLines(lines: string[]): string[] {\n  // markdownnotes: snippet kept-lines\n  const kept = lines.filter(Boolean);\n  return kept;\n  // markdownnotes: /snippet kept-lines\n}\n',
   );
-  // The light bulb of the selected lines of a source file has "Add Snippet", as a refactoring.
-  expect(fake.codeActionsAt(document, new FakeRange(2, 0, 3, 0))).toEqual([{ title: 'Add Snippet', kind: 'refactor.markdownNotes.addSnippet', command: 'nimblescape.markdownNotes.addSnippet' }]);
+  // The light bulb of the selected lines of a source file has "Add Snippet", as a refactoring, and in a snippet the
+  // actions of the snippet (R-CODE-004).
+  expect(fake.codeActionsAt(document, new FakeRange(2, 0, 3, 0))).toEqual([
+    { title: 'Add Snippet', kind: 'refactor.markdownNotes.addSnippet', command: 'nimblescape.markdownNotes.addSnippet' },
+    { title: 'Rename Snippet "kept-lines"', kind: 'refactor.markdownNotes.renameSnippet', command: 'nimblescape.markdownNotes.renameSnippet' },
+    { title: 'Remove Snippet "kept-lines"', kind: 'refactor.markdownNotes.removeSnippet', command: 'nimblescape.markdownNotes.removeSnippet' },
+  ]);
   expect(fake.codeActionsAt(document, new FakeRange(2, 0, 3, 0), FakeCodeActionKind.QuickFix)).toEqual([]);
-  expect(fake.codeActionsAt(document, new FakeRange(2, 0, 2, 0))).toEqual([]);
+  expect(fake.codeActionsAt(document, new FakeRange(2, 0, 2, 0)).map((action) => action.title)).toEqual(['Rename Snippet "kept-lines"', 'Remove Snippet "kept-lines"']);
   // A name of a snippet of the file is taken.
   expect(fake.inputs.length).toBe(1);
   fake.activeEditor!.selection = new FakeSelection(new FakePosition(2, 0), new FakePosition(3, 0));
