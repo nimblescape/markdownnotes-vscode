@@ -52,3 +52,32 @@ for (const bundle of bundles) {
     logLevel: 'info',
   });
 }
+
+// The visual editor of the side view (R-SIDE-004) runs in the page of the view: a bundle for the browser in
+// dist/visualEditor.js, and its styles with the icon font of the editor in dist/visualEditor.css and
+// dist/codicon.ttf. The editor loads `node:fs/promises` only on Node.js, which the page never runs, so the bundle
+// leaves it out.
+if (production) {
+  fs.rmSync('dist/visualEditor.js.map', { force: true });
+}
+await esbuild.build({
+  entryPoints: ['src/webview/visualEditor.ts'],
+  outfile: 'dist/visualEditor.js',
+  bundle: true,
+  platform: 'browser',
+  format: 'iife',
+  target: 'chrome120',
+  external: ['node:fs/promises'],
+  sourcemap: !production,
+  minify: false,
+  logLevel: 'info',
+});
+await esbuild.build({
+  entryPoints: ['src/webview/visualEditor.css'],
+  outfile: 'dist/visualEditor.css',
+  bundle: true,
+  loader: { '.ttf': 'file' },
+  assetNames: '[name]',
+  minify: false,
+  logLevel: 'info',
+});

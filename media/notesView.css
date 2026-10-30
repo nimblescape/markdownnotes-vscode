@@ -370,6 +370,66 @@ textarea.source {
   border: 1px dashed var(--vscode-input-border, rgba(128, 128, 128, 0.35));
 }
 
+/*
+ * The tabs of an editor (R-SIDE-004): "Visual" and "Markdown", as small text
+ * buttons above the text, the chosen one underlined as a tab of VS Code.
+ */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+button.tab {
+  padding: 2px 6px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  cursor: pointer;
+}
+
+button.tab:hover {
+  color: var(--vscode-foreground);
+}
+
+button.tab.chosen {
+  border-bottom-color: var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder));
+  color: var(--vscode-foreground);
+}
+
+/*
+ * The visual editor (R-SIDE-004): the editor of the mode "Markdown Editor" of
+ * VS Code in a box like the text field of the tab "Markdown", with its toolbar
+ * above the text.
+ */
+.visual {
+  box-sizing: border-box;
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-input-background);
+}
+
+.visual:focus-within {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.visual-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border-bottom: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+}
+
+.visual .md-editor {
+  min-height: 6em;
+}
+
+.visual .md-editor .md-editor-content {
+  padding: 8px 8px 0;
+}
+
 .problem {
   margin: 4px 0;
   padding: 4px 6px;

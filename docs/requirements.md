@@ -40,7 +40,7 @@ requirement, the plan and the decisions of Hannes.
 | 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-PREV-005](#r-prev-005) | done |
 | 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered header lines | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | done: collapsed notes and rendered header lines; the dimming, the markers in the left margin and the highlighting of Markdown inside the notes dropped in step 24 |
 | 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; the numbers and the funnels replaced in step 24 |
-| 14 | Visual editing of the rendered Markdown in the side view | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | planned |
+| 14 | Visual editing of the rendered Markdown in the side view, with the editor of the mode "Markdown Editor" of VS Code ([decision 52](#decisions)) | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | done |
 | 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | done |
 | 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done |
 | 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
@@ -1013,11 +1013,12 @@ dates have tooltips too. The buttons:
 The view shows the answers as a tree, with the date of each answer in the
 local time of the reader and the local time of the author as its tooltip
 ([R-NOTE-002](#r-note-002), [R-NOTE-004](#r-note-004)). The editor of an
-answer switches between "Write" (the Markdown text) and "Preview" (the text
-rendered as the preview renders it), with the icon of the mode "Markdown
-Preview" of VS Code. "Save" (or Ctrl+Enter) writes the text into the note
+answer, of a new note and of a footnote has the tabs "Visual"
+([R-SIDE-004](#r-side-004)) and "Markdown". The tab "Markdown" switches
+between "Write" (the Markdown text) and "Preview" (the text rendered as the
+preview renders it), with the icon of the mode "Markdown Preview" of VS Code.
+"Save" (or Ctrl+Enter) writes the text into the note
 ([R-EDIT-002](#r-edit-002)); "Cancel" (or Escape) keeps the note as it is.
-The visual editing of [R-SIDE-004](#r-side-004) is planned.
 
 ### R-SIDE-003
 
@@ -1036,13 +1037,34 @@ selected text open the same editor ([R-EDIT-006](#r-edit-006)).
 ### R-SIDE-004
 
 **Visual editing.** In the tab "Visual", the user edits the rendered text of
-an answer, as in the Markdown Editor of VS Code: headings, paragraphs,
-emphasis, links, lists, block quotes and code show as rendered text, and the
-toolbar and the keys of the editor change them. "Save" writes the text back
-as Markdown. The tab writes a changed Markdown text only after the user
-changed something in it. A text with Markdown that the visual editor cannot
-show without a change, for example a table or HTML, opens in the tab
-"Markdown", with a message why.
+an answer, a new note or a footnote with the editor of the mode "Markdown
+Editor" of VS Code, the npm package `@vscode/markdown-editor`
+([decision 52](#decisions)):
+
+- The text shows rendered: headings, paragraphs, emphasis, links, lists,
+  block quotes, code, tables and task lists. The block with the cursor shows
+  its Markdown marks, so that the user sees and changes them.
+- The editor keeps the Markdown text as its document and changes it only
+  where the user types or uses the toolbar: the rest of the text stays as it
+  was, also a form that the editor cannot show rendered, such as HTML.
+- The toolbar above the text has "Bold", "Italic", "Code", "Link", "List",
+  "Numbered List" and "Quote", with the codicons of VS Code. The keys Ctrl+B,
+  Ctrl+I, Ctrl+E and Ctrl+K (Cmd on macOS) do the first four, and do not
+  reach VS Code, where Ctrl+B would show or hide the side bar. A mark goes
+  around the selected text or in front of the selected lines, and a second
+  use takes it away. Each change is one step of Undo.
+- A click on a link of a rendered block, or Ctrl+Click in the block with
+  the cursor, opens the link as a link of a rendered text of the side view
+  does ([R-SIDE-005](#r-side-005)).
+- "Save" (or Ctrl+Enter) writes the text, and "Cancel" (or Escape) closes
+  the editor, as in the tab "Markdown". A change of the tab keeps the text,
+  and a new editor opens in the tab that the user chose last, "Visual" at
+  first.
+- The page of the side view loads the editor as the bundle
+  `dist/visualEditor.js` with its styles and its icon font, under the same
+  policy as its own script: no other script, and no style attribute. The
+  version of the package is fixed, because the package is experimental; a
+  new version comes with a check in VS Code.
 
 ### R-SIDE-005
 
@@ -2663,6 +2685,16 @@ requirements above follow them.
     a listing with tree-sitter parsers (step 61) are postponed without a
     date. A listing shows a whole file or a snippet, as
     [decision 38](#decisions) says.
+52. **The visual editor is the editor of the VS Code Markdown Editor**
+    ([R-SIDE-004](#r-side-004)): the tab "Visual" of the side view uses the
+    npm package `@vscode/markdown-editor` of Microsoft (MIT), which VS Code
+    uses for its mode "Markdown Editor", at a fixed version. It shows the
+    block with the cursor with its Markdown marks and keeps the Markdown
+    text as it was, apart from the changes of the user. The extension adds
+    the toolbar and the keys for the marks. The other choice was ProseMirror,
+    an editor that never shows the marks but writes the whole Markdown text
+    anew on a save, which can change the form of text that the user did not
+    change.
 
 ---
 

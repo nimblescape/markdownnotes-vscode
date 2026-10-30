@@ -593,12 +593,27 @@ notes.md   [ ] [x]  (blue) (green) (orange) (purple) (red) (teal)   ×
 
 ### Editors of the side view
 
-The editor of a text in the side view switches between "Write" (the Markdown
-text) and "Preview" (the text rendered as the Markdown preview renders it).
-The button "Preview" has the icon of the mode "Markdown Preview" of VS Code.
-"Save" (a check mark) or Ctrl+Enter writes the text; "Cancel" (×) or Escape
-keeps the note as it is. When the extension refuses a text, the editor stays
-open and shows why.
+The editor of a text in the side view has two tabs:
+
+- **Visual:** you edit the rendered text, with the editor of the mode
+  "Markdown Editor" of VS Code. The text shows as the preview shows it, and
+  the paragraph, list or quote with the cursor shows its Markdown marks, for
+  example `**` around bold text, so that you see and change them. The rest
+  of the text stays exactly as you wrote it. The toolbar above the text, or
+  the keys Ctrl+B (bold), Ctrl+I (italic), Ctrl+E (code) and Ctrl+K (link),
+  put the marks around the selected text, or take them away; the buttons
+  "List", "Numbered List" and "Quote" put their marks in front of the
+  selected lines. Ctrl+Z takes a change back. A click on a link of a
+  rendered paragraph opens the link; in the paragraph with the cursor,
+  Ctrl+Click opens it.
+- **Markdown:** you edit the Markdown text in a plain text field. The button
+  "Preview", with the icon of the mode "Markdown Preview" of VS Code, shows
+  the text rendered as the side view renders it, and "Write" switches back.
+
+A change of the tab keeps the text, and the next editor opens in the tab that
+you chose last. "Save" (a check mark) or Ctrl+Enter writes the text;
+"Cancel" (×) or Escape keeps the note as it is. When the extension refuses a
+text, the editor stays open and shows why.
 
 A change writes only into the answer or the note that the view showed. When
 the file changed in the meantime, for example when a collaborator changed

@@ -167,8 +167,8 @@ form of the notes in a file for programs and AI agents, and
   ([R-SIDE-008](requirements.md#r-side-008)).
 - **Editor:** icon buttons with tooltips: "Reply", "Edit", "Delete" for each
   answer; color, line, "Show as Text", "Answer" and "Delete Thread" for each
-  thread; "Write" and "Preview" in each editor
-  ([R-SIDE-002](requirements.md#r-side-002)).
+  thread; the tabs "Visual" and "Markdown" in each editor, and "Write" and
+  "Preview" in the tab "Markdown" ([R-SIDE-002](requirements.md#r-side-002)).
 - **New note:** "Add Note" in the title and in the context menu, only for
   selected text ([R-SIDE-003](requirements.md#r-side-003)).
 - **Links** in rendered text open as in the preview, never `command:`,
@@ -177,8 +177,12 @@ form of the notes in a file for programs and AI agents, and
   ([R-SIDE-006](requirements.md#r-side-006)).
 - **Smooth scroll:** the text editor and the preview scroll smoothly to the
   note that the view selects ([R-SIDE-007](requirements.md#r-side-007)).
-- **Visual editing, planned:** edit the rendered text of an answer
-  ([R-SIDE-004](requirements.md#r-side-004)).
+- **Visual editing:** the tab "Visual" of each editor edits the rendered
+  text with the editor of the VS Code Markdown Editor, with a toolbar and
+  Ctrl+B, Ctrl+I, Ctrl+E and Ctrl+K; the block with the cursor shows its
+  Markdown marks, and the rest of the text stays as it was
+  ([R-SIDE-004](requirements.md#r-side-004),
+  [decision 52](requirements.md#decisions)).
 
 ## 7. Editing
 

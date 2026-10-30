@@ -47,7 +47,8 @@ the file, with the GitHub login of the author.
   preview shows the other footnotes of a file. You can disable it; the notes
   keep working.
 - **Side view.** The side view "Notes" is a webview of the extension. Its
-  page runs only the script of the extension.
+  page runs only the scripts of the extension: its own script and the
+  visual editor, the editor of the mode "Markdown Editor" of VS Code.
 - **Network.** The extension's own code connects to no address, runs no
   program and collects no telemetry.
 - **Restricted Mode and virtual workspaces.** The extension works with all
@@ -81,8 +82,11 @@ describes each step and where its protection ends.
   an editor:
   "Reply", "Edit" and "Delete" at each answer, the color, "Show as Text",
   "Answer" and "Delete Thread" at each thread. "Show as Text" shows the whole
-  note as the file holds it, and you can change it there. The links of the
-  notes open. The view is in the secondary side bar, beside the chat, so the
+  note as the file holds it, and you can change it there. Each editor of a
+  text has the tabs "Visual", where you edit the rendered text with the
+  editor of the VS Code Markdown Editor, a toolbar and Ctrl+B, Ctrl+I,
+  Ctrl+E and Ctrl+K, and "Markdown", where you edit the Markdown text. The
+  links of the notes open. The view is in the secondary side bar, beside the chat, so the
   Explorer stays usable; the button "Show or Hide Notes" in the title of the
   Markdown editors opens and closes it with one click, also in Zen Mode and
   in the modes "Markdown Preview" and "Markdown Editor" of VS Code.

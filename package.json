@@ -42,7 +42,7 @@
   "main": "./dist/extension.js",
   "scripts": {
     "build": "node esbuild.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/webview",
     "test": "vitest run",
     "test:cli": "node esbuild.mjs && vitest run --config vitest.cli.config.mts",
     "test:vscode": "node esbuild.mjs && node scripts/build-vscode-tests.mjs && vscode-test --label vscode",
@@ -56,6 +56,8 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.19.2",
     "@types/vscode": "~1.125.0",
+    "@vscode/markdown-editor": "0.0.2-162",
+    "@vscode/observables": "0.1.1-0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",

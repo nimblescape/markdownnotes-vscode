@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 134 requested features, 105 are built, among them the clean editing view
+Of 134 requested features, 106 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -24,7 +24,7 @@ Paper, the figures, tables and sections with the links to them (to a
 section by the ID that GitHub gives its heading), the
 values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
-the captions and the cite of a listing in the file by the principle "document driven". 7 features are planned but not built, and 1 is postponed: the features of the section
+the captions and the cite of a listing in the file by the principle "document driven". 6 features are planned but not built, and 1 is postponed: the features of the section
 [Planned features](#planned-features). The symbols of a listing with
 tree-sitter parsers are postponed ([decision 51](requirements.md#decisions)).
 Three questions are decided without a
@@ -41,8 +41,8 @@ numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
 [decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
-The main gaps are the visual editing in the side view, the hidden form of the
-notes, and the checks of the footnotes.
+The main gaps are the hidden form of the notes and the checks of the
+footnotes.
 
 The columns of the tables:
 
@@ -64,9 +64,9 @@ A change of a feature or of its state updates its row in this document.
 
 ## Side view
 
-The side view has what Hannes asked for, apart from the visual editing,
-which is in the section [Planned features](#planned-features). The
-tooltips, the lighter dimming and the list that scrolls on its own came on
+The side view has what Hannes asked for, also the visual editing of
+2026-10-30 with the editor of the VS Code Markdown Editor
+([decision 52](requirements.md#decisions)). The tooltips, the lighter dimming and the list that scrolls on its own came on
 2026-10-29 (commit
 [a508cdf](https://github.com/nimblescape/markdownnotes-vscode/commit/a508cdf)),
 the header with the filters and the smooth scrolling of the text in the
@@ -80,6 +80,7 @@ evening of 2026-10-29.
 | Answers of different authors as a tree, as on Reddit | 10-28 13:27 | [R-NOTE-004](requirements.md#r-note-004) | Built | |
 | Icons for all buttons, with tooltips | 10-28 20:06, 10-29 09:00 | [R-SIDE-002](requirements.md#r-side-002) | Built | The tooltips of the browser did not show on macOS; the view now draws its own |
 | The text view of the whole note, which the user can change | 10-28 20:06 | [R-SIDE-002](requirements.md#r-side-002) | Built | |
+| Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28, 10-30 18:29 | [R-SIDE-004](requirements.md#r-side-004) | Built | Step 14: the tab "Visual" with the editor of the mode "Markdown Editor" of VS Code, a toolbar and Ctrl+B, Ctrl+I, Ctrl+E, Ctrl+K ([decision 52](requirements.md#decisions)) |
 | A color for each note, chosen in the view | 10-28 20:03 | [R-TEXT-006](requirements.md#r-text-006) | Built | |
 | Links in the notes open, files in a new window | 10-28 14:38 | [R-SIDE-005](requirements.md#r-side-005) | Built | Setting `openLinksIn` |
 | "Add Note" (+) in the title of the view | 10-28 19:58 | [R-SIDE-003](requirements.md#r-side-003) | Built | |
@@ -238,7 +239,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-8 features are in the specification and the plan, or proposed, but not built. 7 are
+7 features are in the specification and the plan, or proposed, but not built. 6 are
 planned, and the symbols of a listing with parsers are postponed
 ([decision 51](requirements.md#decisions)). Steps 29
 and 30 must come before the first release, because they change the format
@@ -252,7 +253,6 @@ hidden form changes the markup that the clean view leaves out.
 | The text without notes for publishing: `markdownnotes strip`, "Copy without Notes" | 10-29 08:01 | [R-HIDE-004](requirements.md#r-hide-004) | 31 | Planned |
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
-| Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
 | Listings of files of other repositories, as Git submodules of the repository of the paper; the link of the caption goes to the other repository at the commit of the submodule | 10-30 07:34, 07:39 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 46](requirements.md#decisions)) | Planned |
 
@@ -294,12 +294,11 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
    leaves out.
 2. The merge of
    [pull request #1](https://github.com/nimblescape/markdownnotes-vscode/pull/1),
-   the first release and the npm package: these need Hannes. The repository
-   has its new name since 2026-10-30; before the first release, the
-   Marketplace setup runs again for it.
+   which needs Hannes. There is no release for now
+   ([decision 48](requirements.md#decisions)); before the first release, the
+   Marketplace setup runs again for the new name of the repository.
 3. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
-4. Step 14: the visual editing in the side view.
 
 ---
 

@@ -377,8 +377,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.view = view;
     this.ready = false;
     const media = vscode.Uri.joinPath(this.extensionUri, 'media');
-    view.webview.options = { enableScripts: true, localResourceRoots: [media] };
-    view.webview.html = this.html(view.webview, media);
+    const dist = vscode.Uri.joinPath(this.extensionUri, 'dist');
+    view.webview.options = { enableScripts: true, localResourceRoots: [media, dist] };
+    view.webview.html = this.html(view.webview, media, dist);
     view.webview.onDidReceiveMessage((message: Message) => this.receive(message));
     // The extension can start while VS Code opens a file in a mode of its own, after the change of the tabs.
     this.followTab();
@@ -770,17 +771,21 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * html returns the page of the view: its styles and its script, with a policy that allows no other script and no
-   * other style, also no style attribute; the script sets its styles through the CSS object model, which the policy
-   * allows.
+   * html returns the page of the view: its styles and its script, and the visual editor of the answers with its styles
+   * and its icon font ([R-SIDE-004](../docs/requirements.md#r-side-004)), with a policy that allows no other script
+   * and no other style, also no style attribute; the scripts set their styles through the CSS object model, which the
+   * policy allows.
    * @param webview - The webview of the view.
    * @param media - The folder of the script and the styles.
+   * @param dist - The folder of the bundle of the visual editor and its styles.
    */
-  private html(webview: vscode.Webview, media: vscode.Uri): string {
+  private html(webview: vscode.Webview, media: vscode.Uri, dist: vscode.Uri): string {
     const nonce = globalThis.crypto.randomUUID().replace(/-/g, '');
     const script = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.js'));
     const styles = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.css'));
-    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
+    const editor = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.js'));
+    const editorStyles = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.css'));
+    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
     return [
       '<!DOCTYPE html>',
       '<html lang="en">',
@@ -788,11 +793,13 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       '<meta charset="UTF-8">',
       `<meta http-equiv="Content-Security-Policy" content="${policy}">`,
       '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+      `<link rel="stylesheet" href="${editorStyles.toString()}">`,
       `<link rel="stylesheet" href="${styles.toString()}">`,
       '<title>Notes</title>',
       '</head>',
       '<body>',
       '<main id="notes"></main>',
+      `<script nonce="${nonce}" src="${editor.toString()}"></script>`,
       `<script nonce="${nonce}" src="${script.toString()}"></script>`,
       '</body>',
       '</html>',

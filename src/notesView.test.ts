@@ -108,16 +108,19 @@ const openedLinks = () =>
     command === newWindow ? [command] : [command, (args[0] as FakeUri).path, ...(command === 'vscode.open' ? [(args[1] as { selection?: FakeRange }).selection?.start] : [])],
   );
 
-test('the view is a page whose policy runs only its own script from the folder media (R-SIDE-001)', async () => {
+test('the view is a page whose policy runs only its own scripts, from the folder media and the visual editor from the folder dist (R-SIDE-001, R-SIDE-004)', async () => {
   const { view } = await start();
-  expect(view.webview.options).toEqual({ enableScripts: true, localResourceRoots: [expect.objectContaining({ path: '/extension/media' })] });
+  expect(view.webview.options).toEqual({
+    enableScripts: true,
+    localResourceRoots: [expect.objectContaining({ path: '/extension/media' }), expect.objectContaining({ path: '/extension/dist' })],
+  });
   const html = view.webview.html;
   const nonce = /script-src 'nonce-(\w+)'/.exec(html)?.[1];
   expect(nonce).toMatch(/^\w{32}$/);
   expect(html).toContain("default-src 'none';");
-  expect(html).toContain(`<script nonce="${nonce}" src="file:/extension/media/notesView.js"></script>`);
-  expect(html).toContain('<link rel="stylesheet" href="file:/extension/media/notesView.css">');
-  expect(html.match(/<script/g)).toHaveLength(1);
+  expect(html).toContain(`<script nonce="${nonce}" src="file:/extension/dist/visualEditor.js"></script>\n<script nonce="${nonce}" src="file:/extension/media/notesView.js"></script>`);
+  expect(html).toContain('<link rel="stylesheet" href="file:/extension/dist/visualEditor.css">\n<link rel="stylesheet" href="file:/extension/media/notesView.css">');
+  expect(html.match(/<script/g)).toHaveLength(2);
 });
 
 test('the view shows the threads of the active Markdown file with the rendered answers and their tree, and the account without asking for a sign-in', async () => {

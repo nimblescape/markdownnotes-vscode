@@ -382,6 +382,9 @@ test('the package holds the bundle, the styles and the scripts of the preview an
   expect(patterns).toEqual([
     '**',
     '!dist/extension.js',
+    '!dist/visualEditor.js',
+    '!dist/visualEditor.css',
+    '!dist/codicon.ttf',
     '!media/markdownPreview.css',
     '!media/markdownPreview.js',
     '!media/notesView.css',
@@ -476,8 +479,20 @@ test('the third-party notices name every package that the build bundles, with it
     metafile: true,
     logLevel: 'silent',
   });
+  // The visual editor of the side view bundles its packages into a script and styles of the page of the view (R-SIDE-004).
+  const visual = await esbuild.build({
+    entryPoints: [path.join(repository, 'src/webview/visualEditor.ts'), path.join(repository, 'src/webview/visualEditor.css')],
+    bundle: true,
+    platform: 'browser',
+    external: ['node:fs/promises'],
+    loader: { '.ttf': 'file' },
+    write: false,
+    outdir: path.join(repository, 'out/manifest-test'),
+    metafile: true,
+    logLevel: 'silent',
+  });
   const packages = new Set<string>();
-  for (const input of Object.keys(result.metafile.inputs)) {
+  for (const input of [...Object.keys(result.metafile.inputs), ...Object.keys(visual.metafile.inputs)]) {
     // The folder of the package is the part of the path up to the name after the last node_modules.
     const folder = /^(.*node_modules\/(?:@[^/]+\/)?[^/]+)\//.exec(input)?.[1];
     if (folder) {
@@ -487,7 +502,10 @@ test('the third-party notices name every package that the build bundles, with it
   expect(packages.size).toBeGreaterThan(0);
   const headings = [...notices.matchAll(/^## (.+)$/gm)].map((match) => anchorOf(match[1]));
   for (const folder of packages) {
-    const { name, version, license } = JSON.parse(fs.readFileSync(path.join(repository, folder, 'package.json'), 'utf8'));
+    const manifestOf = JSON.parse(fs.readFileSync(path.join(repository, folder, 'package.json'), 'utf8'));
+    const { name, version } = manifestOf;
+    // An older package names its license in the list `licenses`.
+    const license: string = manifestOf.license ?? manifestOf.licenses[0].type;
     const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const row = new RegExp(String.raw`^\| \[${escape(name)}\]\((#[^)]+)\) \| ${escape(version)} \| ${escape(license)} \|$`, 'm').exec(notices);
     expect(row, name).not.toBeNull();
