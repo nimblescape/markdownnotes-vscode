@@ -276,6 +276,46 @@ describe('nimblescape Markdown Notes', () => {
     await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
   });
 
+  it('runs a slash command of another extension on selected text in the clean editing view, and the view hides the marker that the command writes (R-EDIT-008, R-GEN-012, R-TEXT-009)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nAgents change the work.\n'));
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const v1 = (await api()).getAPI(1)!;
+    const marker = '<wbr><!--[research-->';
+    const markers = v1.registerHiddenMarkers({ find: (lines) => lines.flatMap((line, index) => (line.includes(marker) ? [{ line: index, start: line.indexOf(marker), end: line.indexOf(marker) + marker.length }] : [])) });
+    const research = v1.registerSlashCommand({
+      label: '/research',
+      selection: true,
+      run: (editor, range) =>
+        editor.edit((edit) => {
+          edit.insert(range.end, ' (RESEARCH)');
+          edit.insert(range.start, marker);
+        }),
+    });
+    try {
+      const start = view.document.positionAt(view.document.getText().indexOf('change the work'));
+      const selected = new vscode.Selection(start, start.translate(0, 'change the work'.length));
+      view.selection = selected;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // VS Code replaces the selected text with the typed slash.
+      await view.edit((edit) => edit.replace(selected, '/'));
+      const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', view.document.uri, start.translate(0, 1), '/');
+      const item = list.items.find((candidate) => (typeof candidate.label === 'string' ? candidate.label : candidate.label.label) === '/research');
+      assert.ok(item?.command, 'the command /research in the list');
+      await view.edit((edit) => edit.replace(item.range as vscode.Range, item.insertText as string));
+      await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments ?? []));
+      const real = await waitFor(() => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes(marker)), 'the marker in the file');
+      assert.ok(real.getText().includes('\nAgents <wbr><!--[research-->change the work (RESEARCH).\n'), real.getText());
+      await waitFor(() => (view.document.getText().includes('\nAgents change the work (RESEARCH).\n') ? true : undefined), 'the hidden marker in the view');
+      await vscode.workspace.saveAll(false);
+      await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
+    } finally {
+      research.dispose();
+      markers.dispose();
+    }
+  });
+
   it('writes the current code of the source of each listing into a file on its save, from the open document of the source or the disk (R-CODE-002, R-FMT-001)', async () => {
     fs.mkdirSync(path.join(folder, 'src'), { recursive: true });
     const source = vscode.Uri.file(path.join(folder, 'src', 'read me.ts'));

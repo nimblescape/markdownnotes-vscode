@@ -45,7 +45,9 @@
  * Other extensions add slash commands through the API of the extension
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
  * nimblescape Markdown Paper. They show after the commands of the notes, with
- * the same rules.
+ * the same rules. A command on selected text, such as `/research` of Markdown
+ * Paper, shows only when the slash replaced selected text, which it puts back
+ * as `/note` does; the other commands show only when the slash replaced none.
  */
 
 import * as vscode from 'vscode';
@@ -128,10 +130,17 @@ export interface SlashCommand {
   /** detail is the longer text of the chosen suggestion. */
   detail?: string;
   /**
+   * selection is true for a command on selected text: the list offers it only when the typed slash replaced selected
+   * text, as `/note`, and VS Code puts the text back before the command runs. Without it, the list offers the command
+   * only when the slash replaced no text.
+   */
+  selection?: boolean;
+  /**
    * run runs the command after VS Code removed the typed command from the text. An edit of the text editor of the
    * clean editing view goes into the file, as every edit of the view does.
    * @param editor - The text editor.
-   * @param range - The empty range at the place of the removed command.
+   * @param range - The range of the selected text that VS Code put back, for a command on selected text; else the
+   * empty range at the place of the removed command.
    */
   run(editor: vscode.TextEditor, range: vscode.Range): unknown;
 }
@@ -203,7 +212,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       vscode.commands.registerCommand(slashCommandIds.figure, (uri: vscode.Uri) => this.figure(uri)),
       vscode.commands.registerCommand(slashCommandIds.ref, (uri: vscode.Uri) => this.ref(uri)),
       vscode.commands.registerCommand(slashCommandIds.listing, (uri: vscode.Uri) => this.listing(uri)),
-      vscode.commands.registerCommand(slashCommandIds.other, (uri: vscode.Uri, label: string) => this.other(uri, label)),
+      vscode.commands.registerCommand(slashCommandIds.other, (uri: vscode.Uri, label: string, restored?: vscode.Range) => this.other(uri, label, restored)),
       vscode.authentication.onDidChangeSessions((event) => {
         if (event.provider.id === githubProvider) {
           void this.readLogin();
@@ -413,9 +422,15 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       created.command = { command: slashCommandIds.user, title: 'Insert User', arguments: [document.uri] };
       items.push(created);
     }
-    // The commands of other extensions replace no selected text, and get the text editor at the place of the command.
-    if (!replaced) {
-      for (const [label, other] of this.others) {
+    // The commands of other extensions: a command on selected text puts the replaced text back and gets its range, as
+    // /note; another command gets the text editor at the place of the command, and only without replaced text.
+    for (const [label, other] of this.others) {
+      if (other.selection === true && replaced) {
+        const restored = new vscode.Range(replaced.start, endOf(replaced.start, replaced.text));
+        const created = item(label, other.description ?? '', other.detail ?? `On ${quoted(replaced.text)}`, vscode.CompletionItemKind.Function, range, replaced.text);
+        created.command = { command: slashCommandIds.other, title: label, arguments: [document.uri, label, restored] };
+        items.push(created);
+      } else if (other.selection !== true && !replaced) {
         const created = item(label, other.description ?? '', other.detail ?? '', vscode.CompletionItemKind.Function, range, '');
         created.command = { command: slashCommandIds.other, title: label, arguments: [document.uri, label] };
         items.push(created);
@@ -659,8 +674,9 @@ export class SlashCommands implements vscode.CompletionItemProvider {
    * shows a message when it fails.
    * @param uri - The URI of the document.
    * @param label - The label of the command.
+   * @param restored - The range of the selected text that VS Code put back, for a command on selected text.
    */
-  private async other(uri: vscode.Uri, label: string): Promise<void> {
+  private async other(uri: vscode.Uri, label: string, restored?: vscode.Range): Promise<void> {
     const command = this.others.get(label);
     const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
     if (!command || !editor) {
@@ -668,7 +684,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const at = editor.selection.active;
     try {
-      await command.run(editor, new vscode.Range(at, at));
+      await command.run(editor, restored ?? new vscode.Range(at, at));
     } catch (error) {
       void vscode.window.showErrorMessage(`The slash command ${label} failed: ${error instanceof Error ? error.message : String(error)}`);
     }

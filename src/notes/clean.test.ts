@@ -17,7 +17,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, labelsOf, project, rebuild } from './clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, labelsOf, type MarkerFinder, project, rebuild } from './clean';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
 const example = fs.readFileSync(path.resolve(__dirname, '../../docs/example.md'), 'utf8');
@@ -328,6 +328,70 @@ describe('the blocks of other extensions', () => {
     const appended = blockEdit('(#hong2024)).', 0, '\n\nA new paragraph.', true);
     expect(appended.clean).toBe(appended.expected);
     expect(appended.text).toMatch(/A new paragraph\.[^]*<!-- nimblescape-sources/);
+  });
+});
+
+describe('the markers of other extensions', () => {
+  /** researched is a file with a passage to research, as nimblescape Markdown Paper marks it, and a note after it. */
+  const researched = [
+    'Agents <wbr><!--[research-->change the work of teams (RESEARCH). The <wbr><!--[note-7k2q-->plan[^note-7k2q] works.',
+    '',
+    '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+    '',
+    '    Which plan?',
+    '',
+  ].join('\n');
+  /** research finds the start markers of the passages to research. */
+  const research: MarkerFinder = (lines) =>
+    lines.flatMap((line, index) => [...line.matchAll(/<wbr><!--\[research-->/g)].map((match) => ({ line: index, start: match.index, end: match.index + match[0].length })));
+  /**
+   * markerEdit applies an edit of the clean text of a file whose markers the finder hides, at the first place of a text.
+   * @param text - The text of the file.
+   * @param at - The text at the place of the edit.
+   * @param length - The length of the replaced text.
+   * @param insert - The new text.
+   */
+  const markerEdit = (text: string, at: string, length: number, insert: string) => {
+    const projection = project(text, { markers: research });
+    const start = projection.clean.indexOf(at);
+    const result = applyClean(projection, start, start + length, insert);
+    return { ...result, clean: project(result.text, { markers: research }).clean, expected: projection.clean.slice(0, start) + insert + projection.clean.slice(start + length) };
+  };
+
+  test('are left out of the clean text, also in a file without notes, and a finder that fails or names no text of a line hides nothing (R-GEN-012)', () => {
+    const projection = project(researched, { markers: research });
+    expect(projection.clean).toBe('Agents change the work of teams (RESEARCH). The plan works.\n');
+    expect(projection.hidden.map((part) => part.kind)).toEqual(['otherMarker', 'marker', 'reference', 'definition']);
+    expect(project('A <wbr><!--[research-->claim (RESEARCH).\n', { markers: research }).clean).toBe('A claim (RESEARCH).\n');
+    expect(project(researched).clean).toContain('<!--[research-->');
+    const failing: MarkerFinder = () => {
+      throw new Error('broken');
+    };
+    expect(project('Text.\n', { markers: failing }).clean).toBe('Text.\n');
+    expect(project('Text.\n', { markers: () => [{ line: 0, start: 2, end: 2 }, { line: 0, start: 3, end: 9 }, { line: 4, start: 0, end: 1 }, { line: 0, start: 0.5, end: 1 }] }).clean).toBe('Text.\n');
+    // The options of an edit keep the finder.
+    expect(editOptions(projection).markers).toBe(research);
+  });
+
+  test('stay at their text for an edit of the text and when the file is written anew, and text typed at their place goes before them (R-GEN-012)', () => {
+    const typed = markerEdit(researched, 'change', 0, 'often ');
+    expect(typed.way).toBe('direct');
+    expect(typed.text.split('\n')[0]).toBe('Agents often <wbr><!--[research-->change the work of teams (RESEARCH). The <wbr><!--[note-7k2q-->plan[^note-7k2q] works.');
+    const replaced = markerEdit(researched, 'change', 6, 'shape');
+    expect(replaced.clean).toBe(replaced.expected);
+    expect(replaced.text.split('\n')[0]).toContain('<wbr><!--[research-->shape the work');
+    // A paragraph break in the highlight of the note writes the file anew.
+    const split = markerEdit(researched, 'an works', 0, '\n\n');
+    expect(split.way).toBe('rebuilt');
+    expect(split.clean).toBe(split.expected);
+    expect(split.text.startsWith('Agents <wbr><!--[research-->change the work of teams (RESEARCH). The <wbr><!--[note-7k2q-->pl[^note-7k2q]\n')).toBe(true);
+  });
+
+  test('that an edit of the clean text writes go into the file and out of the clean text, as a command of another extension writes them (R-GEN-012, R-EDIT-008)', () => {
+    const plain = 'Agents change the work of teams. The plan works.\n';
+    const marked = markerEdit(plain, 'change', 0, '<wbr><!--[research-->');
+    expect(marked.text).toBe('Agents <wbr><!--[research-->change the work of teams. The plan works.\n');
+    expect(marked.clean).toBe(plain);
   });
 });
 

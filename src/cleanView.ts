@@ -26,7 +26,7 @@
 
 import * as vscode from 'vscode';
 import { highlightStyles } from './noteEditor';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
@@ -253,6 +253,17 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         return [];
       }
     });
+  /** markerFinders are the finders of the markers that other extensions hide (R-GEN-012). */
+  private readonly markerFinders = new Set<MarkerFinder>();
+  /** markers returns the markers of all finders; a finder that fails gives none. */
+  private readonly markers: MarkerFinder = (lines) =>
+    [...this.markerFinders].flatMap((finder) => {
+      try {
+        return [...finder(lines)];
+      } catch {
+        return [];
+      }
+    });
 
   /**
    * @param showsHighlights - Tells whether the highlights of a file show.
@@ -272,16 +283,16 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    * @param file - The URI of the file.
    */
   private optionsOf(file: vscode.Uri): Options {
-    return { ...(this.showsFootnotes(file) ? { footnotes: true } : {}), blocks: this.blocks };
+    return { ...(this.showsFootnotes(file) ? { footnotes: true } : {}), blocks: this.blocks, markers: this.markers };
   }
 
   /**
    * hasMarkup tells whether a text has the markup of notes: a start marker, a reference or a definition of a note, or the
-   * comment of the format; an anchor of a figure or a table; or a block that another extension hides.
+   * comment of the format; an anchor of a figure or a table; or a block or a marker that another extension hides.
    * @param text - The text.
    */
   private hasMarkup(text: string): boolean {
-    return project(text, { blocks: this.blocks }).hidden.length > 0;
+    return project(text, { blocks: this.blocks, markers: this.markers }).hidden.length > 0;
   }
 
   /**
@@ -311,7 +322,24 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     });
   }
 
-  /** blocksChanged writes each view anew after a change of the finders of hidden blocks, and switches the text editors. */
+  /**
+   * registerHiddenMarkers makes the view leave out the markers that a finder of another extension returns
+   * ([R-GEN-012](../docs/requirements.md#r-gen-012)): parts of a line of text, such as the start marker
+   * `<wbr><!--[research-->` of nimblescape Markdown Paper, which an edit keeps as the start marker of a note. A file
+   * with such a marker opens in the view too.
+   * @param finder - Returns the markers of the lines of a file.
+   */
+  registerHiddenMarkers(finder: MarkerFinder): vscode.Disposable {
+    this.markerFinders.add(finder);
+    this.blocksChanged();
+    return new vscode.Disposable(() => {
+      if (this.markerFinders.delete(finder)) {
+        this.blocksChanged();
+      }
+    });
+  }
+
+  /** blocksChanged writes each view anew after a change of the finders of hidden blocks or markers, and switches the text editors. */
   private blocksChanged(): void {
     for (const [key, mirror] of this.ready) {
       mirror.typing = undefined;

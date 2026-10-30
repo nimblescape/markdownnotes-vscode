@@ -333,8 +333,12 @@ form of the notes in a file for programs and AI agents, and
 ## 12. API for other extensions
 
 The export has `getAPI(version)`; `getAPI(1)` gives `fileOf(uri)`,
-`registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand`, each
-register call with a disposable. The steps of the formatter of other
+`registerFormatStep`, `registerHiddenBlocks`, `registerHiddenMarkers` and
+`registerSlashCommand`, each register call with a disposable. The clean
+editing view hides the blocks and the markers of other extensions, such as
+the start marker `<wbr><!--[research-->` of Markdown Paper; a slash command
+with `selection: true` shows only after a slash that replaced selected text,
+and gets the range of that text. The steps of the formatter of other
 extensions run after the steps of the notes, and both run again while the
 steps change the text, at most three times, so that one format is enough.
 Checks of another extension go on the file that `fileOf` names

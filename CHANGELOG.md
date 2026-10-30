@@ -205,8 +205,9 @@ The first version.
   file behind a clean editing view, `registerFormatStep` for a step of the
   formatter after the steps of the notes, which run again while the steps
   change the text, `registerHiddenBlocks` for blocks
-  at the end of a file that the clean editing view leaves out, and
-  `registerSlashCommand` for a slash command.
+  at the end of a file and `registerHiddenMarkers` for markers in its lines
+  that the clean editing view leaves out, and `registerSlashCommand` for a
+  slash command, also one on selected text.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,

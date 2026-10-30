@@ -210,6 +210,21 @@ test('another extension hides blocks at the end of a file in the clean editing v
   expect(await read()).toContain('nimblescape-sources');
 });
 
+test('another extension hides markers in the lines of a file in the clean editing view through the API, until its disposal (R-TEXT-009, R-GEN-012)', async () => {
+  const { api } = await fake.activate();
+  const { cleanUriOf } = await import('./cleanView');
+  const file = fake.open('Agents <wbr><!--[research-->change the work (RESEARCH).\n', '/folder/research.md');
+  const provider = fake.providers.get('markdownnotes')!;
+  const read = async (): Promise<string> => new TextDecoder().decode(await provider.readFile(cleanUriOf(file.uri as never)));
+  const marker = '<wbr><!--[research-->';
+  const registration = api.getAPI(1)!.registerHiddenMarkers({
+    find: (lines: readonly string[]) => lines.flatMap((line, index) => (line.includes(marker) ? [{ line: index, start: line.indexOf(marker), end: line.indexOf(marker) + marker.length }] : [])),
+  } as never);
+  expect(await read()).toBe('Agents change the work (RESEARCH).\n');
+  registration.dispose();
+  expect(await read()).toContain(marker);
+});
+
 test('the export ends the page of an open document that can have notes with the link of "Add Note" of the preview (R-PREV-008)', async () => {
   const document = fake.open(note);
   const { api, extension } = await fake.activate();

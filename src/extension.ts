@@ -43,7 +43,7 @@ import { githubLogin } from './github';
 import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
 import { findDoctype } from './notes/doctype';
-import type { BlockFinder } from './notes/clean';
+import type { BlockFinder, MarkerFinder } from './notes/clean';
 import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { notesViewId, NotesView, viewCommands } from './notesView';
@@ -105,6 +105,17 @@ export interface HiddenBlocks {
   find: BlockFinder;
 }
 
+/** HiddenMarkers finds the markers of a file that the clean editing view leaves out for another extension. */
+export interface HiddenMarkers {
+  /**
+   * find returns the markers of a file: parts of a line of text, by the index of the line and the start and the end in
+   * it, such as the start marker `<wbr><!--[research-->` before a passage. An edit of the view keeps each marker as the
+   * start marker of a note: text typed at its place goes before it.
+   * @param lines - The lines of the file.
+   */
+  find: MarkerFinder;
+}
+
 /**
  * ApiV1 is version 1 of the API of the extension for other extensions, for example nimblescape Markdown Paper, which
  * add their parts to the notes of a Markdown file without the extension knowing them. Each register call returns a
@@ -129,6 +140,12 @@ export interface ApiV1 {
    * @param blocks - The finder of the blocks.
    */
   registerHiddenBlocks(blocks: HiddenBlocks): vscode.Disposable;
+  /**
+   * registerHiddenMarkers makes the clean editing view leave out markers in the lines of a file
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009)).
+   * @param markers - The finder of the markers.
+   */
+  registerHiddenMarkers(markers: HiddenMarkers): vscode.Disposable;
   /**
    * registerSlashCommand adds a slash command to the text editors of Markdown files
    * ([R-EDIT-008](../docs/requirements.md#r-edit-008)), after the commands of the notes. Its label is a slash and
@@ -332,6 +349,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     fileOf,
     registerFormatStep: (step) => steps.register(step),
     registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
+    registerHiddenMarkers: (markers) => clean.registerHiddenMarkers((lines) => markers.find(lines)),
     registerSlashCommand: (command) => slash.add(command),
   };
   /**

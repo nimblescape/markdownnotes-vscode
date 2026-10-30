@@ -234,6 +234,44 @@ test('another extension adds a slash command through the API, which shows after 
   expect(labels(fake.complete(document, new FakePosition(0, 41)))).not.toContain('/source');
 });
 
+test('a slash command of another extension on selected text shows only when the slash replaced selected text, puts the text back and gets its range, as /note (R-EDIT-008, R-GEN-012)', async () => {
+  const { document, editor, api } = await start('Agents change the work.\n', 0, 0);
+  const runs: [number, number, number, number][] = [];
+  const v1 = api.getAPI(1)!;
+  const registration = v1.registerSlashCommand({
+    label: '/research',
+    description: 'Research Evidence',
+    selection: true,
+    run: async (target: FakeEditor, range: FakeRange) => {
+      runs.push([range.start.line, range.start.character, range.end.line, range.end.character]);
+      await target.edit((builder) => builder.insert(range.end, ' (RESEARCH)'));
+      await target.edit((builder) => builder.insert(range.start, '<wbr><!--[research-->'));
+    },
+  } as never);
+  const other = v1.registerSlashCommand({ label: '/source', run: () => undefined } as never);
+  // Without selected text, the command on selected text does not show, and the other command does.
+  await editor.edit((builder) => builder.insert(new FakePosition(0, 23), ' /'));
+  expect(labels(fake.complete(document, new FakePosition(0, 25)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/source']);
+  await editor.edit((builder) => builder.replace(new FakeRange(0, 23, 0, 25), ''));
+  // VS Code replaces the selected text with the typed slash.
+  editor.selection = new FakeSelection(new FakePosition(0, 7), new FakePosition(0, 22));
+  fake.fire('selection', { textEditor: editor, selections: editor.selections, kind: 2 });
+  await settle();
+  const range = new FakeRange(0, 7, 0, 22);
+  await editor.edit((builder) => builder.replace(range, '/'));
+  fake.fire('change', { document, contentChanges: [{ range, rangeOffset: 7, rangeLength: 15, text: '/' }] });
+  await settle();
+  const items = fake.complete(document, new FakePosition(0, 8));
+  expect(labels(items)).toEqual(['/note', '/todo', '/date', '/time', '/user', '/research']);
+  const research = items.at(-1)!;
+  expect([research.detail, research.insertText]).toEqual(['On “change the work”', 'change the work']);
+  await accept(editor, research);
+  expect(runs).toEqual([[0, 7, 0, 22]]);
+  expect(document.text).toBe('Agents <wbr><!--[research-->change the work (RESEARCH).\n');
+  other.dispose();
+  registration.dispose();
+});
+
 test('on a line of its own, /figure inserts a chosen image of the workspace as a figure, and /table a table, each with its numbered caption line (R-EDIT-008, R-XREF-001)', async () => {
   const { document, editor } = await start('# Results\n\nTable 1: Grades\n\n| A |\n| --- |\n\n/\n\nMore.\n', 7, 1);
   fake.found = [new FakeUri('file', '/folder/images/plan (v2).png'), new FakeUri('file', '/other/logo.svg')];

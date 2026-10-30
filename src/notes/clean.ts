@@ -15,10 +15,11 @@
  * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), the comments of the
  * listings, which name the sources of their code, and the links around the
  * captions of the listings, so that only the text of a caption is edited
- * ([R-CODE-001](../../docs/requirements.md#r-code-001)), and the blocks that
- * other extensions hide through the API of the extension
+ * ([R-CODE-001](../../docs/requirements.md#r-code-001)), and the blocks and the
+ * markers that other extensions hide through the API of the extension
  * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), such as the database of
- * the sources of nimblescape Markdown Paper at the end of a file. While the
+ * the sources of nimblescape Markdown Paper at the end of a file and its start
+ * marker of a passage to research. While the
  * side view shows the standard footnotes, the definitions of those that have a
  * reference are left out too, as the definitions of the notes; their references
  * stay. This module makes that text from the text of the file, and turns each
@@ -43,8 +44,8 @@ import { type Note, type Range, read, readNotes } from './notes';
 
 /**
  * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note, the anchor of a
- * figure, a table or a section, the start and the end marker of a value of the front matter, and the `[` and the `](…)`
- * of the link of the caption of a listing are in a line of text;
+ * figure, a table or a section, the start and the end marker of a value of the front matter, the `[` and the `](…)`
+ * of the link of the caption of a listing, and a marker of another extension are in a line of text;
  * the definition of a note, the definition of a standard footnote, the comment of the format, the comment of a listing
  * and a block of another extension are whole lines.
  */
@@ -56,6 +57,7 @@ export type HiddenKind =
   | 'fieldEnd'
   | 'captionStart'
   | 'captionEnd'
+  | 'otherMarker'
   | 'definition'
   | 'footnote'
   | 'doctype'
@@ -74,6 +76,19 @@ export interface Block {
  */
 export type BlockFinder = (lines: readonly string[]) => readonly Block[];
 
+/** Marker is a part of a line of a file that another extension hides, from its start to its end in the line. */
+export interface Marker {
+  line: number;
+  start: number;
+  end: number;
+}
+
+/**
+ * MarkerFinder returns the markers of the lines of a file that the clean text leaves out for other extensions: parts of
+ * a line of text, such as the start marker `<wbr><!--[research-->` of nimblescape Markdown Paper.
+ */
+export type MarkerFinder = (lines: readonly string[]) => readonly Marker[];
+
 /**
  * Options are the choices of a projection: whether, and which, definitions of standard footnotes it leaves out, and the
  * blocks of other extensions.
@@ -88,6 +103,8 @@ export interface Options {
   only?: readonly string[];
   /** blocks finds the blocks that other extensions hide. */
   blocks?: BlockFinder;
+  /** markers finds the markers that other extensions hide. */
+  markers?: MarkerFinder;
 }
 
 /** Hidden is a part of the file that the clean text leaves out, from its start to its end, as offsets in the file. */
@@ -131,6 +148,7 @@ export interface Projection {
 export const editOptions = ({ options, footnotes }: Projection): Options => ({
   ...(options.footnotes ? { footnotes: true, only: footnotes } : {}),
   ...(options.blocks ? { blocks: options.blocks } : {}),
+  ...(options.markers ? { markers: options.markers } : {}),
 });
 
 /**
@@ -174,9 +192,28 @@ const blocksOf = (lines: readonly string[], finder: BlockFinder | undefined): Bl
 };
 
 /**
+ * markersOf returns the markers of the lines of a file that other extensions hide, in the order of the file: only
+ * markers with text inside a line, and none of an extension whose finder fails.
+ * @param lines - The lines of the file.
+ * @param finder - Finds the markers.
+ */
+const markersOf = (lines: readonly string[], finder: MarkerFinder | undefined): Marker[] => {
+  let found: readonly Marker[] = [];
+  try {
+    found = finder?.(lines) ?? [];
+  } catch {
+    found = [];
+  }
+  return found
+    .filter(({ line, start, end }) => [line, start, end].every(Number.isInteger) && 0 <= line && line < lines.length && 0 <= start && start < end && end <= lines[line].length)
+    .map(({ line, start, end }) => ({ line, start, end }))
+    .sort((a, b) => a.line - b.line || a.start - b.start);
+};
+
+/**
  * project returns the clean text of the text of a file: without the start markers, the references and the definitions
  * of its notes, without the comment of the format, the anchors of the figures and tables, the comments of the listings
- * and the links of their captions, and the blocks of other extensions; with the option
+ * and the links of their captions, and the blocks and the markers of other extensions; with the option
  * `footnotes`, also without the definitions of the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
  * around it keep one blank line between them; at the end of the file it goes with the blank lines before it. Only a
  * note or a footnote with a reference is hidden: the other parts of the form of a note, and a definition without a
@@ -259,6 +296,9 @@ export function project(text: string, options: Options = {}): Projection {
   });
   for (const { first, last } of blocks) {
     parts.push(block('block', first, last));
+  }
+  for (const marker of markersOf(lines, options.markers)) {
+    parts.push({ kind: 'otherMarker', start: starts[marker.line] + marker.start, end: starts[marker.line] + marker.end });
   }
   parts.sort((a, b) => a.start - b.start || a.end - b.end);
   const hidden: Hidden[] = [];
@@ -401,7 +441,7 @@ function goneParts(projection: Projection, start: number, end: number): Set<numb
 /**
  * applyClean returns the new text of a file for an edit of its clean text: the text from `start` to `end` of the clean
  * text becomes `insert`. The visible characters of that part go, and the hidden parts in it stay. Typed text goes
- * before the first start marker, anchor or start marker of a value of the front matter there, so that it stays out of a
+ * before the first start marker, marker of another extension, anchor or start marker of a value of the front matter there, so that it stays out of a
  * highlight or a value that starts there and of one that ends
  * there; the new text of a replacement goes after the hidden parts at its start and before the hidden parts at its
  * end, so that it stays in a highlight whose text it replaces. New text goes before the blocks of other extensions,
@@ -428,7 +468,7 @@ export function applyClean(projection: Projection, start: number, end: number, i
   const prefix = text.slice(0, beforeRun(projection, start));
   const suffix = text.slice(afterRun(projection, end));
   const pieces = kept.map((part) => text.slice(part.start, part.end));
-  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'anchor' || part.kind === 'fieldStart' || part.kind === 'captionEnd');
+  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'otherMarker' || part.kind === 'anchor' || part.kind === 'fieldStart' || part.kind === 'captionEnd');
   const firstBlock = kept.findIndex((part) => part.kind === 'block');
   // A replacement takes the place of the old text: after the parts at its start and before the parts at its end.
   const natural = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
@@ -476,8 +516,8 @@ const moved = (offset: number, kind: 'marker' | 'reference', start: number, end:
  * of each note at their places in the new clean text, a highlight that a paragraph break splits ending before the
  * break, and the definitions of the notes after the outermost block of their references, in the order of the
  * references, and then the hidden definitions of the standard footnotes after the outermost block of their first
- * references; the anchors of the figures and tables stay at their text, the comments of the listings before their code
- * blocks, and the links of the captions around their text while the text stays a caption; the comment of the format
+ * references; the anchors of the figures and tables stay at their text, the markers of other extensions as start
+ * markers, the comments of the listings before their code blocks, and the links of the captions around their text while the text stays a caption; the comment of the format
  * stays at its place
  * at the top, and the blocks of other extensions go to the end of the file, in their order. A highlight whose text the edit replaces
  * becomes the new text; one whose text the edit deletes becomes a point, which the checks report.
@@ -550,6 +590,11 @@ export function rebuild(projection: Projection, start: number, end: number, inse
       }
     }
   });
+  for (const marker of markersOf(lines, projection.options.markers)) {
+    // A marker of another extension moves as the start marker of a note.
+    const at = moved(toClean(projection, starts[marker.line] + marker.start), 'marker', start, end, insert.length);
+    inline.push({ at, order: 3, text: lines[marker.line].slice(marker.start, marker.end) });
+  }
   for (const field of findFields(lines)) {
     // The markers of a value move as the start marker and the reference of a note; an empty value keeps its order.
     const open = moved(toClean(projection, starts[field.line] + field.start), 'marker', start, end, insert.length);

@@ -98,6 +98,7 @@ requirement, the plan and the decisions of Hannes.
 | 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
 | 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
 | 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
+| 72 | Slash commands of other extensions on selected text (`selection: true`), such as `/research` of Markdown Paper, and `registerHiddenMarkers` for markers in the lines of a file that the clean editing view hides, such as `<wbr><!--[research-->` | [R-GEN-012](#r-gen-012), [R-EDIT-008](#r-edit-008), [R-TEXT-009](#r-text-009) | done |
 
 ## General
 
@@ -338,13 +339,26 @@ Markdown file with notes without this extension knowing anything of papers:
     Markdown Paper. Text typed in the view goes before them, and a file that
     the view writes anew keeps them at the end. A file with such a block
     opens in the view too.
-  - `registerSlashCommand({ label, description, detail, run(editor, range) })`:
+  - `registerHiddenMarkers({ find(lines) })`: markers in the lines of a
+    file, each by its line and its start and end in the line, that the
+    clean editing view leaves out ([R-TEXT-009](#r-text-009)), such as the
+    start marker `<wbr><!--[research-->` of a passage that Markdown Paper
+    marks for research. An edit of the view keeps each marker as the start
+    marker of a note: text typed at its place goes before it, and a file
+    that the view writes anew keeps it at its text. A marker that a command
+    writes into the view goes into the file and out of the view. A file
+    with such a marker opens in the view too.
+  - `registerSlashCommand({ label, description, detail, selection, run(editor, range) })`:
     a slash command after the commands of the notes
     ([R-EDIT-008](#r-edit-008)), with the same rules. The label is a slash
     and small letters that no other command has, or the call throws. `run`
     gets the text editor at the place of the removed command; an edit of the
     clean editing view goes into the file, as every edit of the view. A
-    command that fails shows a message.
+    command with `selection: true`, such as `/research` of Markdown Paper,
+    works on selected text: the list offers it only when the typed slash
+    replaced selected text, VS Code puts the text back as for `/note`, and
+    `run` gets the range of that text. A command without it shows only when
+    the slash replaced no text. A command that fails shows a message.
 - Checks of other extensions need no call: an extension sets its diagnostics
   on the file that `fileOf` names, as the notes do. Markdown Paper writes no
   lines into the comment of the format: a paper names its layout in its
@@ -846,9 +860,11 @@ file at once, and keeps each note at its text:
   with standard footnotes and no notes opens in its own text editor, with
   its definitions.
 
-- The view also leaves out the blocks at the end of a file that other
-  extensions hide through the API ([R-GEN-012](#r-gen-012)), such as the
-  database of the sources of nimblescape Markdown Paper, and the anchors of
+- The view also leaves out the blocks at the end of a file and the markers
+  in its lines that other extensions hide through the API
+  ([R-GEN-012](#r-gen-012)), such as the database of the sources and the
+  start marker of a passage to research of nimblescape Markdown Paper, and
+  the anchors of
   the figures and tables ([R-XREF-001](#r-xref-001)): each anchor outside
   code and the definitions, also one that an edit moved away from the end of
   its line. Text typed at the end of the line of an anchor goes before it.
@@ -1313,6 +1329,8 @@ of a new note, which [decision 30](#decisions) named, is dropped.
 nimblescape Markdown Paper, which adds them through the API
 ([R-GEN-012](#r-gen-012), [decision 32](#decisions)), with the citations,
 the metadata of the sources and the citation style of the PHT (APA 7).
+`/research` works on selected text, as `/note`: the list offers it only
+after a slash that replaced selected text.
 
 ## Markdown preview
 

@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 133 requested features, 104 are built, among them the clean editing view
+Of 134 requested features, 105 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -207,6 +207,7 @@ need Hannes after the merge of
 | The new name of the repository, `markdownnotes-vscode` | 10-30 02:04, 09:37 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 70: Hannes renamed the repository on 2026-10-30, and the addresses in the manifests and the documents changed; the Marketplace setup runs again before the first release |
 | Nothing published before the release; tests and other repositories install the package from the GitHub repository | 10-30 09:36 | [R-GEN-017](requirements.md#r-gen-017) | Built | [Decision 47](requirements.md#decisions), step 71: a clone at a fixed commit and `npm pack ./cli` |
 | An API for other extensions | 10-29 22:15-22:16 | [R-GEN-012](requirements.md#r-gen-012) | Built | Version 1 with `fileOf`, `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand`, for nimblescape Markdown Paper (steps 47 and 48) |
+| `/research` of Markdown Paper on selected text, with its hidden start marker | 10-30 | [R-GEN-012](requirements.md#r-gen-012) | Built | Step 72: slash commands of other extensions with `selection: true`, and `registerHiddenMarkers` for markers that the clean editing view hides |
 | A clean split; the citations and the sources go into nimblescape Markdown Paper | 10-29 22:11, 10-30 02:25 | [R-GEN-012](requirements.md#r-gen-012) | Built | [Decision 32](requirements.md#decisions); the format of the notes stays `v1.0.0`, and Markdown Paper adds the citations through the API |
 | Names without a hyphen, "markdown-notes" → "markdownnotes" | 10-30 02:27, 02:30 | [R-GEN-005](requirements.md#r-gen-005), [R-FMT-004](requirements.md#r-fmt-004), [R-NOTE-007](requirements.md#r-note-007) | Built | [Decision 33](requirements.md#decisions), step 49: `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes`, the scheme `markdownnotes` |
 | One formatter command with two packages | 10-30 02:26 | [R-FMT-004](requirements.md#r-fmt-004) | Built | [Decision 34](requirements.md#decisions): the library `formatMarkdown` of `@nimblescape/markdownnotes`, which `markdownpaper format` calls before its own steps |
