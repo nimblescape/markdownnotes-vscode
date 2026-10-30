@@ -251,7 +251,8 @@ hidden form changes the markup that the clean view leaves out.
 Hannes decided on 2026-10-30 at 02:25 that the citations and the sources go
 into nimblescape Markdown Paper ([decision 32](requirements.md#decisions)),
 and at 02:47 that `/source` and `/cite` of Markdown Paper add a source and a
-citation ([decision 35](requirements.md#decisions)). Their code was built on 2026-10-29 in the form of links and handed to the
+citation ([decision 35](requirements.md#decisions)); Markdown Paper later
+dropped `/source` and has `/cite` and `/research`. Their code was built on 2026-10-29 in the form of links and handed to the
 thread of Markdown Paper, which adds them through the API of this extension.
 At 07:10 Hannes decided that the file holds the generated lists, which
 Markdown Paper writes with its steps of the formatter

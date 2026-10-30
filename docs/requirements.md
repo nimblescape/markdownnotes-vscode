@@ -1325,7 +1325,7 @@ words.
 
 The editors of the side view have no slash commands, so `/todo` at the start
 of a new note, which [decision 30](#decisions) named, is dropped.
-`/research` and `/source` for the sources of a document are commands of
+`/cite` and `/research` for the sources of a document are commands of
 nimblescape Markdown Paper, which adds them through the API
 ([R-GEN-012](#r-gen-012), [decision 32](#decisions)), with the citations,
 the metadata of the sources and the citation style of the PHT (APA 7).
@@ -1775,8 +1775,8 @@ As [Table 1](#tab-grades) and [Figure 1](#fig-plan-study) show, …
 - GitHub shows the link with its number, and a click on it goes to the
   anchor. The clean editing view hides the anchors
   ([R-TEXT-009](#r-text-009)); a file with an anchor opens in it, as a file
-  with notes. `/source` and `/cite`, which add a source and cite it, are
-  commands of nimblescape Markdown Paper.
+  with notes. `/cite`, which cites a source, is a command of nimblescape
+  Markdown Paper.
 
 ### R-XREF-002
 
@@ -2529,7 +2529,8 @@ requirements above follow them.
     the word and the number, and the numbers from the formatter are part of
     the decision. The other choice was the links by noun (`/figure`,
     `/table`, `/source`) and the entries by `/addfigure`, `/addtable` and
-    `/addsource`.
+    `/addsource`. Markdown Paper later dropped `/source`: its slash
+    commands are `/cite` and `/research`.
 36. **Links to headings by their GitHub IDs** ([R-XREF-003](#r-xref-003),
     [R-GEN-013](#r-gen-013)): a link to a section names the ID that GitHub
     gives its heading, such as `[Chapter 2.1](#methods)`, and the heading

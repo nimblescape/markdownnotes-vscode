@@ -43,7 +43,7 @@
  * ([R-CODE-005](../docs/requirements.md#r-code-005)).
  *
  * Other extensions add slash commands through the API of the extension
- * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
+ * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/cite` of
  * nimblescape Markdown Paper. They show after the commands of the notes, with
  * the same rules. A command on selected text, such as `/research` of Markdown
  * Paper, shows only when the slash replaced selected text, which it puts back
@@ -123,7 +123,7 @@ export function relativePath(folder: string, file: string): string {
 
 /** SlashCommand is a slash command that another extension adds (R-GEN-012), after the commands of the notes. */
 export interface SlashCommand {
-  /** label is the command: a slash and small letters, for example `/source`. */
+  /** label is the command: a slash and small letters, for example `/cite`. */
   label: string;
   /** description is the short text beside the label in the list of suggestions. */
   description?: string;

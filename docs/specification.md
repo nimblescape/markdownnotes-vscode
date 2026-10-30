@@ -200,7 +200,7 @@ form of the notes in a file for programs and AI agents, and
 - **Slash commands** in the text editor, also in the clean editing view, with
   Tab completion: `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/ref`,
   `/date`, `/time`, `/user`; commands of other extensions after them, such as
-  `/source` and `/cite` of Markdown Paper. A command named by a noun adds an
+  `/cite` and `/research` of Markdown Paper. A command named by a noun adds an
   entry, `/ref` and `/cite` add a reference
   ([R-EDIT-008](requirements.md#r-edit-008)).
 

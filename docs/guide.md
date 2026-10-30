@@ -41,7 +41,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Filters of the side view](#filters-of-the-side-view) | side view | available | [R-SIDE-008](requirements.md#r-side-008) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-SIDE-003](requirements.md#r-side-003), [R-EDIT-003](requirements.md#r-edit-003), [R-EDIT-006](requirements.md#r-edit-006) |
 | [Todo notes](#todo-notes) | text editor, side view | available | [R-NOTE-008](requirements.md#r-note-008) |
-| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/listing`, `/ref`, `/date`, `/time`, `/user`: available; commands of other extensions, such as `/source` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
+| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/listing`, `/ref`, `/date`, `/time`, `/user`: available; commands of other extensions, such as `/cite` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
@@ -696,8 +696,10 @@ commands.
 
 The commands named by a noun add an entry, and `/ref` adds a reference to
 it ([decision 35](requirements.md#decisions)). Other extensions add their own
-slash commands after these, for example `/source` and `/cite` of nimblescape
-Markdown Paper, which add a source of the folder `bib/` and a citation of it.
+slash commands after these, for example `/cite` and `/research` of
+nimblescape Markdown Paper: `/cite` adds a citation of a source, and
+`/research` on selected text marks a claim for which an AI agent researches
+evidence.
 
 ## Figures, tables and links to them
 

@@ -198,7 +198,7 @@ test('another extension adds a slash command through the API, which shows after 
   const runs: [string, number, number][] = [];
   const v1 = api.getAPI(1)!;
   const registration = v1.registerSlashCommand({
-    label: '/source',
+    label: '/cite',
     description: 'Cite a Source',
     detail: 'A source of the document',
     run: async (target: FakeEditor, range: FakeRange) => {
@@ -208,10 +208,10 @@ test('another extension adds a slash command through the API, which shows after 
   } as never);
   // A label of the notes, a second command of the same label and a label of another form throw.
   expect(() => v1.registerSlashCommand({ label: '/note', run: () => undefined } as never)).toThrow('The slash command /note exists already.');
-  expect(() => v1.registerSlashCommand({ label: '/source', run: () => undefined } as never)).toThrow('The slash command /source exists already.');
-  expect(() => v1.registerSlashCommand({ label: 'source', run: () => undefined } as never)).toThrow('a slash and small letters');
+  expect(() => v1.registerSlashCommand({ label: '/cite', run: () => undefined } as never)).toThrow('The slash command /cite exists already.');
+  expect(() => v1.registerSlashCommand({ label: 'cite', run: () => undefined } as never)).toThrow('a slash and small letters');
   const items = fake.complete(document, new FakePosition(0, 10));
-  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/source']);
+  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/cite']);
   const source = items.at(-1)!;
   expect([source.detail, source.insertText, source.range!.start.character, source.range!.end.character]).toEqual(['A source of the document', '', 9, 10]);
   await editor.edit((builder) => builder.replace(source.range!, source.insertText!));
@@ -231,7 +231,7 @@ test('another extension adds a slash command through the API, which shows after 
   expect(fake.errors.at(-1)).toBe('The slash command /broken failed: no database');
   failing.dispose();
   registration.dispose();
-  expect(labels(fake.complete(document, new FakePosition(0, 41)))).not.toContain('/source');
+  expect(labels(fake.complete(document, new FakePosition(0, 41)))).not.toContain('/cite');
 });
 
 test('a slash command of another extension on selected text shows only when the slash replaced selected text, puts the text back and gets its range, as /note (R-EDIT-008, R-GEN-012)', async () => {
@@ -248,10 +248,10 @@ test('a slash command of another extension on selected text shows only when the 
       await target.edit((builder) => builder.insert(range.start, '<wbr><!--[research-->'));
     },
   } as never);
-  const other = v1.registerSlashCommand({ label: '/source', run: () => undefined } as never);
+  const other = v1.registerSlashCommand({ label: '/cite', run: () => undefined } as never);
   // Without selected text, the command on selected text does not show, and the other command does.
   await editor.edit((builder) => builder.insert(new FakePosition(0, 23), ' /'));
-  expect(labels(fake.complete(document, new FakePosition(0, 25)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/source']);
+  expect(labels(fake.complete(document, new FakePosition(0, 25)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/cite']);
   await editor.edit((builder) => builder.replace(new FakeRange(0, 23, 0, 25), ''));
   // VS Code replaces the selected text with the typed slash.
   editor.selection = new FakeSelection(new FakePosition(0, 7), new FakePosition(0, 22));
