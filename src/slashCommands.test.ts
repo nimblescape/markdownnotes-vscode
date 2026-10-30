@@ -312,8 +312,8 @@ test('in text, /ref links a chosen figure or table, and gives it an anchor at th
   expect(labels(fake.complete(plain, new FakePosition(0, 6)))).not.toContain('/ref');
 });
 
-test('/ref links a section with the numbers of its chapter, and gives its heading an anchor before a closing # (R-EDIT-008, R-XREF-003)', async () => {
-  const text = '# Paper\n\n## Introduction\n\nSee /\n\n## Methods ##\n\n### Data\n\nResults\n-------\n';
+test('/ref links a section with the numbers of its chapter by the ID that GitHub gives its heading, without an anchor (R-EDIT-008, R-XREF-003)', async () => {
+  const text = '# Paper\n\n## Introduction\n\nSee /\n\n## Methods ##\n\n### Data\n\nResults\n-------\n\n## Data\n';
   const { document, editor } = await start(text, 4, 5);
   fake.pick = (choices) => choices[2];
   await accept(editor, fake.complete(document, new FakePosition(4, 5)).find((item) => labels([item])[0] === '/ref')!);
@@ -322,16 +322,25 @@ test('/ref links a section with the numbers of its chapter, and gives its headin
     ['Chapter 2', 'Methods'],
     ['Chapter 2.1', 'Data'],
     ['Chapter 3', 'Results'],
+    ['Chapter 4', 'Data'],
   ]);
-  expect(document.text).toBe('# Paper\n\n## Introduction\n\nSee [Chapter 2.1](#sec-data)\n\n## Methods ##\n\n### Data<a id="sec-data"></a>\n\nResults\n-------\n');
-  for (const [choice, line] of [[1, '## Methods<a id="sec-methods"></a> ##'], [3, 'Results<a id="sec-results"></a>']] as const) {
+  expect(document.text).toBe(text.replace('See /', 'See [Chapter 2.1](#data)'));
+  for (const choice of [1, 4]) {
     editor.selection = { active: new FakePosition(4, document.text.split('\n')[4].length) };
     await editor.edit((builder) => builder.insert(editor.selection.active, ' /'));
     fake.pick = (choices) => choices[choice];
     await accept(editor, fake.complete(document, editor.selection.active).find((item) => labels([item])[0] === '/ref')!);
-    expect(document.text.split('\n')).toContain(line);
   }
-  expect(document.text.split('\n')[4]).toBe('See [Chapter 2.1](#sec-data) [Chapter 2](#sec-methods) [Chapter 3](#sec-results)');
+  // The second heading of the ID gets the ID with -1, as on GitHub, and no heading gets an anchor.
+  expect(document.text.split('\n')[4]).toBe('See [Chapter 2.1](#data) [Chapter 2](#methods) [Chapter 4](#data-1)');
+  expect(document.text).not.toContain('<a id=');
+});
+
+test('/ref links a section with an anchor of the older form by its anchor (R-XREF-003)', async () => {
+  const { document, editor } = await start('## Methods<a id="sec-methods"></a>\n\nSee /\n', 2, 5);
+  fake.pick = (choices) => choices[0];
+  await accept(editor, fake.complete(document, new FakePosition(2, 5)).find((item) => labels([item])[0] === '/ref')!);
+  expect(document.text).toBe('## Methods<a id="sec-methods"></a>\n\nSee [Chapter 1](#sec-methods)\n');
 });
 
 test('/ref inserts a value of the front matter between its markers (R-EDIT-008, R-XREF-004)', async () => {

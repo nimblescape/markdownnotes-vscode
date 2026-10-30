@@ -77,11 +77,12 @@ requirement, the plan and the decisions of Hannes.
 | 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
 | 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
 | 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
-| 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
+| 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading; replaced by step 56 | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
 | 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
 | 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done |
 | 54 | Snippets between marks in the source code, which a listing names; `/snippet` and "Add Snippet" in a source file; the comment of a listing as a link to its source | [R-CODE-003](#r-code-003) | done, in the form that Claude recommended; the card on the form of the marks is open |
 | 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
+| 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
 
 ## General
 
@@ -345,6 +346,28 @@ still be markdown related"; 22:15: "it is also the slash commands"; 22:16:
   the npm package of the notes ([R-FMT-004](#r-fmt-004)) and then its own
   steps, so that one command formats a file of a paper project
   ([decision 34](#decisions)).
+
+### R-GEN-013
+
+**Close to Markdown.** Each new form that the extension writes into a
+Markdown file stays as close to plain Markdown as it can (Hannes, 2026-10-30,
+03:29: "we shall stay as close to markdown as possible"; "isn't it just a
+markdown link?"): a form of plain Markdown comes before a hidden comment of
+HTML or an anchor, and a hidden part comes only where plain Markdown has no
+form for it. GitHub, the Markdown preview and other Markdown tools then show
+the text without the extension. A link to a section, for example, names the
+ID that GitHub gives its heading and adds no anchor
+([R-XREF-003](#r-xref-003), [decision 36](#decisions)).
+
+### R-GEN-014
+
+**Decisions as requirements.** Each decision of Hannes on the extension gets
+a requirement in this document, with its words, its date and the choice that
+it replaced, in the same change that builds it, and an entry in
+[Decisions](#decisions) (Hannes, 2026-10-30, 03:48, for every repository:
+"document any decision as a requirement"). A decision that changes an
+earlier requirement changes its text, so that this document describes the
+extension as it is.
 
 ## Notes
 
@@ -1726,7 +1749,8 @@ As [Table 1](#tab-grades) shows, …
 **The numbers of the links.** The formatter writes the number in the text of
 each link to a figure, a table, a listing ([R-CODE-001](#r-code-001)) or a
 section anew from the order of the figures, the tables, the listings and the
-headings in the file, so that a moved table keeps
+headings in the file: a link to an anchor, and a link to the ID of a heading
+with the word of a section ([R-XREF-003](#r-xref-003)), so that a moved table keeps
 the right number in every link ([R-FMT-002](#r-fmt-002)). Markdown Paper can
 number them by the rules of its layout with its own step of the formatter,
 for example A1 for the first table of an appendix, no number for the table
@@ -1736,7 +1760,7 @@ of contents, or the chapters of several files ([R-GEN-012](#r-gen-012)).
 
 **Links to sections.** `/ref` also lists the sections of the file, the parts
 of the text under the headings, with the numbers of their chapters, and
-inserts a link to the chosen one, for example `[Chapter 2.1](#sec-methods)`
+inserts a link to the chosen one, for example `[Chapter 2.1](#methods)`
 (Hannes, 2026-10-30, 02:47 and 03:19: "/ref also adds chapter numbers").
 
 - The sections start at the top level: the highest level of a heading that
@@ -1747,11 +1771,22 @@ inserts a link to the chosen one, for example `[Chapter 2.1](#sec-methods)`
 - The number of a section is the numbers of the sections around it and its
   own, for example 2.1 for the first section of the second chapter; a level
   that the text skips counts 0, for example 2.0.1.
-- A section without an anchor gets one at the end of the text of its heading,
-  before a closing `#` sequence: `## Methods<a id="sec-methods"></a>`, with
-  up to three words of the heading as its name, as for a figure
-  ([R-XREF-001](#r-xref-001)). GitHub and the Markdown preview show the
-  heading without it; the clean editing view hides it.
+- The link names the ID that GitHub gives the heading, and the heading gets
+  no anchor (Hannes, 2026-10-30, 03:28: "why do headings required
+  anchors?"; [R-GEN-013](#r-gen-013), [decision 36](#decisions)). The ID is
+  the text of the heading as the page shows it, in small letters, without
+  the characters that are no letter, digit, `_`, `-` or space, with a `-`
+  for each space; a second heading of the same ID gets `-1`, a third one
+  `-2`. For example, `## Ergebnisse & Diskussion` has the ID
+  `ergebnisse--diskussion`. The link works on GitHub and in the Markdown
+  preview of VS Code without a hidden part. A heading whose text changes
+  gets a new ID, and its links break as on GitHub.
+- The formatter writes the number only in a link whose word is "Chapter",
+  "Kapitel", "Section" or "Abschnitt", so that a link such as
+  `[Step 2](#install)` keeps its text ([R-XREF-002](#r-xref-002)).
+- A heading with an anchor of the earlier form,
+  `## Methods<a id="sec-methods"></a>`, keeps it, and `/ref` links it by its
+  anchor.
 - The word of the link is the word of the last link to a section in the file,
   else "Chapter", or "Kapitel" in a VS Code in German.
 - Markdown Paper numbers the sections of a paper by its layout, for example
@@ -2376,6 +2411,15 @@ requirements above follow them.
     the numbers from the formatter are the proposal of 02:33. The other
     choice was the links by noun (`/figure`, `/table`, `/source`) and the
     entries by `/addfigure`, `/addtable` and `/addsource`.
+36. **Links to headings by their GitHub IDs** ([R-XREF-003](#r-xref-003),
+    [R-GEN-013](#r-gen-013), Hannes, 2026-10-30, 03:28: "why do headings
+    required anchors?"; 03:29: "we shall stay as close to markdown as
+    possible"): a link to a section names the ID that GitHub gives its
+    heading, such as `[Chapter 2.1](#methods)`, and the heading gets no
+    anchor; nimblescape Markdown Paper uses the same IDs (its decision 16).
+    The other choice, built first in step 51, was an anchor at the end of
+    the heading, `## Methods<a id="sec-methods"></a>`, which keeps its links
+    when the text of the heading changes.
 
 ---
 

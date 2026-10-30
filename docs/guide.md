@@ -689,7 +689,7 @@ commands.
 | `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as an image alone in its paragraph, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
 | `/table` | Adds a table: its caption line `Table: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
 | `/listing` | Adds code of a file of the workspace as a listing: lists the source files, then "Whole file" and the functions, classes and methods of the chosen file, and inserts the caption line `Listing: Caption`, the comment of the source and the code block, with the caption selected for typing ([Listings of code](#listings-of-code)). The list shows `/listing` only on an empty line outside a code block. |
-| `/ref` | Adds a link to a figure, a table, a listing or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#sec-methods)`: lists them by their numbers and captions or headings. A figure, a table, a listing or a heading without an anchor gets one first. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
+| `/ref` | Adds a link to a figure, a table, a listing or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#methods)`: lists them by their numbers and captions or headings. A figure, a table or a listing without an anchor gets one first; a link to a heading names the ID that GitHub gives it. The list also has the keys of the front matter, whose value `/ref` inserts ([Values of the front matter](#values-of-the-front-matter)). The list shows `/ref` only in a file with figures, tables, headings or a front matter, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
 | `/user` | Inserts your GitHub login, for example `hannes`, the name that your notes give their author. The list shows the login. Without a sign-in, the list shows "Sign in with GitHub": VS Code asks you to sign in, and the login follows ([GitHub sign-in](#github-sign-in)). |
@@ -735,13 +735,17 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
 - The clean editing view hides the anchors, and a file with an anchor opens
   in it ([Clean editing view](#clean-editing-view)).
 - `/ref` also links a section, the part of the text under a heading, with
-  the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`. The
-  anchor of the section goes to the end of the text of its heading:
-  `## Methods<a id="sec-methods"></a>`. The chapters are the headings of the
-  highest level that more than one heading has; a single title `#` above
-  them gets no number. The word is "Chapter", or "Kapitel" in a VS Code in
-  German, until a link of the file uses another one
+  the numbers of its chapter, for example `[Chapter 2.1](#methods)`. The link
+  is a plain Markdown link to the ID that GitHub and the Markdown preview
+  give the heading, and the heading gets no anchor. The chapters are the
+  headings of the highest level that more than one heading has; a single
+  title `#` above them gets no number. The word is "Chapter", or "Kapitel"
+  in a VS Code in German, until a link of the file uses another one
   ([R-XREF-003](requirements.md#r-xref-003)).
+- When you change the text of a heading, its ID changes, and its links
+  break, as on GitHub: run `/ref` again for them. The formatter numbers a
+  link to a heading only when its word is "Chapter", "Kapitel", "Section" or
+  "Abschnitt", so that a link such as `[Step 2](#install)` keeps its text.
 - GitHub and the Markdown preview show the link with its number, and a click
   on it goes to the figure, the table or the section. The captions themselves have no
   number in GitHub and the preview; nimblescape Markdown Paper numbers them

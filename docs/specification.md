@@ -259,13 +259,15 @@ form of the notes in a file for programs and AI agents, and
   its caption line. The clean editing view hides the anchors
   ([R-XREF-001](requirements.md#r-xref-001)).
 - `/ref` also links a section, the part of the text under a heading, with
-  the numbers of its chapter, such as `[Chapter 2.1](#sec-methods)`, after it
-  gave the heading an anchor at the end of its text. The sections start at
-  the highest level that more than one heading has, so a single title `#`
-  has no number ([R-XREF-003](requirements.md#r-xref-003)).
-- The formatter writes the number of each link from the order in the file;
-  Markdown Paper can number by the rules of its layout
-  ([R-XREF-002](requirements.md#r-xref-002)).
+  the numbers of its chapter, such as `[Chapter 2.1](#methods)`. The link
+  names the ID that GitHub gives the heading, and the heading gets no anchor
+  ([R-GEN-013](requirements.md#r-gen-013), "close to Markdown"). The sections
+  start at the highest level that more than one heading has, so a single
+  title `#` has no number ([R-XREF-003](requirements.md#r-xref-003)).
+- The formatter writes the number of each link from the order in the file:
+  a link to an anchor, and a link to the ID of a heading whose word is
+  "Chapter", "Kapitel", "Section" or "Abschnitt". Markdown Paper can number
+  by the rules of its layout ([R-XREF-002](requirements.md#r-xref-002)).
 - `/ref` also inserts a value of the front matter between hidden markers,
   such as `<wbr><!--{title}-->A paper<!--{/title}-->`; the formatter writes
   the current value of the key into it, and the clean editing view hides the

@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { anchorColumn, anchorName, anchorsOf, defaultWord, findItems, labelOf, numberLinks, numberOf, wordOf } from './figures';
+import { anchorColumn, anchorName, anchorsOf, defaultWord, findItems, hasNumberedLinks, labelOf, numberLinks, numberOf, slugOf, wordOf } from './figures';
 
 /** text is a paper with two figures, a table with a caption, a table without one, and links. */
 const text = [
@@ -143,6 +143,23 @@ describe('the sections', () => {
     expect(numberLinks(paper)[6]).toBe('See [Kapitel 2.1](#sec-data) and [Chapter 2](#sec-methods).');
     expect(anchorsOf(paper).map(({ line }) => line)).toEqual([10, 14]);
     expect([defaultWord('section', 'de'), defaultWord('section', 'en')]).toEqual(['Kapitel', 'Chapter']);
+  });
+
+  test('are linked by the ID that GitHub gives their headings, which the formatter numbers only for a link with a word of a section (R-XREF-003)', () => {
+    expect(['Methods', 'Ergebnisse & Diskussion', 'Über die Daten (2024)', 'Leitfaden {BIB}', 'snake_case', 'Ende '].map(slugOf)).toEqual([
+      'methods',
+      'ergebnisse--diskussion',
+      'über-die-daten-2024',
+      'leitfaden-bib',
+      'snake_case',
+      'ende-',
+    ]);
+    const text = ['## The `parse` *function*', '', '## Data', '', '## Data', '', '## Data-1', '', '## Notes<a id="sec-notes"></a>', '', 'See [Kapitel 9](#data-1), [Step 9](#data), [Chapter 9](#notes) and [Chapter 9](#sec-notes).', ''];
+    const items = findItems(text);
+    expect(items.map((item) => item.id)).toEqual(['the-parse-function', 'data', 'data-1', 'data-1-1', 'notes']);
+    expect(numberLinks(text)[10]).toBe('See [Kapitel 3](#data-1), [Step 9](#data), [Chapter 5](#notes) and [Chapter 5](#sec-notes).');
+    expect(wordOf(text, 'section')).toBe('Chapter');
+    expect([hasNumberedLinks(text), hasNumberedLinks(['## Data', '', 'See [Step 1](#data).', '']), hasNumberedLinks(['See [Chapter 1](#gone).'])]).toEqual([true, false, false]);
   });
 });
 

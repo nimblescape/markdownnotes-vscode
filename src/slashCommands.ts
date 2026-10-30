@@ -36,10 +36,12 @@
  * "Entries by noun, /ref and /cite link"). On a line of their own, `/figure`
  * lists the images of the workspace and inserts the chosen one as a figure,
  * with its caption selected for typing, and `/table` inserts a table of two
- * columns with its caption line `Table:`. In text, `/ref` lists the figures
- * and tables of the file and inserts a link to the chosen one, such as
- * `[Table 1](#tab-grades)`, after it gave it an anchor at the end of its line
- * ([src/notes/figures.ts](notes/figures.ts)).
+ * columns with its caption line `Table:`. In text, `/ref` lists the figures,
+ * tables, listings and sections of the file and inserts a link to the chosen
+ * one, such as `[Table 1](#tab-grades)`, after it gave a figure, a table or a
+ * listing an anchor at the end of its line. A link to a section names the ID
+ * that GitHub gives its heading, such as `[Chapter 2.1](#methods)`, and the
+ * heading gets no anchor ([src/notes/figures.ts](notes/figures.ts)).
  *
  * `/listing` adds code of a file of the workspace as a listing
  * ([R-CODE-001](../docs/requirements.md#r-code-001), Hannes, 2026-10-30: "a
@@ -594,10 +596,11 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   }
 
   /**
-   * ref inserts a link to a figure, a table or a section of the file for `/ref`, after VS Code removed the typed
-   * command: the user chooses the figure, the table or the heading of the section, which gets an anchor at the end of
-   * its line when it has none. In the clean editing
-   * view, which hides the anchors, the anchor goes into the file after the view wrote the link into it.
+   * ref inserts a link to a figure, a table, a listing or a section of the file for `/ref`, after VS Code removed the
+   * typed command: the user chooses the figure, the table, the listing or the heading of the section. A figure, a table
+   * or a listing gets an anchor at the end of its line when it has none, and a section needs none: the link names the
+   * ID that GitHub gives its heading ([R-XREF-003](../docs/requirements.md#r-xref-003)). In the clean editing view,
+   * which hides the anchors, the anchor goes into the file after the view wrote the link into it.
    * @param uri - The URI of the document.
    */
   private async ref(uri: vscode.Uri): Promise<void> {
@@ -628,19 +631,21 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       return;
     }
     const target = items[chosen.index];
-    const name = target.anchor ?? anchorName(target, items);
+    const name = target.anchor ?? target.id ?? anchorName(target, items);
+    // A section without an anchor of the older form is linked by the ID of its heading, and gets no anchor.
+    const anchored = target.anchor !== undefined || target.id !== undefined;
     const link = `[${chosen.label}](#${name})`;
     const at = editor.selection.active;
     const clean = this.mirror?.realOf(editor.document.uri) !== undefined;
     await editor.edit((builder) => {
       builder.insert(at, link);
-      if (!target.anchor && !clean) {
+      if (!anchored && !clean) {
         builder.insert(new vscode.Position(target.line, anchorColumn(lines[target.line], target)), anchorText(name));
       }
     });
     const after = new vscode.Position(at.line, at.character + link.length);
     editor.selection = new vscode.Selection(after, after);
-    if (!target.anchor && clean) {
+    if (!anchored && clean) {
       // The view hides the anchor, so it goes into the file, after the view wrote the link there.
       await this.mirror?.settled?.(editor.document.uri);
       const current = linesOf(found.file);

@@ -266,12 +266,18 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
   among the figures of the file, or of the table among its tables, from 1;
   the formatter writes it anew after each change of the order. The word is
   free.
-- A section is the part of the text under a heading. Its anchor stands at
-  the end of the text of its heading, before a closing `#` sequence:
-  `## Methods<a id="sec-methods"></a>`. A link to it has the numbers of the
-  sections around it and its own, for example `[Chapter 2.1](#sec-methods)`.
-  The first level of the numbers is the highest level that more than one
-  heading has, or else the highest level of a heading
+- A section is the part of the text under a heading. A link to it names the
+  ID that GitHub gives its heading, and has the numbers of the sections
+  around it and its own, for example `[Chapter 2.1](#methods)` for
+  `### Methods`. The ID is the text of the heading as the page shows it, in
+  small letters, without the characters that are no letter, digit, `_`, `-`
+  or space, with a `-` for each space; a second heading of the same ID gets
+  `-1`, a third one `-2`. The heading has no anchor. The formatter writes
+  the number only in a link whose word is "Chapter", "Kapitel", "Section" or
+  "Abschnitt". The first level of the numbers is the highest level that more
+  than one heading has, or else the highest level of a heading. An anchor of
+  the earlier form at the end of the text of a heading,
+  `## Methods<a id="sec-methods"></a>`, still names its section
   ([R-XREF-003](requirements.md#r-xref-003)).
 - A figure, a table, a listing, a heading, an anchor or a link in a code
   block, in HTML, in the front matter or in the text of a note does not

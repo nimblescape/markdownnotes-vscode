@@ -12,10 +12,12 @@
  * noun add an entry, `/ref` adds a reference
  * ([decision 35](../../docs/requirements.md#decisions)).
  *
- * A section is the part of the text under a heading. Its anchor stands at the
- * end of the line of the heading, for example `## Methods<a id="sec-methods"></a>`,
- * and a link to it has the numbers of the sections around it and its own, for
- * example `[Chapter 2.1](#sec-methods)`.
+ * A section is the part of the text under a heading. A link to it names the ID
+ * that GitHub and the Markdown preview give the heading, from its text, and has
+ * the numbers of the sections around it and its own, for example
+ * `[Chapter 2.1](#methods)` (Hannes, 2026-10-30, 03:28: "why do headings
+ * required anchors?"; "we shall stay as close to markdown as possible"). An
+ * anchor of the older form, `## Methods<a id="sec-methods"></a>`, still counts.
  *
  * A figure is an image that stands alone in its paragraph, and its caption is
  * the text of the image. A table has a caption: a paragraph that starts with
@@ -52,6 +54,28 @@ export interface Item {
   /** anchorStart and anchorEnd are the columns of the anchor in its line. */
   anchorStart?: number;
   anchorEnd?: number;
+  /** id is the ID that GitHub gives the heading of a section, for example `methods` for `## Methods`. */
+  id?: string;
+}
+
+/**
+ * slugOf returns the ID that GitHub gives a heading with a text, before a number for a heading of the same ID: the text
+ * in small letters, without the characters that are no letter, digit, mark, `_`, `-` or space, and a `-` for each space.
+ * @param text - The text of the heading, as the page shows it.
+ */
+export const slugOf = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, '')
+    .replace(/ /g, '-');
+
+/**
+ * textOf returns the text of a heading as the page shows it: its text and its code, without HTML, emphasis and the
+ * addresses of its links.
+ * @param inline - The inline token of the heading.
+ */
+function textOf(inline: Token): string {
+  return (inline.children ?? []).map((child) => (child.type === 'text' || child.type === 'code_inline' ? child.content : child.type === 'softbreak' ? ' ' : '')).join('');
 }
 
 /** anchorPattern is the source of the pattern of an anchor of a figure, a table or a section, with its name. */
@@ -93,6 +117,18 @@ function imageOf(inline: Token): string | undefined {
 export function findItems(lines: readonly string[]): Item[] {
   const tokens = parse(lines);
   const items: Item[] = [];
+  /** ids counts the IDs of the headings: GitHub gives a second heading of an ID the ID with `-1`, a third one `-2`. */
+  const ids = new Map<string, number>();
+  const idOf = (text: string): string => {
+    const slug = slugOf(text);
+    let id = slug;
+    for (let count = ids.get(slug) ?? 0; ids.has(id); count++) {
+      id = `${slug}-${count + 1}`;
+      ids.set(slug, count + 1);
+    }
+    ids.set(id, ids.get(id) ?? 0);
+    return id;
+  };
   let depth = 0;
   tokens.forEach((token, index) => {
     if (token.type === noteOpenType) {
@@ -109,7 +145,8 @@ export function findItems(lines: readonly string[]): Item[] {
       const line = token.markup.startsWith('#') ? token.map[0] : token.map[1] - 2;
       const anchor = anchorOf(lines[line].replace(/\s+#+\s*$/, ''));
       const caption = inline.content.replace(new RegExp(anchorPattern, 'g'), '').replace(/\s+/g, ' ').trim();
-      items.push({ kind: 'section', caption, line, level: Number(token.tag.slice(1)), ...(anchor ? { anchor: anchor.name, anchorStart: anchor.start, anchorEnd: anchor.end } : {}) });
+      const id = idOf(textOf(inline));
+      items.push({ kind: 'section', caption, line, level: Number(token.tag.slice(1)), id, ...(anchor ? { anchor: anchor.name, anchorStart: anchor.start, anchorEnd: anchor.end } : {}) });
       return;
     }
     if (token.type !== 'paragraph_open') {
@@ -210,24 +247,71 @@ export function anchorName(item: Item, items: readonly Item[]): string {
   return name;
 }
 
-/** linkSearch matches a link to an anchor of a figure, a table or a section with a word and a number as its text. */
-const linkSearch = /\[([^\[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#((?:fig|tab|lst|sec)-[a-z0-9]+(?:-[a-z0-9]+)*)\)/g;
+/** linkSearch matches a link to a place of the file with a word and a number as its text, such as `[Table 1](#tab-x)`. */
+const linkSearch = /\[([^\[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#([^()\s]+)\)/g;
 
 /**
- * wordOf returns the word of the last link to an item of a kind in a text, for example "Tabelle", or undefined.
+ * sectionWords are the words of a link to the ID of a heading whose number the formatter writes, so that a link such as
+ * `[Step 2](#install)` keeps its text.
+ */
+const sectionWords = new Set(['Chapter', 'Kapitel', 'Section', 'Abschnitt']);
+
+/**
+ * targetsOf returns the items of a text that a link names, by the name after `#`: the anchors of the figures, the
+ * tables, the listings and the sections, and the IDs of the headings of the sections, which count only for a link
+ * with a word of `sectionWords`.
+ * @param items - The items of the text.
+ */
+function targetsOf(items: readonly Item[]): Map<string, { item: Item; byId: boolean }> {
+  const targets = new Map<string, { item: Item; byId: boolean }>();
+  for (const item of items) {
+    if (item.id !== undefined && !targets.has(item.id)) {
+      targets.set(item.id, { item, byId: true });
+    }
+  }
+  for (const item of items) {
+    if (item.anchor !== undefined) {
+      targets.set(item.anchor, { item, byId: false });
+    }
+  }
+  return targets;
+}
+
+/**
+ * wordOf returns the word of the last link to an item of a kind in a text, for example "Tabelle", or undefined. A link
+ * to a name that the text does not have counts by the prefix of the name, such as `tab-` for a table.
  * @param lines - The lines of the text.
  * @param kind - The kind of the item.
  */
 export function wordOf(lines: readonly string[], kind: ItemKind): string | undefined {
+  const targets = targetsOf(findItems(lines));
   let word: string | undefined;
   for (const line of lines) {
     for (const match of line.matchAll(linkSearch)) {
-      if (match[4].startsWith(`${prefixes[kind]}-`)) {
+      const target = targets.get(match[4]);
+      const counts = target ? target.item.kind === kind && (!target.byId || sectionWords.has(match[1])) : match[4].startsWith(`${prefixes[kind]}-`);
+      if (counts) {
         word = match[1];
       }
     }
   }
   return word;
+}
+
+/**
+ * hasNumberedLinks tells whether a text has a link whose number the formatter writes: a link to the anchor of an item,
+ * or a link with a word of `sectionWords` to the ID of the heading of a section.
+ * @param lines - The lines of the text.
+ */
+export function hasNumberedLinks(lines: readonly string[]): boolean {
+  if (!lines.some((line) => line.includes('](#'))) {
+    return false;
+  }
+  const targets = targetsOf(findItems(lines));
+  return lines.some((line) => [...line.matchAll(linkSearch)].some((match) => {
+    const target = targets.get(match[4]);
+    return target !== undefined && (!target.byId || sectionWords.has(match[1]));
+  }));
 }
 
 /**
@@ -250,12 +334,12 @@ function codeSpans(line: string): [number, number][] {
  * @param lines - The lines of the text.
  */
 export function numberLinks(lines: readonly string[]): string[] {
-  if (!lines.some(hasAnchor)) {
+  if (!lines.some((line) => line.includes('](#'))) {
     return [...lines];
   }
   const items = findItems(lines);
-  const numbers = new Map(items.filter((item) => item.anchor).map((item) => [item.anchor!, labelOf(items, item)]));
-  if (numbers.size === 0) {
+  const targets = targetsOf(items);
+  if (targets.size === 0) {
     return [...lines];
   }
   const code = codeLines(lines);
@@ -264,9 +348,10 @@ export function numberLinks(lines: readonly string[]): string[] {
       return line;
     }
     const spans = codeSpans(line);
-    return line.replace(linkSearch, (whole: string, word: string, space: string, _number: string, anchor: string, offset: number) => {
-      const number = numbers.get(anchor);
-      return number === undefined || spans.some(([start, end]) => start <= offset && offset < end) ? whole : `[${word}${space}${number}](#${anchor})`;
+    return line.replace(linkSearch, (whole: string, word: string, space: string, _number: string, name: string, offset: number) => {
+      const target = targets.get(name);
+      const counts = target !== undefined && (!target.byId || sectionWords.has(word)) && !spans.some(([start, end]) => start <= offset && offset < end);
+      return counts ? `[${word}${space}${labelOf(items, target.item)}](#${name})` : whole;
     });
   });
 }

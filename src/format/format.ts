@@ -35,7 +35,7 @@
 import type { Token } from 'markdown-it';
 import { frontMatterEnd, newerFormat } from '../notes/doctype';
 import { fillFields, findFields } from '../notes/fields';
-import { findItems, numberLinks } from '../notes/figures';
+import { findItems, hasNumberedLinks, numberLinks } from '../notes/figures';
 import { findListings, refreshListings, type Source } from '../notes/listings';
 import { before, parse, read } from '../notes/notes';
 import { breakText, markerText, noteCloseType, noteOpenType } from '../notes/syntax';
@@ -525,12 +525,13 @@ const signature = (lines: readonly string[]): string =>
 
 /**
  * keptCurrent tells whether a text has parts whose text the formatter keeps current, which a save formats as a file
- * with notes ([R-FMT-001](../../docs/requirements.md#r-fmt-001)): a listing, a value of the front matter, or a figure,
- * a table, a listing or a section with an anchor, whose links get their numbers from it.
+ * with notes ([R-FMT-001](../../docs/requirements.md#r-fmt-001)): a listing, a value of the front matter, a figure,
+ * a table, a listing or a section with an anchor, whose links get their numbers from it, or a link to the ID of the
+ * heading of a section, such as `[Chapter 2](#methods)`.
  * @param lines - The lines of the text.
  */
 export const keptCurrent = (lines: readonly string[]): boolean =>
-  findListings(lines).length > 0 || findFields(lines).length > 0 || findItems(lines).some((item) => item.anchor !== undefined);
+  findListings(lines).length > 0 || findFields(lines).length > 0 || findItems(lines).some((item) => item.anchor !== undefined) || hasNumberedLinks(lines);
 
 /** FormatOptions are the options of the formatter. */
 export interface FormatOptions {

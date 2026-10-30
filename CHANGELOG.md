@@ -89,10 +89,10 @@ The first version.
   `[Table 1](#tab-grades)`, after it gave the target an anchor
   `<a id="tab-grades"></a>` at the end of the line of its image or its
   caption. `/ref` also links a section with the numbers of its chapter, for
-  example `[Chapter 2.1](#sec-methods)`, with an anchor at the end of its
-  heading. The formatter writes the number of each link from the order of
-  the figures, the tables and the headings in the file, and the clean
-  editing view hides the anchors.
+  example `[Chapter 2.1](#methods)`, by the ID that GitHub gives its heading,
+  without an anchor. The formatter writes the number of each link from the
+  order of the figures, the tables and the headings in the file, and the
+  clean editing view hides the anchors.
 - Values of the front matter in the text: `/ref` inserts the value of a key
   of the front matter between hidden markers, for example
   `<wbr><!--{title}-->A paper<!--{/title}-->`, and the formatter writes the
