@@ -19,6 +19,10 @@ one place, the side view "Notes" of the extension, next to the text that each
 note is about: its highlight in the text editor and in the Markdown preview,
 as the highlights of a marker pen on paper.
 
+[docs/specification.md](specification.md) summarizes every requirement that
+is still valid, in short; this document holds the full text of each
+requirement, the plan and the decisions of Hannes.
+
 ## Plan
 
 | Step | Content | Requirements | State |
@@ -67,9 +71,12 @@ as the highlights of a marker pen on paper.
 | 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
 | 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
 | 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
-| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` in the comment of the format; the citations are footnotes with CSL ([decision 31](#decisions)) | [R-EDIT-008](#r-edit-008), [R-NOTE-007](#r-note-007) | planned; built in the form of links on 2026-10-29 and not pushed, because the citations may move to nimblescape Markdown Paper (Hannes, 22:11: "we want a clean split") |
-| 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository gets its new name `markdownnotes-vscode` when the implementation is complete |
+| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the render hint in the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` | [R-EDIT-008](#r-edit-008) | moved to nimblescape Markdown Paper ([decision 32](#decisions)); built there on the API of [R-GEN-012](#r-gen-012) |
 | 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
+| 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository gets its new name `markdownnotes-vscode` when the implementation is complete |
+| 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
+| 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
+| 50 | The slash commands `/figure` and `/table`: links to the figures and tables of a file, their numbers from the formatter, the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | planned |
 
 ## General
 
@@ -125,7 +132,15 @@ gets the name `nimblescape/markdownnotes-vscode` when the implementation is
 complete ("will be renamed when impl is completed"); until then it is
 `nimblescape/nimblescape-markdown-notes`. Its sister extension nimblescape
 Markdown Paper is `nimblescape.nimblescape-markdownpaper` in
-`nimblescape/markdownpaper-vscode` (Hannes, 2026-10-30, 02:01). The
+`nimblescape/markdownpaper-vscode` (Hannes, 2026-10-30, 02:01). All other
+names have no hyphen in "markdownnotes" either ([decision 33](#decisions)):
+the npm package `@nimblescape/markdownnotes` and its command `markdownnotes`
+([R-FMT-004](#r-fmt-004)), the name `nimblescape-markdownnotes` of the format
+in the comment of the format ([R-NOTE-007](#r-note-007)) and the scheme
+`markdownnotes` of the clean editing view. The settings and commands keep
+the form `nimblescape.markdownNotes.*`. The repository gets its new name
+before the first publish of the npm package, because the trusted publisher of
+npmjs.com names the repository. The
 publisher is `nimblescape`. The release uses the same workflows and checks as the other
 extensions of the publisher (`release.yml`, `release-dry-run.yml`,
 `marketplace-identity.yml`, `scripts/release-checks.mjs`) and follows the
@@ -294,12 +309,37 @@ still be markdown related"; 22:15: "it is also the slash commands"; 22:16:
   clean editing view ([R-TEXT-009](#r-text-009)), or `undefined` for another
   document, because the page preview and the PDF of Markdown Paper read the
   file with its notes and footnotes.
-- Later points each get a call that registers a part and returns a handle that
-  removes it again: slash commands ([R-EDIT-008](#r-edit-008)), hidden blocks
-  of the clean editing view, steps of the formatter
-  ([R-FMT-001](#r-fmt-001)), checks ([R-TEXT-008](#r-text-008)), and lines of
-  the comment of the format ([R-NOTE-007](#r-note-007)). A point that changes
-  the meaning of an earlier one raises the version.
+- Each further part has a call that registers it and returns a disposable that
+  removes it again (Hannes, 2026-10-30, 02:25: the citations go to Markdown
+  Paper, [decision 32](#decisions)):
+  - `registerFormatStep({ applies(lines, file), format(lines, file) })`: a
+    step of the formatter after the steps of the notes, in "Format Document"
+    of a file and in the format on save ([R-FMT-001](#r-fmt-001)). `file` is
+    the URI of the file. A Markdown file that a step formats gets the format
+    on save also without notes. A step that fails, or returns no lines,
+    changes nothing. In the clean editing view, the steps run with the save
+    of the file, not in "Format Document" of the view.
+  - `registerHiddenBlocks({ find(lines) })`: blocks of whole lines at the end
+    of a file that the clean editing view leaves out
+    ([R-TEXT-009](#r-text-009)), such as the database of the sources of
+    Markdown Paper. Text typed in the view goes before them, and a file that
+    the view writes anew keeps them at the end. A file with such a block
+    opens in the view too.
+  - `registerSlashCommand({ label, description, detail, run(editor, range) })`:
+    a slash command after the commands of the notes ([R-EDIT-008](#r-edit-008)),
+    with the same rules. The label is a slash and small letters that no other
+    command has, or the call throws. `run` gets the text editor at the place
+    of the removed command; an edit of the clean editing view goes into the
+    file, as every edit of the view. A command that fails shows a message.
+- Checks of other extensions need no call: an extension sets its diagnostics
+  on the file that `fileOf` names, as the notes do. Markdown Paper writes no
+  lines into the comment of the format: a paper names its layout in its front
+  matter. A part that changes the meaning of an earlier one raises the
+  version.
+- The command `markdownpaper format` of Markdown Paper calls the library of
+  the npm package of the notes ([R-FMT-004](#r-fmt-004)) and then its own
+  steps, so that one command formats a file of a paper project
+  ([decision 34](#decisions)).
 
 ## Notes
 
@@ -490,6 +530,9 @@ always knows it is a notes md document"). The
 - The first line names the format, its version and the address of the
   specification: `<!-- nimblescape-markdownnotes v1.0.0
   spec=https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`.
+  The name of the format has no hyphen in "markdownnotes" since 2026-10-30
+  ([decision 33](#decisions)); a comment of the earlier name
+  `nimblescape-markdown-notes` counts as older and is written anew.
   Short lines of words follow, which tell an AI agent to read the
   specification before it reads, changes or adds a note, and the last line is
   `-->`. GitHub and the Markdown preview do not show the comment.
@@ -721,6 +764,10 @@ once, and keeps each note at its text:
   of the setting `showFootnotes`. A file with standard footnotes and no notes
   opens in its own text editor, with its definitions.
 
+- The view also leaves out the blocks at the end of a file that other
+  extensions hide through the API ([R-GEN-012](#r-gen-012)), such as the
+  database of the sources of nimblescape Markdown Paper, and the anchors of
+  the figures and tables ([R-XREF-001](#r-xref-001), planned).
 - Text typed at the start or the end of a highlight stays outside of it; text
   typed inside a highlight stays in it, also when it replaces the first or the
   last word of the highlight, letter by letter.
@@ -1209,18 +1256,19 @@ it shows no suggestions while the user types words.
   `/user` then asks for the sign-in of VS Code and inserts the login after
   it, and inserts nothing when the user cancels the sign-in.
 
+- `/figure` and `/table` insert a link to a figure or a table of the file
+  (Hannes, 2026-10-30, 02:32: "there is also the /table and /figure slash
+  commands, these are commands in markdownnotes", 02:33: "it adds a
+  references to the figure or table in the text", "technically it is a link
+  to it"; [R-XREF-001](#r-xref-001), planned).
+
 The editors of the side view have no slash commands (Hannes, 18:40), so
 `/todo` at the start of a new note, which [decision 30](#decisions) named,
 is dropped. `/research` and `/source` for the sources of a document (Hannes,
-18:33 to 18:39) wait for the decision on the form of the citations and of
-the metadata of the sources (Hannes, 18:55: "we need to find a suitable
-bibliography metadata definition, as we have with the note tags"). The
-citation style is the one of the PHT, APA 7 in the German form of its guide
-"Zitationsrichtlinien für Abschlussarbeiten an der PHT, Zitation nach APA 7",
-Version 2.0 (Hannes, 19:18: "we use PHT style", "for now we only support this
-APA 7"). The comment of the format ([R-NOTE-007](#r-note-007)) gets a render
-hint: a link to an instruction file of the style in the repository, as its
-link to the format (Hannes, 19:18: "we need a render hint in the doctype").
+18:33 to 18:39) are commands of nimblescape Markdown Paper, which adds them
+through the API ([R-GEN-012](#r-gen-012), [decision 32](#decisions)), with
+the citations, the metadata of the sources and the citation style of the
+PHT (APA 7).
 
 ## Markdown preview
 
@@ -1366,7 +1414,10 @@ formats it while the setting `nimblescape.markdownNotes.formatOnSave` is on
 - the user chose another `editor.defaultFormatter` for Markdown.
 
 The formatter changes only the lines that it formats, in one edit, with the
-line breaks of the file, so that Undo takes the whole change back.
+line breaks of the file, so that Undo takes the whole change back. Other
+extensions add steps after the steps of the notes through the API
+([R-GEN-012](#r-gen-012)); a file that such a step formats gets the format
+on save too.
 
 ### R-FMT-002
 
@@ -1387,6 +1438,9 @@ line breaks of the file, so that Undo takes the whole change back.
   the start of a line ends no paragraph on GitHub, and a note without a start
   marker gets one at the start of the text of the block of its reference
   ([R-NOTE-006](#r-note-006)). The color of a marker stays.
+- The number in the text of each link to a figure or a table follows the
+  order of the figures and tables in the file ([R-XREF-002](#r-xref-002),
+  planned).
 
 ### R-FMT-003
 
@@ -1428,6 +1482,14 @@ as the extension does on save.
 The command `markdownnotes strip` writes the text of a file without its
 notes, for a website or a document that is published
 ([R-HIDE-004](#r-hide-004)).
+
+The npm package also is a library for programs (Hannes, 2026-10-30, 02:26:
+"now we do not have a single formatter command anymore, how to handle this",
+"in npmjs"; [decision 34](#decisions)): `formatMarkdown(lines)` returns the
+formatted lines, with `require` and `import`, and loading it runs nothing.
+Its types name no other package, because the package has no dependencies.
+The command `markdownpaper format` of nimblescape Markdown Paper calls it
+before its own steps, so that a paper project has one formatter command.
 
 The command is the npm package `@nimblescape/markdownnotes` in the folder
 `cli/` of this repository, as the npm package `@nimblescape/typescript` of
@@ -1559,6 +1621,52 @@ next free number as its label ([R-FOOT-003](#r-foot-003)), and the start
 marker and the replies go. It asks first when the note has replies. Undo
 brings the note back.
 
+## Figures and tables
+
+### R-XREF-001
+
+**Links to figures and tables.** The slash commands `/figure` and `/table`
+insert a link to a figure or a table of the file at the cursor
+([R-EDIT-008](#r-edit-008)) (Hannes, 2026-10-30, 02:32 to 02:33: "it adds a
+references to the figure or table in the text", "technically it is a link to
+it"). The numbers of the figures and tables in a paper and their lists are
+parts of nimblescape Markdown Paper; Markdown Notes only links. The form,
+proposed on 2026-10-30 at 02:33:
+
+```markdown
+Table: Participants by grade<a id="tab-grades"></a>
+
+| Grade | Participants |
+| --- | --- |
+| 5 | 12 |
+
+As [Table 1](#tab-grades) shows, …
+```
+
+- A figure is an image that stands alone in its paragraph; its caption is the
+  text of the image. A table has a caption: a paragraph that starts with
+  `Table:` directly before it.
+- `/figure` lists the figures of the file by their captions, and `/table` the
+  tables. The chosen one gets an anchor at the end of the line of its image
+  or its caption when it has none: `<a id="fig-…"></a>` or
+  `<a id="tab-…"></a>`, with a short name from the caption. The cursor gets
+  the link, for example `[Table 1](#tab-grades)`.
+- The word of the link stays as it is written, for example "Table" or
+  "Tabelle"; the command takes the word of the last link of the same kind in
+  the file, else the language of VS Code.
+- GitHub shows the link with its number, and a click on it goes to the
+  anchor. The clean editing view hides the anchors
+  ([R-TEXT-009](#r-text-009)).
+
+### R-XREF-002
+
+**The numbers of the links.** The formatter writes the number in the text of
+each link to a figure or a table anew from the order of the figures and the
+tables in the file, so that a moved table keeps the right number in every
+link ([R-FMT-002](#r-fmt-002)). Markdown Paper can number them by the rules
+of its layout with its own step of the formatter, for example A1 for the first
+table of an appendix ([R-GEN-012](#r-gen-012)).
+
 ## Hidden notes
 
 ### R-HIDE-001
@@ -1661,7 +1769,7 @@ text is published, the extension writes the text of a file without its notes
 
 ## Decisions
 
-Hannes decided these questions on 2026-10-28 and 2026-10-29. The
+Hannes decided these questions from 2026-10-28 to 2026-10-30. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -1965,7 +2073,50 @@ requirements above follow them.
     links to the format. GitHub shows the citations as numbered footnotes,
     which APA 7 does not use. The other choices were hidden CSL tags with
     the visible APA 7 text, Pandoc citations with CSL in the front matter,
-    and Pandoc citations with a CSL JSON file.
+    and Pandoc citations with a CSL JSON file. At 21:43 Hannes chose
+    citations as links to their entries in a written reference list, with the
+    data in the title of the link, in place of the footnotes. [Decision
+    32](#decisions) moves the citations to nimblescape Markdown Paper, whose
+    specification holds their form.
+
+32. **Citations in nimblescape Markdown Paper** ([R-GEN-012](#r-gen-012),
+    [R-EDIT-008](#r-edit-008), Hannes, 2026-10-29, 22:07: "one markdonw-paper
+    that creates and scaffolds all the paper workflow / then the
+    markdownnotes which has its value on its own", 22:11: "we want a clean
+    split and and the notes shall still be markdown related"; 2026-10-30,
+    02:25, decided with the option "Into markdown-paper"): the citations, the
+    database of the sources, the citation style, `/source` and `/research`
+    go to nimblescape Markdown Paper, which adds them through the API of this
+    extension: a step of the formatter, the database as a hidden block at
+    the end of the file, and its slash commands. The format of the notes
+    stays `v1.0.0`. The other choice was the citations in Markdown Notes, as
+    format `v1.1.0`.
+33. **Names without a hyphen** ([R-GEN-005](#r-gen-005),
+    [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), Hannes, 2026-10-30,
+    02:04: the extension ID `nimblescape.nimblescape-markdownnotes`; 02:27:
+    "it will be renamed to markdownnotes", about the npm package; 02:30:
+    "markdown-notes" → "markdownnotes"): the npm package
+    `@nimblescape/markdownnotes`, the command `markdownnotes`, the name
+    `nimblescape-markdownnotes` of the format and the scheme `markdownnotes`
+    of the clean editing view. The addresses of the repository keep its old
+    name until its rename to `markdownnotes-vscode`.
+34. **One formatter command for a paper project** ([R-FMT-004](#r-fmt-004),
+    [R-GEN-012](#r-gen-012), Hannes, 2026-10-30, 02:26: "now we do not have
+    a single formatter command anymore, how to handle this", "in npmjs";
+    agreed with a thumb on the proposal): `@nimblescape/markdownpaper`
+    depends on `@nimblescape/markdownnotes` and calls its library
+    `formatMarkdown` before its own steps, so that
+    `npx -y @nimblescape/markdownpaper format <file>` formats every file of a
+    paper project, and `markdownnotes format` stays the command for notes
+    only. In VS Code, Markdown Notes stays the one default formatter of
+    Markdown, and Markdown Paper adds its steps through the API.
+35. **Links to figures and tables** ([R-XREF-001](#r-xref-001),
+    [R-XREF-002](#r-xref-002), Hannes, 2026-10-30, 02:32 to 02:33):
+    `/figure` and `/table` are slash commands of Markdown Notes that insert a
+    link to a figure or a table ("technically it is a link to it"). The
+    anchor at the end of the caption line, the link text with the word and
+    the number, and the numbers from the formatter are the proposal of
+    02:33.
 
 ---
 

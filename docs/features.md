@@ -7,27 +7,30 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 # Requested features and their state
 
 This document lists each feature that Hannes asked for in the threads of the
-project, with the date of the request, the requirement of the
-[specification](requirements.md) that describes it, and its state on
-2026-10-30. The [user guide](guide.md) describes how to use the features that
+project, with the date of the request, the requirement in
+[requirements.md](requirements.md) that describes it, and its state on
+2026-10-30. [specification.md](specification.md) summarizes the requirements
+that are still valid. The requests for the paper workflow, such as the
+layouts, the sections without chapter numbers, the lists of figures and
+tables, the folders of a paper project and the citations, belong to
+nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 94 requested features, 70 are built, among them the clean editing view
+Of 99 requested features, 74 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
-breaks and the cursor next to the hidden markers in the text editor, and
-the standard footnotes in the side view. 10 features are planned but not built: the features of the section
+breaks and the cursor next to the hidden markers in the text editor, the
+standard footnotes in the side view, and the API for nimblescape Markdown
+Paper. 7 features are planned but not built: the features of the section
 [Planned features](#planned-features). Three need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
-in Zen Mode, and the new name of the repository. 11 requests were replaced or dropped by later decisions of
-Hannes; each row names the decision.
+in Zen Mode, and the new name of the repository. 11 requests were replaced or
+dropped by later decisions of Hannes; each row names the decision. 4 requests
+moved to nimblescape Markdown Paper: the citations and the sources
+([decision 32](requirements.md#decisions)).
 
 The main gaps are the visual editing in the side view, the hidden form of the
-notes, the checks of the footnotes, and the citations and sources
-in the style of the PHT (APA 7) with the slash commands `/research` and
-`/source`. They are built as links to their entries but not pushed, because
-on 2026-10-29 at 22:11 Hannes asked for a clean split: nimblescape Markdown
-Notes stays about notes in Markdown, and the paper workflow goes to the new
-extension nimblescape Markdown Paper, which may take the citations.
+notes, the checks of the footnotes, and the links to figures and tables with
+`/figure` and `/table`.
 
 The columns of the tables:
 
@@ -38,7 +41,8 @@ The columns of the tables:
 - **State**: Built (in the branch of the pull request), Bug (built, with an
   open bug), Planned (in the specification and the [plan](requirements.md#plan),
   not built), Needs Hannes (an action that only Hannes can take), Replaced (a
-  later decision changed the request), Dropped (a later decision removed it).
+  later decision changed the request), Dropped (a later decision removed it),
+  Moved (the request belongs to nimblescape Markdown Paper).
 - **Detail**: the setting, the decision or the cause behind the state.
 
 A change of a feature or of its state updates its row in this document.
@@ -162,7 +166,11 @@ need Hannes after the merge of
 | The package on npmjs.com and the first release of the extension | 10-28 19:05 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | After the merge; the thread "Publish formatter to npmjs" has the steps |
 | The extension ID `nimblescape.nimblescape-markdownnotes` | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Built | Step 47 |
 | The new name of the repository, `markdownnotes-vscode`, "when impl is completed" | 10-30 02:04 | [R-GEN-005](requirements.md#r-gen-005) | Needs Hannes | Then the addresses of the repository change and the Marketplace setup runs again |
-| An API for other extensions: "it is also the slash commands", "and maybe even more things" | 10-29 22:15-22:16 | [R-GEN-012](requirements.md#r-gen-012) | Built | Version 1 with `fileOf`, for nimblescape Markdown Paper; the other points follow with it |
+| An API for other extensions: "it is also the slash commands", "and maybe even more things" | 10-29 22:15-22:16 | [R-GEN-012](requirements.md#r-gen-012) | Built | Version 1 with `fileOf`, `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand`, for nimblescape Markdown Paper (steps 47 and 48) |
+| A clean split: "the notes shall still be markdown related"; the citations and the sources go into nimblescape Markdown Paper | 10-29 22:11, 10-30 02:25 | [R-GEN-012](requirements.md#r-gen-012) | Built | [Decision 32](requirements.md#decisions); the format of the notes stays `v1.0.0`, and Markdown Paper adds the citations through the API |
+| Names without a hyphen: "it will be renamed to markdownnotes", "markdown-notes" → "markdownnotes" | 10-30 02:27, 02:30 | [R-GEN-005](requirements.md#r-gen-005), [R-FMT-004](requirements.md#r-fmt-004), [R-NOTE-007](requirements.md#r-note-007) | Built | [Decision 33](requirements.md#decisions), step 49: `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes`, the scheme `markdownnotes` |
+| One formatter command with two packages: "now we do not have a single formatter command anymore, how to handle this", "in npmjs" | 10-30 02:26 | [R-FMT-004](requirements.md#r-fmt-004) | Built | [Decision 34](requirements.md#decisions): the library `formatMarkdown` of `@nimblescape/markdownnotes`, which `markdownpaper format` calls before its own steps |
+| All specifications as a spec doc in the repository: "you must summarize all these requirements", "all requirements of the whole thread that are still valid" | 10-30 02:38, 02:39 | [specification.md](specification.md) | Built | The summary links each point to its requirement |
 
 ## Footnotes
 
@@ -176,12 +184,12 @@ Footnote" are in the section [Planned features](#planned-features).
 | Standard footnotes in the side view: "the extension could serve as a rich ui for editing footnotes"; show, edit, delete | 10-29 07:48 | [R-FOOT-001](requirements.md#r-foot-001), [R-FOOT-002](requirements.md#r-foot-002) | Built | Each footnote at the place of its first reference, with its label and the numbers of GitHub and of the preview in the tooltip; "Delete" asks first and removes the definition and every reference; no "Go to Definition", as for a note ("why go to definition? we do not have that for notes", 20:26). Setting `showFootnotes` and the buttons "Hide Footnotes" and "Show Footnotes" in the title of the view |
 | "Add Footnote" at the cursor | 10-29 08:01 | [R-FOOT-003](requirements.md#r-foot-003) | Built | Shift+Alt+B (Cmd+K B on macOS), the title of the side view, the context menu and the Command Palette; the editor of the new footnote in the side view, with the text before the place in its title |
 | `/footnote` opens the editor of the new footnote in the side view: "it just goes to the side view editor, similar to the /notes command" | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | The command leaves the text, and "Add Footnote" in the editor writes the reference and the definition |
-| Citations as footnotes inside the highlight of a note: "these citations can be in a highlight region with a note. does that work?" | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. Hannes chose the form of the citations at 20:48: footnotes with CSL ([decision 31](requirements.md#decisions), step 45) |
+| Citations as footnotes inside the highlight of a note: "these citations can be in a highlight region with a note. does that work?" | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. The citations themselves moved to nimblescape Markdown Paper ([decision 32](requirements.md#decisions)) |
 | The definitions of the footnotes hidden in the text: "the definition can even be hidden, same as for the note, it does not make sense to show it" | 10-29 20:42 | [R-TEXT-009](requirements.md#r-text-009), [R-FOOT-001](requirements.md#r-foot-001) | Built | In the clean editing view of a file with notes, while the side view shows the footnotes; the references stay, and a definition without a reference too. A definition typed in the view stays until the view reads the file anew. A file with only standard footnotes opens in its own text editor, with its definitions |
 
 ## Planned features
 
-10 features are in the specification and the plan, but not built. Steps 29
+7 features are in the specification and the plan, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -194,10 +202,21 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| A metadata format for the sources: "we need to find a suitable bibliography metadata definition, as we have with the note tags" | 10-29 18:55 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Planned |
-| A render hint in the comment of the format, with a link to an instruction file of the style: "we use PHT style", "for now we only support this APA 7" | 10-29 19:18 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45 | Planned |
-| "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it; the comment of the format explains to an agent what to do with it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008), [R-NOTE-007](requirements.md#r-note-007) | 45 | Planned |
-| "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Planned |
+| `/figure` and `/table`: "these are commands in markdownnotes", "it adds a references to the figure or table in the text", "technically it is a link to it" | 10-30 02:32, 02:33 | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) | 50 | Planned |
+
+## Moved to nimblescape Markdown Paper
+
+Hannes decided on 2026-10-30 at 02:25 that the citations and the sources go
+into nimblescape Markdown Paper ([decision 32](requirements.md#decisions)).
+Their code was built on 2026-10-29 in the form of links and handed to the
+thread of Markdown Paper, which adds them through the API of this extension.
+
+| Request | Asked | Spec | Plan step | State |
+| --- | --- | --- | --- | --- |
+| A metadata format for the sources: "we need to find a suitable bibliography metadata definition, as we have with the note tags" | 10-29 18:55 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Moved |
+| A render hint in the comment of the format, with a link to an instruction file of the style: "we use PHT style", "for now we only support this APA 7" | 10-29 19:18 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Moved |
+| "/research" adds a (RESEARCH) source, which instructs AI agents to find a suitable source for the argument before it | 10-29 18:33-18:39 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Moved |
+| "/source" only lists the existing sources of the document and inserts one | 10-29 18:33, 18:37 | [R-EDIT-008](requirements.md#r-edit-008) | 45 | Moved |
 
 The later fixes of the code review of 2026-10-28 are not in the
 specification: a queue of writes for each file, tests of the script of the
@@ -213,10 +232,10 @@ The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
    leaves out.
 2. The merge of
    [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
-   the first release and the npm package: these need Hannes.
-3. Step 45: the citations and sources in the style of the PHT (APA 7), the
-   render hint, and the slash commands `/research` and `/source`, after the
-   answer of Hannes on the form of the citations.
+   the new name of the repository, the first release and the npm package:
+   these need Hannes. The rename comes before the first publish of the npm
+   package, because the trusted publisher of npmjs.com names the repository.
+3. Step 50: the links to figures and tables with `/figure` and `/table`.
 4. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
 5. Step 14: the visual editing in the side view.

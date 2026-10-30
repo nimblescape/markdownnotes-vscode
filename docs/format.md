@@ -74,6 +74,9 @@ DOCTYPE. GitHub and the Markdown preview do not show it.
   adds the comment; a program that removes the last note removes it.
 - A file without the comment can have notes too, for example an older file:
   the rules below find them.
+- A comment whose first line names `nimblescape-markdown-notes`, the name of
+  the format before 2026-10-30, counts as a comment of an older version: a
+  program that changes a note writes it anew with the current name.
 
 ### 1.1 The version of the format
 

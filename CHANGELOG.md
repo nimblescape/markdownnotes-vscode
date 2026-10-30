@@ -140,7 +140,9 @@ The first version.
   Node.js 22 or later. `npx -y @nimblescape/markdownnotes format <file>...`
   formats the files, `--check` changes nothing and exits with 1 when a file
   is not formatted, and `-` formats the standard input. The specification of
-  the format of the notes tells AI agents to run it after a change.
+  the format of the notes tells AI agents to run it after a change. Programs
+  call the same formatter as the library `formatMarkdown(lines)` of the
+  package, with its types.
 - The extension pack installs "Markdown Footnotes" of Matt Bierner, so that
   the preview shows the other footnotes of a file.
 - The notes work together with the Markdown extensions of other publishers,
@@ -149,7 +151,10 @@ The first version.
   footnote of the page.
 - An API for other extensions, such as nimblescape Markdown Paper:
   `getAPI(1)` of the export of the extension, with `fileOf`, which names the
-  file behind a clean editing view.
+  file behind a clean editing view, `registerFormatStep` for a step of the
+  formatter after the steps of the notes, `registerHiddenBlocks` for blocks
+  at the end of a file that the clean editing view leaves out, and
+  `registerSlashCommand` for a slash command.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,
