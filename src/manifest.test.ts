@@ -134,7 +134,7 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   expect(manifest.contributes.viewsContainers.secondarySidebar).toHaveLength(1);
   expect(container).toMatchObject({ id: 'nimblescape-markdownnotes', title: 'Markdown Notes', icon: 'resources/notes-view.svg' });
   expect(read(container.icon)).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/m);
-  // The side view is the only place of the text of the notes (Hannes, 2026-10-28 19:58: "we completely drop the inline view").
+  // The side view is the only place of the text of the notes.
   expect(manifest.contributes.views).toEqual({ [container.id]: [{ type: 'webview', id: notesViewId, name: 'Notes' }] });
   for (const file of ['media/notesView.js', 'media/notesView.css']) {
     expect(fs.existsSync(path.join(repository, file)), file).toBe(true);
@@ -175,7 +175,7 @@ test('Backspace and Delete next to a mark line of a snippet in a source file do 
 
 test('Add Note is a button of the title of the side view, an item of the context menu of the text editor and a shortcut, and needs selected text (R-EDIT-003, R-EDIT-006)', () => {
   const menus = manifest.contributes.menus;
-  // There is no way to add a note without highlighting text (Hannes, 2026-10-28 20:25).
+  // There is no way to add a note without highlighting text.
   const editor = 'editorLangId == markdown && !editorReadonly && editorHasSelection';
   expect(menus['view/title']).toEqual(expect.arrayContaining([{ command: viewCommands.newNote, group: 'navigation@1', when: `view == ${notesViewId}` }]));
   expect(menus['editor/context']).toEqual(expect.arrayContaining([{ command: viewCommands.newNote, group: 'nimblescape@1', when: editor }]));
@@ -294,7 +294,7 @@ const glyphOf = (font: Buffer, character: number): { glyph: number; size: number
 };
 
 test('the buttons of the highlights show a highlighter pen, and the buttons of the footnotes a plus with the number 1 and a numbered list, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001)', () => {
-  // Hannes chose the highlighter pen on 2026-10-29 (decision 26); the eye stays for the icon of the hidden notes (R-HIDE-002).
+  // The highlighter pen is the icon of the highlights (decision 26); the eye stays for the icon of the hidden notes (R-HIDE-002).
   const font = 'resources/notes-icons.ttf';
   const icons = { 'highlights-show': 0xe001, 'highlights-hide': 0xe002, 'footnote-add': 0xe003, 'footnotes-show': 0xe004, 'footnotes-hide': 0xe005 };
   expect(manifest.contributes.icons).toEqual(

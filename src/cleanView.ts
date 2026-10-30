@@ -9,21 +9,19 @@
  * ([src/notes/clean.ts](notes/clean.ts)): the text without the start markers,
  * the references, the definitions of the notes and the comment of the format,
  * so that the line breaks, the cursor, the word moves, search and copy behave
- * as in a file without notes (Hannes, 2026-10-29: "the editor must behave as
- * if there was no notes markup at all in the document"). A file system of the
- * extension (scheme `markdownnotes`) gives the text editor the clean text,
- * and the extension writes each change of it into the document of the file at
- * once, which keeps the notes at their text; a change of the file, for example
- * a new note of the side view, comes back into the clean text. A save of the
- * view saves the file. The highlights of the notes show in the view as in the
- * text editor of the file.
+ * as in a file without notes. A file system of the extension (scheme
+ * `markdownnotes`) gives the text editor the clean text, and the extension
+ * writes each change of it into the document of the file at once, which keeps
+ * the notes at their text; a change of the file, for example a new note of the
+ * side view, comes back into the clean text. A save of the view saves the file.
+ * The highlights of the notes show in the view as in the text editor of the
+ * file.
  *
- * A Markdown file with notes always opens in the view (Hannes, 2026-10-29: "we
- * always want our markdown notes be in cleanview - always not with a separate
- * command"): each text editor of such a file that shows becomes the view, in
- * its group and at its place of the cursor. The command "Open File with
- * Markup" opens the file itself, for example for a conflict of git in a note;
- * that file stays as it is until its tab closes.
+ * A Markdown file with notes always opens in the view: each text editor of such
+ * a file that shows becomes the view, in its group and at its place of the
+ * cursor. The command "Open File with Markup" opens the file itself, for
+ * example for a conflict of git in a note; that file stays as it is until its
+ * tab closes.
  */
 
 import * as vscode from 'vscode';
@@ -269,9 +267,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   ) {}
 
   /**
-   * optionsOf returns the options of the projection of a file that the view reads anew: the definitions of the
-   * standard footnotes that have a reference are hidden while the side view shows the footnotes (Hannes, 2026-10-29:
-   * "the definition can even be hidden, same as for the note, it does not make sense to show it").
+   * optionsOf returns the options of the projection of a file that the view reads anew: the definitions of the standard
+   * footnotes that have a reference are hidden while the side view shows the footnotes.
    * @param file - The URI of the file.
    */
   private optionsOf(file: vscode.Uri): Options {

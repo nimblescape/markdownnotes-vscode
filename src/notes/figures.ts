@@ -6,18 +6,15 @@
  * The figures, the tables and the sections of a Markdown text, and the links
  * to them ([R-XREF-001](../../docs/requirements.md#r-xref-001),
  * [R-XREF-002](../../docs/requirements.md#r-xref-002),
- * [R-XREF-003](../../docs/requirements.md#r-xref-003)). Hannes, 2026-10-30:
- * "it adds a references to the figure or table in the text", "technically it
- * is a link to it", "/ref also adds chapter numbers"; the commands named by a
- * noun add an entry, `/ref` adds a reference
+ * [R-XREF-003](../../docs/requirements.md#r-xref-003)). The commands named by
+ * a noun add an entry, `/ref` adds a reference
  * ([decision 35](../../docs/requirements.md#decisions)).
  *
  * A section is the part of the text under a heading. A link to it names the ID
  * that GitHub and the Markdown preview give the heading, from its text, and has
  * the numbers of the sections around it and its own, for example
- * `[Chapter 2.1](#methods)` (Hannes, 2026-10-30, 03:28: "why do headings
- * required anchors?"; "we shall stay as close to markdown as possible"). An
- * anchor of the older form, `## Methods<a id="sec-methods"></a>`, still counts.
+ * `[Chapter 2.1](#methods)`. An anchor of the older form,
+ * `## Methods<a id="sec-methods"></a>`, still counts.
  *
  * A figure is an image that stands alone in its paragraph, and its caption is
  * the text of the image. A table has a caption: a paragraph that starts with

@@ -218,9 +218,8 @@ function rewrite(lines: readonly string[], note: Note, answers: readonly AnswerT
 
 /**
  * replaceAnswer returns the edit that gives an answer of a note a new body
- * ([R-EDIT-002](../../docs/requirements.md#r-edit-002)). The header of the answer keeps its author; a changed body
- * gets the date of the save, when there is one, and an unchanged body keeps its date (Hannes, 2026-10-28: a change of
- * the text changes the date). The other answers keep their texts.
+ * ([R-EDIT-002](../../docs/requirements.md#r-edit-002)). The header of the answer keeps its author; a changed body gets
+ * the date of the save, when there is one, and an unchanged body keeps its date. The other answers keep their texts.
  * @param lines - The lines of the Markdown text.
  * @param note - The note.
  * @param index - The index of the answer.
@@ -381,12 +380,10 @@ function definitionLine(reading: Reading, block: TextBlock, reference: Position)
 
 /**
  * placeFor returns the place of a new note for a range of a Markdown text, when the range is in the text of a
- * paragraph, a heading or a table cell ([R-NOTE-006](../../docs/requirements.md#r-note-006)). The highlight belongs
- * to one block, the block of its end. A range without text has no place: every new note highlights text (Hannes,
- * 2026-10-28: "there shall be no way to add a note without highlighting text"). The reference
- * never stands in a code span or a link: it moves after it. Every note has a start marker (Hannes, 2026-10-28: "there
- * should never be a note without a start marker"), also at the start of a line: `<wbr>` before its comment keeps the
- * comment from starting a block of HTML, which would end the paragraph.
+ * paragraph, a heading or a table cell ([R-NOTE-006](../../docs/requirements.md#r-note-006)). The highlight belongs to
+ * one block, the block of its end. A range without text has no place: every new note highlights text. The reference
+ * never stands in a code span or a link: it moves after it. Every note has a start marker, also at the start of a line:
+ * `<wbr>` before its comment keeps the comment from starting a block of HTML, which would end the paragraph.
  * @param lines - The lines of the Markdown text.
  * @param range - The range, for example the selection of the text editor.
  * @param reading - The reading of the text.
@@ -532,9 +529,8 @@ export function deleteNote(lines: readonly string[], note: Note): Edit {
 
 /**
  * colorNote returns the edit that gives a note a color: the name of the color in its start marker, or no name for the
- * default color (Hannes, 2026-10-28: "notes can be colored in the notes editor, by default they get all the same
- * color"). The marker gets `<wbr>` when it has none, and a note without a start marker gets one at the start of its
- * highlight.
+ * default color. The marker gets `<wbr>` when it has none, and a note without a start marker gets one at the start of
+ * its highlight.
  * @param lines - The lines of the Markdown text.
  * @param note - The note.
  * @param color - The name of the color, or undefined for the default color.
@@ -554,8 +550,7 @@ export function colorNote(lines: readonly string[], note: Note, color: string | 
 
 /**
  * replaceNoteText returns the edit that gives a note the text of the text view of the side view: the lines of its
- * definition as the file holds them, without the prefix of its block quotes and list items (Hannes, 2026-10-28: "the
- * text editor view of the notes toggles the complete note in the side view in a text view"). The text must stay the
+ * definition as the file holds them, without the prefix of its block quotes and list items. The text must stay the
  * definition of the same note: it starts with the label and the header, ends where the note ends, and adds or removes
  * no other note.
  * @param lines - The lines of the Markdown text.

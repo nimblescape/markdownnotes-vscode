@@ -3,11 +3,10 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The overlay of the notes in the text editor: decorations and folding over
- * the text editor of VS Code, which stays as it is
- * ([R-GEN-007](../docs/requirements.md#r-gen-007)). The text editor never
- * shows the notes and their markers (Hannes, 2026-10-28: "in the text view we
- * never show the notes and the markers"); the side view shows them
+ * The overlay of the notes in the text editor: decorations and folding over the
+ * text editor of VS Code, which stays as it is
+ * ([R-GEN-007](../docs/requirements.md#r-gen-007)). The text editor never shows
+ * the notes and their markers; the side view shows them
  * ([src/notesView.ts](notesView.ts)).
  *
  * - **Collapsed notes** ([R-TEXT-005](../docs/requirements.md#r-text-005)): the
@@ -18,27 +17,22 @@
  *   opens, for example after a click on its fold arrow, and keeps the cursor
  *   out of the lines of a collapsed note.
  * - **Highlights** ([R-NOTE-006](../docs/requirements.md#r-note-006)): while
- *   the setting `showHighlights` is on, also while the side view is closed,
- *   the text from the start marker to the reference of each note, its
- *   highlight, has a background in the color of the note with a line below
- *   it, so that it stands out of the text (Hannes, 2026-10-28: "when viewed
- *   make it good contrast"; 2026-10-29: "it shall not open the side view but
- *   only show the highlights"). The
- *   highlight of the selected note of the side view is strong with a frame in
- *   its color, also while the others are hidden, and the highlights of the
- *   other notes are dimmed. A hidden highlight shows while the pointer rests
- *   on its text (Hannes, 2026-10-28: "even when the highlights are hidden,
- *   hover over a highlight always shows the highlight"): VS Code asks the
- *   hover providers for the place of the pointer, so the extension learns it
- *   there, and shows no hover. VS Code tells no event when the pointer leaves
- *   the text, so the highlight stays until the pointer rests on other text,
- *   the cursor moves, or the side view opens. The start marker
- *   `<wbr><!--[note-7k2q-->` and the reference `[^note-7k2q]` vanish, also on the
- *   line of the cursor: the cursor steps over a marker as over one place, and
- *   Backspace and Delete next to a marker delete the character on the other
- *   side of it ([src/notes/cursor.ts](notes/cursor.ts)), so that no key
- *   changes a marker. The overview ruler shows a mark in the color of each
- *   highlight.
+ *   the setting `showHighlights` is on, also while the side view is closed, the
+ *   text from the start marker to the reference of each note, its highlight,
+ *   has a background in the color of the note with a line below it, so that it
+ *   stands out of the text. The highlight of the selected note of the side view
+ *   is strong with a frame in its color, also while the others are hidden, and
+ *   the highlights of the other notes are dimmed. A hidden highlight shows
+ *   while the pointer rests on its text: VS Code asks the hover providers for
+ *   the place of the pointer, so the extension learns it there, and shows no
+ *   hover. VS Code tells no event when the pointer leaves the text, so the
+ *   highlight stays until the pointer rests on other text, the cursor moves, or
+ *   the side view opens. The start marker `<wbr><!--[note-7k2q-->` and the
+ *   reference `[^note-7k2q]` vanish, also on the line of the cursor: the cursor
+ *   steps over a marker as over one place, and Backspace and Delete next to a
+ *   marker delete the character on the other side of it
+ *   ([src/notes/cursor.ts](notes/cursor.ts)), so that no key changes a marker.
+ *   The overview ruler shows a mark in the color of each highlight.
  * - **Headers** ([R-TEXT-007](../docs/requirements.md#r-text-007)): when a
  *   fold starts on the first line of a note, which then stays, the header on
  *   this line shows rendered, with the author and the date in the local time
@@ -367,8 +361,7 @@ export class NoteEditor implements vscode.Disposable {
         fold.notes.forEach((note) => (known ? shut.add(note.label) : shut.delete(note.label)));
       }
     }
-    // While a note is selected, the other notes are dimmed (Hannes, 2026-10-28: "other notes shall be dimmed when one
-    // note is selected").
+    // While a note is selected, the other notes are dimmed.
     const label = this.selected.labelOf(document.uri);
     const selectedLabel = notes.some((note) => note.label === label) ? label : undefined;
     const dims = (note: Note): boolean => selectedLabel !== undefined && note.label !== selectedLabel;

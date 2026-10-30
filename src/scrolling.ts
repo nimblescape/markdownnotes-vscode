@@ -7,10 +7,9 @@
  * ([R-SIDE-007](../docs/requirements.md#r-side-007)). With
  * `editor.smoothScrolling`, VS Code scrolls a text editor in 125 milliseconds,
  * and over a long way it jumps over most of the text, while the Markdown
- * preview scrolls smoothly over the whole way (Hannes, 2026-10-29: "only the
- * preview main window scrolls smoothly, the text window not"). The extension
- * therefore scrolls a text editor itself, in small steps that start and end
- * slowly, as the preview does.
+ * preview scrolls smoothly over the whole way. The extension therefore scrolls
+ * a text editor itself, in small steps that start and end slowly, as the
+ * preview does.
  */
 
 import * as vscode from 'vscode';

@@ -6,56 +6,52 @@
  * The side view "Notes", the note editor of the extension
  * ([R-SIDE-001](../docs/requirements.md#r-side-001) to
  * [R-SIDE-003](../docs/requirements.md#r-side-003)), and the only place that
- * shows the text of the notes (Hannes, 2026-10-28: "we completely drop the
- * inline view"). It is a webview view in the secondary side bar, beside the
- * chat of VS Code, that shows the threads of the active Markdown file, each
- * with its answers rendered as Markdown, with author and date. It selects the
- * thread at the cursor of the text editor, or the thread whose highlight the
- * user clicked in the preview ([R-PREV-003](../docs/requirements.md#r-prev-003)).
+ * shows the text of the notes. It is a webview view in the secondary side bar,
+ * beside the chat of VS Code, that shows the threads of the active Markdown
+ * file, each with its answers rendered as Markdown, with author and date. It
+ * selects the thread at the cursor of the text editor, or the thread whose
+ * highlight the user clicked in the preview
+ * ([R-PREV-003](../docs/requirements.md#r-prev-003)).
  *
- * The view shows the answers of a thread as a tree: each reply after the
- * answer that it replies to, and the replies to a reply indented below it
+ * The view shows the answers of a thread as a tree: each reply after the answer
+ * that it replies to, and the replies to a reply indented below it
  * ([R-NOTE-004](../docs/requirements.md#r-note-004)). The date of an answer
  * shows in the local time of the reader, with the local time of the author as
  * its tooltip ([R-NOTE-002](../docs/requirements.md#r-note-002)). The buttons
- * are small icons with a tooltip, as the buttons in the title of an editor
- * (Hannes, 2026-10-28: "exchange all the buttons on the note editor with
- * icons"): each answer has "Reply", "Edit" and "Delete", each thread "Color",
- * "Show as Text", "Answer" and "Delete Thread", and the title of the view
- * "Add Note", which adds a note to the selected text of the text editor, as
- * the light bulb action of the selected text does
- * ([src/addNoteAction.ts](addNoteAction.ts)). "Color" gives the note one of the colors of
+ * are small icons with a tooltip, as the buttons in the title of an editor:
+ * each answer has "Reply", "Edit" and "Delete", each thread "Color", "Show as
+ * Text", "Answer" and "Delete Thread", and the title of the view "Add Note",
+ * which adds a note to the selected text of the text editor, as the light bulb
+ * action of the selected text does ([src/addNoteAction.ts](addNoteAction.ts)).
+ * "Color" gives the note one of the colors of
  * [src/notes/colors.ts](notes/colors.ts); every note has the same color by
- * default. "Show as Text" switches the thread to its text view: the whole
- * text of the note, as the text editor shows the file, which "Save" writes
- * back. The editor of a text switches between writing and the preview, which
- * renders the text with the Markdown preview of VS Code. A click on a link of
- * a rendered text opens the link ([src/links.ts](links.ts)). The view writes
- * through the operations of the threads ([src/noteThreads.ts](noteThreads.ts)),
- * which check a text before they write it. The script of the view is
+ * default. "Show as Text" switches the thread to its text view: the whole text
+ * of the note, as the text editor shows the file, which "Save" writes back. The
+ * editor of a text switches between writing and the preview, which renders the
+ * text with the Markdown preview of VS Code. A click on a link of a rendered
+ * text opens the link ([src/links.ts](links.ts)). The view writes through the
+ * operations of the threads ([src/noteThreads.ts](noteThreads.ts)), which check
+ * a text before they write it. The script of the view is
  * [media/notesView.js](../media/notesView.js); it gets the state of the view
  * from this module and sends the actions of the user back.
  *
  * A click on a thread selects its note in the text editor
- * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The view is a list of
- * the threads in the order of the file, which the user scrolls on its own
- * (Hannes, 2026-10-29, decision 25: "List that scrolls freely"), in the text
- * editor and in the Markdown preview alike. It scrolls the selected thread to
- * its top when the selection changes, and does not follow the scrolling of the
- * text editor: VS Code tells an extension only the whole rows that a text
+ * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The view is a list of the
+ * threads in the order of the file, which the user scrolls on its own, in the
+ * text editor and in the Markdown preview alike. It scrolls the selected thread
+ * to its top when the selection changes, and does not follow the scrolling of
+ * the text editor: VS Code tells an extension only the whole rows that a text
  * editor shows, after it scrolled, and no place of the preview, so threads
- * beside the text moved in steps and late (Hannes, 2026-10-29: "the side view
- * really has no smooth scrolling and is laggy"). The position of the cursor,
- * not only its line, selects the thread, because the highlights of several
- * notes can share a line. The text editor and the Markdown preview show the
- * highlight of the note of the selected thread in a strong color and with a
- * frame ([src/selectedNotes.ts](selectedNotes.ts)).
+ * beside the text moved in steps and late. The position of the cursor, not only
+ * its line, selects the thread, because the highlights of several notes can
+ * share a line. The text editor and the Markdown preview show the highlight of
+ * the note of the selected thread in a strong color and with a frame
+ * ([src/selectedNotes.ts](selectedNotes.ts)).
  *
  * A click with the mouse on a highlight in the text editor selects its thread
- * and opens the view when it is closed. A click on a thread while the
- * Markdown preview shows the file and no text editor does keeps the preview,
- * which scrolls to the note (Hannes, 2026-10-28: the editor area stays in its
- * mode).
+ * and opens the view when it is closed. A click on a thread while the Markdown
+ * preview shows the file and no text editor does keeps the preview, which
+ * scrolls to the note.
  *
  * "Add Note" of the Markdown preview opens the editor of a new note for the
  * text that the user selected in the preview
@@ -300,8 +296,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private selected: string | undefined;
   /**
    * scrollPending tells whether the selected thread changed while the view was hidden: the hidden view cannot scroll,
-   * so it scrolls to the thread when it shows again (Hannes, 2026-10-29: "the side view is opened but it does not
-   * scroll to the right position").
+   * so it scrolls to the thread when it shows again.
    */
   private scrollPending = false;
   /** lines holds the line of the cursor of each document, by its URI. */
@@ -451,8 +446,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * deselectAll deselects the selected note of every document, when the highlights show or hide (Hannes, 2026-10-29:
-   * "when a highlight is selected, and the highlight view is toggled, it shall unselect the selected highlight").
+   * deselectAll deselects the selected note of every document, when the highlights show or hide.
    */
   deselectAll(): void {
     for (const document of this.chosen.documents()) {
@@ -551,9 +545,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * newNote opens the editor of a new note in the view, for the selected text of the text editor, in the default color,
-   * which the editor changes. Without selected text it opens nothing and tells the user to select text (Hannes,
-   * 2026-10-28: "there shall be no way to add a note without highlighting text"). It ignores the arguments, such as the
-   * URI that a menu of VS Code passes.
+   * which the editor changes. Without selected text it opens nothing and tells the user to select text. It ignores the
+   * arguments, such as the URI that a menu of VS Code passes.
    * @param todo - Whether the new note is a todo ([R-NOTE-008](../docs/requirements.md#r-note-008)).
    */
   private async newNote(todo = false): Promise<void> {
@@ -681,9 +674,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * double click, and returns the place of the cursor before it. VS Code tells an extension no double click: it reports
    * the first click as a cursor without selected text, and the second click as the selected word at that place. A first
    * click on the place of the cursor changes nothing, so VS Code reports no first click, also long after the click that
-   * put the cursor there (Hannes, 2026-10-29: "doubleclick does not open the side view"). So a word that the mouse
-   * selects in one step, around the cursor or from it, is the word of a double click. A drag of the mouse selects the
-   * text in steps, of which the first one is no word.
+   * put the cursor there. So a word that the mouse selects in one step, around the cursor or from it, is the word of a
+   * double click. A drag of the mouse selects the text in steps, of which the first one is no word.
    * @param editor - The text editor.
    * @param click - Whether the mouse changed the selection.
    */
@@ -709,12 +701,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /**
    * follow makes the document of a text editor the document of the view, and selects the note at its cursor. Another
    * editor, for example the preview, keeps the document of the view. The selected note stays selected while the cursor
-   * is in it, and the cursor that leaves it deselects it (Hannes, 2026-10-29: "moving the cursor into a highlight shows
-   * the highlight but keeps it selected when the cursor goes out of it again"); a click with the mouse outside the notes
-   * deselects the selected note (Hannes, 2026-10-28: "clicking somewhere in the text shall deselect the selected
-   * note"). A move of the cursor with the keys outside the notes keeps a note that the user chose in the view. A double
-   * click on the highlight of the selected note opens the view (Hannes, 2026-10-29: "only a double click on a selected
-   * highlight shall open the side view").
+   * is in it, and the cursor that leaves it deselects it; a click with the mouse outside the notes deselects the
+   * selected note. A move of the cursor with the keys outside the notes keeps a note that the user chose in the view. A
+   * double click on the highlight of the selected note opens the view.
    * @param editor - The text editor, or undefined.
    * @param click - Whether a click with the mouse moved the cursor.
    */
@@ -738,9 +727,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     // The position, not only the line, names the note, because the selections of several notes can share a line. In the
     // clean editing view, the cursor at the start of a highlight is before its hidden start marker in the file.
     const entry = this.threads.entryAt(document, active) ?? (real ? this.threads.entryAt(document, place(at, true)) : undefined);
-    // The cursor on a reference or in a definition of a standard footnote selects the footnote (R-FOOT-001); a reference
-    // in the highlight of a note, such as a citation, selects its footnote too (Hannes, 2026-10-29: "these citations can
-    // be in a highlight region with a note").
+    // The cursor on a reference or in a definition of a standard footnote selects the footnote (R-FOOT-001); a
+    // reference in the highlight of a note, such as a citation, selects its footnote too.
     const footnotes = this.settingsOf(document).showFootnotes ? this.threads.footnotesOf(document) : [];
     const footnote = referenceAt(footnotes, active) ?? (entry ? undefined : footnoteAt(footnotes, active));
     const selected = footnote ? footnoteId(footnote.label) : entry?.id;
@@ -999,8 +987,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.select(uri, id);
     void this.refresh();
     const { start } = target;
-    // A visible text editor scrolls smoothly to the note (Hannes, 2026-10-29: "only the preview main window scrolls
-    // smoothly, the text window not").
+    // A visible text editor scrolls smoothly to the note.
     const clean = this.mirror?.cleanEditorOf(uri);
     if (clean) {
       await showAt(clean, this.mirror!.toClean(uri, start) ?? start, focus);

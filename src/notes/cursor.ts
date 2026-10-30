@@ -3,18 +3,17 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The cursor at the hidden markers of the selections and at the header lines
- * of the answers in the text editor
+ * The cursor at the hidden markers of the selections and at the header lines of
+ * the answers in the text editor
  * ([R-NOTE-006](../../docs/requirements.md#r-note-006),
  * [R-TEXT-007](../../docs/requirements.md#r-text-007)). The start marker and
  * the reference of a selection stay hidden, and each header line shows
- * rendered, also on the line of the cursor (Hannes, 2026-10-28: a click on a
- * selection shall not expand it, and the markers and the headers are not for
- * editing). So the cursor steps over a hidden marker as over one place, it
- * does not stay on a header line, and Backspace and Delete next to a marker
- * delete the character on the other side of it, and next to a header line
- * nothing: no key changes a marker or a header. The module uses no API of
- * VS Code.
+ * rendered, also on the line of the cursor: a click on a selection does not
+ * expand it, and the markers and the headers are not for editing. So the
+ * cursor steps over a hidden marker as over one place, it does not stay on a
+ * header line, and Backspace and Delete next to a marker delete the character
+ * on the other side of it, and next to a header line nothing: no key changes a
+ * marker or a header. The module uses no API of VS Code.
  */
 
 import type { Marker, Position } from './notes';

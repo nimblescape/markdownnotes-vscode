@@ -4,10 +4,7 @@
 
 /**
  * The snippets of the source files and the links of the listings
- * ([R-CODE-003](../docs/requirements.md#r-code-003)). Hannes, 2026-10-30,
- * 03:20: "a slash command in the source code editor /snippet adds the mark,
- * but the mark must be more clear it belongs to the notes plugin", "snippet is
- * the correct name for it", "it is like markdown links extension".
+ * ([R-CODE-003](../docs/requirements.md#r-code-003)).
  *
  * In a source file, the user selects lines and types `/`, as for `/note` in a
  * Markdown file: VS Code replaces the selected lines with the slash, and

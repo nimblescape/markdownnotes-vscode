@@ -12,11 +12,11 @@
  *
  * The script of the preview paints the highlight of each note in the color of
  * the note (R-NOTE-006, src/notes/colors.ts): a clear background with a line
- * below the text, so that it stands out of the text (Hannes, 2026-10-28: "when
- * viewed make it good contrast"), and strong under the pointer. The highlight
- * of the selected note of the side view is strong with a frame, and the other
- * highlights are dimmed. The class nimblescape-note-color-N sets the variable
- * --nimblescape-note-color for the frame.
+ * below the text, so that it stands out of the text, and strong under the
+ * pointer. The highlight of the selected note of the side view is strong with a
+ * frame, and the other highlights are dimmed. The class
+ * nimblescape-note-color-N sets the variable --nimblescape-note-color for the
+ * frame.
  */
 
 .nimblescape-note-color-1 { --nimblescape-note-color: #1a7fe0; }

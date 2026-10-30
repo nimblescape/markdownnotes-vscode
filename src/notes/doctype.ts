@@ -6,20 +6,17 @@
  * The comment that marks a Markdown file with notes, its "DOCTYPE"
  * ([R-NOTE-007](../../docs/requirements.md#r-note-007)). Its first line names
  * the format of the notes with its version and the address of the
- * specification, so that a program, for example an AI agent, knows how to
- * read, change and add the notes; the further lines say it in short words
- * (Hannes, 2026-10-28). The comment stands at the top of the file, after a
- * front matter, and GitHub and the Markdown preview do not show it. The
- * extension writes it together with its own writes of a note and on the save
- * of a file with notes, and removes it with the last note.
+ * specification, so that a program, for example an AI agent, knows how to read,
+ * change and add the notes; the further lines say it in short words. The
+ * comment stands at the top of the file, after a front matter, and GitHub and
+ * the Markdown preview do not show it. The extension writes it together with
+ * its own writes of a note and on the save of a file with notes, and removes it
+ * with the last note.
  *
- * The version of the format is a semantic version, `v1.0.0` (Hannes,
- * 2026-10-29: "we could make semantic versioning", "then make it just
- * v1.0.0"). The extension writes a comment anew only when its own version is
- * higher than the version of the comment in the file, so that two versions of
- * the extension do not change the comment back and forth (Hannes: "it would
- * avoid the ping pong between new and older version"). The module uses no API
- * of VS Code.
+ * The version of the format is a semantic version, `v1.0.0`. The extension
+ * writes a comment anew only when its own version is higher than the version of
+ * the comment in the file, so that two versions of the extension do not change
+ * the comment back and forth. The module uses no API of VS Code.
  */
 
 import type { Position } from './notes';

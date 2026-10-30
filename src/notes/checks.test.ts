@@ -29,7 +29,7 @@ describe('checksOf', () => {
     expect(checks(`<wbr><!--[note-bbbb green-->The[^note-bbbb] <wbr><!--[note-aaaa-->text[^note-aaaa].\n\n[^note-aaaa]: ${header}\n\n    Body.\n\n    > **anna** · 2026-10-28 11:02+01:00\n    >\n    > Answer.\n\n[^note-bbbb]: ${header}\n\n    Body.\n\nNext.`)).toEqual([]);
   });
 
-  test('warns at a note without a start marker and at a note that highlights no text (Hannes, 2026-10-28: "there should never be a note without a start marker")', () => {
+  test('warns at a note without a start marker and at a note that highlights no text', () => {
     expect(checks(`Text[^note-aaaa] and <wbr><!--[note-bbbb-->[^note-bbbb].\n\n[^note-aaaa]: ${header}\n\n[^note-bbbb]: ${header}`)).toEqual([
       [0, 'warning', 'The note has no start marker'],
       [0, 'warning', 'The note highlights no text'],

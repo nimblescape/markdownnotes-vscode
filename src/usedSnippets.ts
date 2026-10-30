@@ -4,31 +4,23 @@
 
 /**
  * The snippets of a source file as the text editor shows them
- * ([R-CODE-004](../docs/requirements.md#r-code-004)). Hannes, 2026-10-30,
- * 04:34: "the editor shall sow it as a rendered tag, unobstrusive, similar to
- * the small font annotations that are there sometimes", "the source code text
- * editor gets an icon toggle button the highlights the used snippets in a
- * source code view"; 05:49: "what about B but in a rendered way", "we do not
- * want it to be editable", "it is a whole line comment so jumping cursors is
- * not a problem"; 05:53: "can t we just jump over it?"; 05:57: "the complete
- * mark shall appear as a code lens line instead of the line itself", "the
- * clicking the end tag jumps to the start tag".
+ * ([R-CODE-004](../docs/requirements.md#r-code-004)).
  *
  * Each mark line of a snippet shows as a tag in the small gray letters of a
  * code lens in place of its comment: the start mark as the name of the
  * snippet and the listings of the Markdown files of the workspace that show
  * it, for example "snippet keep-lines · Listing 2 in paper/paper.md", and the
- * end mark as "/snippet keep-lines". The characters of the file stay as they are; only the comment
- * is hidden. The cursor jumps over a mark line, as over a header line of a
- * note ([src/notes/cursor.ts](notes/cursor.ts)), and Backspace and Delete next
- * to a mark line do nothing, so no key changes a hidden mark: the hidden
- * characters of a whole line never stand between visible characters, which
- * caused the bugs of the cursor at the hidden markers of the notes. A click
- * on a start tag opens the Markdown file at the listing; a click on an end tag
- * puts the cursor on the first line of the code and shows the start tag.
- * "Rename Snippet", which
- * also renames the snippet in the listings, and "Remove Snippet" in the light
- * bulb of the code of a snippet change the marks. The button "Show Used
+ * end mark as "/snippet keep-lines". The characters of the file stay as they
+ * are; only the comment is hidden. The cursor jumps over a mark line, as over
+ * a header line of a note ([src/notes/cursor.ts](notes/cursor.ts)), and
+ * Backspace and Delete next to a mark line do nothing, so no key changes a
+ * hidden mark: the hidden characters of a whole line never stand between
+ * visible characters, which caused the bugs of the cursor at the hidden
+ * markers of the notes. A click on a start tag opens the Markdown file at the
+ * listing; a click on an end tag puts the cursor on the first line of the
+ * code and shows the start tag. "Rename Snippet", which also renames the
+ * snippet in the listings, and "Remove Snippet" in the light bulb of the code
+ * of a snippet change the marks. The button "Show Used
  * Snippets" in the title of the text editor of a source file with snippets
  * gives the lines of each snippet that a listing shows a background color,
  * until "Hide Used Snippets".
@@ -262,9 +254,8 @@ export class UsedSnippets implements vscode.CodeActionProvider {
         tags.push({
           range,
           hoverMessage: hover,
-          // The tag has the color and the size of the text of a code lens (Hannes, 05:57: "the complete mark shall
-          // appear as a code lens line instead of the line itself"); VS Code lets no extension change the height of
-          // a line.
+          // The tag has the color and the size of the text of a code lens; VS Code lets no extension change the height
+          // of a line.
           renderOptions: { before: { contentText: text, color: new vscode.ThemeColor('editorCodeLens.foreground'), textDecoration: 'none; font-size: 90%;' } },
         });
       };
@@ -283,8 +274,7 @@ export class UsedSnippets implements vscode.CodeActionProvider {
   /**
    * stepOver moves each cursor of a text editor of a source file off a mark line, in the direction of its move, so that
    * no typed key changes a hidden mark; a selection of text stays as it is. A click on the tag of a start mark opens
-   * the listings of its snippet, and a click on the tag of an end mark puts the cursor at the start of the snippet
-   * (Hannes, 05:57: "the clicking the end tag jumps to the start tag").
+   * the listings of its snippet, and a click on the tag of an end mark puts the cursor at the start of the snippet.
    * @param event - The change of the selections.
    */
   private stepOver(event: vscode.TextEditorSelectionChangeEvent): void {

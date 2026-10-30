@@ -6,12 +6,11 @@
  * The Markdown formatter in VS Code
  * ([R-FMT-001](../docs/requirements.md#r-fmt-001)): the provider of "Format
  * Document" for every Markdown file, as the manifest makes the extension the
- * default formatter of Markdown, and the format on save of a Markdown file
- * with notes (Hannes, 2026-10-29: "Only files with notes"). The save of a file
- * with notes also writes the comment of the format of the notes
- * ([R-NOTE-007](../docs/requirements.md#r-note-007)), which the extension no
- * longer writes when an editor only shows the file (Hannes, 2026-10-29, "D2:
- * ok"). It gives one edit of the lines that the formatter
+ * default formatter of Markdown, and the format on save of a Markdown file with
+ * notes. The save of a file with notes also writes the comment of the format of
+ * the notes ([R-NOTE-007](../docs/requirements.md#r-note-007)), which the
+ * extension no longer writes when an editor only shows the file. It gives one
+ * edit of the lines that the formatter
  * ([src/format/format.ts](format/format.ts)) and the comment change, with the
  * line breaks of the document.
  *

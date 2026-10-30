@@ -9,12 +9,10 @@
  * the light bulb, or Ctrl+. (Cmd+. on a Mac), lists "Add Note", which opens the
  * editor of a new note in the side view for the selected text
  * ([src/notesView.ts](notesView.ts)). The action replaces the hover over the
- * selected text, which showed by itself over each selection (Hannes,
- * 2026-10-29, decision D4 of the code review: "go with your proposal"). As
- * every way to add a note, it needs selected text (Hannes, 2026-10-28: "there
- * shall be no way to add a note without highlighting text"): VS Code offers it
- * only for one selection with text that a note can highlight, in a Markdown
- * file that the extension can change.
+ * selected text, which showed by itself over each selection. As every way to
+ * add a note, it needs selected text: VS Code offers it only for one selection
+ * with text that a note can highlight, in a Markdown file that the extension
+ * can change.
  */
 
 import * as vscode from 'vscode';

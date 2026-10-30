@@ -3,18 +3,17 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The command markdownnotes, the formatter on the command line ([R-FMT-004](../../docs/requirements.md#r-fmt-004)),
- * for programs and AI agents that change a Markdown file outside VS Code (Hannes, 2026-10-28: "make the formatter
- * accessible for agents"). It is the npm package @nimblescape/markdownnotes of cli/.
- * The command `format` formats each file as the formatter of the extension does on save
+ * The command markdownnotes, the formatter on the command line ([R-FMT-004](../../docs/requirements.md#r-fmt-004)), for
+ * programs and AI agents that change a Markdown file outside VS Code. It is the npm package @nimblescape/markdownnotes
+ * of cli/. The command `format` formats each file as the formatter of the extension does on save
  * ([src/format/format.ts](../format/format.ts)), with the line breaks of the file; `-` formats the standard input to
  * the standard output. It writes the current code of each listing from its file of source code, by its path relative to
  * the Markdown file, or to the current folder for the standard input, and reports a listing whose source it does not
  * find ([R-CODE-002](../../docs/requirements.md#r-code-002)). With `--check` it changes no file and lists the files
- * that are not formatted, also a file with a listing whose source it does not find. A file whose
- * comment of the format names a higher major version stays as it is, as in the extension. The exit code is 0 when all
- * files are formatted, 1 when `--check` found a file to format, and 2 for a wrong command, a file that cannot be read
- * or written, or a file of a higher major version. The module uses no API of VS Code, and main.ts runs it in Node.js.
+ * that are not formatted, also a file with a listing whose source it does not find. A file whose comment of the format
+ * names a higher major version stays as it is, as in the extension. The exit code is 0 when all files are formatted, 1
+ * when `--check` found a file to format, and 2 for a wrong command, a file that cannot be read or written, or a file of
+ * a higher major version. The module uses no API of VS Code, and main.ts runs it in Node.js.
  */
 
 import * as path from 'node:path';

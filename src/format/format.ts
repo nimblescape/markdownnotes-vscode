@@ -6,30 +6,27 @@
  * The Markdown formatter of the extension
  * ([R-FMT-001](../../docs/requirements.md#r-fmt-001) to
  * [R-FMT-003](../../docs/requirements.md#r-fmt-003)), which VS Code runs on
- * "Format Document" and, by default, when a Markdown file is saved (Hannes,
- * 2026-10-28: "it shall format on save tables and other reasonable defaults",
- * "but else have no hard linebreaks"). It writes each paragraph on one line
- * and keeps its hard line breaks, aligns the columns of the tables by the
- * width that the text editor shows, removes the white space at the end of the
- * lines, writes one blank line between blocks and around the ATX headings, and
- * ends the file with one line break. It changes no code block, no block of
- * HTML (so no comment, also not the comment of the format of the notes), no
- * front matter, no block of math (`$$`), no container (`:::`) and no note.
+ * "Format Document" and, by default, when a Markdown file is saved. It writes
+ * each paragraph on one line and keeps its hard line breaks, aligns the columns
+ * of the tables by the width that the text editor shows, removes the white
+ * space at the end of the lines, writes one blank line between blocks and
+ * around the ATX headings, and ends the file with one line break. It changes no
+ * code block, no block of HTML (so no comment, also not the comment of the
+ * format of the notes), no front matter, no block of math (`$$`), no container
+ * (`:::`) and no note.
  *
  * The formatter reads the text with markdown-it, as the Markdown preview and
  * the notes do ([src/notes/notes.ts](../notes/notes.ts)), so it knows each
  * block as the preview knows it. Every note has a start marker, `<wbr>` and a
- * comment (Hannes, 2026-10-28: "there should never be a note without a start
- * marker", "why not always start with <wbr>"): the formatter adds the start
- * marker of a note without one at the start of the text of the block of its
- * reference, where its highlight starts, and `<wbr>` to a start marker without
- * it. A start marker at the start of a line without `<wbr>` makes the line a
- * block of HTML on GitHub; the formatter joins such a line to the paragraph
- * directly before it, or else puts `<wbr>` before the marker, which repairs
- * the highlight of the note. At the end it reads the formatted text again and keeps
- * it only when the preview shows the same blocks with the same text, apart
- * from white space; else it keeps the text as it was. The module uses no API
- * of VS Code.
+ * comment: the formatter adds the start marker of a note without one at the
+ * start of the text of the block of its reference, where its highlight starts,
+ * and `<wbr>` to a start marker without it. A start marker at the start of a
+ * line without `<wbr>` makes the line a block of HTML on GitHub; the formatter
+ * joins such a line to the paragraph directly before it, or else puts `<wbr>`
+ * before the marker, which repairs the highlight of the note. At the end it
+ * reads the formatted text again and keeps it only when the preview shows the
+ * same blocks with the same text, apart from white space; else it keeps the
+ * text as it was. The module uses no API of VS Code.
  */
 
 import type { Token } from 'markdown-it';

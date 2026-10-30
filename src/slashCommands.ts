@@ -4,60 +4,47 @@
 
 /**
  * The slash commands of the text editor
- * ([R-EDIT-008](../docs/requirements.md#r-edit-008)). A slash at the start of
- * a line or after a space offers `/note`, `/todo`, `/footnote`, `/date`,
- * `/time` and `/user` in the list of suggestions of VS Code (Hannes, 2026-10-29: "the /
- * command allows tab completion", "all slash commands are intended for the
- * text editor"), in the text editors of Markdown files, also of the clean
- * editing view. VS Code shows the list after a trigger character also in a
- * Markdown file, where it shows no suggestions while the user types words;
- * Tab or Enter takes the chosen command.
+ * ([R-EDIT-008](../docs/requirements.md#r-edit-008)). A slash at the start of a
+ * line or after a space offers `/note`, `/todo`, `/footnote`, `/date`, `/time`
+ * and `/user` in the list of suggestions of VS Code, in the text editors of
+ * Markdown files, also of the clean editing view. VS Code shows the list after
+ * a trigger character also in a Markdown file, where it shows no suggestions
+ * while the user types words; Tab or Enter takes the chosen command.
  *
- * VS Code replaces selected text with the slash that the user types. The
- * module remembers the text that a slash replaced, so that `/note` and
- * `/todo` put it back and add the note to it (Hannes, 2026-10-29: "selecting
- * and /note creates a note", "/note is not available when no text is
- * selected"). `/todo` without such text takes the sentence before it. Both
- * open the editor of the new note in the side view
+ * VS Code replaces selected text with the slash that the user types. The module
+ * remembers the text that a slash replaced, so that `/note` and `/todo` put it
+ * back and add the note to it. `/todo` without such text takes the sentence
+ * before it. Both open the editor of the new note in the side view
  * ([src/notesView.ts](notesView.ts)). `/footnote` removes the typed command
- * with the spaces before it and opens the editor of a new standard footnote
- * in the side view, as "Add Footnote" does: its reference goes at the end of
- * the word before the command when the user saves it (Hannes, 2026-10-29:
- * "since footnotes are also available in the side view, it just goes to the
- * side view editor, similar to the /notes command"). `/user` inserts the
- * GitHub login of the user, the name that the notes give their author
- * (Hannes, 2026-10-29: "/user insert the current user name"); without a
+ * with the spaces before it and opens the editor of a new standard footnote in
+ * the side view, as "Add Footnote" does: its reference goes at the end of the
+ * word before the command when the user saves it. `/user` inserts the GitHub
+ * login of the user, the name that the notes give their author; without a
  * sign-in, it asks for the sign-in first.
  *
  * `/figure` and `/table` add an entry, and `/ref` a reference to it
- * ([R-XREF-001](../docs/requirements.md#r-xref-001), Hannes, 2026-10-30:
- * "there is also the /table and /figure slash commands, these are commands in
- * markdownnotes", "technically it is a link to it"; decided with the option
- * "Entries by noun, /ref and /cite link"). On a line of their own, `/figure`
- * lists the images of the workspace and inserts the chosen one as a figure,
- * with its caption selected for typing, and `/table` inserts a table of two
- * columns with its caption line `Table:`. In text, `/ref` lists the figures,
- * tables, listings and sections of the file and inserts a link to the chosen
- * one, such as `[Table 1](#tab-grades)`, after it gave a figure, a table or a
- * listing an anchor at the end of its line. A link to a section names the ID
- * that GitHub gives its heading, such as `[Chapter 2.1](#methods)`, and the
+ * ([R-XREF-001](../docs/requirements.md#r-xref-001)). On a line of their own,
+ * `/figure` lists the images of the workspace and inserts the chosen one as a
+ * figure, with its caption selected for typing, and `/table` inserts a table of
+ * two columns with its caption line `Table:`. In text, `/ref` lists the
+ * figures, tables, listings and sections of the file and inserts a link to the
+ * chosen one, such as `[Table 1](#tab-grades)`, after it gave a figure, a table
+ * or a listing an anchor at the end of its line. A link to a section names the
+ * ID that GitHub gives its heading, such as `[Chapter 2.1](#methods)`, and the
  * heading gets no anchor ([src/notes/figures.ts](notes/figures.ts)).
  *
  * `/listing` adds code of a file of the workspace as a listing
- * ([R-CODE-001](../docs/requirements.md#r-code-001), Hannes, 2026-10-30: "a
- * new slash command for that which "imports" a code block", "we may mark single
- * functions but also complete source code files"; "it is part of notes"): the
- * user chooses the file, and then the whole file or one of its snippets
+ * ([R-CODE-001](../docs/requirements.md#r-code-001)): the user chooses the
+ * file, and then the whole file or one of its snippets
  * ([src/notes/listings.ts](notes/listings.ts)). The formatter writes the
- * current code into the listing on each format. A function, a class or a
- * method is a snippet too: the extension lists no symbols of a language
- * ([R-CODE-005](../docs/requirements.md#r-code-005), Hannes, 2026-10-30,
- * 05:38: "for now, whole files and snippets are sufficient").
+ * current code into the listing on each format. A function, a class or a method
+ * is a snippet too: the extension lists no symbols of a language
+ * ([R-CODE-005](../docs/requirements.md#r-code-005)).
  *
  * Other extensions add slash commands through the API of the extension
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
- * nimblescape Markdown Paper (Hannes, 2026-10-29, 22:15: "it is also the slash
- * commands"). They show after the commands of the notes, with the same rules.
+ * nimblescape Markdown Paper. They show after the commands of the notes, with
+ * the same rules.
  */
 
 import * as vscode from 'vscode';

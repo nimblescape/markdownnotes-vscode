@@ -112,7 +112,7 @@ describe('the edit of the comment', () => {
 
   test('keeps a comment of the same or a higher version also with another text, writes an older one anew, and removes the comment from a text without notes', () => {
     expect(doctypeEdit(lines(`${comment}\n\n${noted}`), true)).toBeUndefined();
-    // Hannes, 2026-10-29: "only if the format version I would write is higher then mine one".
+    // Only a higher version writes the comment anew.
     for (const kept of ['<!-- nimblescape-markdownnotes v1.0.0 spec=x\nOther words.\n-->', '<!-- nimblescape-markdownnotes v1.0.1 -->', '<!-- nimblescape-markdownnotes v1.2.0 -->', '<!-- nimblescape-markdownnotes v2.0.0 -->']) {
       expect(doctypeEdit(lines(`${kept}\n\n${noted}`), true), kept).toBeUndefined();
     }

@@ -4,37 +4,33 @@
 
 /**
  * The editor wiring of the extension. The manifest contributes the settings,
- * the commands with their buttons, the side view, and the styles and the
- * script of the Markdown preview. Activation returns the markdown-it plugin
+ * the commands with their buttons, the side view, and the styles and the script
+ * of the Markdown preview. Activation returns the markdown-it plugin
  * ([src/markdown/markdownIt.ts](markdown/markdownIt.ts)), which the Markdown
  * extension of VS Code reads from the export `extendMarkdownIt` when it builds
  * its preview. It starts the notes of the open documents
  * ([src/noteThreads.ts](noteThreads.ts)), their overlay of the text editor
  * ([src/noteEditor.ts](noteEditor.ts)), and the side view
- * ([src/notesView.ts](notesView.ts)), the only place that shows the text of
- * the notes (Hannes, 2026-10-28: "we completely drop the inline view"), with
- * the GitHub login of the user as the author of new notes
+ * ([src/notesView.ts](notesView.ts)), the only place that shows the text of the
+ * notes, with the GitHub login of the user as the author of new notes
  * ([src/github.ts](github.ts)), and the formatter of Markdown documents
- * ([src/formatter.ts](formatter.ts)), and the light bulb action of the
- * selected text, which adds a note
- * ([src/addNoteAction.ts](addNoteAction.ts)). It handles the links of the
- * highlights of the preview, which select a note and open the side view, and the
- * links of the preview that deselect the selected note, and the links of the
- * button "Add Note" at the selected text of the preview, which add a note to
- * that text ([R-PREV-008](../docs/requirements.md#r-prev-008)), and the
- * buttons "Show Highlights" and "Hide Highlights", and refreshes the previews
- * and the notes when a setting of the extension changes. Its export `getAPI`
- * gives other extensions, such as nimblescape Markdown Paper, a versioned API
+ * ([src/formatter.ts](formatter.ts)), and the light bulb action of the selected
+ * text, which adds a note ([src/addNoteAction.ts](addNoteAction.ts)). It
+ * handles the links of the highlights of the preview, which select a note and
+ * open the side view, and the links of the preview that deselect the selected
+ * note, and the links of the button "Add Note" at the selected text of the
+ * preview, which add a note to that text
+ * ([R-PREV-008](../docs/requirements.md#r-prev-008)), and the buttons "Show
+ * Highlights" and "Hide Highlights", and refreshes the previews and the notes
+ * when a setting of the extension changes. Its export `getAPI` gives other
+ * extensions, such as nimblescape Markdown Paper, a versioned API
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)).
  *
- * The highlights show while the setting `showHighlights` is on, also while
- * the side view is closed (Hannes, 2026-10-29: "clicking the highlight button
- * [...] shall not open the side view but only show the highlights"); a click
- * on a highlight selects its note, and a double click opens the side view
- * (Hannes, 2026-10-29: "only a double click on a selected highlight shall open
- * the side view"). The context key highlightsContext tells
- * the menus whether they show: the title of the editors has "Hide Highlights"
- * then, and else "Show Highlights", which turns the setting on.
+ * The highlights show while the setting `showHighlights` is on, also while the
+ * side view is closed; a click on a highlight selects its note, and a double
+ * click opens the side view. The context key highlightsContext tells the menus
+ * whether they show: the title of the editors has "Hide Highlights" then, and
+ * else "Show Highlights", which turns the setting on.
  */
 
 import type MarkdownIt from 'markdown-it';

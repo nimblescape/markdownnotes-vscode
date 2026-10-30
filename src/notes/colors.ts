@@ -5,12 +5,9 @@
 /**
  * The color of each note ([R-TEXT-006](../../docs/requirements.md#r-text-006)):
  * every note has the same color by default, and the user can give a note
- * another color in the side view (Hannes, 2026-10-28: "notes can be colored in
- * the notes editor, by default they get all the same color"). The start marker
- * of a note holds the name of its color, for example `<!--[note-7k2q green-->`
- * (Hannes, 2026-10-28, on the card "Where should the file keep the color": "In
- * the start marker"). The text editor, the preview and the side view show it.
- * The module uses no API of VS Code.
+ * another color in the side view. The start marker of a note holds the name of
+ * its color, for example `<!--[note-7k2q green-->`. The text editor, the
+ * preview and the side view show it. The module uses no API of VS Code.
  */
 
 /**

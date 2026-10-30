@@ -3,19 +3,18 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The syntax of a note ([R-NOTE-001](../../docs/requirements.md#r-note-001)):
- * a Markdown footnote whose label is a note label, `note-` and four small
- * letters or digits, and whose first line is the header of an answer, the
- * author in bold and the date ([R-NOTE-002](../../docs/requirements.md#r-note-002)).
- * The note is a thread of answers
+ * The syntax of a note ([R-NOTE-001](../../docs/requirements.md#r-note-001)): a
+ * Markdown footnote whose label is a note label, `note-` and four small letters
+ * or digits, and whose first line is the header of an answer, the author in
+ * bold and the date ([R-NOTE-002](../../docs/requirements.md#r-note-002)). The
+ * note is a thread of answers
  * ([R-NOTE-004](../../docs/requirements.md#r-note-004)): the body of the first
  * answer follows the header, indented by four spaces, and each further answer
- * is a block quote of its own that starts with its own header. The reference
- * of the note ends the highlight of the note, the text that the note belongs
- * to, and its hidden start marker starts it, with the name of the color of the note when
- * it has one ([R-NOTE-006](../../docs/requirements.md#r-note-006)). Every
- * note has a start marker (Hannes, 2026-10-28: "there should never be a note
- * without a start marker"), and `<wbr>` stands before the comment of each
+ * is a block quote of its own that starts with its own header. The reference of
+ * the note ends the highlight of the note, the text that the note belongs to,
+ * and its hidden start marker starts it, with the name of the color of the note
+ * when it has one ([R-NOTE-006](../../docs/requirements.md#r-note-006)). Every
+ * note has a start marker, and `<wbr>` stands before the comment of each
  * marker, so that it never starts a block of HTML at the start of a line:
  *
  * ```markdown
@@ -150,7 +149,7 @@ export const referenceText = (label: string): string => `[^${label}]`;
 /**
  * breakText stands before the comment of each start marker: an empty element that no Markdown viewer shows. GitHub
  * reads a comment at the start of a line as a block of HTML, which ends the paragraph; after `<wbr>`, the comment is
- * part of the text of the line, wherever the marker stands (Hannes, 2026-10-28: "why not always start with <wbr>").
+ * part of the text of the line, wherever the marker stands.
  */
 export const breakText = '<wbr>';
 

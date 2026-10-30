@@ -4,25 +4,23 @@
 
 /**
  * The clean text of a Markdown file with notes, for the clean editing view
- * ([R-TEXT-009](../../docs/requirements.md#r-text-009)). Hannes, 2026-10-29: "all notes markup must not
- * have effects on the editing, the editor must behave as if there was no notes
- * markup at all in the document". VS Code counts every character of a line
- * for the line breaks and the cursor, also a hidden one, so the text editor
- * edits a text without the markup: without the start markers, the references,
- * the definitions of the notes, the comment of the format, the anchors of the
+ * ([R-TEXT-009](../../docs/requirements.md#r-text-009)): the markup of the
+ * notes must not affect the editing, and the editor behaves as if the file had
+ * no markup of notes. VS Code counts every character of a line for the line
+ * breaks and the cursor, also a hidden one, so the text editor edits a text
+ * without the markup: without the start markers, the references, the
+ * definitions of the notes, the comment of the format, the anchors of the
  * figures and tables ([R-XREF-001](../../docs/requirements.md#r-xref-001)), the
  * markers of the values of the front matter
- * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), and the blocks
- * that other extensions hide through the API of the extension
+ * ([R-XREF-004](../../docs/requirements.md#r-xref-004)), and the blocks that
+ * other extensions hide through the API of the extension
  * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), such as the database of
- * the sources of nimblescape Markdown Paper at the end of a file. While the side
- * view shows the standard footnotes, the definitions of those that have a
- * reference are left out too, as the definitions of the notes (Hannes,
- * 2026-10-29: "the definition can even be hidden, same as for the note, it
- * does not make sense to show it"); their references stay. This module
- * makes that text from the text of the file, and turns each edit of the clean
- * text into an edit of the file that keeps every note at its text. The module
- * uses no API of VS Code.
+ * the sources of nimblescape Markdown Paper at the end of a file. While the
+ * side view shows the standard footnotes, the definitions of those that have a
+ * reference are left out too, as the definitions of the notes; their references
+ * stay. This module makes that text from the text of the file, and turns each
+ * edit of the clean text into an edit of the file that keeps every note at its
+ * text. The module uses no API of VS Code.
  *
  * An edit keeps every hidden part of the file: deleted text never deletes a
  * note, and a note goes away only with its button in the side view. Text typed

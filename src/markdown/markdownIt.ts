@@ -3,20 +3,19 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The markdown-it plugin of the built-in Markdown preview. A note is a
- * footnote of the Markdown text ([R-NOTE-001](../../docs/requirements.md#r-note-001)).
- * The preview never shows the text of a note, and shows no icon and no
- * callout of it (Hannes, 2026-10-28: "we completely drop the callouts on
- * hover view", "we completely drop the callout icons in the preview view");
- * the side view shows the notes ([R-PREV-001](../../docs/requirements.md#r-prev-001)).
- * The preview shows the highlight of each note, the text from its start
- * marker to its reference ([R-NOTE-006](../../docs/requirements.md#r-note-006)):
- * the start marker and the first reference of a note become two empty
- * elements at the start and the end of the highlight, which the script of the
- * preview ([media/markdownPreview.js](../../media/markdownPreview.js)) paints
- * in the color of the note, the color that the start marker names. The end of
- * a highlight holds the link to the extension, which selects the note in the
- * side view for a click on the highlight
+ * The markdown-it plugin of the built-in Markdown preview. A note is a footnote
+ * of the Markdown text ([R-NOTE-001](../../docs/requirements.md#r-note-001)).
+ * The preview never shows the text of a note, and shows no icon and no callout
+ * of it; the side view shows the notes
+ * ([R-PREV-001](../../docs/requirements.md#r-prev-001)). The preview shows the
+ * highlight of each note, the text from its start marker to its reference
+ * ([R-NOTE-006](../../docs/requirements.md#r-note-006)): the start marker and
+ * the first reference of a note become two empty elements at the start and the
+ * end of the highlight, which the script of the preview
+ * ([media/markdownPreview.js](../../media/markdownPreview.js)) paints in the
+ * color of the note, the color that the start marker names. The end of a
+ * highlight holds the link to the extension, which selects the note in the side
+ * view for a click on the highlight
  * ([R-PREV-003](../../docs/requirements.md#r-prev-003)).
  *
  * The page also holds the link of the button "Add Note" of the script, which

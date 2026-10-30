@@ -4,8 +4,7 @@
 
 /**
  * The values of the front matter of a Markdown text in its text
- * ([R-XREF-004](../../docs/requirements.md#r-xref-004)). Hannes, 2026-10-30:
- * "anything from frontmatter can be references in the document".
+ * ([R-XREF-004](../../docs/requirements.md#r-xref-004)).
  *
  * A field is the value of a key of the front matter between two hidden
  * markers, for example `<wbr><!--{title}-->A paper<!--{/title}-->`. GitHub and

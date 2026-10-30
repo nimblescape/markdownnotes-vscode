@@ -359,10 +359,11 @@ document describes the extension as it is.
 
 **A clean specification.** This document states each requirement and each
 decision as a clean summary, without the words of the requests and without
-the history of the discussion ([R-GEN-014](#r-gen-014)). The discussion with
-the words of the requests stays in the discussion documents, such as the
-concept documents in Claude, and in
-[the list of the requested features](features.md).
+the history of the discussion ([R-GEN-014](#r-gen-014)). The same holds for
+every file of the repository: the other documents,
+[the list of the requested features](features.md) and the comments of the
+code. The words of the requests stay in the discussion documents, such as
+the concept documents in Claude.
 
 ## Notes
 

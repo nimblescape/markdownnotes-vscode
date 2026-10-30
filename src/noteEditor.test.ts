@@ -284,8 +284,7 @@ test('the notes stay collapsed: a fold that VS Code opens collapses again, and a
 
 test('each highlight has a clear background and a line below it in the color of its note, and the overview ruler a mark, also while the side view is closed (R-NOTE-006, R-GEN-011)', async () => {
   const editor = await start(12, highlighted);
-  // The highlights do not need the side view (Hannes, 2026-10-29: "it shall not open the side view but only show the
-  // highlights").
+  // The highlights do not need the side view.
   expect(highlightsOf(editor, 'shown')).toEqual([
     [noteColors[0], [new FakeRange(0, 33, 0, 48)]],
     [noteColors[1], [new FakeRange(6, 33, 6, 37)]],
@@ -338,8 +337,7 @@ test('the highlight of the selected note is strong with a frame in its color, al
   expect(highlightsOf(editor, 'faint')).toEqual([[noteColors[1], [new FakeRange(6, 33, 6, 37)]]]);
   const type = [...editor.decorations.keys()].find((candidate) => String((candidate as DecorationType).options.textDecoration).startsWith(`none; background-color: ${noteColors[0]}`)) as DecorationType;
   expect(type.options).toMatchObject({ textDecoration: `none; background-color: ${noteColors[0]}73; outline: 1px solid ${noteColors[0]}; border-radius: 3px;`, overviewRulerLane: 7 });
-  // Hiding the highlights deselects the note (Hannes, 2026-10-29); with the highlights hidden, only a selected note
-  // shows its highlight.
+  // Hiding the highlights deselects the note; with the highlights hidden, only a selected note shows its highlight.
   fake.settings.set('', { showHighlights: false });
   fake.fire('configuration', { affectsConfiguration: () => true });
   expect(highlightsOf(editor, 'strong')).toEqual([]);
@@ -364,7 +362,7 @@ test('the start markers and the references vanish, also on the line of the curso
   const markers = [new FakeRange(0, 11, 0, 33), new FakeRange(0, 48, 0, 60), new FakeRange(6, 8, 6, 37)];
   const headers = [new FakeRange(2, 0, 2, hannes.length), new FakeRange(8, 0, 8, anna.length)];
   expect(hiddenOf(editor)).toEqual([...markers, ...headers]);
-  // On the line of the cursor the start marker and the reference stay hidden (Hannes, 2026-10-28).
+  // On the line of the cursor the start marker and the reference stay hidden.
   editor.selection = { active: new FakePosition(0, 3) };
   fake.fire('selection', { textEditor: editor });
   expect(hiddenOf(editor)).toEqual([...markers, ...headers]);

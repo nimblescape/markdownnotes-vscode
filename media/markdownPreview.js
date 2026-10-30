@@ -3,67 +3,57 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 // The script of the notes in the built-in Markdown preview (R-PREV-001). The
-// preview shows no text, no icon and no callout of a note (Hannes,
-// 2026-10-28: "we completely drop the callouts on hover view", "we completely
-// drop the callout icons in the preview view"); the side view shows the
-// notes. The markdown-it plugin of the extension writes the start and the end
-// of the highlight of each note, the text from its start marker to its
+// preview shows no text, no icon and no callout of a note; the side view shows
+// the notes. The markdown-it plugin of the extension writes the start and the
+// end of the highlight of each note, the text from its start marker to its
 // reference, as two empty elements with the ID of the highlight (R-NOTE-006).
 // The script paints the text between them in the color of the note, with the
 // CSS Custom Highlight API, which changes no element of the page: a clear
-// highlight with a line below it, so that it stands out of the text (Hannes,
-// 2026-10-28: "when viewed make it good contrast"), and a strong one under
-// the pointer. An end with the attribute data-hidden (setting showHighlights
-// off) shows no highlight, unless its note is selected or the pointer is on its
-// text (Hannes, 2026-10-28: "even when the highlights are hidden, hover over a
-// highlight always shows the highlight"). A highlight without a start begins
-// at the start of the block of its end.
+// highlight with a line below it, so that it stands out of the text, and a
+// strong one under the pointer. An end with the attribute data-hidden (setting
+// showHighlights off) shows no highlight, unless its note is selected or the
+// pointer is on its text. A highlight without a start begins at the start of
+// the block of its end.
 //
-// VS Code passes a click in the preview to the extension only when the click
-// of the user is on a link: the page follows any other link itself, also a
-// link of a click of a script, which leaves the page empty. So the script
-// puts the content of the page into a link of an open shadow tree of the
-// body: a link with the CSS `display: contents` around the slot of the
-// content, so the page shows and works as before. The link has an address
-// only for the time of a click: when the user presses the mouse button on a
-// highlight, also a hidden one, the address of its end (data-href) with the
-// path that only selects the note (R-PREV-003); for the second press of a
-// double click on a highlight, the address itself, which also opens the side
-// view (Hannes, 2026-10-29: "only a double click on a selected highlight shall
-// open the side view", "in both text and preview"); on the text outside a
-// highlight while a note is selected, the address that deselects the note.
-// The second press of a double click on a highlight selects no word, and its
-// double click does not open the text editor, as a double click on other text
-// does. The script arms only an address of this extension (ownLink), so that
-// HTML of a file with the same attributes opens no other address with a click.
-// A click on a link of the text, the end of a drag that selects text, and a
-// double click on other text open no address of the script.
-// Chromium sends no click when the element of the press leaves the page
-// before the release, so the script moves no element of the page; and the
-// path of an event, where VS Code looks for the link, holds no element of a
-// closed shadow tree, so the shadow tree is open.
+// VS Code passes a click in the preview to the extension only when the click of
+// the user is on a link: the page follows any other link itself, also a link of
+// a click of a script, which leaves the page empty. So the script puts the
+// content of the page into a link of an open shadow tree of the body: a link
+// with the CSS `display: contents` around the slot of the content, so the page
+// shows and works as before. The link has an address only for the time of a
+// click: when the user presses the mouse button on a highlight, also a hidden
+// one, the address of its end (data-href) with the path that only selects the
+// note (R-PREV-003); for the second press of a double click on a highlight, the
+// address itself, which also opens the side view; on the text outside a
+// highlight while a note is selected, the address that deselects the note. The
+// second press of a double click on a highlight selects no word, and its double
+// click does not open the text editor, as a double click on other text does.
+// The script arms only an address of this extension (ownLink), so that HTML of
+// a file with the same attributes opens no other address with a click. A click
+// on a link of the text, the end of a drag that selects text, and a double
+// click on other text open no address of the script. Chromium sends no click
+// when the element of the press leaves the page before the release, so the
+// script moves no element of the page; and the path of an event, where VS Code
+// looks for the link, holds no element of a closed shadow tree, so the shadow
+// tree is open.
 //
 // Selected text that a note can highlight, text of one block, gets the button
-// "Add Note" above it (R-PREV-008; Hannes, 2026-10-29: "notes cannot be added
-// in the preview view, but this should be possible as well"). Its click goes
-// to the extension through the link of the page as well: the address of the
-// hidden element of the plugin at the end of the page, with the line of the
-// block, the text of the block before the selected text, and the selected
-// text. The extension finds the text in the file and opens the editor of the
-// new note in the side view. The press on the button keeps the selection.
+// "Add Note" above it. Its click goes to the extension through the link of the
+// page as well: the address of the hidden element of the plugin at the end of
+// the page, with the line of the block, the text of the block before the
+// selected text, and the selected text. The extension finds the text in the
+// file and opens the editor of the new note in the side view. The press on the
+// button keeps the selection.
 //
 // The end of the highlight of the selected note of the side view has the
 // attribute data-selected: its highlight is strong with a frame of thin lines
 // in the color of the note, one for each line of the text, and the highlights
-// of the other notes are dimmed. An end with the attribute data-reveal asks
-// the preview to scroll to the note; the script scrolls once for each number
-// of the attribute, smoothly as the side view (Hannes, 2026-10-29: "use smooth
-// scrolling as in the side view"), unless the system asks for less motion.
+// of the other notes are dimmed. An end with the attribute data-reveal asks the
+// preview to scroll to the note; the script scrolls once for each number of the
+// attribute, smoothly as the side view, unless the system asks for less motion.
 //
 // nimblescape Markdown Paper shows the pages of a paper document in this
-// preview (Hannes, 2026-10-30: "all plugin functionality shall work in the
-// rendered paper as well, such as marking a passage and adding a comment to
-// it"): its script copies the content of the page into the pages of the
+// preview: its script copies the content of the page into the pages of the
 // element `.nimblescape-paper-pages` and hides the content itself, and sends
 // the event `nimblescape-paper-rendered` for each new set of pages. The script
 // then finds the highlights and the address of "Add Note" in the pages, which

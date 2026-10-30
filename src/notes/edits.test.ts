@@ -62,11 +62,11 @@ describe('insertNote', () => {
     );
   });
 
-  test('an empty range adds no note: a note always highlights text (Hannes, 2026-10-28: "there shall be no way to add a note without highlighting text")', () => {
+  test('an empty range adds no note: a note always highlights text', () => {
     expect(add('The agents change the work.\n', { line: 0, character: 4 })).toEqual({ kind: 'noText' });
   });
 
-  test('every note has a start marker, also at the start of the paragraph and at the start of a later line (Hannes, 2026-10-28)', () => {
+  test('every note has a start marker, also at the start of the paragraph and at the start of a later line', () => {
     const text = 'The agents\nchange the work.';
     expect(add(text, { line: 0, character: 0 }, { line: 1, character: 6 })).toBe(`<wbr><!--[note-7k2q-->The agents\nchange[^note-7k2q] the work.\n\n${definition}`);
     expect(add(text, { line: 1, character: 0 }, { line: 1, character: 6 })).toBe(`The agents\n<wbr><!--[note-7k2q-->change[^note-7k2q] the work.\n\n${definition}`);

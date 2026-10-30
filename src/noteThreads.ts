@@ -5,22 +5,22 @@
 /**
  * The notes of the open Markdown documents, with the operations that change
  * them: the threads of the side view ([src/notesView.ts](notesView.ts),
- * [R-SIDE-001](../docs/requirements.md#r-side-001)), one for each note, with
- * an identifier that stays while the document is open. "Save" writes a text
- * back into an answer of a note ([R-EDIT-002](../docs/requirements.md#r-edit-002)),
- * "Add Note" adds a new note ([R-EDIT-003](../docs/requirements.md#r-edit-003)),
- * "Answer" and "Reply" add a reply to the note or to an answer
+ * [R-SIDE-001](../docs/requirements.md#r-side-001)), one for each note, with an
+ * identifier that stays while the document is open. "Save" writes a text back
+ * into an answer of a note ([R-EDIT-002](../docs/requirements.md#r-edit-002)),
+ * "Add Note" adds a new note
+ * ([R-EDIT-003](../docs/requirements.md#r-edit-003)), "Answer" and "Reply" add
+ * a reply to the note or to an answer
  * ([R-EDIT-005](../docs/requirements.md#r-edit-005)), "Delete" removes an
  * answer or the whole note ([R-EDIT-004](../docs/requirements.md#r-edit-004)),
- * the colors of the side view give a note a color in its start marker, and
- * the text view of the side view saves the whole text of a note.
- * A new note and a new answer name the GitHub login of the user as their
- * author ([R-GEN-006](../docs/requirements.md#r-gen-006)). A text that would
- * change the structure of the note, for example a block quote that starts
- * with a header, is not written, and the side view shows its message. The
- * extension shows no note in the boxes of the comments of VS Code (Hannes,
- * 2026-10-28: "we completely drop the inline view"). The decorations and the
- * folds of the notes are the overlay of [src/noteEditor.ts](noteEditor.ts).
+ * the colors of the side view give a note a color in its start marker, and the
+ * text view of the side view saves the whole text of a note. A new note and a
+ * new answer name the GitHub login of the user as their author
+ * ([R-GEN-006](../docs/requirements.md#r-gen-006)). A text that would change
+ * the structure of the note, for example a block quote that starts with a
+ * header, is not written, and the side view shows its message. The extension
+ * shows no note in the boxes of the comments of VS Code. The decorations and
+ * the folds of the notes are the overlay of [src/noteEditor.ts](noteEditor.ts).
  *
  * The extension reads the standard footnotes of a document too, once for each
  * version, for the side view ([R-FOOT-001](../docs/requirements.md#r-foot-001)):

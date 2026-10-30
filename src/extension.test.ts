@@ -214,8 +214,7 @@ test('"Hide Highlights" turns the setting off in the settings that decide the va
   expect(fake.updates[1]).toEqual({ key: 'showHighlights', value: true, target: 2 });
   expect(fake.settings.get('workspace')).toEqual({ showHighlights: true });
   expect(contexts().at(-1)).toBe(true);
-  // "Show Highlights" only shows the highlights (Hannes, 2026-10-29: "it shall not open the side view but only show the
-  // highlights"), and closing the side view keeps them.
+  // "Show Highlights" only shows the highlights, and closing the side view keeps them.
   expect(fake.executed).not.toContain(focus);
   closeView(fake.resolveView(notesViewId));
   expect(contexts().at(-1)).toBe(true);
@@ -355,8 +354,7 @@ test('a link of a double click on a highlight of the preview opens the side view
     await fake.uriHandler!.handleUri(uri);
     await settle();
   };
-  // The link of a click selects the note and leaves the view as it is (Hannes, 2026-10-29: "only a double click on a
-  // selected highlight shall open the side view").
+  // The link of a click selects the note and leaves the view as it is.
   await handle(link(document.uri.toString(), '5', extension.selectPath));
   expect(fake.executed.filter((command) => command === focus)).toHaveLength(0);
   expect(view.state()).toMatchObject({ file: 'a.md', selected: view.state().threads[0].id });
@@ -394,7 +392,7 @@ test('a save of a file with notes writes the comment of the format at its top, a
   await fake.activate();
   fake.fire('tabs', {});
   await vi.advanceTimersByTimeAsync(1000);
-  // Hannes, 2026-10-29, "D2: ok": a file that an editor only shows keeps its text.
+  // A file that an editor only shows keeps its text (decision 20).
   expect([document, plain, newer, off].map((each) => each.text)).toEqual([note, '# Title\n\nText.\n', newer.text, note]);
   expect(await saved(document)).toBe(marked(note));
   expect(await saved(document, 3)).toBe(marked(note));
@@ -501,7 +499,7 @@ test('the selected text of a paragraph gets the light bulb action "Add Note", wh
   // nothing.
   expect(fake.codeActionsAt(editor.document, editor.selection, FakeCodeActionKind.QuickFix)).toEqual([addNote]);
   expect(fake.codeActionsAt(editor.document, editor.selection, FakeCodeActionKind.Empty.append('refactor'))).toEqual([]);
-  // No hover shows by itself over the selected text (Hannes, 2026-10-29, decision D4 of the code review).
+  // No hover shows by itself over the selected text (decision 22).
   await vi.advanceTimersByTimeAsync(2000);
   expect(fake.calls.filter(({ command }) => command === 'editor.action.showHover')).toEqual([]);
   expect(fake.hover(editor.document, new FakePosition(0, 7))).toEqual([]);

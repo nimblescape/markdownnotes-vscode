@@ -229,8 +229,7 @@ textarea:focus {
 }
 
 /*
- * Each thread that is not selected: dimmed a little, also while no thread is selected and under the pointer (Hannes,
- * 2026-10-29: "deselected items in the side view are dimmed", "it shall stay dimmed as long as it is not selected").
+ * Each thread that is not selected: dimmed a little, also while no thread is selected and under the pointer.
  */
 .thread:not(.selected) {
   opacity: 0.7;

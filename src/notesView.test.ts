@@ -155,7 +155,7 @@ test('the view shows the threads of the active Markdown file with the rendered a
       {
         id: '2',
         line: 16,
-        // Every note has the same color until the user chooses another one (Hannes, 2026-10-28 20:03).
+        // Every note has the same color until the user chooses another one.
         color: '#1a7fe0',
         colorName: 'blue',
         text: '[^note-bbbb]: **bob** · 2026-10-28 09:00-02:00\n\n    Second.',
@@ -181,8 +181,8 @@ test('the view selects the thread at the cursor and follows the active Markdown 
   fake.fire('selection', { textEditor: editor });
   await settle();
   expect(view.state().selected).toBe('1');
-  // The cursor that leaves the note deselects it (Hannes, 2026-10-29), and a move outside the notes tells the script the
-  // line, and the selected text that a new note would highlight: none without a selection.
+  // The cursor that leaves the note deselects it, and a move outside the notes tells the script the line, and the
+  // selected text that a new note would highlight: none without a selection.
   editor.selection = { active: new FakePosition(12, 0) };
   fake.fire('selection', { textEditor: editor });
   await settle();
@@ -239,7 +239,7 @@ test('Answer, Reply and Add Note need the GitHub sign-in, and write the login an
   expect(results(view)[0]).toEqual({ type: 'result', request: 1, message: expect.stringMatching(/^The change was not saved: sign in with GitHub/) });
   expect(document.text).toBe(note);
   fake.signIn = 'carl';
-  // Add Note needs selected text (Hannes, 2026-10-28: "there shall be no way to add a note without highlighting text").
+  // Add Note needs selected text.
   await send(view, { type: 'add', request: 2, text: 'A new note.' });
   expect(results(view)[1]).toEqual({ type: 'result', request: 2, message: expect.stringMatching(/^The note was not added: select the text/) });
   expect(document.text).toBe(note);
@@ -577,8 +577,7 @@ test('a mouse click outside the notes and a cursor that leaves the selected note
   expect(view.state().selected).toBe('1');
   await move(12, 2);
   expect(view.state().selected).toBeUndefined();
-  // The cursor that leaves the selected note deselects it, also with the keys (Hannes, 2026-10-29: "keeps it selected
-  // when the cursor goes out of it again").
+  // The cursor that leaves the selected note deselects it, also with the keys.
   await move(5, 1);
   expect(view.state().selected).toBe('1');
   await move(12, 1);

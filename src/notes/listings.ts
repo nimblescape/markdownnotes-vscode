@@ -4,23 +4,18 @@
 
 /**
  * The listings of a Markdown text: code blocks whose code comes from a file of source code
- * ([R-CODE-001](../../docs/requirements.md#r-code-001)). Hannes, 2026-10-30: "a paper can be in a repo along with other
- * source code", "there is a new slash command for that which "imports" a code block", "the formatter assures the
- * source code references / code blocks are uptodate", "we may mark single functions but also complete source code
- * files".
+ * ([R-CODE-001](../../docs/requirements.md#r-code-001)).
  *
  * A listing is a code block with a comment of HTML directly before it that names its source: a whole file,
  * `<!-- listing: ../src/fields.ts -->`, or a snippet of the file, `<!-- listing: ../src/fields.ts#parse-notes -->`. The
  * formatter reads the source again and writes its code into the block, the same way in VS Code and on the command line.
  *
- * A snippet is code between two marks in comments of the source
- * ([R-CODE-003](../../docs/requirements.md#r-code-003); Hannes, 2026-10-30, 03:20: "a slash command in the source code
- * editor /snippet adds the mark, but the mark must be more clear it belongs to the notes plugin", "snippet is the correct
- * name for it"): `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment
- * form of the language. A listing of a function, a class or a method is a snippet around it: the module finds no
- * symbols of a language, because only a parser of the language finds them reliably
- * ([R-CODE-005](../../docs/requirements.md#r-code-005); Hannes, 2026-10-30, 05:38: "for now, whole files and snippets
- * are sufficient"). The code of a listing leaves out the marks of all snippets. It uses no API of VS Code.
+ * A snippet is code between two marks in comments of the source ([R-CODE-003](../../docs/requirements.md#r-code-003)):
+ * `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment form of the
+ * language. A listing of a function, a class or a method is a snippet around it: the module finds no symbols of a
+ * language, because only a parser of the language finds them reliably
+ * ([R-CODE-005](../../docs/requirements.md#r-code-005)). The code of a listing leaves out the marks of all snippets. It
+ * uses no API of VS Code.
  */
 
 import { parse } from './notes';

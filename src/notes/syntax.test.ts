@@ -53,7 +53,7 @@ describe('labels and headers', () => {
     expect(readMarker('<!--[a3-->')).toBeUndefined();
   });
 
-  test('a start marker is <wbr> and a comment with the label and an optional color; a reader also takes it without <wbr> (Hannes, 2026-10-28)', () => {
+  test('a start marker is <wbr> and a comment with the label and an optional color; a reader also takes it without <wbr>', () => {
     expect(markerText('note-7k2q')).toBe('<wbr><!--[note-7k2q-->');
     expect(markerText('note-7k2q', 'blue')).toBe('<wbr><!--[note-7k2q-->');
     expect(markerText('note-7k2q', 'green')).toBe('<wbr><!--[note-7k2q green-->');

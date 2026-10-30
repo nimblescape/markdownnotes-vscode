@@ -9,14 +9,13 @@
 // script shows them, and sends each action of the user to the extension,
 // which writes the change into the file and sends the new state.
 //
-// The buttons are small icons with a tooltip, as the buttons in the title of
-// an editor of VS Code (Hannes, 2026-10-28: "exchange all the buttons on the
-// note editor with icons"); the icons are codicons of VS Code. An editor of a
-// text switches between writing and the preview. Save (or Ctrl+Enter) sends
-// the text; the editor stays open with the message of the extension when the
+// The buttons are small icons with a tooltip, as the buttons in the title of an
+// editor of VS Code; the icons are codicons of VS Code. An editor of a text
+// switches between writing and the preview. Save (or Ctrl+Enter) sends the
+// text; the editor stays open with the message of the extension when the
 // extension refuses the text, and closes when the extension wrote it. Escape
-// cancels. The open editors keep their texts when a new state arrives, and
-// the focus stays in its text field.
+// cancels. The open editors keep their texts when a new state arrives, and the
+// focus stays in its text field.
 //
 // "Show as Text" switches a thread to its text view: the whole text of the
 // note, as the text editor shows the file, in the font of the text editor.
@@ -46,22 +45,21 @@
 // outside an editor, deselects the thread.
 //
 // The view is a list of the threads in the order of the file, which the user
-// scrolls on its own (Hannes, 2026-10-29, decision 25: "List that scrolls
-// freely"). It scrolls itself only when the selected thread changes, for a
-// click on a highlight or a move of the cursor into a highlight: the selected
-// thread scrolls to the top of the view. A hidden view cannot scroll: when
-// the selected thread changed while it was hidden, the extension sends the
+// scrolls on its own. It scrolls itself only when the selected thread changes,
+// for a click on a highlight or a move of the cursor into a highlight: the
+// selected thread scrolls to the top of the view. A hidden view cannot scroll:
+// when the selected thread changed while it was hidden, the extension sends the
 // message "scroll" after it shows again. An empty part after the last thread
-// lets also the last thread scroll to the top. The editor of a new note
-// stands at the top of the list.
+// lets also the last thread scroll to the top. The editor of a new note stands
+// at the top of the list.
 //
 // The buttons, the colors, the line of a thread and the dates have tooltips,
 // which the script shows itself, from the attribute data-tooltip: VS Code
-// showed no tooltip of the attribute title in the view (Hannes, 2026-10-29,
-// on macOS: "add tooltips to the icons"). A tooltip shows below its element
-// as the hover of VS Code shows the tooltip of a button in the title of an
-// editor: after half a second under the pointer, at once when the pointer
-// comes from another tooltip, and when a key moves the focus to the element.
+// showed no tooltip of the attribute title in the view. A tooltip shows below
+// its element as the hover of VS Code shows the tooltip of a button in the
+// title of an editor: after half a second under the pointer, at once when the
+// pointer comes from another tooltip, and when a key moves the focus to the
+// element.
 //
 // The header of the view stays at the top while the list scrolls (R-SIDE-008):
 // the name of the file, the todo filter, the colors of the notes as dots and
@@ -639,8 +637,8 @@
   };
 
   /**
-   * newTitle returns the title of the editor of a new note: the text that the note highlights, or what to do without one
-   * (Hannes, 2026-10-28: "there shall be no way to add a note without highlighting text").
+   * newTitle returns the title of the editor of a new note: the text that the note highlights, or what to do without
+   * one.
    */
   const newTitle = () => (state.highlight === undefined ? 'Select the text in the text editor that the new note is about' : `New ${newTodo ? 'todo' : 'note'} on “${state.highlight}”`);
 
@@ -818,8 +816,8 @@
   /**
    * filter is the filter of the list (R-SIDE-008): the open or the completed todos, the names of the colors, and the
    * text of the search field. A filter that is off lets every thread through, and the filters that are on combine. The
-   * two todo filters exclude each other (Hannes, 2026-10-29: "the checked and unchecked todo filters are exclusive").
-   * The state of the page keeps it while VS Code hides the view and after a reload of the view.
+   * two todo filters exclude each other. The state of the page keeps it while VS Code hides the view and after a reload
+   * of the view.
    * @type {{ open: boolean, done: boolean, colors: string[], text: string }}
    */
   const filter = (() => {
@@ -995,8 +993,7 @@
   };
 
   /**
-   * scrollToSelected scrolls the selected thread to the top of the view (Hannes, 2026-10-28: "so the selected note is on
-   * top").
+   * scrollToSelected scrolls the selected thread to the top of the view.
    */
   const scrollToSelected = () => {
     root.querySelector('.thread.selected')?.scrollIntoView({ block: 'start', behavior: motion() });

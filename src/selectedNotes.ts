@@ -7,10 +7,9 @@
  * side view ([R-SIDE-007](../docs/requirements.md#r-side-007)). The text editor
  * and the Markdown preview show the highlight of this note strong and with a
  * frame in its color, also while the other highlights are hidden, so that the
- * selected thread of the side view and its text belong together (Hannes,
- * 2026-10-28, decision 10 of the requirements). A request to reveal the note
- * makes the preview scroll to it, for a click on a thread while the preview
- * shows the file and no text editor does.
+ * selected thread of the side view and its text belong together. A request to
+ * reveal the note makes the preview scroll to it, for a click on a thread while
+ * the preview shows the file and no text editor does.
  */
 
 import type * as vscode from 'vscode';
