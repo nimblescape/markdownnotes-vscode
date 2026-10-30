@@ -168,7 +168,8 @@ describe('an edit of the clean text', () => {
     // Edits at the hidden comment of the listing of the example stand before the fence of its code block, and an edit
     // that ends the code block may fail.
     expect(kept).toBeGreaterThan(650);
-  });
+    // The 720 edits, each with two projections of the example, take about five seconds on a runner of GitHub.
+  }, 30_000);
 });
 
 describe('the definitions of the standard footnotes', () => {
