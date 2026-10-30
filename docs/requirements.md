@@ -87,7 +87,7 @@ requirement, the plan and the decisions of Hannes.
 | 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it (in place of the marks since step 62); the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
 | 59 | The frame of a highlight in the pages of a paper only in the text area of each page; "Add Note" without the soft hyphens of the pages | [R-PREV-009](#r-prev-009) | done |
 | 60 | Listings of whole files and snippets only: no symbols of a language in `/listing`, the formatter and the links of the listings; a warning at a listing whose file or snippet is not found ([decision 38](#decisions)) | [R-CODE-005](#r-code-005), [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-CODE-003](#r-code-003) | done |
-| 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | planned |
+| 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | postponed: no tree-sitter for now ([decision 51](#decisions)) |
 | 62 | The marks of a snippet as tags in the look of a code lens in place of the mark lines; the cursor jumps over them; a click on an end tag goes to the start; "Rename Snippet" and "Remove Snippet" in the light bulb ([decision 37](#decisions)) | [R-CODE-004](#r-code-004) | done |
 | 63 | The caption of a listing as a link to the lines of its source, which the formatter keeps current; the clean editing view hides the comment of the listing and the link of the caption, and Ctrl+Click on the caption opens the source ([decision 41](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009) | done |
 | 64 | The principle "document driven" ([decision 42](#decisions)): the numbers of the captions of the figures, the tables and the listings from the formatter; the caption line of a figure before its image, which `/figure` inserts and the formatter writes for a figure of the older form; the anchors of the captions whose generated list the file holds | [R-GEN-016](#r-gen-016), [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-CODE-001](#r-code-001) | done |
@@ -102,6 +102,7 @@ requirement, the plan and the decisions of Hannes.
 | 73 | No release for now: the npm package is installed from GitHub only, in the documents for people and AI agents ([decision 48](#decisions)) | [R-GEN-005](#r-gen-005), [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
 | 74 | The fixed width of the text editor in Zen Mode: the user guide and the README tell the user to turn on the setting of VS Code ([decision 49](#decisions)) | [R-SIDE-001](#r-side-001) | done |
 | 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
+| 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
 
 ## General
 
@@ -2112,7 +2113,8 @@ class or a method ([decision 38](#decisions)):
   to mark the code in the source file with `/snippet`, and also at a listing
   whose file is not found. The warnings are read again with each change of
   the Markdown file.
-- Later, symbols come with a real parser of each language: tree-sitter, with
+- There is no tree-sitter for now ([decision 51](#decisions)). When symbols
+  come, they come with a real parser of each language: tree-sitter, with
   the "tags" query of each grammar, which GitHub uses for its code
   navigation, the same in VS Code and on the command line. The file types
   that must have symbols then: Go, TypeScript, TSX, JavaScript, JSX, Python,
@@ -2571,7 +2573,8 @@ requirements above follow them.
     TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC
     and shell scripts. The other proposals were the rules of the
     declarations, built in step 57 and removed in step 60, because only a
-    parser knows the code, and the parsers now.
+    parser knows the code, and the parsers now. Decision 51 postponed the
+    parsers.
 39. **The form of the marks of a snippet** ([R-CODE-003](#r-code-003)):
     `// markdownnotes: snippet <name>` and
     `// markdownnotes: /snippet <name>`, with the `/` of the end marker of a
@@ -2656,6 +2659,10 @@ requirements above follow them.
     keys in the front matter, but GitHub shows the front matter of a
     Markdown file as a table at the top of the page, and the front matter
     holds the data of a paper.
+51. **No tree-sitter for now** ([R-CODE-005](#r-code-005)): the symbols of
+    a listing with tree-sitter parsers (step 61) are postponed without a
+    date. A listing shows a whole file or a snippet, as
+    [decision 38](#decisions) says.
 
 ---
 

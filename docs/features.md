@@ -24,8 +24,10 @@ Paper, the figures, tables and sections with the links to them (to a
 section by the ID that GitHub gives its heading), the
 values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
-the captions and the cite of a listing in the file by the principle "document driven". 8 features are planned but not built: the features of the section
-[Planned features](#planned-features). Three questions are decided without a
+the captions and the cite of a listing in the file by the principle "document driven". 7 features are planned but not built, and 1 is postponed: the features of the section
+[Planned features](#planned-features). The symbols of a listing with
+tree-sitter parsers are postponed ([decision 51](requirements.md#decisions)).
+Three questions are decided without a
 change of the code: there is no release for now, so the npm package is
 installed from GitHub only ([decision 48](requirements.md#decisions)); the
 user turns on a setting of VS Code for the width of the text editor in Zen
@@ -236,7 +238,9 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-8 features are in the specification and the plan, or proposed, but not built. Steps 29
+8 features are in the specification and the plan, or proposed, but not built. 7 are
+planned, and the symbols of a listing with parsers are postponed
+([decision 51](requirements.md#decisions)). Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -249,7 +253,7 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
-| Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, later | Planned |
+| Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
 | Listings of files of other repositories, as Git submodules of the repository of the paper; the link of the caption goes to the other repository at the commit of the submodule | 10-30 07:34, 07:39 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 46](requirements.md#decisions)) | Planned |
 
 ## Moved to nimblescape Markdown Paper

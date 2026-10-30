@@ -299,9 +299,10 @@ form of the notes in a file for programs and AI agents, and
   Markdown Paper renders no cite of its own; line numbers in front of the
   code are an option of its layout ([decision 45](requirements.md#decisions)).
 - A listing shows a whole file or a snippet, and no symbol of a language,
-  such as a function: a function is a snippet around it. Symbols come later
-  with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python,
-  HTML, CSS, YAML, JSON, JSONC and shell scripts
+  such as a function: a function is a snippet around it. There is no
+  tree-sitter for now ([decision 51](requirements.md#decisions)); when
+  symbols come, they come with tree-sitter parsers for Go, TypeScript, TSX,
+  JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts
   ([R-CODE-005](requirements.md#r-code-005)).
 - The formatter writes the current code of the source into each listing,
   and the current lines into the link of its caption and into the cite
