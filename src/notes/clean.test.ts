@@ -17,7 +17,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, labelsOf, project } from './clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, labelsOf, project, rebuild } from './clean';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
 const example = fs.readFileSync(path.resolve(__dirname, '../../docs/example.md'), 'utf8');
@@ -325,5 +325,41 @@ describe('the blocks of other extensions', () => {
     const appended = blockEdit('(#hong2024)).', 0, '\n\nA new paragraph.', true);
     expect(appended.clean).toBe(appended.expected);
     expect(appended.text).toMatch(/A new paragraph\.[^]*<!-- nimblescape-sources/);
+  });
+});
+
+describe('the anchors of the figures and tables', () => {
+  /** captioned is a file with a note, a table with an anchor at the end of its caption line, and a link to it. */
+  const captioned = [
+    'As [Table 1](#tab-grades) <wbr><!--[note-7k2q-->shows[^note-7k2q], the plan works.',
+    '',
+    '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00',
+    '',
+    '    Which plan?',
+    '',
+    'Table: Participants by grade<a id="tab-grades"></a>',
+    '',
+    '| Grade | Participants |',
+    '| --- | --- |',
+    '| 5 | 12 |',
+    '',
+  ].join('\n');
+
+  test('are left out of the clean text, also in a file without notes (R-XREF-001)', () => {
+    expect(project(captioned).clean).toBe('As [Table 1](#tab-grades) shows, the plan works.\n\nTable: Participants by grade\n\n| Grade | Participants |\n| --- | --- |\n| 5 | 12 |\n');
+    expect(project('![Plan](plan.png)<a id="fig-plan"></a>\n').clean).toBe('![Plan](plan.png)\n');
+    // An anchor in a code block is text.
+    expect(project('```\nTable: A<a id="tab-a"></a>\n```\n').hidden).toEqual([]);
+  });
+
+  test('stay at the end of their caption lines for text typed there, and when the file is written anew (R-XREF-001)', () => {
+    const typed = edit(captioned, 'Participants by grade', 0, ' and age', true);
+    expect(typed.way).toBe('direct');
+    expect(typed.text).toContain('Table: Participants by grade and age<a id="tab-grades"></a>\n');
+    const projection = project(captioned);
+    const start = projection.clean.indexOf('shows') + 2;
+    const rebuilt = rebuild(projection, start, start, '\n\n')!;
+    expect(project(rebuilt).clean).toBe(`${projection.clean.slice(0, start)}\n\n${projection.clean.slice(start)}`);
+    expect(rebuilt).toContain('Table: Participants by grade<a id="tab-grades"></a>\n');
   });
 });

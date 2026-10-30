@@ -225,11 +225,49 @@ A program, for example an AI agent, follows these steps:
   later. `npx -y @nimblescape/markdownnotes format --check <file>` changes
   nothing and exits with 1 when the file is not formatted. The formatter puts
   each paragraph on one line, aligns the tables, gives each start marker its
-  `<wbr>`, adds the start marker of a note without one, and keeps the answers
-  of the notes, code blocks and HTML as they are.
+  `<wbr>`, adds the start marker of a note without one, writes the numbers of
+  the links to figures and tables ([8](#8-figures-tables-and-links-to-them)),
+  and keeps the answers of the notes, code blocks and HTML as they are.
+- **Link to a figure or a table:** give it an anchor at the end of the line
+  of its image or its caption when it has none, and write a link with a word
+  and a number to it ([8](#8-figures-tables-and-links-to-them)).
 
 An AI agent writes as the author the GitHub login of the person that it works
 for, or a GitHub login of its own; the author of an answer is always known.
+
+## 8. Figures, tables and links to them
+
+The extension also adds figures, tables and links to them
+([R-XREF-001](requirements.md#r-xref-001)). They are plain Markdown and HTML
+and not part of the notes, so the version of the format stays 1.0.0.
+
+```markdown
+![Plan of the study](images/plan.png)<a id="fig-plan-study"></a>
+
+Table: Participants by grade<a id="tab-participants-grade"></a>
+
+| Grade | Participants |
+| ----- | ------------ |
+| 5     | 12           |
+
+As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
+```
+
+- A figure is an image that stands alone in its paragraph. Its caption is the
+  text of the image.
+- A table has a caption: a paragraph that starts with `Table:` and stands
+  directly before the table, with one blank line between them.
+- The anchor of a figure or a table stands at the end of the line of its
+  image or its caption: `<a id="fig-` or `<a id="tab-`, a name of small
+  letters, digits and hyphens, and `"></a>`. The name is unique in the file.
+- A link to a figure or a table has a word and a number as its text, for
+  example `[Table 1](#tab-participants-grade)` or
+  `[Abbildung 2](#fig-plan-study)`. The number is the place of the figure
+  among the figures of the file, or of the table among its tables, from 1;
+  the formatter writes it anew after each change of the order. The word is
+  free.
+- A figure, a table, an anchor or a link in a code block, in HTML or in the
+  text of a note does not count.
 
 ---
 

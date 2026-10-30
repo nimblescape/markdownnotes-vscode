@@ -8,13 +8,14 @@
  * sentence before it and `/note` for the text that the slash replaced, which
  * open the editor of a new note in the side view, the todo notes that the side
  * view adds and completes (R-NOTE-008), `/footnote`, which opens the editor of
- * a new footnote in the side view, `/date`, `/time` and `/user`, and the slash
- * commands that other extensions add through the API (R-GEN-012).
+ * a new footnote in the side view, `/date`, `/time` and `/user`, `/figure`,
+ * `/table` and `/ref` (R-XREF-001), and the slash commands that other
+ * extensions add through the API (R-GEN-012).
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { notesViewId } from './notesView';
-import { Fake, type FakeCompletionItem, FakeEditor, FakePosition, FakeRange, FakeSelection, type FakeView, settle } from './testing/fakeVscode';
+import { Fake, type FakeCompletionItem, FakeEditor, FakePosition, FakeRange, FakeSelection, type FakeSnippetString, FakeUri, type FakeView, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -117,7 +118,8 @@ test('a slash after a space offers /todo for the sentence before it, /footnote, 
 
 test('/todo shows only where a note can highlight the sentence, and a slash in a word offers nothing (R-EDIT-008)', async () => {
   const { document } = await start('/\n\n```\ncode /\n```\n\nand/\n', 0, 1);
-  expect(labels(fake.complete(document, new FakePosition(0, 1)))).toEqual(['/date', '/time', '/user']);
+  // A slash on a line of its own also offers a figure and a table (R-XREF-001).
+  expect(labels(fake.complete(document, new FakePosition(0, 1)))).toEqual(['/figure', '/table', '/date', '/time', '/user']);
   expect(labels(fake.complete(document, new FakePosition(3, 6)))).toEqual(['/date', '/time', '/user']);
   expect(fake.complete(document, new FakePosition(6, 4))).toEqual([]);
 });
@@ -230,4 +232,48 @@ test('another extension adds a slash command through the API, which shows after 
   failing.dispose();
   registration.dispose();
   expect(labels(fake.complete(document, new FakePosition(0, 41)))).not.toContain('/source');
+});
+
+test('on a line of its own, /figure inserts a chosen image of the workspace as a figure, and /table a table with its caption line (R-EDIT-008, R-XREF-001)', async () => {
+  const { document, editor } = await start('# Results\n\n/\n\nMore.\n', 2, 1);
+  fake.found = [new FakeUri('file', '/folder/images/plan (v2).png'), new FakeUri('file', '/other/logo.svg')];
+  const items = fake.complete(document, new FakePosition(2, 1));
+  expect(labels(items)).toEqual(['/figure', '/table', '/date', '/time', '/user']);
+  const table = items[1];
+  expect((table.insertText as unknown as FakeSnippetString).value).toBe('Table: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0');
+  // /figure lists the images by their paths from the folder of the file, and inserts the chosen one.
+  fake.pick = (choices) => choices.find((choice) => choice.label === 'plan (v2).png');
+  await accept(editor, items[0]);
+  expect(fake.picks.at(-1)!.map((choice) => choice.description)).toEqual(['../other/logo.svg', 'images/plan (v2).png']);
+  expect(document.text).toBe('# Results\n\n![Caption](images/plan%20%28v2%29.png)\n\nMore.\n');
+  // In text and in a code block, a figure and a table are not offered.
+  const inText = fake.open('A sentence /\n\n```\n/\n```\n', '/folder/b.md');
+  expect(labels(fake.complete(inText, new FakePosition(0, 12)))).not.toContain('/figure');
+  expect(labels(fake.complete(inText, new FakePosition(3, 1)))).toEqual(['/date', '/time', '/user']);
+});
+
+test('in text, /ref links a chosen figure or table, and gives it an anchor at the end of its line when it has none (R-EDIT-008, R-XREF-001)', async () => {
+  const text = 'As /\n\n![Plan of the study](plan.png)\n\nTable: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n';
+  const { document, editor } = await start(text, 0, 4);
+  const items = fake.complete(document, new FakePosition(0, 4));
+  expect(labels(items)).toEqual(['/todo', '/footnote', '/ref', '/date', '/time', '/user']);
+  await accept(editor, items[2]);
+  expect(fake.picks.at(-1)!.map((choice) => [choice.label, choice.description])).toEqual([
+    ['Figure 1', 'Plan of the study'],
+    ['Table 1', 'Participants'],
+  ]);
+  expect(document.text).toBe('As [Figure 1](#fig-plan-study)\n\n![Plan of the study](plan.png)<a id="fig-plan-study"></a>\n\nTable: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n');
+  expect(editor.selection.active).toEqual(new FakePosition(0, 30));
+  // A table with an anchor keeps it, and the word of the last link of its kind stays.
+  document.text = document.text.replace('As [Figure 1]', 'Wie [Abbildung 1]').replace('As', 'Wie');
+  editor.selection = { active: new FakePosition(0, document.text.indexOf('\n')) };
+  await editor.edit((builder) => builder.insert(editor.selection.active, ' /'));
+  const position = editor.selection.active;
+  fake.pick = (choices) => choices[1];
+  await accept(editor, fake.complete(document, position).find((item) => labels([item])[0] === '/ref')!);
+  expect(document.text.split('\n')[0]).toBe('Wie [Abbildung 1](#fig-plan-study) [Table 1](#tab-people)');
+  expect(document.text).toContain('Table: Participants<a id="tab-people"></a>\n');
+  // A file without figures and tables offers no /ref.
+  const plain = fake.open('Text /\n', '/folder/c.md');
+  expect(labels(fake.complete(plain, new FakePosition(0, 6)))).not.toContain('/ref');
 });

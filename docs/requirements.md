@@ -76,7 +76,7 @@ requirement, the plan and the decisions of Hannes.
 | 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository gets its new name `markdownnotes-vscode` when the implementation is complete |
 | 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
 | 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
-| 50 | The slash commands `/figure` and `/table`: links to the figures and tables of a file, their numbers from the formatter, the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | planned |
+| 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
 
 ## General
 
@@ -767,7 +767,9 @@ once, and keeps each note at its text:
 - The view also leaves out the blocks at the end of a file that other
   extensions hide through the API ([R-GEN-012](#r-gen-012)), such as the
   database of the sources of nimblescape Markdown Paper, and the anchors of
-  the figures and tables ([R-XREF-001](#r-xref-001), planned).
+  the figures and tables ([R-XREF-001](#r-xref-001)): each anchor outside
+  code and the definitions, also one that an edit moved away from the end of
+  its line. Text typed at the end of the line of an anchor goes before it.
 - Text typed at the start or the end of a highlight stays outside of it; text
   typed inside a highlight stays in it, also when it replaces the first or the
   last word of the highlight, letter by letter.
@@ -1256,11 +1258,14 @@ it shows no suggestions while the user types words.
   `/user` then asks for the sign-in of VS Code and inserts the login after
   it, and inserts nothing when the user cancels the sign-in.
 
-- `/figure` and `/table` insert a link to a figure or a table of the file
-  (Hannes, 2026-10-30, 02:32: "there is also the /table and /figure slash
-  commands, these are commands in markdownnotes", 02:33: "it adds a
-  references to the figure or table in the text", "technically it is a link
-  to it"; [R-XREF-001](#r-xref-001), planned).
+- `/figure` and `/table` add a figure and a table, and `/ref` adds a link to
+  a figure or a table of the file ([R-XREF-001](#r-xref-001); Hannes,
+  2026-10-30, 02:32: "there is also the /table and /figure slash commands,
+  these are commands in markdownnotes", 02:45: "lets rethink which command
+  adds an entry in the directory which adds a reference to it";
+  [decision 35](#decisions)). `/figure` and `/table` show on a line of their
+  own, outside code blocks; `/ref` shows in text where a reference of a
+  footnote can stand, in a file with figures or tables.
 
 The editors of the side view have no slash commands (Hannes, 18:40), so
 `/todo` at the start of a new note, which [decision 30](#decisions) named,
@@ -1439,8 +1444,7 @@ on save too.
   marker gets one at the start of the text of the block of its reference
   ([R-NOTE-006](#r-note-006)). The color of a marker stays.
 - The number in the text of each link to a figure or a table follows the
-  order of the figures and tables in the file ([R-XREF-002](#r-xref-002),
-  planned).
+  order of the figures and tables in the file ([R-XREF-002](#r-xref-002)).
 
 ### R-FMT-003
 
@@ -1625,13 +1629,14 @@ brings the note back.
 
 ### R-XREF-001
 
-**Links to figures and tables.** The slash commands `/figure` and `/table`
-insert a link to a figure or a table of the file at the cursor
-([R-EDIT-008](#r-edit-008)) (Hannes, 2026-10-30, 02:32 to 02:33: "it adds a
-references to the figure or table in the text", "technically it is a link to
-it"). The numbers of the figures and tables in a paper and their lists are
-parts of nimblescape Markdown Paper; Markdown Notes only links. The form,
-proposed on 2026-10-30 at 02:33:
+**Figures, tables and links to them.** The slash commands named by a noun
+add an entry, and `/ref` adds a reference to it ([R-EDIT-008](#r-edit-008),
+[decision 35](#decisions); Hannes, 2026-10-30, 02:33: "it adds a references
+to the figure or table in the text", "technically it is a link to it";
+02:45: "that take on the first idea of the "/figure" command looking up all
+figures in the folder"). The numbers of the figures and tables in a paper
+and their lists are parts of nimblescape Markdown Paper; Markdown Notes adds
+and links them. The form, proposed on 2026-10-30 at 02:33:
 
 ```markdown
 Table: Participants by grade<a id="tab-grades"></a>
@@ -1646,17 +1651,31 @@ As [Table 1](#tab-grades) shows, …
 - A figure is an image that stands alone in its paragraph; its caption is the
   text of the image. A table has a caption: a paragraph that starts with
   `Table:` directly before it.
-- `/figure` lists the figures of the file by their captions, and `/table` the
-  tables. The chosen one gets an anchor at the end of the line of its image
-  or its caption when it has none: `<a id="fig-…"></a>` or
-  `<a id="tab-…"></a>`, with a short name from the caption. The cursor gets
-  the link, for example `[Table 1](#tab-grades)`.
+- `/figure` lists the images of the workspace (PNG, JPEG, GIF, SVG, WebP and
+  AVIF) by their paths from the folder of the file, and inserts the chosen
+  one as a figure, `![Caption](images/plan.png)`, with the caption selected
+  for typing; a path with spaces or parentheses is encoded. Without images,
+  it inserts the same form with a path to fill in.
+- `/table` inserts a table of two columns with its caption line
+  `Table: Caption` and a blank line before it, with the caption selected for
+  typing.
+- `/ref` lists the figures and tables of the file by their numbers and
+  captions, and inserts a link to the chosen one, for example
+  `[Table 1](#tab-grades)`. A figure or a table without an anchor first gets
+  one at the end of the line of its image or its caption:
+  `<a id="fig-…"></a>` or `<a id="tab-…"></a>`, with up to three words of
+  its caption as its name, in small letters and without small words such as
+  "by", "the" and "der", for example `tab-participants-grade`. In the clean editing view, which hides the
+  anchors, the extension writes the anchor into the file after the view
+  wrote the link there.
 - The word of the link stays as it is written, for example "Table" or
-  "Tabelle"; the command takes the word of the last link of the same kind in
-  the file, else the language of VS Code.
+  "Tabelle"; `/ref` takes the word of the last link of the same kind in the
+  file, else the word of the language of VS Code (German or English).
 - GitHub shows the link with its number, and a click on it goes to the
   anchor. The clean editing view hides the anchors
-  ([R-TEXT-009](#r-text-009)).
+  ([R-TEXT-009](#r-text-009)); a file with an anchor opens in it, as a file
+  with notes. `/source` and `/cite`, which add a source and cite it, are
+  commands of nimblescape Markdown Paper.
 
 ### R-XREF-002
 
@@ -2110,13 +2129,19 @@ requirements above follow them.
     paper project, and `markdownnotes format` stays the command for notes
     only. In VS Code, Markdown Notes stays the one default formatter of
     Markdown, and Markdown Paper adds its steps through the API.
-35. **Links to figures and tables** ([R-XREF-001](#r-xref-001),
-    [R-XREF-002](#r-xref-002), Hannes, 2026-10-30, 02:32 to 02:33):
-    `/figure` and `/table` are slash commands of Markdown Notes that insert a
-    link to a figure or a table ("technically it is a link to it"). The
-    anchor at the end of the caption line, the link text with the word and
-    the number, and the numbers from the formatter are the proposal of
-    02:33.
+35. **Entries by noun, references by /ref and /cite**
+    ([R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002),
+    [R-EDIT-008](#r-edit-008), Hannes, 2026-10-30, 02:32 to 02:47, decided
+    with the option "Entries by noun, /ref and /cite link"): the slash
+    commands named by a noun add an entry: `/figure` an image of the folder
+    as a figure, `/table` a table with its caption, and `/source` of
+    Markdown Paper a file of the folder `bib/` as a source of the reference
+    list. `/ref` adds a link to a figure or a table ("technically it is a
+    link to it"), and `/cite` of Markdown Paper a citation. The anchor at the
+    end of the caption line, the link text with the word and the number, and
+    the numbers from the formatter are the proposal of 02:33. The other
+    choice was the links by noun (`/figure`, `/table`, `/source`) and the
+    entries by `/addfigure`, `/addtable` and `/addsource`.
 
 ---
 

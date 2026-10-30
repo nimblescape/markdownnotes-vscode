@@ -41,11 +41,12 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Filters of the side view](#filters-of-the-side-view) | side view | available | [R-SIDE-008](requirements.md#r-side-008) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-SIDE-003](requirements.md#r-side-003), [R-EDIT-003](requirements.md#r-edit-003), [R-EDIT-006](requirements.md#r-edit-006) |
 | [Todo notes](#todo-notes) | text editor, side view | available | [R-NOTE-008](requirements.md#r-note-008) |
-| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/date`, `/time`, `/user`: available; `/figure`, `/table`: planned; commands of other extensions, such as `/source` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
+| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/ref`, `/date`, `/time`, `/user`: available; commands of other extensions, such as `/source` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
+| [Figures, tables and links to them](#figures-tables-and-links-to-them) | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
 | Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
@@ -355,6 +356,9 @@ the file. The line breaks, the cursor, the word moves, the search, the copy
 and Undo count only the characters of the text. Each change in the view goes
 into the file at once, and each note stays at its text:
 
+- The view also hides the anchors of the figures and the tables, for example
+  `<a id="tab-grades"></a>`
+  ([Figures, tables and links to them](#figures-tables-and-links-to-them)).
 - While the side view shows the footnotes, the view also hides the
   definition of each standard footnote that has a reference
   ([Footnotes in the side view](#footnotes-in-the-side-view)); the reference,
@@ -680,14 +684,57 @@ commands.
 | `/note` | Adds a note to the selected text. Select the text, type `/`: VS Code replaces the selected text with the slash, and `/note` puts the text back, selects it and opens the editor of the new note in the side view. The list shows `/note` only after a slash that replaced selected text. |
 | `/todo` | Adds a [todo note](#todo-notes): to the selected text, as `/note`, or else to the sentence before the command, from the end of the sentence before it (`.`, `!` or `?`) in the same paragraph, or from the start of the paragraph. It removes the command with the space before it. The list shows `/todo` only where a note can highlight the sentence. |
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
+| `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as an image alone in its paragraph, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
+| `/table` | Adds a table: its caption line `Table: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
+| `/ref` | Adds a link to a figure or a table of the file, for example `[Table 1](#tab-grades)`: lists them by their numbers and captions. A figure or a table without an anchor gets one first. The list shows `/ref` only in a file with figures or tables, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
 | `/user` | Inserts your GitHub login, for example `hannes`, the name that your notes give their author. The list shows the login. Without a sign-in, the list shows "Sign in with GitHub": VS Code asks you to sign in, and the login follows ([GitHub sign-in](#github-sign-in)). |
 
-`/figure` and `/table`, which insert a link to a figure or a table of the
-file, are planned ([R-XREF-001](requirements.md#r-xref-001)). Other
-extensions add their own slash commands after these, for example `/source`
-and `/research` of nimblescape Markdown Paper for the sources of a paper.
+The commands named by a noun add an entry, and `/ref` adds a reference to
+it ([decision 35](requirements.md#decisions)). Other extensions add their own
+slash commands after these, for example `/source` and `/cite` of nimblescape
+Markdown Paper, which add a source of the folder `bib/` and a citation of it.
+
+## Figures, tables and links to them
+
+A figure is an image that stands alone in its paragraph; its caption is the
+text of the image. A table has a caption: a paragraph that starts with
+`Table:` directly before it. A link to a figure or a table goes to its
+anchor, which stands at the end of the line of its image or its caption:
+
+```markdown
+![Plan of the study](images/plan.png)<a id="fig-plan-study"></a>
+
+Table: Participants by grade<a id="tab-participants-grade"></a>
+
+| Grade | Participants |
+| ----- | ------------ |
+| 5     | 12           |
+
+As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
+```
+
+- `/figure` and `/table` add the figure and the table; `/ref` adds the link
+  ([Slash commands](#slash-commands)). `/ref` gives a figure or a table
+  without an anchor an anchor with up to three words of its caption, in small
+  letters and without small words such as "by" and "the", for example
+  `tab-participants-grade`.
+- The text of a link is a word and a number. The word stays as you write it,
+  for example "Tabelle" in a German text; `/ref` takes the word of the last
+  link of the same kind in the file, or else the word of the language of VS
+  Code (German or English).
+- The formatter writes the number of each link anew from the order of the
+  figures and the tables in the file, so that a moved table keeps the right
+  number in every link ([Formatter](#formatter)). A link in a code block or a
+  code span, and a link to an anchor that the file does not have, stay as
+  they are.
+- The clean editing view hides the anchors, and a file with an anchor opens
+  in it ([Clean editing view](#clean-editing-view)).
+- GitHub and the Markdown preview show the link with its number, and a click
+  on it goes to the figure or the table. The captions themselves have no
+  number in GitHub and the preview; nimblescape Markdown Paper numbers them
+  in the PDF of a paper, for example "Table 1: Participants by grade".
 
 ## Edit an answer
 
@@ -895,6 +942,9 @@ notes keeps its text on a save. It changes:
 - Each start marker of a note starts with `<wbr>`, and a note without a start
   marker gets one at the start of the text of its block, so that GitHub
   shows the paragraph whole and every note has its highlight.
+- The number of each link to a figure or a table follows the order of the
+  figures and the tables in the file
+  ([Figures, tables and links to them](#figures-tables-and-links-to-them)).
 
 It keeps code blocks, HTML and comments (also the comment of the format of
 the notes), a front matter, math blocks (`$$`), containers (`:::`), headings

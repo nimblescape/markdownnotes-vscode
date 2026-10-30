@@ -82,6 +82,15 @@ The first version.
   the word before it, in the editor of the side view, `/date`, `/time` and
   `/user` for the GitHub login of the user, in the list
   of suggestions of VS Code; Tab or Enter takes the chosen command.
+- Figures, tables and links to them: `/figure` inserts a chosen image of the
+  workspace as a figure, an image alone in its paragraph with its caption,
+  `/table` a table after its caption line `Table: Caption`, and `/ref` a
+  link to a figure or a table of the file, for example
+  `[Table 1](#tab-grades)`, after it gave the target an anchor
+  `<a id="tab-grades"></a>` at the end of the line of its image or its
+  caption. The formatter writes the number of each link from the order of
+  the figures and the tables in the file, and the clean editing view hides
+  the anchors.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side
@@ -131,8 +140,8 @@ The first version.
   (setting `nimblescape.markdownNotes.formatOnSave`): each paragraph on one line with its hard line
   breaks, aligned columns of the tables, no white space at the end of a line,
   one blank line between blocks, one line break at the end of the file,
-  `<wbr>` before each start marker, and a start marker for each note without
-  one. It keeps code blocks, HTML, a front matter, math, containers and the
+  `<wbr>` before each start marker, a start marker for each note without
+  one, and the numbers of the links to figures and tables. It keeps code blocks, HTML, a front matter, math, containers and the
   notes, and keeps the text as it was when the preview would show it
   differently.
 - The formatter on the command line for programs and AI agents: the command

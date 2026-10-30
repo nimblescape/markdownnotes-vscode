@@ -280,6 +280,8 @@ export interface CleanMirror {
   toReal(document: vscode.Uri, position: vscode.Position, after?: boolean): vscode.Position | undefined;
   cleanEditorOf(real: vscode.Uri): vscode.TextEditor | undefined;
   toClean(real: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
+  /** settled waits until the changes of a clean document are in the document of its file. */
+  settled?(document: vscode.Uri): Promise<void>;
 }
 
 /**

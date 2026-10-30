@@ -72,6 +72,20 @@ describe('the paragraphs', () => {
   });
 });
 
+describe('the links to figures and tables', () => {
+  test('get the numbers of the figures and tables in the order of the text (R-XREF-002)', () => {
+    const text = [
+      'As [Figure 2](#fig-b) and\n[Figure 1](#fig-a) show.',
+      '',
+      '![Second](b.png)<a id="fig-b"></a>',
+      '',
+      '![First](a.png)<a id="fig-a"></a>',
+      '',
+    ].join('\n');
+    expect(format(text)).toBe('As [Figure 1](#fig-b) and [Figure 2](#fig-a) show.\n\n![Second](b.png)<a id="fig-b"></a>\n\n![First](a.png)<a id="fig-a"></a>\n');
+  });
+});
+
 describe('the tables', () => {
   test('get aligned columns after the alignment of their delimiter row', () => {
     expect(format('|a|b|c|d|\n|:-|-:|:-:|-|\n|long text|1|x|y|\n')).toBe(

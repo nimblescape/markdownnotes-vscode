@@ -2,7 +2,7 @@
 // Tests in a real VS Code (npm run test:vscode, .vscode-test.mjs): mocha runs them in the extension host. They open
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
-// (R-SIDE-001, R-GEN-011), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
+// (R-SIDE-001, R-GEN-011), the link of /ref in the clean editing view (R-XREF-001), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
@@ -220,6 +220,29 @@ describe('nimblescape Markdown Notes', () => {
     await waitFor(() => (vscode.window.activeTextEditor?.document === real ? true : undefined), 'the text editor of the file');
     await new Promise((resolve) => setTimeout(resolve, 500));
     assert.equal(vscode.window.activeTextEditor?.document, real);
+  });
+
+  it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nSee .\n\nTable: People\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n'));
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const at = view.document.positionAt(view.document.getText().indexOf('See ') + 'See '.length);
+    view.selection = new vscode.Selection(at, at);
+    // The command shows the list of the figures and the tables; the test takes its first entry.
+    let done = false;
+    const run = Promise.resolve(vscode.commands.executeCommand(commandOf('slashRef'), view.document.uri)).then(() => (done = true));
+    while (!done) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
+    }
+    await run;
+    const real = await waitFor(
+      () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('<a id="tab-people"></a>')),
+      'the anchor in the file',
+    );
+    assert.ok(real.getText().includes('See [Table 1](#tab-people).\n\nTable: People<a id="tab-people"></a>\n'), real.getText());
+    await waitFor(() => (view.document.getText().includes('See [Table 1](#tab-people).\n\nTable: People\n') ? true : undefined), 'the hidden anchor in the view');
   });
 
   it('hides the definitions of the standard footnotes in the clean editing view while the side view shows them (R-TEXT-009, R-FOOT-001)', async () => {

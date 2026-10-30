@@ -188,7 +188,7 @@ export class FakeCompletionItem {
 
 /** FakeCompletionProvider stands for a vscode.CompletionItemProvider. */
 interface FakeCompletionProvider {
-  provideCompletionItems(document: FakeDocument, position: FakePosition): FakeCompletionItem[] | undefined;
+  provideCompletionItems(document: FakeDocument, position: FakePosition): FakeCompletionItem[] | undefined | Promise<FakeCompletionItem[] | undefined>;
 }
 
 /** FakeCodeActionProvider stands for a vscode.CodeActionProvider. */
@@ -228,6 +228,20 @@ export class FakeWorkspaceEdit {
 
   replace(uri: FakeUri, range: FakeRange, text: string): void {
     this.replacements.push({ uri, range, text });
+  }
+
+  insert(uri: FakeUri, position: FakePosition, text: string): void {
+    this.replacements.push({ uri, range: new FakeRange(position.line, position.character, position.line, position.character), text });
+  }
+}
+
+/** FakeSnippetString stands for a vscode.SnippetString. */
+export class FakeSnippetString {
+  constructor(readonly value: string) {}
+
+  /** text returns the text that VS Code inserts for the snippet: each placeholder with its default text. */
+  get text(): string {
+    return this.value.replace(/\$\{\d+:((?:\\.|[^}\\])*)\}|\$\d+/g, (_whole, text: string | undefined) => text ?? '').replace(/\\([\\$}])/g, '$1');
   }
 }
 
@@ -404,6 +418,16 @@ export class FakeEditor {
   }
 
   /**
+   * insertSnippet inserts the text of a snippet at a position, as VS Code does, and puts the cursor after it.
+   * @param snippet - The snippet.
+   * @param position - The position.
+   */
+  async insertSnippet(snippet: FakeSnippetString, position: FakePosition): Promise<boolean> {
+    await this.edit((builder) => builder.insert(position, snippet.text));
+    return true;
+  }
+
+  /**
    * linesOf returns the first lines of the ranges of a decoration type.
    * @param type - The decoration type.
    */
@@ -522,6 +546,11 @@ export class Fake {
   /** warnings records the questions of the extension; the answer is the item that the user picks, or undefined. */
   warnings: string[] = [];
   answer: string | undefined;
+  /** picks records the items of each quick pick, and pick chooses the answer, the first item by default. */
+  picks: { label: string; description?: string }[][] = [];
+  pick: (items: { label: string; description?: string }[]) => unknown = (items) => items[0];
+  /** found are the files that findFiles finds. */
+  found: FakeUri[] = [];
   /** updates records the changes of settings: the key, the value and the target. */
   updates: { key: string; value: unknown; target: number }[] = [];
   /** directories holds the paths of the folders of the file system. */
@@ -611,7 +640,9 @@ export class Fake {
       FilePermission: { Readonly: 1 },
       FileChangeType: { Changed: 1, Created: 2, Deleted: 3 },
       ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
+      SnippetString: FakeSnippetString,
       env: {
+        language: 'en',
         uriScheme: 'vscode',
         openExternal: async (uri: FakeUri) => {
           this.external.push(uri.toString());
@@ -659,6 +690,10 @@ export class Fake {
         },
       },
       window: {
+        showQuickPick: async (items: { label: string; description?: string }[]) => {
+          this.picks.push(items);
+          return this.pick(items);
+        },
         showErrorMessage: async (message: string) => {
           this.errors.push(message);
         },
@@ -741,6 +776,7 @@ export class Fake {
         },
         openTextDocument: (uri: FakeUri) => this.openTextDocument(uri),
         applyEdit: (edit: FakeWorkspaceEdit) => this.applyEdit(edit),
+        findFiles: async () => this.found,
         registerFileSystemProvider: (scheme: string, provider: FakeFileSystemProvider) => {
           this.providers.set(scheme, provider);
           return this.registration();
@@ -953,7 +989,13 @@ export class Fake {
    * @param position - The position of the cursor.
    */
   complete(document: FakeDocument, position: FakePosition): FakeCompletionItem[] {
-    return (this.completions.get(document.languageId) ?? []).flatMap(({ provider }) => provider.provideCompletionItems(document, position) ?? []);
+    return (this.completions.get(document.languageId) ?? []).flatMap(({ provider }) => {
+      const items = provider.provideCompletionItems(document, position);
+      if (items instanceof Promise) {
+        throw new Error('The provider waits for the document of a file, which the fake always has open.');
+      }
+      return items ?? [];
+    });
   }
 
   /**

@@ -34,6 +34,7 @@
 
 import type { Token } from 'markdown-it';
 import { frontMatterEnd, newerFormat } from '../notes/doctype';
+import { numberLinks } from '../notes/figures';
 import { before, parse, read } from '../notes/notes';
 import { breakText, markerText, noteCloseType, noteOpenType } from '../notes/syntax';
 
@@ -522,7 +523,8 @@ const signature = (lines: readonly string[]): string =>
 
 /**
  * formatMarkdown returns the formatted lines of a Markdown text: a start marker for each note without one, `<wbr>`
- * before each start marker, the start markers at the start of a line joined to their paragraphs, each paragraph on one line
+ * before each start marker, the start markers at the start of a line joined to their paragraphs, the number of each link
+ * to a figure or a table from the order of the figures and tables, each paragraph on one line
  * with its hard line breaks, the tables aligned, no white space at the end of a line, one blank line between blocks
  * and around the ATX headings, and one line break at the end. Code blocks, blocks of HTML, the front matter, blocks of
  * math, containers and notes stay as they are. When the preview would read the formatted text with other blocks or
@@ -535,7 +537,7 @@ export function formatMarkdown(lines: readonly string[]): string[] {
   if (newerFormat(lines) !== undefined) {
     return [...lines];
   }
-  const repaired = addMarkers(repairMarkers(lines));
+  const repaired = numberLinks(addMarkers(repairMarkers(lines)));
   const formatted = formatLines(repaired);
   return signature(formatted) === signature(repaired) ? formatted : repaired;
 }

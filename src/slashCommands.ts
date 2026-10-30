@@ -29,6 +29,18 @@
  * (Hannes, 2026-10-29: "/user insert the current user name"); without a
  * sign-in, it asks for the sign-in first.
  *
+ * `/figure` and `/table` add an entry, and `/ref` a reference to it
+ * ([R-XREF-001](../docs/requirements.md#r-xref-001), Hannes, 2026-10-30:
+ * "there is also the /table and /figure slash commands, these are commands in
+ * markdownnotes", "technically it is a link to it"; decided with the option
+ * "Entries by noun, /ref and /cite link"). On a line of their own, `/figure`
+ * lists the images of the workspace and inserts the chosen one as a figure,
+ * with its caption selected for typing, and `/table` inserts a table of two
+ * columns with its caption line `Table:`. In text, `/ref` lists the figures
+ * and tables of the file and inserts a link to the chosen one, such as
+ * `[Table 1](#tab-grades)`, after it gave it an anchor at the end of its line
+ * ([src/notes/figures.ts](notes/figures.ts)).
+ *
  * Other extensions add slash commands through the API of the extension
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example `/source` of
  * nimblescape Markdown Paper (Hannes, 2026-10-29, 22:15: "it is also the slash
@@ -38,6 +50,7 @@
 import * as vscode from 'vscode';
 import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
+import { anchorName, anchorText, codeLines, defaultWord, findItems, numberOf, wordOf } from './notes/figures';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -48,11 +61,43 @@ export const slashCommandIds = {
   note: 'nimblescape.markdownNotes.slashNote',
   footnote: 'nimblescape.markdownNotes.slashFootnote',
   user: 'nimblescape.markdownNotes.slashUser',
+  figure: 'nimblescape.markdownNotes.slashFigure',
+  ref: 'nimblescape.markdownNotes.slashRef',
   other: 'nimblescape.markdownNotes.slashOther',
 };
 
 /** ownLabels are the slash commands of the notes, which no other extension can add. */
-const ownLabels = ['/note', '/todo', '/footnote', '/date', '/time', '/user'];
+const ownLabels = ['/note', '/todo', '/footnote', '/figure', '/table', '/ref', '/date', '/time', '/user'];
+
+/** imageFiles are the files that `/figure` lists: the images that the Markdown preview and GitHub show. */
+export const imageFiles = '**/*.{png,jpg,jpeg,gif,svg,webp,avif}';
+
+/** tableSnippet is the table that `/table` inserts: its caption line, a blank line, and a table of two columns. */
+export const tableSnippet = 'Table: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0';
+
+/**
+ * snippetText escapes a text for a snippet, so that VS Code inserts it as it is.
+ * @param text - The text.
+ */
+const snippetText = (text: string): string => text.replace(/[\\$}]/g, (character) => `\\${character}`);
+
+/**
+ * relativePath returns the path of a file from a folder for a link of Markdown, with `/` and each part encoded, also
+ * the parentheses, which end a link.
+ * @param folder - The path of the folder.
+ * @param file - The path of the file.
+ */
+export function relativePath(folder: string, file: string): string {
+  const from = folder.split('/').filter((part) => part.length > 0);
+  const to = file.split('/').filter((part) => part.length > 0);
+  let shared = 0;
+  while (shared < from.length && shared < to.length - 1 && from[shared] === to[shared]) {
+    shared++;
+  }
+  return [...from.slice(shared).map(() => '..'), ...to.slice(shared)]
+    .map((part) => (part === '..' ? part : encodeURIComponent(part).replace(/\(/g, '%28').replace(/\)/g, '%29')))
+    .join('/');
+}
 
 /** SlashCommand is a slash command that another extension adds (R-GEN-012), after the commands of the notes. */
 export interface SlashCommand {
@@ -135,6 +180,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       vscode.commands.registerCommand(slashCommandIds.note, (uri: vscode.Uri, range: vscode.Range, todo: boolean) => this.note(uri, range, todo)),
       vscode.commands.registerCommand(slashCommandIds.footnote, (uri: vscode.Uri) => this.footnote(uri)),
       vscode.commands.registerCommand(slashCommandIds.user, (uri: vscode.Uri) => this.user(uri)),
+      vscode.commands.registerCommand(slashCommandIds.figure, (uri: vscode.Uri) => this.figure(uri)),
+      vscode.commands.registerCommand(slashCommandIds.ref, (uri: vscode.Uri) => this.ref(uri)),
       vscode.commands.registerCommand(slashCommandIds.other, (uri: vscode.Uri, label: string) => this.other(uri, label)),
       vscode.authentication.onDidChangeSessions((event) => {
         if (event.provider.id === githubProvider) {
@@ -237,11 +284,42 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   }
 
   /**
-   * provideCompletionItems returns the slash commands for the slash before the cursor.
+   * loaded tells whether the file of a clean editing view is open as a document. VS Code closes the document of a file
+   * a while after no editor shows it, also while its clean editing view is open.
+   * @param document - The document.
+   */
+  private loaded(document: vscode.TextDocument): boolean {
+    const real = this.mirror?.realOf(document.uri);
+    return !real || vscode.workspace.textDocuments.some((candidate) => candidate.uri.toString() === real.toString());
+  }
+
+  /**
+   * load opens the file of a clean editing view as a document when VS Code closed it, so that `fileOf` finds it.
+   * @param document - The document.
+   */
+  private async load(document: vscode.TextDocument): Promise<void> {
+    const real = this.mirror?.realOf(document.uri);
+    if (real && !this.loaded(document)) {
+      await vscode.workspace.openTextDocument(real);
+    }
+  }
+
+  /**
+   * provideCompletionItems returns the slash commands for the slash before the cursor, after it opened the file of a
+   * clean editing view when VS Code closed it.
    * @param document - The document.
    * @param position - The position of the cursor.
    */
-  provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] | undefined {
+  provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.CompletionItem[]> {
+    return this.loaded(document) ? this.itemsAt(document, position) : this.load(document).then(() => this.itemsAt(document, position));
+  }
+
+  /**
+   * itemsAt returns the slash commands for the slash before the cursor.
+   * @param document - The document.
+   * @param position - The position of the cursor.
+   */
+  private itemsAt(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] | undefined {
     const line = document.lineAt(position.line).text;
     const replaced = this.replacedAt(document, position);
     const typed = replaced ? { slash: replaced.start.character, start: replaced.start.character } : typedAt(line, position.character);
@@ -251,7 +329,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     // The command replaces the slash and the typed letters, and a command without a text of its own also the spaces before it.
     const range = new vscode.Range(position.line, typed.slash, position.line, position.character);
     const removed = new vscode.Range(position.line, typed.start, position.line, position.character);
-    const item = (label: string, description: string, detail: string, kind: vscode.CompletionItemKind, replacing: vscode.Range, text: string): vscode.CompletionItem => {
+    const item = (label: string, description: string, detail: string, kind: vscode.CompletionItemKind, replacing: vscode.Range, text: string | vscode.SnippetString): vscode.CompletionItem => {
       const created = new vscode.CompletionItem({ label, description }, kind);
       created.detail = detail;
       created.range = replacing;
@@ -285,6 +363,19 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       const created = item('/footnote', 'Add Footnote', `The footnote [^${label}], in the editor of the side view`, vscode.CompletionItemKind.Reference, removed, '');
       created.command = { command: slashCommandIds.footnote, title: 'Add Footnote', arguments: [document.uri] };
       items.push(created);
+    }
+    // A figure and a table are blocks of their own: on a line of their own.
+    const found = !replaced ? this.fileOf(document) : undefined;
+    if (found && line.slice(0, typed.slash).trim() === '' && line.slice(position.character).trim() === '' && !codeLines(lines).has(position.line)) {
+      const figure = item('/figure', 'Add Figure', 'An image of the workspace as a figure, with its caption', vscode.CompletionItemKind.Function, range, '');
+      figure.command = { command: slashCommandIds.figure, title: 'Add Figure', arguments: [document.uri] };
+      items.push(figure, item('/table', 'Add Table', 'A table with its caption line "Table:"', vscode.CompletionItemKind.Function, range, new vscode.SnippetString(tableSnippet)));
+    }
+    // A link stands where a reference of a footnote can stand, in the text of a block.
+    if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && findItems(linesOf(found.file)).length > 0) {
+      const ref = item('/ref', 'Link a Figure or Table', 'A link to a figure or a table of the file', vscode.CompletionItemKind.Reference, range, '');
+      ref.command = { command: slashCommandIds.ref, title: 'Link a Figure or Table', arguments: [document.uri] };
+      items.push(ref);
     }
     const now = new Date();
     items.push(
@@ -333,6 +424,96 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const editor = [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
     if (editor) {
       await this.addFootnote(editor);
+    }
+  }
+
+  /**
+   * editorOf returns the text editor of a document, the active one first.
+   * @param uri - The URI of the document.
+   */
+  private editorOf(uri: vscode.Uri): vscode.TextEditor | undefined {
+    return [vscode.window.activeTextEditor, ...vscode.window.visibleTextEditors].find((candidate) => candidate?.document.uri.toString() === uri.toString());
+  }
+
+  /**
+   * figure inserts an image of the workspace as a figure for `/figure`, after VS Code removed the typed command: the user
+   * chooses the image, and its caption is selected for typing. Without images, the path is selected after the caption.
+   * @param uri - The URI of the document.
+   */
+  private async figure(uri: vscode.Uri): Promise<void> {
+    const editor = this.editorOf(uri);
+    if (editor) {
+      await this.load(editor.document);
+    }
+    const found = editor && this.fileOf(editor.document);
+    if (!editor || !found) {
+      return;
+    }
+    const folder = found.file.uri.path.replace(/\/[^/]*$/, '');
+    const files = await vscode.workspace.findFiles(imageFiles, '**/node_modules/**', 1000);
+    const paths = files.map((file) => relativePath(folder, file.path)).sort((a, b) => a.localeCompare(b));
+    let path = '${2:images/figure.png}';
+    if (paths.length > 0) {
+      const chosen = await vscode.window.showQuickPick(
+        paths.map((relative) => ({ label: decodeURIComponent(relative.split('/').at(-1)!), description: decodeURIComponent(relative), relative })),
+        { placeHolder: 'The image of the new figure', matchOnDescription: true },
+      );
+      if (!chosen) {
+        return;
+      }
+      path = snippetText(chosen.relative);
+    }
+    await editor.insertSnippet(new vscode.SnippetString(`![\${1:Caption}](${path})`), editor.selection.active);
+  }
+
+  /**
+   * ref inserts a link to a figure or a table of the file for `/ref`, after VS Code removed the typed command: the user
+   * chooses the figure or the table, which gets an anchor at the end of its line when it has none. In the clean editing
+   * view, which hides the anchors, the anchor goes into the file after the view wrote the link into it.
+   * @param uri - The URI of the document.
+   */
+  private async ref(uri: vscode.Uri): Promise<void> {
+    const editor = this.editorOf(uri);
+    if (editor) {
+      await this.load(editor.document);
+    }
+    const found = editor && this.fileOf(editor.document);
+    if (!editor || !found) {
+      return;
+    }
+    const lines = linesOf(found.file);
+    const items = findItems(lines);
+    const wordFor = (kind: 'figure' | 'table'): string => wordOf(lines, kind) ?? defaultWord(kind, vscode.env.language ?? 'en');
+    const chosen = await vscode.window.showQuickPick(
+      items.map((target, index) => ({ label: `${wordFor(target.kind)} ${numberOf(items, target)}`, description: target.caption, index })),
+      { placeHolder: 'The figure or table to link', matchOnDescription: true },
+    );
+    if (!chosen) {
+      return;
+    }
+    const target = items[chosen.index];
+    const name = target.anchor ?? anchorName(target, items);
+    const link = `[${chosen.label}](#${name})`;
+    const at = editor.selection.active;
+    const clean = this.mirror?.realOf(editor.document.uri) !== undefined;
+    await editor.edit((builder) => {
+      builder.insert(at, link);
+      if (!target.anchor && !clean) {
+        builder.insert(new vscode.Position(target.line, lines[target.line].trimEnd().length), anchorText(name));
+      }
+    });
+    const after = new vscode.Position(at.line, at.character + link.length);
+    editor.selection = new vscode.Selection(after, after);
+    if (!target.anchor && clean) {
+      // The view hides the anchor, so it goes into the file, after the view wrote the link there.
+      await this.mirror?.settled?.(editor.document.uri);
+      const current = linesOf(found.file);
+      const same = findItems(current).filter((other) => other.kind === target.kind)[numberOf(items, target) - 1];
+      if (same && !same.anchor) {
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(found.file.uri, new vscode.Position(same.line, current[same.line].trimEnd().length), anchorText(name));
+        await vscode.workspace.applyEdit(edit);
+      }
     }
   }
 

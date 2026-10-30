@@ -60,6 +60,20 @@ highlights in the text editor and the Markdown preview. The
     > 3. Shared notes
     > ```
 
+## Figures and tables
+
+[Figure 1](#fig-participants-study-grade) shows the participants of the study by their grades, and [Table 1](#tab-participants-grade) gives their numbers. `/figure` and `/table` add a figure and a table, and `/ref` adds a link to one of them. The formatter writes the numbers of the links from the order in the file.
+
+![Participants of the study by grade](images/participants.svg)<a id="fig-participants-study-grade"></a>
+
+Table: Participants by grade<a id="tab-participants-grade"></a>
+
+| Grade | Participants |
+| ----- | ------------ |
+| 5     | 12           |
+| 6     | 15           |
+| 7     | 9            |
+
 ## Tasks
 
 - Update the user guide.

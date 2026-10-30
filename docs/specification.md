@@ -113,8 +113,9 @@ form of the notes in a file for programs and AI agents, and
 
 - **Clean editing view:** a Markdown file with notes, or with the comment of
   the format, always opens in a text editor of its text without the notes
-  markup: no start markers, references, definitions of notes or comment of
-  the format, and no blocks that other extensions hide. Line breaks, cursor,
+  markup: no start markers, references, definitions of notes, comment of
+  the format or anchors of figures and tables, and no blocks that other
+  extensions hide. Line breaks, cursor,
   word moves, search, copy and Undo count only the text. Each change goes
   into the file at once and keeps every note at its text; a deleted text
   never deletes a note; a save saves the file; the preview and relative
@@ -193,8 +194,10 @@ form of the notes in a file for programs and AI agents, and
   user saw, and writes nothing when the file holds another one
   ([R-EDIT-007](requirements.md#r-edit-007)).
 - **Slash commands** in the text editor, also in the clean editing view, with
-  Tab completion: `/note`, `/todo`, `/footnote`, `/date`, `/time`, `/user`;
-  `/figure` and `/table` planned; commands of other extensions after them
+  Tab completion: `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/ref`,
+  `/date`, `/time`, `/user`; commands of other extensions after them, such as
+  `/source` and `/cite` of Markdown Paper. A command named by a noun adds an
+  entry, `/ref` and `/cite` add a reference
   ([R-EDIT-008](requirements.md#r-edit-008)).
 
 ## 8. Markdown preview
@@ -219,8 +222,8 @@ form of the notes in a file for programs and AI agents, and
   ([R-FMT-001](requirements.md#r-fmt-001)).
 - **Changes:** one line per paragraph with its hard line breaks, aligned
   tables, no white space at line ends, one blank line between blocks,
-  `<wbr>` before each start marker and a start marker for each note;
-  planned: the numbers of the links to figures and tables
+  `<wbr>` before each start marker, a start marker for each note, and the
+  numbers of the links to figures and tables
   ([R-FMT-002](requirements.md#r-fmt-002)).
 - **Keeps** code blocks, HTML, front matter, math, containers, setext
   headings and the answers of the notes, and keeps the text when the result
@@ -242,12 +245,13 @@ form of the notes in a file for programs and AI agents, and
   Footnote" ([R-FOOT-004](requirements.md#r-foot-004) to
   [R-FOOT-006](requirements.md#r-foot-006)).
 
-## 11. Figures and tables, planned
+## 11. Figures and tables
 
-- `/figure` and `/table` insert a link to a figure or a table of the file,
-  such as `[Table 1](#tab-grades)`, and give it an anchor at the end of its
-  caption line; a table has its caption in a `Table:` paragraph directly
-  before it; the clean editing view hides the anchors
+- `/figure` inserts a chosen image of the workspace as a figure with its
+  caption, `/table` a table with its caption line `Table:` before it, and
+  `/ref` a link to a figure or a table of the file, such as
+  `[Table 1](#tab-grades)`, after it gave the target an anchor at the end of
+  its caption line. The clean editing view hides the anchors
   ([R-XREF-001](requirements.md#r-xref-001)).
 - The formatter writes the number of each link from the order in the file;
   Markdown Paper can number by the rules of its layout

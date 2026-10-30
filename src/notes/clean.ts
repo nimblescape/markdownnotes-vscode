@@ -9,7 +9,8 @@
  * markup at all in the document". VS Code counts every character of a line
  * for the line breaks and the cursor, also a hidden one, so the text editor
  * edits a text without the markup: without the start markers, the references,
- * the definitions of the notes and the comment of the format, and the blocks
+ * the definitions of the notes, the comment of the format, the anchors of the
+ * figures and tables ([R-XREF-001](../../docs/requirements.md#r-xref-001)), and the blocks
  * that other extensions hide through the API of the extension
  * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), such as the database of
  * the sources of nimblescape Markdown Paper at the end of a file. While the side
@@ -29,15 +30,16 @@
  */
 
 import { findDoctype, frontMatterEnd } from './doctype';
+import { anchorsOf } from './figures';
 import { firstReferences, readFootnotes } from './footnotes';
 import { type Note, type Range, read, readNotes } from './notes';
 
 /**
- * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note are in a line of
- * text, the definition of a note, the definition of a standard footnote, the comment of the format and a block of
- * another extension are whole lines.
+ * HiddenKind is the kind of a hidden part of the file: the start marker and the reference of a note and the anchor of a
+ * figure or a table are in a line of text, the definition of a note, the definition of a standard footnote, the
+ * comment of the format and a block of another extension are whole lines.
  */
-export type HiddenKind = 'marker' | 'reference' | 'definition' | 'footnote' | 'doctype' | 'block';
+export type HiddenKind = 'marker' | 'reference' | 'anchor' | 'definition' | 'footnote' | 'doctype' | 'block';
 
 /** Block is a block of whole lines of a file that another extension hides, from its first to its last line. */
 export interface Block {
@@ -152,7 +154,8 @@ const blocksOf = (lines: readonly string[], finder: BlockFinder | undefined): Bl
 
 /**
  * project returns the clean text of the text of a file: without the start markers, the references and the definitions
- * of its notes, without the comment of the format, and without the blocks of other extensions; with the option
+ * of its notes, without the comment of the format, the anchors of the figures and tables, and the blocks of other
+ * extensions; with the option
  * `footnotes`, also without the definitions of the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
  * around it keep one blank line between them; at the end of the file it goes with the blank lines before it. Only a
  * note or a footnote with a reference is hidden: the other parts of the form of a note, and a definition without a
@@ -212,6 +215,9 @@ export function project(text: string, options: Options = {}): Projection {
   }
   for (const { definition } of footnotes) {
     parts.push(block('footnote', definition.first, definition.last));
+  }
+  for (const anchor of anchorsOf(lines)) {
+    parts.push({ kind: 'anchor', start: starts[anchor.line] + anchor.start, end: starts[anchor.line] + anchor.end });
   }
   if (doctype) {
     parts.push(block('doctype', doctype.start, doctype.end));
@@ -333,7 +339,7 @@ export interface Result {
 /**
  * applyClean returns the new text of a file for an edit of its clean text: the text from `start` to `end` of the clean
  * text becomes `insert`. The visible characters of that part go, and the hidden parts in it stay. Typed text goes
- * before the first start marker there, so that it stays out of a highlight that starts there and of one that ends
+ * before the first start marker or anchor there, so that it stays out of a highlight that starts there and of one that ends
  * there; the new text of a replacement goes after the hidden parts at its start and before the hidden parts at its
  * end, so that it stays in a highlight whose text it replaces. New text goes before the blocks of other extensions,
  * which belong at the end of the file. Typed text that continues the text of a highlight at
@@ -356,7 +362,7 @@ export function applyClean(projection: Projection, start: number, end: number, i
   const prefix = text.slice(0, beforeRun(projection, start));
   const suffix = text.slice(afterRun(projection, end));
   const pieces = kept.map((part) => text.slice(part.start, part.end));
-  const firstMarker = kept.findIndex((part) => part.kind === 'marker');
+  const firstMarker = kept.findIndex((part) => part.kind === 'marker' || part.kind === 'anchor');
   const firstBlock = kept.findIndex((part) => part.kind === 'block');
   // A replacement takes the place of the old text: after the parts at its start and before the parts at its end.
   const natural = end > start ? projection.at.filter((at) => at === start).length : continues ? 0 : firstMarker < 0 ? kept.length : firstMarker;
@@ -404,8 +410,8 @@ const moved = (offset: number, kind: 'marker' | 'reference', start: number, end:
  * of each note at their places in the new clean text, a highlight that a paragraph break splits ending before the
  * break, and the definitions of the notes after the outermost block of their references, in the order of the
  * references, and then the hidden definitions of the standard footnotes after the outermost block of their first
- * references; the comment of the format stays at its place at the top, and the blocks of other extensions go to the
- * end of the file, in their order. A highlight whose text the edit replaces
+ * references; the anchors of the figures and tables stay at their text; the comment of the format stays at its place
+ * at the top, and the blocks of other extensions go to the end of the file, in their order. A highlight whose text the edit replaces
  * becomes the new text; one whose text the edit deletes becomes a point, which the checks report.
  * @param projection - The projection of the file.
  * @param start - The offset of the start of the edit in the clean text.
@@ -444,6 +450,11 @@ export function rebuild(projection: Projection, start: number, end: number, inse
       inline.push({ at: open, order: point ? 1 : 3, text: projection.text.slice(offset(note.marker!.start), offset(note.marker!.end)) });
     }
     definitions.set(note.label, lines.slice(note.start.line, note.end.line + 1).join('\n'));
+  }
+  for (const anchor of anchorsOf(lines)) {
+    // An anchor stays after the references and the start markers at its place.
+    const at = moved(toClean(projection, starts[anchor.line] + anchor.start), 'reference', start, end, insert.length);
+    inline.push({ at, order: 4, text: lines[anchor.line].slice(anchor.start, anchor.end) });
   }
   const footnotes = new Map<string, string>();
   if (projection.footnotes.length > 0) {

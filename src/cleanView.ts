@@ -280,11 +280,22 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * hasMarkup tells whether a text has the markup of notes: a start marker, a reference or a definition of a note, or the
-   * comment of the format; or a block that another extension hides.
+   * comment of the format; an anchor of a figure or a table; or a block that another extension hides.
    * @param text - The text.
    */
   private hasMarkup(text: string): boolean {
     return project(text, { blocks: this.blocks }).hidden.length > 0;
+  }
+
+  /**
+   * settled waits until the changes of a clean document are written into the document of its file, so that an edit of
+   * the file finds the text of the view.
+   * @param document - The URI of the clean document.
+   */
+  async settled(document: vscode.Uri): Promise<void> {
+    const key = document.toString();
+    const mirror = this.ready.get(key) ?? (await this.mirrors.get(key));
+    await mirror?.queue;
   }
 
   /**
