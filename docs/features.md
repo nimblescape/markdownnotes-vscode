@@ -16,15 +16,16 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 103 requested features, 78 are built, among them the clean editing view
+Of 108 requested features, 79 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
-Paper, and the figures and tables with the links to them. 6 features are
-planned but not built: the features of the section
-[Planned features](#planned-features). Three need Hannes: the npm package with
+Paper, and the figures, tables and sections with the links to them. 9
+features are planned but not built: the features of the section
+[Planned features](#planned-features). Four need Hannes: the npm package with
 the first release, a setting of VS Code for the width of the text editor
-in Zen Mode, and the new name of the repository. 11 requests were replaced or
+in Zen Mode, the new name of the repository, and the question whether the
+comment of the format becomes front matter. 11 requests were replaced or
 dropped by later decisions of Hannes; each row names the decision. 5 requests
 moved to nimblescape Markdown Paper: the citations and the sources
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions)).
@@ -126,6 +127,7 @@ breaks and the cursor next to the hidden markers.
 | `/figure` and `/table`: "these are commands in markdownnotes" | 10-30 02:32 | [R-XREF-001](requirements.md#r-xref-001), [R-EDIT-008](requirements.md#r-edit-008) | Built | Step 50. Both on an empty line outside code; `/table` inserts a table of two columns after its caption line `Table: Caption` |
 | `/figure` lists the images of the folder: "take on the first idea of the "/figure" command looking up all figures in the folder" | 10-30 02:45 | [R-XREF-001](requirements.md#r-xref-001) | Built | The images of the workspace (PNG, JPEG, GIF, SVG, WebP, AVIF) by their paths from the folder of the file; the chosen one becomes `![Caption](path)` with the caption selected |
 | A link to a figure or a table: "it adds a references to the figure or table in the text", "technically it is a link to it" | 10-30 02:33 | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) | Built | `/ref` lists the figures and tables of the file and inserts `[Table 1](#tab-grades)`; a figure or table without an anchor first gets `<a id="tab-…"></a>` at the end of its caption line. The formatter writes the numbers of the links from the order in the file; the clean editing view hides the anchors |
+| `/ref` for sections: "/ref also adds chapter numbers" | 10-30 02:47, 03:19 | [R-XREF-003](requirements.md#r-xref-003) | Built | Step 51: `[Chapter 2.1](#sec-methods)` with an anchor at the end of the heading; the chapters are the headings of the highest level that more than one heading has |
 | Which command adds an entry and which adds a reference: "lets rethink which command adds an entry in the directory which adds a reference to it" | 10-30 02:45, 02:47 | [R-XREF-001](requirements.md#r-xref-001) | Built | [Decision 35](requirements.md#decisions): the commands named by a noun add an entry, `/ref` and `/cite` add a reference |
 | `/todo` at the start of the text of a new note in the side view | 10-29 17:58 | [R-NOTE-008](requirements.md#r-note-008) | Dropped | The part "in the side view" of [decision 30](requirements.md#decisions): "all slash commands are intended for the text editor" (18:40) |
 
@@ -164,6 +166,7 @@ need Hannes after the merge of
 | A start marker for every note, always with `<wbr>`, the color in the marker, the reference as the end marker | 10-28 20:09-20:24 | [R-NOTE-006](requirements.md#r-note-006) | Built | |
 | The comment of the format for AI agents, with a link to the specification | 10-28 16:25 | [R-NOTE-007](requirements.md#r-note-007) | Built | |
 | The comment only with a change or a save, with the version `v1.0.0` as a semantic version | 10-29 07:36, 07:40 | [R-NOTE-007](requirements.md#r-note-007) | Built | |
+| The comment of the format as front matter: "shall our doctype be just additional frontmatter?" | 10-30 02:49 | [R-NOTE-007](requirements.md#r-note-007) | Needs Hannes | Recommendation of 03:03: keep the comment, because GitHub shows the front matter of a Markdown file as a table at the top of the page; the front matter holds the data of a paper |
 | An own formatter with format on save: tables, blank lines, one line per paragraph | 10-28 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Also [R-FMT-002](requirements.md#r-fmt-002), [R-FMT-003](requirements.md#r-fmt-003) |
 | Format on save only for files with notes | 10-29 06:37 | [R-FMT-001](requirements.md#r-fmt-001) | Built | Setting `formatOnSave` |
 | The formatter for agents on the command line, as an npm package | 10-28 18:03, 19:05 | [R-FMT-004](requirements.md#r-fmt-004) | Built | `npx -y @nimblescape/markdownnotes format` |
@@ -193,7 +196,7 @@ Footnote" are in the section [Planned features](#planned-features).
 
 ## Planned features
 
-6 features are in the specification and the plan, but not built. Steps 29
+9 features are in the specification and the plan, or proposed, but not built. Steps 29
 and 30 must come before the first release, because they change the format
 `v1.0.0`. Step 38, the clean editing view, comes before them, because the
 hidden form changes the markup that the clean view leaves out.
@@ -206,6 +209,9 @@ hidden form changes the markup that the clean view leaves out.
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28 | [R-SIDE-004](requirements.md#r-side-004) | 14, not started | Planned |
+| Marks in the source code and code blocks imported from them: "the extension shall allow to add marks into the source code", "a new slash command for that which "imports" a code block", "it is also part of the notes extension" | 10-30 02:58, 03:10 | proposal of 03:03: "Add Code Mark", `/listing` | after the choice of the form of the marks | Planned |
+| The formatter keeps the imported code blocks current: "the formatter assures the source code references / code blocks are uptodate" | 10-30 02:59 | proposal of 03:03 | with the marks | Planned |
+| Values of the front matter in the text: "anything from frontmatter can be references in the document" | 10-30 03:10 | proposal of 03:20: `/ref` inserts the value between hidden markers, and the formatter writes it anew | next | Planned |
 
 ## Moved to nimblescape Markdown Paper
 
@@ -232,15 +238,18 @@ side view, and ESLint.
 The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
 [decision 27](requirements.md#decisions)). The open work, in its order:
 
-1. Steps 29 and 30: the hidden form of the notes and its icon, before the
+1. The values of the front matter in the text, and the marks in the source
+   code with the code blocks imported from them, after Hannes chose the form
+   of the marks.
+2. Steps 29 and 30: the hidden form of the notes and its icon, before the
    first release, because it changes the markup that the clean editing view
    leaves out.
-2. The merge of
+3. The merge of
    [pull request #1](https://github.com/nimblescape/nimblescape-markdown-notes/pull/1),
    the new name of the repository, the first release and the npm package:
    these need Hannes. The rename comes before the first publish of the npm
    package, because the trusted publisher of npmjs.com names the repository.
-3. Steps 31, 34 and 35: the text without notes, the checks of the
+4. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
 5. Step 14: the visual editing in the side view.
 

@@ -238,7 +238,8 @@ test('on a line of its own, /figure inserts a chosen image of the workspace as a
   const { document, editor } = await start('# Results\n\n/\n\nMore.\n', 2, 1);
   fake.found = [new FakeUri('file', '/folder/images/plan (v2).png'), new FakeUri('file', '/other/logo.svg')];
   const items = fake.complete(document, new FakePosition(2, 1));
-  expect(labels(items)).toEqual(['/figure', '/table', '/date', '/time', '/user']);
+  // The heading starts a section, which /ref links (R-XREF-003).
+  expect(labels(items)).toEqual(['/figure', '/table', '/ref', '/date', '/time', '/user']);
   const table = items[1];
   expect((table.insertText as unknown as FakeSnippetString).value).toBe('Table: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0');
   // /figure lists the images by their paths from the folder of the file, and inserts the chosen one.
@@ -273,7 +274,29 @@ test('in text, /ref links a chosen figure or table, and gives it an anchor at th
   await accept(editor, fake.complete(document, position).find((item) => labels([item])[0] === '/ref')!);
   expect(document.text.split('\n')[0]).toBe('Wie [Abbildung 1](#fig-plan-study) [Table 1](#tab-people)');
   expect(document.text).toContain('Table: Participants<a id="tab-people"></a>\n');
-  // A file without figures and tables offers no /ref.
+  // A file without figures, tables and headings offers no /ref.
   const plain = fake.open('Text /\n', '/folder/c.md');
   expect(labels(fake.complete(plain, new FakePosition(0, 6)))).not.toContain('/ref');
+});
+
+test('/ref links a section with the numbers of its chapter, and gives its heading an anchor before a closing # (R-EDIT-008, R-XREF-003)', async () => {
+  const text = '# Paper\n\n## Introduction\n\nSee /\n\n## Methods ##\n\n### Data\n\nResults\n-------\n';
+  const { document, editor } = await start(text, 4, 5);
+  fake.pick = (choices) => choices[2];
+  await accept(editor, fake.complete(document, new FakePosition(4, 5)).find((item) => labels([item])[0] === '/ref')!);
+  expect(fake.picks.at(-1)!.map((choice) => [choice.label, choice.description])).toEqual([
+    ['Chapter 1', 'Introduction'],
+    ['Chapter 2', 'Methods'],
+    ['Chapter 2.1', 'Data'],
+    ['Chapter 3', 'Results'],
+  ]);
+  expect(document.text).toBe('# Paper\n\n## Introduction\n\nSee [Chapter 2.1](#sec-data)\n\n## Methods ##\n\n### Data<a id="sec-data"></a>\n\nResults\n-------\n');
+  for (const [choice, line] of [[1, '## Methods<a id="sec-methods"></a> ##'], [3, 'Results<a id="sec-results"></a>']] as const) {
+    editor.selection = { active: new FakePosition(4, document.text.split('\n')[4].length) };
+    await editor.edit((builder) => builder.insert(editor.selection.active, ' /'));
+    fake.pick = (choices) => choices[choice];
+    await accept(editor, fake.complete(document, editor.selection.active).find((item) => labels([item])[0] === '/ref')!);
+    expect(document.text.split('\n')).toContain(line);
+  }
+  expect(document.text.split('\n')[4]).toBe('See [Chapter 2.1](#sec-data) [Chapter 2](#sec-methods) [Chapter 3](#sec-results)');
 });

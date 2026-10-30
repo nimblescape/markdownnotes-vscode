@@ -224,7 +224,8 @@ describe('nimblescape Markdown Notes', () => {
 
   it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
-    fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nSee .\n\nTable: People\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n'));
+    // Without the heading, the table is the first entry of the list of /ref.
+    fs.writeFileSync(file.fsPath, note.replace('# Title\n', 'Title.\n').replace('\nMore.\n', '\nSee .\n\nTable: People\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n'));
     await vscode.commands.executeCommand('vscode.open', file);
     const view = await viewOf(file);
     const at = view.document.positionAt(view.document.getText().indexOf('See ') + 'See '.length);

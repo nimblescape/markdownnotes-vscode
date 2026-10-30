@@ -237,7 +237,7 @@ for, or a GitHub login of its own; the author of an answer is always known.
 
 ## 8. Figures, tables and links to them
 
-The extension also adds figures, tables and links to them
+The extension also adds figures, tables and links to them and to sections
 ([R-XREF-001](requirements.md#r-xref-001)). They are plain Markdown and HTML
 and not part of the notes, so the version of the format stays 1.0.0.
 
@@ -266,8 +266,15 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
   among the figures of the file, or of the table among its tables, from 1;
   the formatter writes it anew after each change of the order. The word is
   free.
-- A figure, a table, an anchor or a link in a code block, in HTML or in the
-  text of a note does not count.
+- A section is the part of the text under a heading. Its anchor stands at
+  the end of the text of its heading, before a closing `#` sequence:
+  `## Methods<a id="sec-methods"></a>`. A link to it has the numbers of the
+  sections around it and its own, for example `[Chapter 2.1](#sec-methods)`.
+  The first level of the numbers is the highest level that more than one
+  heading has, or else the highest level of a heading
+  ([R-XREF-003](requirements.md#r-xref-003)).
+- A figure, a table, a heading, an anchor or a link in a code block, in HTML,
+  in the front matter or in the text of a note does not count.
 
 ---
 

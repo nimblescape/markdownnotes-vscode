@@ -46,7 +46,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
-| [Figures, tables and links to them](#figures-tables-and-links-to-them) | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001), [R-XREF-002](requirements.md#r-xref-002) |
+| [Figures, tables and links to them](#figures-tables-and-links-to-them), also to sections | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001) to [R-XREF-003](requirements.md#r-xref-003) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
 | Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
@@ -686,7 +686,7 @@ commands.
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as an image alone in its paragraph, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
 | `/table` | Adds a table: its caption line `Table: Caption`, a blank line and a table of two columns, with the caption selected for typing. The list shows `/table` only on an empty line outside a code block. |
-| `/ref` | Adds a link to a figure or a table of the file, for example `[Table 1](#tab-grades)`: lists them by their numbers and captions. A figure or a table without an anchor gets one first. The list shows `/ref` only in a file with figures or tables, where a link can stand. |
+| `/ref` | Adds a link to a figure, a table or a section of the file, for example `[Table 1](#tab-grades)` or `[Chapter 2.1](#sec-methods)`: lists them by their numbers and captions or headings. A figure, a table or a heading without an anchor gets one first. The list shows `/ref` only in a file with figures, tables or headings, where a link can stand. |
 | `/date` | Inserts the current date, for example `2026-10-29`. |
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
 | `/user` | Inserts your GitHub login, for example `hannes`, the name that your notes give their author. The list shows the login. Without a sign-in, the list shows "Sign in with GitHub": VS Code asks you to sign in, and the login follows ([GitHub sign-in](#github-sign-in)). |
@@ -731,8 +731,16 @@ As [Table 1](#tab-participants-grade) and [Figure 1](#fig-plan-study) show, …
   they are.
 - The clean editing view hides the anchors, and a file with an anchor opens
   in it ([Clean editing view](#clean-editing-view)).
+- `/ref` also links a section, the part of the text under a heading, with
+  the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`. The
+  anchor of the section goes to the end of the text of its heading:
+  `## Methods<a id="sec-methods"></a>`. The chapters are the headings of the
+  highest level that more than one heading has; a single title `#` above
+  them gets no number. The word is "Chapter", or "Kapitel" in a VS Code in
+  German, until a link of the file uses another one
+  ([R-XREF-003](requirements.md#r-xref-003)).
 - GitHub and the Markdown preview show the link with its number, and a click
-  on it goes to the figure or the table. The captions themselves have no
+  on it goes to the figure, the table or the section. The captions themselves have no
   number in GitHub and the preview; nimblescape Markdown Paper numbers them
   in the PDF of a paper, for example "Table 1: Participants by grade".
 

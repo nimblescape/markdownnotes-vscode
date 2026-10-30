@@ -253,6 +253,11 @@ form of the notes in a file for programs and AI agents, and
   `[Table 1](#tab-grades)`, after it gave the target an anchor at the end of
   its caption line. The clean editing view hides the anchors
   ([R-XREF-001](requirements.md#r-xref-001)).
+- `/ref` also links a section, the part of the text under a heading, with
+  the numbers of its chapter, such as `[Chapter 2.1](#sec-methods)`, after it
+  gave the heading an anchor at the end of its text. The sections start at
+  the highest level that more than one heading has, so a single title `#`
+  has no number ([R-XREF-003](requirements.md#r-xref-003)).
 - The formatter writes the number of each link from the order in the file;
   Markdown Paper can number by the rules of its layout
   ([R-XREF-002](requirements.md#r-xref-002)).

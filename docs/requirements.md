@@ -77,6 +77,7 @@ requirement, the plan and the decisions of Hannes.
 | 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
 | 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
 | 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
+| 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
 
 ## General
 
@@ -1259,7 +1260,8 @@ it shows no suggestions while the user types words.
   it, and inserts nothing when the user cancels the sign-in.
 
 - `/figure` and `/table` add a figure and a table, and `/ref` adds a link to
-  a figure or a table of the file ([R-XREF-001](#r-xref-001); Hannes,
+  a figure, a table or a section of the file ([R-XREF-001](#r-xref-001),
+  [R-XREF-003](#r-xref-003); Hannes,
   2026-10-30, 02:32: "there is also the /table and /figure slash commands,
   these are commands in markdownnotes", 02:45: "lets rethink which command
   adds an entry in the directory which adds a reference to it";
@@ -1625,7 +1627,7 @@ next free number as its label ([R-FOOT-003](#r-foot-003)), and the start
 marker and the replies go. It asks first when the note has replies. Undo
 brings the note back.
 
-## Figures and tables
+## Figures, tables and sections
 
 ### R-XREF-001
 
@@ -1680,11 +1682,38 @@ As [Table 1](#tab-grades) shows, …
 ### R-XREF-002
 
 **The numbers of the links.** The formatter writes the number in the text of
-each link to a figure or a table anew from the order of the figures and the
-tables in the file, so that a moved table keeps the right number in every
-link ([R-FMT-002](#r-fmt-002)). Markdown Paper can number them by the rules
-of its layout with its own step of the formatter, for example A1 for the first
-table of an appendix ([R-GEN-012](#r-gen-012)).
+each link to a figure, a table or a section anew from the order of the
+figures, the tables and the headings in the file, so that a moved table keeps
+the right number in every link ([R-FMT-002](#r-fmt-002)). Markdown Paper can
+number them by the rules of its layout with its own step of the formatter,
+for example A1 for the first table of an appendix, no number for the table
+of contents, or the chapters of several files ([R-GEN-012](#r-gen-012)).
+
+### R-XREF-003
+
+**Links to sections.** `/ref` also lists the sections of the file, the parts
+of the text under the headings, with the numbers of their chapters, and
+inserts a link to the chosen one, for example `[Chapter 2.1](#sec-methods)`
+(Hannes, 2026-10-30, 02:47 and 03:19: "/ref also adds chapter numbers").
+
+- The sections start at the top level: the highest level of a heading that
+  more than one heading has, or else the highest level of a heading. A
+  heading above it, such as the one title `#` of a document whose chapters
+  have `##`, has no number and no link. Headings in code blocks, HTML, the
+  front matter and the notes do not count.
+- The number of a section is the numbers of the sections around it and its
+  own, for example 2.1 for the first section of the second chapter; a level
+  that the text skips counts 0, for example 2.0.1.
+- A section without an anchor gets one at the end of the text of its heading,
+  before a closing `#` sequence: `## Methods<a id="sec-methods"></a>`, with
+  up to three words of the heading as its name, as for a figure
+  ([R-XREF-001](#r-xref-001)). GitHub and the Markdown preview show the
+  heading without it; the clean editing view hides it.
+- The word of the link is the word of the last link to a section in the file,
+  else "Chapter", or "Kapitel" in a VS Code in German.
+- Markdown Paper numbers the sections of a paper by its layout, for example
+  without numbers for the table of contents and the reference list, and
+  with letters for the appendices.
 
 ## Hidden notes
 

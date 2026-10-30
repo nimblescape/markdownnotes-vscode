@@ -50,7 +50,7 @@
 import * as vscode from 'vscode';
 import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
-import { anchorName, anchorText, codeLines, defaultWord, findItems, numberOf, wordOf } from './notes/figures';
+import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -373,8 +373,8 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     // A link stands where a reference of a footnote can stand, in the text of a block.
     if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && findItems(linesOf(found.file)).length > 0) {
-      const ref = item('/ref', 'Link a Figure or Table', 'A link to a figure or a table of the file', vscode.CompletionItemKind.Reference, range, '');
-      ref.command = { command: slashCommandIds.ref, title: 'Link a Figure or Table', arguments: [document.uri] };
+      const ref = item('/ref', 'Link a Figure, Table or Section', 'A link to a figure, a table or a section of the file', vscode.CompletionItemKind.Reference, range, '');
+      ref.command = { command: slashCommandIds.ref, title: 'Link a Figure, Table or Section', arguments: [document.uri] };
       items.push(ref);
     }
     const now = new Date();
@@ -467,8 +467,9 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   }
 
   /**
-   * ref inserts a link to a figure or a table of the file for `/ref`, after VS Code removed the typed command: the user
-   * chooses the figure or the table, which gets an anchor at the end of its line when it has none. In the clean editing
+   * ref inserts a link to a figure, a table or a section of the file for `/ref`, after VS Code removed the typed
+   * command: the user chooses the figure, the table or the heading of the section, which gets an anchor at the end of
+   * its line when it has none. In the clean editing
    * view, which hides the anchors, the anchor goes into the file after the view wrote the link into it.
    * @param uri - The URI of the document.
    */
@@ -483,10 +484,10 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const lines = linesOf(found.file);
     const items = findItems(lines);
-    const wordFor = (kind: 'figure' | 'table'): string => wordOf(lines, kind) ?? defaultWord(kind, vscode.env.language ?? 'en');
+    const wordFor = (kind: ItemKind): string => wordOf(lines, kind) ?? defaultWord(kind, vscode.env.language ?? 'en');
     const chosen = await vscode.window.showQuickPick(
-      items.map((target, index) => ({ label: `${wordFor(target.kind)} ${numberOf(items, target)}`, description: target.caption, index })),
-      { placeHolder: 'The figure or table to link', matchOnDescription: true },
+      items.map((target, index) => ({ label: `${wordFor(target.kind)} ${labelOf(items, target)}`, description: target.caption, index })),
+      { placeHolder: 'The figure, table or section to link', matchOnDescription: true },
     );
     if (!chosen) {
       return;
@@ -499,7 +500,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     await editor.edit((builder) => {
       builder.insert(at, link);
       if (!target.anchor && !clean) {
-        builder.insert(new vscode.Position(target.line, lines[target.line].trimEnd().length), anchorText(name));
+        builder.insert(new vscode.Position(target.line, anchorColumn(lines[target.line], target)), anchorText(name));
       }
     });
     const after = new vscode.Position(at.line, at.character + link.length);
@@ -511,7 +512,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       const same = findItems(current).filter((other) => other.kind === target.kind)[numberOf(items, target) - 1];
       if (same && !same.anchor) {
         const edit = new vscode.WorkspaceEdit();
-        edit.insert(found.file.uri, new vscode.Position(same.line, current[same.line].trimEnd().length), anchorText(name));
+        edit.insert(found.file.uri, new vscode.Position(same.line, anchorColumn(current[same.line], same)), anchorText(name));
         await vscode.workspace.applyEdit(edit);
       }
     }

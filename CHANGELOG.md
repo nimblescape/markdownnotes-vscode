@@ -88,9 +88,11 @@ The first version.
   link to a figure or a table of the file, for example
   `[Table 1](#tab-grades)`, after it gave the target an anchor
   `<a id="tab-grades"></a>` at the end of the line of its image or its
-  caption. The formatter writes the number of each link from the order of
-  the figures and the tables in the file, and the clean editing view hides
-  the anchors.
+  caption. `/ref` also links a section with the numbers of its chapter, for
+  example `[Chapter 2.1](#sec-methods)`, with an anchor at the end of its
+  heading. The formatter writes the number of each link from the order of
+  the figures, the tables and the headings in the file, and the clean
+  editing view hides the anchors.
 - New notes: the user selects text and chooses "Add Note" in the light bulb
   at the selected text (Ctrl+.), with the shortcut Shift+Alt+N (Cmd+K N on a
   Mac), in the context menu of the text editor, or in the title of the side
