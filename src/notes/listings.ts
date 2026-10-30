@@ -253,13 +253,45 @@ export const snippetText = (name: string): [string, string] => [`markdownnotes: 
 
 /** comments are the forms of a comment of a line by the extensions of the files: the text before and after it. */
 const comments: Record<string, [string, string]> = {
-  ...Object.fromEntries(['c', 'cc', 'cpp', 'cs', 'go', 'h', 'hpp', 'java', 'js', 'jsx', 'kt', 'mjs', 'cjs', 'php', 'rs', 'scala', 'swift', 'ts', 'tsx'].map((extension) => [extension, ['// ', '']])),
-  ...Object.fromEntries(['py', 'r', 'rb', 'sh', 'ps1', 'toml', 'yaml', 'yml'].map((extension) => [extension, ['# ', '']])),
-  ...Object.fromEntries(['sql'].map((extension) => [extension, ['-- ', '']])),
-  ...Object.fromEntries(['m', 'tex'].map((extension) => [extension, ['% ', '']])),
-  ...Object.fromEntries(['html', 'xml', 'md'].map((extension) => [extension, ['<!-- ', ' -->']])),
+  ...Object.fromEntries(
+    ['c', 'cc', 'cjs', 'cpp', 'cs', 'cts', 'dart', 'go', 'gradle', 'groovy', 'h', 'hpp', 'java', 'js', 'json5', 'jsonc', 'jsx', 'kt', 'kts', 'less', 'mjs', 'mts', 'php', 'proto', 'rs', 'scala', 'scss', 'swift', 'ts', 'tsx', 'zig'].map(
+      (type) => [type, ['// ', '']],
+    ),
+  ),
+  ...Object.fromEntries(
+    ['bash', 'cfg', 'cmake', 'conf', 'dockerfile', 'env', 'ex', 'exs', 'fish', 'gql', 'graphql', 'hcl', 'jl', 'makefile', 'mk', 'pl', 'properties', 'ps1', 'py', 'r', 'rb', 'sh', 'tf', 'toml', 'yaml', 'yml', 'zsh'].map(
+      (type) => [type, ['# ', '']],
+    ),
+  ),
+  ...Object.fromEntries(['elm', 'hs', 'lua', 'sql'].map((type) => [type, ['-- ', '']])),
+  ...Object.fromEntries(['erl', 'm', 'sty', 'tex'].map((type) => [type, ['% ', '']])),
+  ...Object.fromEntries(['clj', 'ini', 'lisp', 'scm'].map((type) => [type, ['; ', '']])),
+  ...Object.fromEntries(['htm', 'html', 'md', 'plist', 'svg', 'xhtml', 'xml', 'xsl', 'xslt'].map((type) => [type, ['<!-- ', ' -->']])),
+  bat: ['REM ', ''],
+  cmd: ['REM ', ''],
   css: ['/* ', ' */'],
+  vb: ["' ", ''],
 };
+
+/**
+ * fileTypeOf returns the type of a file for its comments and its language: its extension in small letters, or a name
+ * for a file that its name marks, such as `env` for `.env` and `.env.local`, `dockerfile` for `Dockerfile` and
+ * `makefile` for `Makefile`.
+ * @param path - The path of the file.
+ */
+export function fileTypeOf(path: string): string {
+  const name = path.slice(path.lastIndexOf('/') + 1).toLowerCase();
+  if (name === '.env' || name.startsWith('.env.')) {
+    return 'env';
+  }
+  if (name === 'dockerfile' || name.startsWith('dockerfile.') || name.endsWith('.dockerfile')) {
+    return 'dockerfile';
+  }
+  if (name === 'makefile' || name === 'gnumakefile') {
+    return 'makefile';
+  }
+  return /\.([^.]+)$/.exec(name)?.[1] ?? '';
+}
 
 /**
  * snippetLines returns the marks of a snippet in the comment form of the language of a file, or undefined for a file
@@ -269,7 +301,7 @@ const comments: Record<string, [string, string]> = {
  * @param indent - The white space before the marks.
  */
 export function snippetLines(path: string, name: string, indent = ''): [string, string] | undefined {
-  const form = comments[/\.([^./]+)$/.exec(path)?.[1].toLowerCase() ?? ''];
+  const form = comments[fileTypeOf(path)];
   return form ? (snippetText(name).map((text) => `${indent}${form[0]}${text}${form[1]}`) as [string, string]) : undefined;
 }
 
@@ -298,20 +330,32 @@ export function snippetsOf(lines: readonly string[]): { name: string; first: num
   return snippets.sort((a, b) => a.first - b.first);
 }
 
+/** symbolTypes are the types of the files whose symbols `symbolLines` finds: languages with braces, and Python. */
+const symbolTypes = new Set(['c', 'cc', 'cjs', 'cpp', 'cs', 'cts', 'dart', 'go', 'gradle', 'groovy', 'h', 'hpp', 'java', 'js', 'jsx', 'kt', 'kts', 'mjs', 'mts', 'php', 'py', 'rs', 'scala', 'swift', 'ts', 'tsx']);
+
+/**
+ * hasSymbols tells whether a listing can name a symbol of a file: a file of a language of `symbolTypes`. A file of
+ * another type, such as YAML or Ruby, has only snippets.
+ * @param path - The path of the file.
+ */
+export const hasSymbols = (path: string): boolean => symbolTypes.has(fileTypeOf(path));
+
 /**
  * codeOf returns the code of the source of a listing: the whole text of the file, or the lines of its snippet or its
  * symbol without their common indentation, without the marks of the snippets and without blank lines at the start and
  * the end; undefined when the snippet or the symbol is not in it.
  * @param text - The text of the file.
  * @param symbol - The name of the symbol, or undefined for the whole file.
+ * @param path - The path of the file, whose type tells whether it has symbols (`hasSymbols`), or undefined for a file
+ * with symbols.
  */
-export function codeOf(text: string, symbol?: string): string[] | undefined {
+export function codeOf(text: string, symbol?: string, path?: string): string[] | undefined {
   const lines = text.replace(/^﻿/, '').split(/\r\n|\r|\n/);
   const code = (part: readonly string[]) => trimBlank(dedent(part.filter((line) => !snippetMark.test(line))));
   if (symbol === undefined) {
     return code(lines);
   }
-  const range = snippetsOf(lines).find((snippet) => snippet.name === symbol) ?? symbolLines(lines, symbol);
+  const range = snippetsOf(lines).find((snippet) => snippet.name === symbol) ?? (path === undefined || hasSymbols(path) ? symbolLines(lines, symbol) : undefined);
   return range ? code(lines.slice(range.first, range.last + 1)) : undefined;
 }
 
@@ -326,7 +370,7 @@ export type Source = (path: string) => string | undefined;
 export function missingListings(lines: readonly string[], source: Source): Listing[] {
   return findListings(lines).filter((listing) => {
     const text = source(listing.path);
-    return text === undefined || codeOf(text, listing.symbol) === undefined;
+    return text === undefined || codeOf(text, listing.symbol, listing.path) === undefined;
   });
 }
 
@@ -345,7 +389,7 @@ export function refreshListings(lines: readonly string[], source: Source): strin
   const output = [...lines];
   for (const listing of [...listings].reverse()) {
     const text = source(listing.path);
-    const code = text === undefined ? undefined : codeOf(text, listing.symbol);
+    const code = text === undefined ? undefined : codeOf(text, listing.symbol, listing.path);
     if (!code) {
       continue;
     }
@@ -358,24 +402,38 @@ export function refreshListings(lines: readonly string[], source: Source): strin
   return output;
 }
 
-/** languages are the languages of the code blocks by the extensions of the files. */
+/** languages are the languages of the code blocks by the types of the files (`fileTypeOf`). */
 const languages: Record<string, string> = {
-  c: 'c', cc: 'cpp', cpp: 'cpp', cs: 'csharp', css: 'css', go: 'go', h: 'c', hpp: 'cpp', html: 'html', java: 'java', js: 'javascript', json: 'json', jsx: 'jsx', kt: 'kotlin',
-  m: 'matlab', md: 'markdown', mjs: 'javascript', cjs: 'javascript', php: 'php', ps1: 'powershell', py: 'python', r: 'r', rb: 'ruby', rs: 'rust', scala: 'scala', sh: 'bash',
-  sql: 'sql', swift: 'swift', tex: 'latex', toml: 'toml', ts: 'typescript', tsx: 'tsx', xml: 'xml', yaml: 'yaml', yml: 'yaml',
+  bash: 'bash', bat: 'bat', c: 'c', cc: 'cpp', cfg: 'ini', cjs: 'javascript', clj: 'clojure', cmake: 'cmake', cmd: 'bat', conf: 'ini', cpp: 'cpp', cs: 'csharp', css: 'css',
+  cts: 'typescript', dart: 'dart', dockerfile: 'dockerfile', elm: 'elm', env: 'ini', erl: 'erlang', ex: 'elixir', exs: 'elixir', fish: 'fish', go: 'go', gql: 'graphql',
+  gradle: 'groovy', graphql: 'graphql', groovy: 'groovy', h: 'c', hcl: 'hcl', hpp: 'cpp', hs: 'haskell', htm: 'html', html: 'html', ini: 'ini', java: 'java', jl: 'julia',
+  js: 'javascript', json: 'json', json5: 'json5', jsonc: 'jsonc', jsx: 'jsx', kt: 'kotlin', kts: 'kotlin', less: 'less', lisp: 'lisp', lua: 'lua', m: 'matlab',
+  makefile: 'makefile', md: 'markdown', mjs: 'javascript', mk: 'makefile', mts: 'typescript', php: 'php', pl: 'perl', plist: 'xml', properties: 'properties',
+  proto: 'protobuf', ps1: 'powershell', py: 'python', r: 'r', rb: 'ruby', rs: 'rust', scala: 'scala', scm: 'scheme', scss: 'scss', sh: 'bash', sql: 'sql', sty: 'latex',
+  svelte: 'svelte', svg: 'xml', swift: 'swift', tex: 'latex', tf: 'hcl', toml: 'toml', ts: 'typescript', tsx: 'tsx', vb: 'vbnet', vue: 'vue', xhtml: 'html', xml: 'xml',
+  xsl: 'xml', xslt: 'xml', yaml: 'yaml', yml: 'yaml', zig: 'zig', zsh: 'bash',
 };
 
-/** sourceFiles is the pattern of the files that `/listing` lists: the files of the languages above, without Markdown. */
-export const sourceFiles = `**/*.{${Object.keys(languages)
-  .filter((extension) => extension !== 'md')
-  .join(',')}}`;
+/** fileNames are the patterns of the files that their names mark, for `sourceFiles`. */
+const fileNames = ['.env', '.env.*', 'Dockerfile', 'Dockerfile.*', '*.dockerfile', 'Makefile', 'GNUmakefile'];
+
+/**
+ * sourceFiles is the pattern of the files that `/listing` lists: the files of the types above, without Markdown, as one
+ * group of patterns without nested braces.
+ */
+export const sourceFiles = `{${[
+  ...Object.keys(languages)
+    .filter((type) => type !== 'md' && type !== 'env' && type !== 'dockerfile' && type !== 'makefile')
+    .map((type) => `**/*.${type}`),
+  ...fileNames.map((name) => `**/${name}`),
+].join(',')}}`;
 
 /**
  * languageOf returns the language of a code block for the path of a file, for example `typescript` for `fields.ts`,
  * or an empty text.
  * @param path - The path.
  */
-export const languageOf = (path: string): string => languages[/\.([^./]+)$/.exec(path)?.[1].toLowerCase() ?? ''] ?? '';
+export const languageOf = (path: string): string => languages[fileTypeOf(path)] ?? '';
 
 /**
  * listingBlock returns the lines of a new listing: its caption line, its comment and its code block, with a blank line

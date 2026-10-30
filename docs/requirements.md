@@ -83,6 +83,7 @@ requirement, the plan and the decisions of Hannes.
 | 54 | Snippets between marks in the source code, which a listing names; `/snippet` and "Add Snippet" in a source file; the comment of a listing as a link to its source | [R-CODE-003](#r-code-003) | done, in the form that Claude recommended; the card on the form of the marks is open |
 | 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
 | 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
+| 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done |
 
 ## General
 
@@ -1887,7 +1888,12 @@ references / code blocks are uptodate").
   with `.`, with the decorators and attributes directly before it (`@…`,
   `#[…]`). It ends with the brace that closes its first `{`, or with a `;`
   before it, or in Python with the last line of its indented body. This
-  works for TypeScript, JavaScript, Java, C#, Go, Rust, Kotlin and Python.
+  works for the languages with braces and for Python: TypeScript and
+  JavaScript (also JSX and TSX), Java, C#, C, C++, Go, Rust, Kotlin, Swift,
+  Scala, PHP, Dart and Groovy. A file of another type, such as YAML, TOML,
+  `.env`, CSS, HTML or Ruby, has no symbols, only the whole file and
+  snippets ([R-CODE-003](#r-code-003)), so that a listing never shows a
+  wrong part of it.
 - The code of a symbol loses the indentation that all its lines have; a
   whole file and a symbol lose their blank lines at the start and the end.
   The code block keeps its fence, its indentation and its info string; the
@@ -1929,11 +1935,20 @@ export function parse(lines: readonly string[]): Token[] {
   end marker of a value of the front matter ([R-XREF-004](#r-xref-004)).
   The name has small letters and digits, with `-` between them. The other
   form on the card is `@snippet` and `@endsnippet`.
-- The marks stand in the comment form of the language: `//` (TypeScript,
-  JavaScript, Java, C#, C, C++, Go, Rust, Kotlin, Swift, PHP, Scala), `#`
-  (Python, R, Ruby, shell, PowerShell, YAML, TOML), `--` (SQL), `%` (LaTeX,
-  MATLAB), `<!-- -->` (HTML, XML, Markdown) and `/* */` (CSS). The
-  formatter finds them by their text in any comment.
+- The marks stand in the comment form of the type of the file (Hannes,
+  2026-10-30, 04:29: "we also may have jsonc and yaml, toml, .env files,
+  etc.", "css, html, jsx, tsx, etc."): `//` (TypeScript, JavaScript, JSX,
+  TSX, Java, C#, C, C++, Go, Rust, Kotlin, Swift, Scala, PHP, Dart, Groovy,
+  Zig, Protocol Buffers, JSONC, JSON5, SCSS, Less), `#` (Python, R, Ruby,
+  Perl, Elixir, Julia, shell, PowerShell, YAML, TOML, `.env`, `.cfg`,
+  `.conf`, `.properties`, Dockerfile, Makefile, CMake, Terraform, GraphQL),
+  `--` (SQL, Lua, Haskell, Elm), `%` (LaTeX, MATLAB, Erlang), `;` (INI,
+  Clojure, Lisp, Scheme), `<!-- -->` (HTML, XML, SVG, XSLT), `/* */` (CSS),
+  `REM` (batch files) and `'` (Visual Basic). A file is of its type by its
+  extension, or by its name: `.env` and `.env.*`, `Dockerfile` and
+  `Makefile`. JSON has no comments, and a Vue or Svelte file has parts of
+  several languages: they get no marks, and a listing shows them whole. The
+  formatter finds the marks by their text in any comment.
 - A listing names a snippet as a symbol,
   `<!-- listing: ../src/notes/notes.ts#parse-notes -->`, and a snippet wins
   over a symbol of the same name. The code of every listing, also of a whole

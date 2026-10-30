@@ -107,8 +107,9 @@ The first version.
 - Snippets in the source code: `/snippet` after selected lines of a source
   file, or "Add Snippet", writes the marks
   `// markdownnotes: snippet <name>` and `// markdownnotes: /snippet <name>`
-  around them in the comment form of the language, and a listing names the
-  snippet as `#<name>`. Ctrl+Click on the comment of a listing opens its
+  around them in the comment form of the type of the file, also in
+  configuration files such as JSONC, YAML, TOML and `.env`, and a listing
+  names the snippet as `#<name>`. Ctrl+Click on the comment of a listing opens its
   source at the snippet or the symbol.
 - The notes in the pages of a paper: the highlights, the selection of a
   note and "Add Note" work in the pages that nimblescape Markdown Paper shows

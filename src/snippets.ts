@@ -22,7 +22,7 @@
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
 import { sourceOf } from './formatter';
-import { findListings, isSnippetName, snippetLines, snippetsOf, symbolLines } from './notes/listings';
+import { findListings, hasSymbols, isSnippetName, snippetLines, snippetsOf, symbolLines } from './notes/listings';
 
 /** snippetCommands are the commands of the snippets: the one of the Command Palette, and the one of `/snippet`. */
 export const snippetCommands = {
@@ -215,7 +215,7 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
         return [];
       }
       const code = listing.symbol ? source?.(listing.path)?.split(/\r\n|\r|\n/) : undefined;
-      const found = code && (snippetsOf(code).find((snippet) => snippet.name === listing.symbol) ?? symbolLines(code, listing.symbol!));
+      const found = code && (snippetsOf(code).find((snippet) => snippet.name === listing.symbol) ?? (hasSymbols(listing.path) ? symbolLines(code, listing.symbol!) : undefined));
       // The number of the first line of the snippet or the symbol, from 1.
       const line = found ? found.first + 1 : undefined;
       const link = new vscode.DocumentLink(new vscode.Range(listing.line, column, listing.line, column + reference.length), line ? target.with({ fragment: `L${line}` }) : target);

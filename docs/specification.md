@@ -275,16 +275,20 @@ form of the notes in a file for programs and AI agents, and
 - `/listing` inserts the code of a file of the workspace, or of a function,
   a class or a method of it, as a listing: the caption line `Listing:`, the
   comment `<!-- listing: ../src/fields.ts#readFields -->` and the code block.
-  `/ref` links it as `[Listing 1](#lst-…)`
+  `/ref` links it as `[Listing 1](#lst-…)`. Symbols exist in the languages
+  with braces (TypeScript, JavaScript, JSX, TSX, Java, C#, C, C++, Go, Rust,
+  Kotlin, Swift, Scala, PHP, Dart, Groovy) and in Python
   ([R-CODE-001](requirements.md#r-code-001)).
 - The formatter writes the current code of the source into each listing, in
   VS Code and on the command line, which reports a missing source and fails
   with `--check` ([R-CODE-002](requirements.md#r-code-002)).
 - A snippet is code between the marks `markdownnotes: snippet <name>` and
   `markdownnotes: /snippet <name>` in comments of a source file; `/snippet`
-  and "Add Snippet" write them around selected lines, a listing names it as
-  `#<name>`, and the comment of a listing is a link to its source
-  ([R-CODE-003](requirements.md#r-code-003)).
+  and "Add Snippet" write them around selected lines in the comment form of
+  the type of the file (more than 80 types, among them JSONC, YAML, TOML,
+  `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; not JSON), a listing
+  names it as `#<name>`, and the comment of a listing is a link to its
+  source ([R-CODE-003](requirements.md#r-code-003)).
 
 ## 12. API for other extensions
 

@@ -64,7 +64,7 @@ import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
-import { codeOf, listingBlock, snippetsOf, sourceFiles, symbolLines } from './notes/listings';
+import { codeOf, hasSymbols, listingBlock, snippetsOf, sourceFiles, symbolLines } from './notes/listings';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -574,7 +574,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const lines = text.split(/\r\n|\r|\n/);
     // The snippets come first, and a snippet wins over a symbol of the same name (R-CODE-003).
     const snippets = snippetsOf(lines).map(({ name }) => ({ label: name, description: 'Snippet', name: name as string | undefined }));
-    const symbols = (await symbolsOf(source.uri, lines)).filter(({ name }) => !snippets.some((snippet) => snippet.name === name));
+    const symbols = hasSymbols(chosen.file.path) ? (await symbolsOf(source.uri, lines)).filter(({ name }) => !snippets.some((snippet) => snippet.name === name)) : [];
     let symbol: string | undefined;
     if (snippets.length + symbols.length > 0) {
       const part = await vscode.window.showQuickPick(
@@ -590,7 +590,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       }
       symbol = part.name;
     }
-    const [, ...block] = listingBlock('Caption', chosen.relative, symbol, codeOf(text, symbol) ?? []);
+    const [, ...block] = listingBlock('Caption', chosen.relative, symbol, codeOf(text, symbol, chosen.file.path) ?? []);
     const snippet = ['Listing: ${1:Caption}', ...block.map(snippetText)].join('\n');
     await editor.insertSnippet(new vscode.SnippetString(`${snippet}\n$0`), editor.selection.active, { undoStopBefore: true, undoStopAfter: true, keepWhitespace: true });
   }

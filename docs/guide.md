@@ -812,8 +812,13 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   whose file or symbol it does not find keeps its code; the command line
   names it, and `--check` fails.
 - The formatter finds a symbol by its declaration and its end by the braces,
-  or in Python by the indentation. This works for TypeScript, JavaScript,
-  Java, C#, Go, Rust, Kotlin and Python.
+  or in Python by the indentation. This works for TypeScript, JavaScript
+  (also JSX and TSX), Java, C#, C, C++, Go, Rust, Kotlin, Swift, Scala, PHP,
+  Dart, Groovy and Python. Other files, such as YAML, TOML, `.env`, CSS,
+  HTML or Ruby, have no symbols: list the whole file, or mark a snippet.
+- `/listing` lists the files of more than 80 types: the languages above, the
+  configuration files (JSON, JSONC, YAML, TOML, `.env`, INI, Dockerfile,
+  Makefile), CSS, SCSS, HTML, XML, SQL, shell scripts and others.
 - GitHub and the Markdown preview show the code block, without the comment.
   `/ref` links a listing, for example `[Listing 1](#lst-reading-fields)`.
 - Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the
@@ -836,8 +841,10 @@ export function parse(lines: readonly string[]): Token[] {
 - Select the lines in the source file and type `/`, then choose `/snippet`;
   or choose "Add Snippet" in the light bulb or the Command Palette. Type the
   name: small letters and digits, with `-` between them. The extension
-  writes the two marks in the comment form of the language, for example
-  `#` in Python.
+  writes the two marks in the comment form of the type of the file, for
+  example `#` in Python, YAML, TOML and `.env`, `//` in JSONC and SCSS,
+  `/* */` in CSS and `<!-- -->` in HTML. JSON has no comments, so a JSON
+  file has no snippets.
 - `/listing` lists the snippets of a file after "Whole file". A listing
   names a snippet after `#`, as a symbol:
   `<!-- listing: ../src/parse.ts#keep-lines -->`. A snippet wins over a

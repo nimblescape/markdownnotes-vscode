@@ -11,7 +11,7 @@
 import { describe, expect, test } from 'vitest';
 import { formatMarkdown, keptCurrent } from '../format/format';
 import { anchorName, findItems, numberLinks } from './figures';
-import { codeOf, findListings, isSnippetName, languageOf, listingBlock, missingListings, refreshListings, snippetLines, snippetsOf, type Source, sourceFiles, symbolLines } from './listings';
+import { codeOf, fileTypeOf, findListings, hasSymbols, isSnippetName, languageOf, listingBlock, missingListings, refreshListings, snippetLines, snippetsOf, type Source, sourceFiles, symbolLines } from './listings';
 
 /** typescript is a file of TypeScript with a function, a class with a method, an interface and a constant. */
 const typescript = [
@@ -79,6 +79,14 @@ describe('the symbols of a source', () => {
     expect(codeOf(rust, 'average')).toEqual(rust.split('\n'));
   });
 
+  test('are found only in the languages with braces and in Python; other files have only snippets (R-CODE-001)', () => {
+    const ruby = ['def read(path)', '  File.read(path)', 'end', '# markdownnotes: snippet body', 'x = 1', '# markdownnotes: /snippet body'].join('\n');
+    expect([hasSymbols('a.tsx'), hasSymbols('a.py'), hasSymbols('a.rb'), hasSymbols('config.yaml'), hasSymbols('.env')]).toEqual([true, true, false, false, false]);
+    expect(codeOf(ruby, 'read', 'lib/a.rb')).toBeUndefined();
+    expect(codeOf(ruby, 'body', 'lib/a.rb')).toEqual(['x = 1']);
+    expect(missingListings(['<!-- listing: a.rb#read -->', '```', '```', ''], () => ruby)).toHaveLength(1);
+  });
+
   test('give the whole file without a symbol, without its blank lines at the start and the end (R-CODE-001)', () => {
     expect(codeOf('﻿\n\nline 1\r\n\r\nline 2\n\n')).toEqual(['line 1', '', 'line 2']);
   });
@@ -125,6 +133,33 @@ describe('the snippets of a source', () => {
     expect(snippetLines('a.html', 'x')).toEqual(['<!-- markdownnotes: snippet x -->', '<!-- markdownnotes: /snippet x -->']);
     expect(snippetLines('a.css', 'x')).toEqual(['/* markdownnotes: snippet x */', '/* markdownnotes: /snippet x */']);
     expect(snippetLines('a.json', 'x')).toBeUndefined();
+    // Configuration files and other file types get the comment form of their type, also by the name of the file.
+    const forms = ['tsconfig.jsonc', 'app.JSX', 'b.tsx', 'c.scss', 'd.yaml', 'e.toml', '.env', 'config/.env.local', 'Dockerfile', 'Makefile', 'f.ini', 'g.lua', 'h.svg', 'i.bat', 'j.vb'];
+    expect(forms.map((path) => snippetLines(path, 'x')?.[1])).toEqual([
+      '// markdownnotes: /snippet x',
+      '// markdownnotes: /snippet x',
+      '// markdownnotes: /snippet x',
+      '// markdownnotes: /snippet x',
+      '# markdownnotes: /snippet x',
+      '# markdownnotes: /snippet x',
+      '# markdownnotes: /snippet x',
+      '# markdownnotes: /snippet x',
+      '# markdownnotes: /snippet x',
+      '# markdownnotes: /snippet x',
+      '; markdownnotes: /snippet x',
+      '-- markdownnotes: /snippet x',
+      '<!-- markdownnotes: /snippet x -->',
+      'REM markdownnotes: /snippet x',
+      "' markdownnotes: /snippet x",
+    ]);
+    expect([fileTypeOf('a/.env.production'), fileTypeOf('Dockerfile.dev'), fileTypeOf('web.dockerfile'), fileTypeOf('GNUmakefile'), fileTypeOf('a.b/README'), fileTypeOf('x.Tar.GZ')]).toEqual([
+      'env',
+      'dockerfile',
+      'dockerfile',
+      'makefile',
+      '',
+      'gz',
+    ]);
     expect([isSnippetName('parse-notes'), isSnippetName('Parse'), isSnippetName('a--b'), isSnippetName('')]).toEqual([true, false, false, false]);
   });
 });
@@ -201,8 +236,11 @@ describe('the listings of a text', () => {
   test('are written by /listing with their caption line, their comment and the language of their file (R-CODE-001)', () => {
     expect(listingBlock('Reading', '../src/fields.ts', 'readFields', ['```', 'x'])).toEqual(['Listing: Reading', '', '<!-- listing: ../src/fields.ts#readFields -->', '', '````typescript', '```', 'x', '````']);
     expect(languageOf('a/b.PY')).toBe('python');
-    expect(languageOf('Makefile')).toBe('');
-    expect(sourceFiles).toMatch(/^\*\*\/\*\.\{c,.*ts,.*\}$/);
-    expect(sourceFiles).not.toContain(',md,');
+    expect([languageOf('Makefile'), languageOf('LICENSE')]).toEqual(['makefile', '']);
+    expect([languageOf('.env.local'), languageOf('Dockerfile'), languageOf('tsconfig.jsonc'), languageOf('a.vue')]).toEqual(['ini', 'dockerfile', 'jsonc', 'vue']);
+    // One group of patterns without nested braces, which the search of VS Code takes.
+    expect(sourceFiles).toMatch(/^\{\*\*\/\*\.bash,.*,\*\*\/\*\.ts,.*,\*\*\/\.env,\*\*\/\.env\.\*,\*\*\/Dockerfile,.*\}$/);
+    expect(sourceFiles.slice(1, -1)).not.toMatch(/[{}]/);
+    expect(sourceFiles).not.toContain('*.md,');
   });
 });
