@@ -10,7 +10,8 @@ This document specifies version 1.0.0 of the format of the notes in Markdown
 files, which the VS Code extension nimblescape Markdown Notes reads and
 writes. It is for people and for programs, for example AI agents, that read,
 change or add notes without the extension. A file that follows it stays plain Markdown:
-GitHub shows each note as a footnote at the end of the page.
+GitHub shows each note as a footnote at the end of the page, or, in the
+hidden form of [section 11](#11-the-hidden-form), hides every note.
 
 The [requirements](requirements.md) define how the extension shows the notes;
 this document defines only the text of a file. The words "must" and "must
@@ -27,7 +28,9 @@ A note is a footnote with the label "note-" and four small letters or digits, fo
 Its reference ends the highlight of the note. Its start marker starts the highlight: <wbr> and an HTML
 comment with "[", the label and an optional color name. Every note has one. The definition follows the
 block of the highlight: "[^note-7k2q]: **login** · date", a blank line, and the body indented by four
-spaces. Each reply is a block quote with its own header.
+spaces. Each reply is a block quote with its own header. With the word "hidden" in the first line, each
+definition is in an HTML comment of its own, the reference is the comment with the label and "]", and the
+text of a note escapes each end of a comment with one more backslash before its ">".
 -->
 
 # Title
@@ -66,6 +69,11 @@ DOCTYPE. GitHub and the Markdown preview do not show it.
   `https://github.com/nimblescape/nimblescape-markdown-notes/blob/main/docs/format.md`,
   of the repository before its rename on 2026-10-30, is valid too and stays
   as it is: GitHub forwards that address to this document.
+- In a file whose notes are in the hidden form
+  ([section 11](#11-the-hidden-form)), the first line holds the word
+  `hidden` after the version:
+  `<!-- nimblescape-markdownnotes v1.0.0 hidden spec=…`. A first line
+  without the word means the visible form, the form of sections 3 to 6.
 - The lines after it are a short hint in words. They must not hold `-->`,
   because `-->` ends the comment, and they hold no blank line.
 - The last line is `-->`.
@@ -220,6 +228,11 @@ A program, for example an AI agent, follows these steps:
   one level up. Deleting the only answer deletes the note.
 - **Delete a note:** remove its definition with one blank line next to it, its
   reference and its start marker, only when the user asks for it.
+- **Hidden notes:** in a file whose comment of the format holds the word
+  `hidden`, write each note in the hidden form
+  ([section 11](#11-the-hidden-form)): the definition in its own comment,
+  escaped, and the end marker in place of the reference. Never write a note
+  of the visible form into such a file; the formatter would change it.
 - Never change a label, never write a start marker without `<wbr>`, never
   write a note without a start marker or a highlight without text, never put a
   definition into a block quote, and never write a note into a code block.
@@ -383,6 +396,63 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   adds a listing writes the caption line `Listing: ` with its text, the
   comment and an empty code block, and runs `markdownnotes format`, which
   writes the number, the link, the cite and the code.
+
+## 11. The hidden form
+
+GitHub and other viewers show the notes of the visible form as footnotes. In
+a file whose notes are hidden from other viewers, every note is in the hidden
+form, which every Markdown viewer hides, also GitHub
+([R-HIDE-001](requirements.md#r-hide-001)):
+
+````markdown
+<!-- nimblescape-markdownnotes v1.0.0 hidden spec=https://github.com/nimblescape/markdownnotes-vscode/blob/main/docs/format.md
+…
+-->
+
+The agents <wbr><!--[note-7k2q green-->change the work of teams<!--note-7k2q]--> in three ways.
+
+<!--
+[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+    Which three ways? The page has the comment `<!-- plan --\>`.
+
+    > **anna** · 2026-10-28 11:02+01:00
+    >
+    > The ways of the plan.
+-->
+
+The next paragraph.
+````
+
+- The first line of the comment of the format holds the word `hidden`
+  ([section 1](#1-the-comment-of-the-format)). A file in the hidden form
+  always has the comment.
+- The start marker is the same as in the visible form
+  ([section 4](#4-the-start-marker)).
+- The end marker `<!--note-7k2q]-->`, an HTML comment with the label and
+  `]`, takes the place of the reference `[^note-7k2q]` and follows the rules
+  of [section 3](#3-the-reference). It must not stand at the start of a line,
+  where it would start a block of HTML, which ends the paragraph.
+- The definition is an HTML comment of its own: a line `<!--`, the
+  definition as in sections 5 and 6, and a line `-->`, at the place of the
+  definition of the visible form, with a blank line before and after the
+  comment. In a block quote or a list item, each line of the comment has the
+  prefix of the block quote or the list item.
+- **Escape:** an HTML comment ends at the first `-->`, and a browser also
+  ends it at `--!>`. Inside the comment of a note, each place where `--` or
+  `--!` is followed by any number of backslashes and then `>` gets one more
+  backslash before the `>`: `-->` becomes `--\>`, `--!>` becomes `--!\>`,
+  and `--\>` becomes `--\\>`. A reader removes one backslash from each such
+  place. So the text of a note can hold any text, also HTML with comments.
+- A program reads the text of a note of the hidden form as the definition
+  between the lines `<!--` and `-->`, without the escape, and writes a
+  changed note back with the escape.
+- The formatter writes each note in the form of its file: a note of the
+  visible form in a file of the hidden form goes into the hidden form, for
+  example after a merge, and the other way.
+- [example-hidden.md](example-hidden.md) is a file in the hidden form. GitHub
+  shows none of its notes, and its paragraphs, list, table and block quote
+  stay whole.
 
 ---
 

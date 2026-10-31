@@ -55,8 +55,8 @@ requirement, the plan and the decisions of Hannes.
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 | 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
 | 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
-| 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | planned; before the first release |
-| 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | planned; before the first release |
+| 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | done; checked with GitHub on [example-hidden.md](example-hidden.md) |
+| 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | done |
 | 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
 | 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
 | 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
@@ -842,10 +842,18 @@ extension ([R-NOTE-005](#r-note-005)), or that breaks a rule of the notes
 - a note whose highlight holds no text, a start marker directly before the
   reference;
 - a start marker without `<wbr>` at the start of a line, which ends the
-  paragraph.
+  paragraph;
+- an end marker of the hidden form at the start of a line, which ends the
+  paragraph ([R-HIDE-003](#r-hide-003));
+- a note, or the end of a highlight, in the other form than its file (a
+  hint, [R-HIDE-003](#r-hide-003)).
 
-"Format Document" adds a missing start marker and a missing `<wbr>`
-([R-FMT-002](#r-fmt-002)).
+In the hidden form, the warning of a note in a block quote does not apply,
+because GitHub shows no note of that form.
+
+"Format Document" adds a missing start marker and a missing `<wbr>`, joins an
+end marker at the start of a line to its paragraph, and writes each note in
+the form of its file ([R-FMT-002](#r-fmt-002)).
 
 ### R-TEXT-009
 
@@ -1549,7 +1557,7 @@ on save too.
   line.
 - The columns of a table are aligned, with the alignment of its delimiter
   row, by the width that the text editor shows: without the hidden start
-  markers and references of the notes, and with two columns for each wide
+  markers, references and end markers of the notes, and with two columns for each wide
   character, such as Chinese characters and emoji. A table in a block quote
   or a list keeps its form.
 - No line ends with white space, apart from a hard line break.
@@ -1560,6 +1568,9 @@ on save too.
   the start of a line ends no paragraph on GitHub, and a note without a
   start marker gets one at the start of the text of the block of its
   reference ([R-NOTE-006](#r-note-006)). The color of a marker stays.
+- Each note is in the form of its file, visible or hidden
+  ([R-HIDE-003](#r-hide-003)), and an end marker of the hidden form at the
+  start of a line joins the paragraph before it.
 - The number in the text of each link to a figure, a table, a listing or a
   section follows their order in the file ([R-XREF-002](#r-xref-002)).
 - Each value of the front matter in the text gets the current value of its
@@ -1573,7 +1584,8 @@ on save too.
 blocks of HTML (also comments and the comment of the format of the notes,
 [R-NOTE-007](#r-note-007)), a front matter, blocks of math (`$$`),
 containers (`:::`), setext headings and the answers of the notes; of a
-note, it changes only the start marker ([R-FMT-002](#r-fmt-002)). The
+note, it changes only the start marker and its form, whose lines it keeps
+([R-FMT-002](#r-fmt-002)). The
 definition of a footnote stays on a line of its own. It reads the text as the
 Markdown preview reads it, and keeps the text as it was when the formatted
 text would show other blocks or another text in the preview.
@@ -2197,7 +2209,8 @@ the same way.
   `[^note-7k2q]`.
 - The definition of each note is an HTML comment of its own: a line `<!--`,
   the definition as in the visible form, and a line `-->`, with a blank line
-  before and after the comment:
+  before and after the comment. In a block quote or a list item, each line of
+  the comment has the prefix of the block quote or the list item:
 
   ````markdown
   The agents <wbr><!--[note-7k2q-->change the work of teams<!--note-7k2q]--> in three ways.
@@ -2220,6 +2233,9 @@ the same way.
 - The text view of a thread ([R-SIDE-002](#r-side-002)) shows the definition
   without the lines `<!--` and `-->` and without the escape, as in the
   visible form.
+- The words of the comment of the format say that in a file with `hidden`,
+  each definition is in an HTML comment of its own, that the end marker is a
+  comment, and that the text of a note escapes the end of a comment.
 
 ### R-HIDE-002
 
@@ -2229,15 +2245,21 @@ decides whether other viewers show the notes of the active file:
 - The icon shows the form of the file: an eye for the visible form, an eye
   with a stroke for the hidden form. Its tooltip says the state and what a
   click does, for example "Other viewers show the notes, also GitHub. Click
-  to hide them."
+  to hide them." Both icons come from the icon font of the extension, made
+  from the codicon "eye", as the icons of the highlights
+  ([decision 26](#decisions)).
 - A click writes all notes of the file in the other form in one edit, which
   Undo takes back: it puts each definition into its comment or takes it
   out, exchanges the end markers, applies or removes the escape, and sets or
   removes the word `hidden`. The commands "Hide Notes from Other Viewers" and
-  "Show Notes in Other Viewers" of the Command Palette do the same.
+  "Show Notes in Other Viewers" of the Command Palette do the same. Each
+  thread of the side view keeps its note, and the selected note stays
+  selected. The definitions keep their lines as the file holds them; a
+  missing blank line before or after a definition is added.
 - The icon shows only for a file with notes. The setting
   `nimblescape.markdownNotes.hideNotesInNewFiles` (off by default) chooses
-  the form of a file that gets its first note.
+  the form of a file that gets its first note. A workspace or a folder can
+  set it, so that a repository keeps the notes of its new files hidden.
 - After the change, the extension writes each new note and answer in the
   form of the file.
 
@@ -2251,7 +2273,21 @@ AI agent added to a file in the hidden form ([R-FMT-002](#r-fmt-002)). The
 specification for programs ([docs/format.md](format.md)) describes the
 hidden form and its escape. The step that builds the form checks with the
 renderer of GitHub that a file in the hidden form shows no part of a note,
-and that its paragraphs, lists, block quotes and tables stay whole.
+and that its paragraphs, lists, block quotes and tables stay whole: GitHub
+shows [example-hidden.md](example-hidden.md) without any part of its five
+notes, with its list, its table, its block quote and its standard footnote
+whole.
+
+- Without the comment of the format, a file is in the hidden form when all
+  of its notes are.
+- The checks of the text editor ([R-TEXT-008](#r-text-008)) give a hint at a
+  note, or at the end of a highlight, in the other form than its file, which
+  the formatter then changes. An end marker at the start of a line gets a
+  warning, because it starts a block of HTML, which ends the paragraph; the
+  formatter joins the line to the paragraph before it.
+- The text editor hides the end markers as it hides the references
+  ([R-NOTE-006](#r-note-006)), and the clean editing view leaves out the
+  comments of the notes and the end markers ([R-TEXT-009](#r-text-009)).
 
 ### R-HIDE-004
 

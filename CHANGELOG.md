@@ -169,14 +169,27 @@ The first version.
   with the last note. The version `v1.0.0` is a semantic version: the
   extension writes a comment anew only when its own version is higher, and
   changes no note of a file whose comment names a higher major version.
+- Hidden notes: the eye in the title of the side view writes all notes of a
+  file in the hidden form, which GitHub and every other Markdown viewer
+  hide, or back in the visible form, in one edit that Undo takes back. In
+  the hidden form, each definition of a note is an HTML comment of its own,
+  the end of a highlight is the comment `<!--note-7k2q]-->`, the comment of
+  the format holds the word `hidden`, and the text of a note escapes `-->`
+  with a backslash, `--\>`. The extension shows the notes of both forms in
+  the same way, and writes new notes in the form of the file. The commands
+  "Hide Notes from Other Viewers" and "Show Notes in Other Viewers" do the
+  same as the eye, and the setting
+  `nimblescape.markdownNotes.hideNotesInNewFiles` chooses the form of a
+  file that gets its first note.
 - The text editor and the Problems view warn at each form of a note that
   GitHub shows differently or that breaks a rule of the notes: no blank line
   before or after the note, lines without the indentation of four spaces, a
   second note of a label, a reference without a note or a note without a
   reference, a note in a block quote, a reference in the text of a link, in
   a heading or in a note, a note without a start marker or without
-  highlighted text, and a start marker without `<wbr>` at the start of a
-  line.
+  highlighted text, a start marker without `<wbr>` at the start of a
+  line, and an end marker of a hidden note at the start of a line. A hint
+  marks a note in the other form than its file.
 - An own Markdown formatter, the default for "Format Document" of Markdown
   files and the format on save of a Markdown file with notes or with the
   comment of the format; other Markdown files keep their text on a save
@@ -185,8 +198,8 @@ The first version.
   one blank line between blocks, one line break at the end of the file,
   `<wbr>` before each start marker, a start marker for each note without
   one, the numbers of the links to figures, tables, listings and sections,
-  the current values of the front matter and the current code of the
-  listings. A file with a listing, a value of the front matter or an anchor
+  the current values of the front matter, the current code of the
+  listings, and each note in the form of its file. A file with a listing, a value of the front matter or an anchor
   is formatted on a save as a file with notes. It keeps code blocks, HTML, a front matter, math, containers and the
   notes, and keeps the text as it was when the preview would show it
   differently.
@@ -215,5 +228,6 @@ The first version.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,
-  `nimblescape.markdownNotes.addFormatComment` and
-  `nimblescape.markdownNotes.formatOnSave`.
+  `nimblescape.markdownNotes.addFormatComment`,
+  `nimblescape.markdownNotes.formatOnSave` and
+  `nimblescape.markdownNotes.hideNotesInNewFiles`.

@@ -5,7 +5,8 @@
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
 // R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), a listing in
-// the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), the commands of the eye that hide the
+// notes from other viewers (R-HIDE-002), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
@@ -222,6 +223,31 @@ describe('nimblescape Markdown Notes', () => {
     await waitFor(() => (vscode.window.activeTextEditor?.document === real ? true : undefined), 'the text editor of the file');
     await new Promise((resolve) => setTimeout(resolve, 500));
     assert.equal(vscode.window.activeTextEditor?.document, real);
+  });
+
+  it('hides the notes of a file from other viewers and shows them again with the commands of the eye, while the clean editing view keeps its text (R-HIDE-001 to R-HIDE-003)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const clean = view.document.getText();
+    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+    await vscode.commands.executeCommand(commandOf('hideNotesFromViewers'));
+    const hidden = await waitFor(() => (real()?.getText().includes('<!--note-bbbb]-->') ? real() : undefined), 'the hidden form in the file');
+    const text = hidden.getText();
+    assert.match(text.split('\n')[0], /^<!-- nimblescape-markdownnotes v\d+\.\d+\.\d+ hidden spec=/);
+    assert.ok(text.includes('The text<!--note-aaaa]--> of the page and <wbr><!--[note-bbbb green-->a highlight<!--note-bbbb]--> here.'), text);
+    assert.ok(text.includes('\n<!--\n[^note-bbbb]: **carl** · 2026-10-28 12:00Z\n\n    Inline\n-->\n\nMore.\n'), text);
+    const extension = await api();
+    const notes = await waitFor(() => {
+      const read = extension.notesOf(file);
+      return read.length === 2 && read.every((each) => each.hidden) ? read : undefined;
+    }, 'two hidden notes');
+    assert.deepEqual(notes.map((each) => each.answers.map((answer) => answer.author)), [['ann', 'bob'], ['carl']]);
+    await waitFor(() => (view.document.getText() === clean ? true : undefined), 'the text of the clean editing view');
+    await vscode.commands.executeCommand(commandOf('showNotesInViewers'));
+    await waitFor(() => (real()?.getText() === marked(note) ? true : undefined), 'the visible form in the file');
+    assert.equal(view.document.getText(), clean);
   });
 
   it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {

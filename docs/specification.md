@@ -105,10 +105,13 @@ form of the notes in a file for programs and AI agents, and
 - **Todo notes:** the header of the first answer ends with `· todo` or
   `· done`; a check box in the side view changes it
   ([R-NOTE-008](requirements.md#r-note-008)).
-- **Hidden form, planned:** a switch at the top of the side view writes every
-  note of a file as an HTML comment, which every viewer hides, also GitHub,
-  with an escape of `-->`; all readers and writers accept both forms
-  ([R-HIDE-001](requirements.md#r-hide-001) to
+- **Hidden form:** each definition of a note is an HTML comment of its own,
+  the end marker is the comment `<!--note-7k2q]-->`, and the comment of the
+  format holds the word `hidden`, so that every viewer hides the notes, also
+  GitHub; the text of a note escapes `-->` and `--!>` with one more
+  backslash. All readers and writers accept both forms, and a file has one
+  form; without the comment of the format, a file is hidden when all its
+  notes are ([R-HIDE-001](requirements.md#r-hide-001),
   [R-HIDE-003](requirements.md#r-hide-003)).
 - **Text without notes, planned:** `markdownnotes strip`, "Copy without Notes"
   and "Save Copy without Notes" write the text without the notes, for
@@ -175,6 +178,12 @@ form of the notes in a file for programs and AI agents, and
   `data:` or `javascript:` ([R-SIDE-005](requirements.md#r-side-005)).
 - **Show and hide** with one button, also in Zen Mode
   ([R-SIDE-006](requirements.md#r-side-006)).
+- **Hide the notes from other viewers:** the eye in the title of the view,
+  for a file with notes, shows its form and writes all its notes in the
+  other form in one edit; the commands "Hide Notes from Other Viewers" and
+  "Show Notes in Other Viewers"; the setting `hideNotesInNewFiles` chooses
+  the form of a file that gets its first note
+  ([R-HIDE-002](requirements.md#r-hide-002)).
 - **Smooth scroll:** the text editor and the preview scroll smoothly to the
   note that the view selects ([R-SIDE-007](requirements.md#r-side-007)).
 - **Visual editing:** the tab "Visual" of each editor edits the rendered
@@ -237,8 +246,9 @@ form of the notes in a file for programs and AI agents, and
   tables, no white space at line ends, one blank line between blocks,
   `<wbr>` before each start marker, a start marker for each note, the
   numbers of the links to figures, tables, listings and sections, the
-  current values of the front matter, and the current code of the listings
-  ([R-FMT-002](requirements.md#r-fmt-002)).
+  current values of the front matter, the current code of the listings, and
+  each note in the form of its file ([R-FMT-002](requirements.md#r-fmt-002),
+  [R-HIDE-003](requirements.md#r-hide-003)).
 - **Keeps** code blocks, HTML, front matter, math, containers, setext
   headings and the answers of the notes, and keeps the text when the result
   would render otherwise ([R-FMT-003](requirements.md#r-fmt-003)).

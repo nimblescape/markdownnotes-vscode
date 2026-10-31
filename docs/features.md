@@ -9,14 +9,14 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 This document lists each feature that Hannes asked for in the threads of the
 project, with the date of the request, the requirement in
 [requirements.md](requirements.md) that describes it, and its state on
-2026-10-30. [specification.md](specification.md) summarizes the requirements
+2026-10-31. [specification.md](specification.md) summarizes the requirements
 that are still valid. The requests for the paper workflow, such as the
 layouts, the sections without chapter numbers, the lists of figures and
 tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 134 requested features, 106 are built, among them the clean editing view
+Of 134 requested features, 108 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -24,7 +24,9 @@ Paper, the figures, tables and sections with the links to them (to a
 section by the ID that GitHub gives its heading), the
 values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
-the captions and the cite of a listing in the file by the principle "document driven". 6 features are planned but not built, and 1 is postponed: the features of the section
+the captions and the cite of a listing in the file by the principle "document driven", and
+the hidden form of the notes with the eye in the side view, which hides the
+notes from other viewers, also from GitHub. 4 features are planned but not built, and 1 is postponed: the features of the section
 [Planned features](#planned-features). The symbols of a listing with
 tree-sitter parsers are postponed ([decision 51](requirements.md#decisions)).
 Three questions are decided without a
@@ -41,8 +43,8 @@ numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
 [decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
-The main gaps are the hidden form of the notes and the checks of the
-footnotes.
+The main gaps are the text without notes for publishing and the checks of
+the footnotes.
 
 The columns of the tables:
 
@@ -237,19 +239,26 @@ Footnote" are in the section [Planned features](#planned-features).
 | Citations as footnotes inside the highlight of a note | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. The citations themselves moved to nimblescape Markdown Paper ([decision 32](requirements.md#decisions)) |
 | The definitions of the footnotes hidden in the text | 10-29 20:42 | [R-TEXT-009](requirements.md#r-text-009), [R-FOOT-001](requirements.md#r-foot-001) | Built | In the clean editing view of a file with notes, while the side view shows the footnotes; the references stay, and a definition without a reference too. A definition typed in the view stays until the view reads the file anew. A file with only standard footnotes opens in its own text editor, with its definitions |
 
+## Hidden notes
+
+Hannes asked on 2026-10-29 at 08:01 for notes that other viewers do not
+show ([decision 23](requirements.md#decisions)). Steps 29 and 30 of the plan
+built them on 2026-10-31, before the first release, because they add the
+word `hidden` to the format `v1.0.0`.
+
+| Request | Asked | Spec | State | Detail |
+| --- | --- | --- | --- | --- |
+| The hidden form of the notes, which every viewer hides, also GitHub | 10-29 08:01 | [R-HIDE-001](requirements.md#r-hide-001), [R-HIDE-003](requirements.md#r-hide-003) | Built | Step 29: each definition in an HTML comment of its own, the end marker `<!--note-7k2q]-->`, the word `hidden` in the comment of the format, the escape of `-->` in the text of a note; the side view, the highlights, the preview, the clean editing view, the checks and the formatter read both forms. GitHub shows [example-hidden.md](example-hidden.md) without any part of its notes |
+| An icon at the top of the side view that hides the notes from other viewers | 10-29 08:02 | [R-HIDE-002](requirements.md#r-hide-002) | Built | Step 30: the eye, or the eye with a stroke, in the title of the side view for a file with notes; a click writes all notes in the other form in one edit; the commands "Hide Notes from Other Viewers" and "Show Notes in Other Viewers"; the setting `hideNotesInNewFiles` |
+
 ## Planned features
 
-7 features are in the specification and the plan, or proposed, but not built. 6 are
+5 features are in the specification and the plan, or proposed, but not built. 4 are
 planned, and the symbols of a listing with parsers are postponed
-([decision 51](requirements.md#decisions)). Steps 29
-and 30 must come before the first release, because they change the format
-`v1.0.0`. Step 38, the clean editing view, comes before them, because the
-hidden form changes the markup that the clean view leaves out.
+([decision 51](requirements.md#decisions)).
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
-| The hidden form of the notes, which every viewer hides, also GitHub | 10-29 08:01 | [R-HIDE-001](requirements.md#r-hide-001), [R-HIDE-003](requirements.md#r-hide-003) | 29, before the first release | Planned |
-| An icon at the top of the side view that hides the notes from other viewers | 10-29 08:02 | [R-HIDE-002](requirements.md#r-hide-002) | 30, before the first release | Planned |
 | The text without notes for publishing: `markdownnotes strip`, "Copy without Notes" | 10-29 08:01 | [R-HIDE-004](requirements.md#r-hide-004) | 31 | Planned |
 | Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
@@ -286,19 +295,16 @@ side view, and ESLint.
 
 ## Open work and its order
 
-The rule of 2026-10-29 09:17 is built: the clean editing view (step 38,
-[decision 27](requirements.md#decisions)). The open work, in its order:
+The clean editing view (step 38, [decision 27](requirements.md#decisions))
+and the hidden notes (steps 29 and 30) are built, and
+[pull request #1](https://github.com/nimblescape/markdownnotes-vscode/pull/1)
+is merged. The open work, in its order:
 
-1. Steps 29 and 30: the hidden form of the notes and its icon, before the
-   first release, because it changes the markup that the clean editing view
-   leaves out.
-2. The merge of
-   [pull request #1](https://github.com/nimblescape/markdownnotes-vscode/pull/1),
-   which needs Hannes. There is no release for now
-   ([decision 48](requirements.md#decisions)); before the first release, the
-   Marketplace setup runs again for the new name of the repository.
-3. Steps 31, 34 and 35: the text without notes, the checks of the
+1. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
+2. There is no release for now ([decision 48](requirements.md#decisions));
+   before the first release, the Marketplace setup runs again for the new
+   name of the repository.
 
 ---
 
