@@ -1,0 +1,114 @@
+/*
+ * SPDX-License-Identifier: MIT
+ * © 2026 Hannes Stauss (scalarion@nimblescape.com)
+ * Licensed under the MIT License. See LICENSE in the repository root for details.
+ */
+
+/*
+ * The styles of the notes in the built-in Markdown preview (R-PREV-001). They
+ * apply to the elements of the extension only, so the rest of the preview
+ * keeps its look. The preview shows no text, no icon and no callout of a note;
+ * the side view shows the notes.
+ *
+ * The script of the preview paints the highlight of each note in the color of
+ * the note (R-NOTE-006, src/notes/colors.ts): a clear background with a line
+ * below the text, so that it stands out of the text, and strong under the
+ * pointer. The highlight of the selected note of the side view is strong with a
+ * frame, and the other highlights are dimmed. The class
+ * nimblescape-note-color-N sets the variable --nimblescape-note-color for the
+ * frame.
+ */
+
+.nimblescape-note-color-1 { --nimblescape-note-color: #1a7fe0; }
+.nimblescape-note-color-2 { --nimblescape-note-color: #2e8b3e; }
+.nimblescape-note-color-3 { --nimblescape-note-color: #c7731a; }
+.nimblescape-note-color-4 { --nimblescape-note-color: #8a4fc0; }
+.nimblescape-note-color-5 { --nimblescape-note-color: #d33b3b; }
+.nimblescape-note-color-6 { --nimblescape-note-color: #138a8a; }
+
+/* The highlight of each note: a clear background with a line below the text. */
+::highlight(nimblescape-note-1) { background-color: rgba(26, 127, 224, 0.28); text-decoration: underline 2px rgb(26, 127, 224); }
+::highlight(nimblescape-note-2) { background-color: rgba(46, 139, 62, 0.28); text-decoration: underline 2px rgb(46, 139, 62); }
+::highlight(nimblescape-note-3) { background-color: rgba(199, 115, 26, 0.28); text-decoration: underline 2px rgb(199, 115, 26); }
+::highlight(nimblescape-note-4) { background-color: rgba(138, 79, 192, 0.28); text-decoration: underline 2px rgb(138, 79, 192); }
+::highlight(nimblescape-note-5) { background-color: rgba(211, 59, 59, 0.28); text-decoration: underline 2px rgb(211, 59, 59); }
+::highlight(nimblescape-note-6) { background-color: rgba(19, 138, 138, 0.28); text-decoration: underline 2px rgb(19, 138, 138); }
+
+/* The highlights of the other notes while a note is selected: dimmed. */
+::highlight(nimblescape-note-1-dim) { background-color: rgba(26, 127, 224, 0.1); }
+::highlight(nimblescape-note-2-dim) { background-color: rgba(46, 139, 62, 0.1); }
+::highlight(nimblescape-note-3-dim) { background-color: rgba(199, 115, 26, 0.1); }
+::highlight(nimblescape-note-4-dim) { background-color: rgba(138, 79, 192, 0.1); }
+::highlight(nimblescape-note-5-dim) { background-color: rgba(211, 59, 59, 0.1); }
+::highlight(nimblescape-note-6-dim) { background-color: rgba(19, 138, 138, 0.1); }
+
+/* The highlight under the pointer, which a click selects in the side view. */
+::highlight(nimblescape-note-1-active) { background-color: rgba(26, 127, 224, 0.45); text-decoration: underline 2px rgb(26, 127, 224); }
+::highlight(nimblescape-note-2-active) { background-color: rgba(46, 139, 62, 0.45); text-decoration: underline 2px rgb(46, 139, 62); }
+::highlight(nimblescape-note-3-active) { background-color: rgba(199, 115, 26, 0.45); text-decoration: underline 2px rgb(199, 115, 26); }
+::highlight(nimblescape-note-4-active) { background-color: rgba(138, 79, 192, 0.45); text-decoration: underline 2px rgb(138, 79, 192); }
+::highlight(nimblescape-note-5-active) { background-color: rgba(211, 59, 59, 0.45); text-decoration: underline 2px rgb(211, 59, 59); }
+::highlight(nimblescape-note-6-active) { background-color: rgba(19, 138, 138, 0.45); text-decoration: underline 2px rgb(19, 138, 138); }
+
+/* The highlight of the selected note of the side view, which also has a frame. */
+::highlight(nimblescape-note-1-selected) { background-color: rgba(26, 127, 224, 0.45); }
+::highlight(nimblescape-note-2-selected) { background-color: rgba(46, 139, 62, 0.45); }
+::highlight(nimblescape-note-3-selected) { background-color: rgba(199, 115, 26, 0.45); }
+::highlight(nimblescape-note-4-selected) { background-color: rgba(138, 79, 192, 0.45); }
+::highlight(nimblescape-note-5-selected) { background-color: rgba(211, 59, 59, 0.45); }
+::highlight(nimblescape-note-6-selected) { background-color: rgba(19, 138, 138, 0.45); }
+
+.nimblescape-note-frames {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.nimblescape-note-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--nimblescape-note-color);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* A click on a highlight selects its note: the pointer shows it. */
+html[data-nimblescape-highlight] {
+  cursor: pointer;
+}
+
+/*
+ * The button "Add Note" above the selected text (R-PREV-008), in the colors of
+ * the buttons of VS Code, with the icon "comment" of the codicons.
+ */
+.nimblescape-note-add {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 4px;
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nimblescape-note-add:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.nimblescape-note-add svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}

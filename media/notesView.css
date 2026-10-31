@@ -1,0 +1,446 @@
+/*
+ * SPDX-License-Identifier: MIT
+ * © 2026 Hannes Stauss (scalarion@nimblescape.com)
+ * Licensed under the MIT License. See LICENSE in the repository root for details.
+ */
+
+/*
+ * The styles of the side view "Notes" (R-SIDE-001, R-SIDE-002). The view uses
+ * the font and the colors of the theme of VS Code. Each thread is a box with
+ * the color of its note at its left side and a round button of this color;
+ * the selected thread has a frame in this color, and each other thread is
+ * dimmed (R-SIDE-007). A standard footnote has the color of the descriptions
+ * of the theme, and its label the background of code (R-FOOT-001). The replies to a reply are indented below it. The
+ * buttons are small icons, as the buttons in the title of an editor, and the
+ * text view of a note has the font of the text editor. The view is a list
+ * that scrolls (decision 25), below a header with the filters that stays at
+ * the top (R-SIDE-008), and the tooltips have the colors of the hovers of
+ * VS Code. A button of a filter that is on has the colors of an option that is
+ * on in the find widget of VS Code.
+ */
+
+body {
+  padding: 0 12px 12px;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.35)));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.top-row {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+}
+
+.file {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 4px;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dots {
+  display: flex;
+  flex: none;
+  gap: 5px;
+  align-items: center;
+  margin: 0 3px;
+}
+
+/* The dots of the color filter are a little smaller than the button of the color of a thread, so that the name of the file keeps room. */
+.dots button.swatch {
+  width: 12px;
+  height: 12px;
+}
+
+input.search {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--vscode-input-border, transparent);
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font: inherit;
+}
+
+input.search::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+input.search:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* A button of a filter that is on, as an option that is on in the find widget of VS Code. */
+button.icon[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--vscode-inputOption-activeBorder, var(--vscode-focusBorder));
+  color: var(--vscode-inputOption-activeForeground, var(--vscode-foreground));
+  background: var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.4));
+}
+
+/* The check box of a todo note at the start of the header of its thread (R-NOTE-008). */
+button.icon.todo {
+  width: 20px;
+  height: 20px;
+}
+
+.account,
+.hint,
+.date {
+  color: var(--vscode-descriptionForeground);
+}
+
+.account {
+  margin: 6px 0 2px;
+  font-size: 0.9em;
+}
+
+h2.new-title {
+  margin: 12px 0 4px;
+  font-size: 1em;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* A button with an icon, as the buttons in the title of an editor of VS Code: monochrome, with a background under the pointer. */
+button.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  background: none;
+}
+
+button.icon:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+button.icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* The tooltip of a button, a color, the line of a thread or a date, which the script places below its element. */
+.tooltip {
+  position: fixed;
+  z-index: 10;
+  box-sizing: border-box;
+  max-width: min(320px, calc(100vw - 8px));
+  padding: 2px 8px;
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.5)));
+  border-radius: 3px;
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  background: var(--vscode-editorHoverWidget-background, var(--vscode-editor-background));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.tooltip[hidden] {
+  display: none;
+}
+
+/* The round button of the color of a note, and the colors that it offers. */
+button.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--vscode-contrastBorder, rgba(128, 128, 128, 0.5));
+  border-radius: 50%;
+  background: var(--swatch);
+  align-self: center;
+}
+
+button.swatch[aria-pressed='true'] {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.palette {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+button.link {
+  padding: 0;
+  border: none;
+  color: var(--vscode-textLink-foreground);
+  background: none;
+}
+
+button.link:hover {
+  text-decoration: underline;
+}
+
+button:focus-visible,
+textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.thread {
+  margin: 8px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)));
+  border-left: 3px solid var(--note-color, var(--vscode-focusBorder));
+  border-radius: 3px;
+  cursor: default;
+}
+
+.thread.selected {
+  border-color: var(--note-color, var(--vscode-focusBorder));
+  box-shadow: inset 0 0 0 1px var(--note-color, var(--vscode-focusBorder));
+}
+
+/*
+ * Each thread that is not selected: dimmed a little, also while no thread is selected and under the pointer.
+ */
+.thread:not(.selected) {
+  opacity: 0.7;
+}
+
+/*
+ * In the list, the selected thread scrolls to the top of the view below the header, also the last one: an empty part
+ * follows the threads. An editor that opens scrolls below the header too.
+ */
+.thread,
+.new-note,
+.editor {
+  scroll-margin-top: calc(var(--header, 0px) + 8px);
+}
+
+#notes:has(.thread)::after {
+  content: '';
+  display: block;
+  height: 80vh;
+}
+
+.thread-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+/* The label of a standard footnote, as the file holds it, in the font of the text editor (R-FOOT-001). */
+.footnote-label {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.12));
+}
+
+.answer {
+  padding: 4px 0;
+}
+
+.answer + .answer {
+  border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.25));
+}
+
+/* A reply to a reply is indented by its level, with a line at its left side (R-NOTE-004). */
+.answer.reply {
+  margin-left: calc(var(--depth, 0) * 12px);
+  padding-left: 8px;
+  border-left: 2px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+}
+
+.answer.reply + .answer {
+  border-top: none;
+}
+
+.answer-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.author {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* A rendered text stays inside its box: contain clips what the text holds, also an element of its HTML with a class
+   of this sheet. */
+.markdown-body {
+  contain: paint;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.markdown-body > :first-child {
+  margin-top: 4px;
+}
+
+.markdown-body > :last-child {
+  margin-bottom: 4px;
+}
+
+.markdown-body pre,
+.markdown-body code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  padding: 6px;
+  white-space: pre-wrap;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.12));
+}
+
+.markdown-body img {
+  max-width: 100%;
+}
+
+.editor {
+  margin: 4px 0;
+}
+
+textarea.text {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 6em;
+  padding: 4px 6px;
+  border: 1px solid var(--vscode-input-border, transparent);
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size, inherit);
+  resize: vertical;
+}
+
+/* The text view of a note: its whole text as the text editor shows it, in the font of the text editor, without wrapping. */
+textarea.source {
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 4;
+  font-weight: var(--vscode-editor-font-weight, normal);
+  line-height: 1.4;
+}
+
+.preview {
+  min-height: 6em;
+  padding: 2px 6px;
+  border: 1px dashed var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+}
+
+/*
+ * The tabs of an editor (R-SIDE-004): "Visual" and "Markdown", as small text
+ * buttons above the text, the chosen one underlined as a tab of VS Code.
+ */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+button.tab {
+  padding: 2px 6px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  cursor: pointer;
+}
+
+button.tab:hover {
+  color: var(--vscode-foreground);
+}
+
+button.tab.chosen {
+  border-bottom-color: var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder));
+  color: var(--vscode-foreground);
+}
+
+/*
+ * The visual editor (R-SIDE-004): the editor of the mode "Markdown Editor" of
+ * VS Code in a box like the text field of the tab "Markdown", with its toolbar
+ * above the text.
+ */
+.visual {
+  box-sizing: border-box;
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-input-background);
+}
+
+.visual:focus-within {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.visual-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border-bottom: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+}
+
+.visual .md-editor {
+  min-height: 6em;
+}
+
+.visual .md-editor .md-editor-content {
+  padding: 8px 8px 0;
+}
+
+.problem {
+  margin: 4px 0;
+  padding: 4px 6px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+  color: var(--vscode-errorForeground, inherit);
+  background: var(--vscode-inputValidation-errorBackground, transparent);
+}
+
+.buttons {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  margin-top: 2px;
+}

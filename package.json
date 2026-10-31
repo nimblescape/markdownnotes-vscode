@@ -1,0 +1,520 @@
+{
+  "name": "nimblescape-markdownnotes",
+  "displayName": "nimblescape Markdown Notes",
+  "description": "Notes in Markdown files, written as footnotes that GitHub shows: threads of replies with their authors and dates. A side view shows each note next to its passage in the text editor, and edits and answers the notes; the text editor and the Markdown preview highlight the passages. Every change goes back into the footnote in the file.",
+  "publisher": "nimblescape",
+  "author": {
+    "name": "nimblescape e.U.",
+    "url": "https://nimblescape.com"
+  },
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "notes",
+    "comments",
+    "footnotes",
+    "callout",
+    "review"
+  ],
+  "license": "MIT",
+  "homepage": "https://nimblescape.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimblescape/markdownnotes-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nimblescape/markdownnotes-vscode/issues"
+  },
+  "pricing": "Free",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#e8eef6",
+    "theme": "light"
+  },
+  "preview": true,
+  "qna": "https://github.com/nimblescape/markdownnotes-vscode/issues",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/webview",
+    "test": "vitest run",
+    "test:cli": "node esbuild.mjs && vitest run --config vitest.cli.config.mts",
+    "test:vscode": "node esbuild.mjs && node scripts/build-vscode-tests.mjs && vscode-test --label vscode",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package": "vsce package --no-dependencies",
+    "install-local": "node scripts/install-local.mjs",
+    "uninstall-local": "node scripts/uninstall-local.mjs"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.2.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.19.2",
+    "@types/vscode": "~1.125.0",
+    "@vscode/markdown-editor": "0.0.2-162",
+    "@vscode/observables": "0.1.1-0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "markdown-it": "^14.3.3",
+    "markdown-it-emoji": "^2.0.2",
+    "markdown-it-footnote": "^3.0.3",
+    "markdown-it-task-lists": "^2.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown",
+    "workspaceContains:**/*.md",
+    "onFileSystem:markdownnotes",
+    "onUri"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "The extension reads the notes of open Markdown files and changes only the text of Markdown files: when you add, edit, answer or delete a note, when you add, edit or delete a footnote in the side view, and when you save a Markdown file with notes (settings formatOnSave and addFormatComment). A file that an editor only shows keeps its text. It runs no program of the workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": true
+    }
+  },
+  "extensionPack": [
+    "bierner.markdown-footnotes"
+  ],
+  "contributes": {
+    "configurationDefaults": {
+      "[markdown]": {
+        "editor.defaultFormatter": "nimblescape.nimblescape-markdownnotes",
+        "editor.smoothScrolling": true
+      }
+    },
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./media/markdownPreview.css"
+    ],
+    "markdown.previewScripts": [
+      "./media/markdownPreview.js"
+    ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "nimblescape-markdownnotes",
+          "title": "Markdown Notes",
+          "icon": "resources/notes-view.svg"
+        }
+      ]
+    },
+    "views": {
+      "nimblescape-markdownnotes": [
+        {
+          "type": "webview",
+          "id": "nimblescape.markdownNotes.notes",
+          "name": "Notes"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "nimblescape.markdownNotes.newNote",
+        "title": "Add Note",
+        "category": "Markdown Notes",
+        "icon": "$(add)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.addSnippet",
+        "title": "Add Snippet",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.addFootnote",
+        "title": "Add Footnote",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-footnote-add)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showHighlights",
+        "title": "Show Highlights",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-highlights-show)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideHighlights",
+        "title": "Hide Highlights",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-highlights-hide)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showUsedSnippets",
+        "title": "Show Used Snippets",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-highlights-show)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideUsedSnippets",
+        "title": "Hide Used Snippets",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-highlights-hide)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showFootnotes",
+        "title": "Show Footnotes",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-footnotes-show)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideFootnotes",
+        "title": "Hide Footnotes",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-footnotes-hide)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.hideNotes",
+        "title": "Hide Notes",
+        "category": "Markdown Notes",
+        "icon": "$(close)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.toggleNotes",
+        "title": "Show or Hide Notes",
+        "category": "Markdown Notes",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.openWithMarkup",
+        "title": "Open File with Markup",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteLeft",
+        "title": "Delete Left of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteRight",
+        "title": "Delete Right of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordLeft",
+        "title": "Delete Word Left of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordRight",
+        "title": "Delete Word Right of a Hidden Marker",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.renameSnippet",
+        "title": "Rename Snippet",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.removeSnippet",
+        "title": "Remove Snippet",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "title": "Keep the Mark of a Snippet",
+        "category": "Markdown Notes"
+      }
+    ],
+    "icons": {
+      "nimblescape-highlights-show": {
+        "description": "Markdown Notes: the button Show Highlights, a highlighter pen over its line.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E001"
+        }
+      },
+      "nimblescape-highlights-hide": {
+        "description": "Markdown Notes: the button Hide Highlights, the highlighter pen with a stroke.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E002"
+        }
+      },
+      "nimblescape-footnote-add": {
+        "description": "Markdown Notes: the button Add Footnote, a plus sign with the number 1 of a footnote.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E003"
+        }
+      },
+      "nimblescape-footnotes-show": {
+        "description": "Markdown Notes: the button Show Footnotes, a numbered list.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E004"
+        }
+      },
+      "nimblescape-footnotes-hide": {
+        "description": "Markdown Notes: the button Hide Footnotes, the numbered list with a stroke.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E005"
+        }
+      }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "nimblescape.markdownNotes.toggleNotes",
+          "group": "navigation",
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor')"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showHighlights",
+          "group": "navigation",
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && !nimblescape.markdownNotes.highlightsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideHighlights",
+          "group": "navigation",
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && nimblescape.markdownNotes.highlightsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showUsedSnippets",
+          "group": "navigation",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && !nimblescape.markdownNotes.usedSnippetsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideUsedSnippets",
+          "group": "navigation",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && nimblescape.markdownNotes.usedSnippetsShown"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "nimblescape.markdownNotes.newNote",
+          "group": "navigation@1",
+          "when": "view == nimblescape.markdownNotes.notes"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addFootnote",
+          "group": "navigation@2",
+          "when": "view == nimblescape.markdownNotes.notes"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showFootnotes",
+          "group": "navigation@3",
+          "when": "view == nimblescape.markdownNotes.notes && !nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFootnotes",
+          "group": "navigation@3",
+          "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideNotes",
+          "group": "navigation@9",
+          "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdownnotes' && config.workbench.activityBar.location != 'default'"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nimblescape.markdownNotes.newNote",
+          "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addFootnote",
+          "when": "editorLangId == markdown && !editorReadonly"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addSnippet",
+          "when": "editorLangId != markdown && !editorReadonly && editorHasSelection"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showUsedSnippets",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && !nimblescape.markdownNotes.usedSnippetsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideUsedSnippets",
+          "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && nimblescape.markdownNotes.usedSnippetsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showHighlights",
+          "when": "!nimblescape.markdownNotes.highlightsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideHighlights",
+          "when": "nimblescape.markdownNotes.highlightsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showFootnotes",
+          "when": "!nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFootnotes",
+          "when": "nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideNotes",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.openWithMarkup",
+          "when": "resourceScheme == markdownnotes"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteLeft",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteRight",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteWordLeft",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.deleteWordRight",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.renameSnippet",
+          "when": "editorLangId != markdown && !editorReadonly && nimblescape.markdownNotes.hasSnippets"
+        },
+        {
+          "command": "nimblescape.markdownNotes.removeSnippet",
+          "when": "editorLangId != markdown && !editorReadonly && nimblescape.markdownNotes.hasSnippets"
+        },
+        {
+          "command": "nimblescape.markdownNotes.keepSnippetMark",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "nimblescape.markdownNotes.newNote",
+          "group": "nimblescape@1",
+          "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addFootnote",
+          "group": "nimblescape@2",
+          "when": "editorLangId == markdown && !editorReadonly"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "nimblescape.markdownNotes.newNote",
+        "key": "shift+alt+n",
+        "mac": "cmd+k n",
+        "when": "editorTextFocus && editorLangId == markdown && editorHasSelection && !editorReadonly"
+      },
+      {
+        "command": "nimblescape.markdownNotes.addFootnote",
+        "key": "shift+alt+b",
+        "mac": "cmd+k b",
+        "when": "editorTextFocus && editorLangId == markdown && !editorReadonly"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteLeft",
+        "key": "backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteRight",
+        "key": "delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerRight"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordLeft",
+        "key": "ctrl+backspace",
+        "mac": "alt+backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.deleteWordRight",
+        "key": "ctrl+delete",
+        "mac": "alt+delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.markerRight"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "ctrl+backspace",
+        "mac": "alt+backspace",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkLeft"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkRight"
+      },
+      {
+        "command": "nimblescape.markdownNotes.keepSnippetMark",
+        "key": "ctrl+delete",
+        "mac": "alt+delete",
+        "when": "editorTextFocus && !editorReadonly && editorLangId != markdown && !editorHasSelection && !editorHasMultipleSelections && nimblescape.markdownNotes.snippetMarkRight"
+      }
+    ],
+    "configuration": {
+      "title": "nimblescape Markdown Notes",
+      "properties": {
+        "nimblescape.markdownNotes.showHighlights": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show the highlight of each note, the text from its start marker to its reference, in the color of the note in the text editor and in the Markdown preview, also while the side view \"Notes\" is closed. The value `false` hides the highlights; the highlight of the selected note of the side view still shows, and a hidden highlight shows while the pointer is on its text. The buttons \"Hide Highlights\" and \"Show Highlights\" in the title of the editor change this setting, and leave the side view as it is."
+        },
+        "nimblescape.markdownNotes.showFootnotes": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show the standard footnotes of a Markdown file in the side view \"Notes\", the footnotes that are no note, each at the place of its first reference, with \"Edit\", \"Go to Definition\" and \"Delete\". The value `false` shows only the notes. The buttons \"Hide Footnotes\" and \"Show Footnotes\" in the title of the side view change this setting."
+        },
+        "nimblescape.markdownNotes.addFormatComment": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Add the comment of the format of the notes, their \"DOCTYPE\" with the link to the specification for AI agents, at the top of a file with notes when you save it. When off, the comment comes only with a change of a note that the extension writes. An editor that only shows a file never adds it."
+        },
+        "nimblescape.markdownNotes.formatOnSave": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Format a Markdown file with notes, or with the comment of the format of the notes, when you save it. Other Markdown files stay as they are on a save; **Format Document** formats every Markdown file. When `#editor.formatOnSave#` is on for Markdown, VS Code formats every Markdown file on a save itself."
+        },
+        "nimblescape.markdownNotes.openLinksIn": {
+          "type": "string",
+          "enum": [
+            "newWindow",
+            "editor",
+            "system"
+          ],
+          "enumDescriptions": [
+            "Open the file in a new window of VS Code, so that the Markdown file and its preview stay as they are.",
+            "Open the file in the editor of VS Code.",
+            "Open the file with the program of your system for it, for example the PDF viewer."
+          ],
+          "default": "newWindow",
+          "scope": "resource",
+          "markdownDescription": "Where a link in the text of a note to a file opens from the side view Notes. A link to a web page or an e-mail address opens with the program of your system in each case."
+        }
+      }
+    }
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "@vscode/vsce-sign": true,
+    "fsevents": false
+  }
+}

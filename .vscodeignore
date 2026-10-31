@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+# © 2026 Hannes Stauss (scalarion@nimblescape.com)
+# Licensed under the MIT License. See LICENSE in the repository root for details.
+
+# The package holds the bundle, the styles and the scripts of the Markdown
+# preview and of the side view, the bundle of the visual editor of the side
+# view with its styles and its icon font, the icons, the icon font and the
+# documents only: ignore everything, then keep the listed files.
+**
+!dist/extension.js
+!dist/visualEditor.js
+!dist/visualEditor.css
+!dist/codicon.ttf
+!media/markdownPreview.css
+!media/markdownPreview.js
+!media/notesView.css
+!media/notesView.js
+!resources/icon.png
+!resources/notes-icons.ttf
+!resources/notes-view.svg
+!package.json
+!README.md
+!CHANGELOG.md
+!SUPPORT.md
+!LICENSE
+!THIRD-PARTY-NOTICES.md

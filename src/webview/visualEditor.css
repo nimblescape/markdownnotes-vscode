@@ -1,0 +1,14 @@
+/*
+ * SPDX-License-Identifier: MIT
+ * © 2026 Hannes Stauss (scalarion@nimblescape.com)
+ * Licensed under the MIT License. See LICENSE in the repository root for details.
+ *
+ * The styles of the visual editor of the side view (R-SIDE-004): the styles
+ * of the editor of the mode "Markdown Editor" of VS Code and its theme in the
+ * colors of VS Code, which the build bundles into dist/visualEditor.css. The
+ * styles of the toolbar and of the box of the editor are in
+ * media/notesView.css.
+ */
+
+@import '@vscode/markdown-editor/editor.css';
+@import '@vscode/markdown-editor/themes/vscode-default.css';
