@@ -135,7 +135,11 @@ describes each step and where its protection ends.
   it, `(fields.ts, L12-L30)`. The formatter writes the current code, lines
   and cite into it on each format, also on the command line.
   `/snippet` in a source file marks a function, a class or a few lines as a
-  snippet that a listing can show.
+  snippet that a listing can show. A paper can also show code of other
+  repositories: its front matter names them under `repos`, the command `mp`
+  of nimblescape Markdown Paper clones them, and a listing such as
+  `<!-- listing: server:src/api.ts#read -->` links to the file on GitHub at
+  the commit of the clone.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text

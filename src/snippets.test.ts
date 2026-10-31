@@ -140,6 +140,15 @@ test('the comment of a listing is a link to its source file, at the line of its 
   ]);
 });
 
+test('the comment of a listing of another repository is a link to the file in its clone, and a listing without its clone has no link (R-CODE-006)', async () => {
+  await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
+  fake.open(`${'a'.repeat(40)}\n`, '/folder/.markdownpaper/repos/server/.git/HEAD');
+  fake.open('export {};\n// markdownnotes: snippet read\nconst request = read();\n// markdownnotes: /snippet read\n', '/folder/.markdownpaper/repos/server/src/api.ts');
+  const paper = fake.open('---\nrepos:\n  server: org/server\n  client: org/client\n---\n\n<!-- listing: server:src/api.ts#read -->\n\n```\n```\n\n<!-- listing: client:a.ts -->\n\n```\n```\n', '/folder/paper/a.md');
+  const links = fake.links.get('markdown')!.provideDocumentLinks(paper);
+  expect(links.map((link) => [link.range.start.line, link.target?.path, link.target?.fragment, link.tooltip])).toEqual([[6, '/folder/.markdownpaper/repos/server/src/api.ts', 'L3', 'Open read in server:src/api.ts']]);
+});
+
 test('/listing in a Markdown file lists the whole file and the snippets of the chosen file, and inserts the code of a snippet without its marks (R-CODE-001, R-CODE-003)', async () => {
   await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
   const source = fake.documents.find((document) => document.uri.path === '/folder/src/keep.ts')!;
@@ -160,4 +169,32 @@ test('/listing in a Markdown file lists the whole file and the snippets of the c
     ['filter', 'Snippet'],
   ]);
   expect(paper.text).toBe('Listing 1: [Caption](src/keep.ts#L3) (keep.ts, L3)\n\n<!-- listing: src/keep.ts#filter -->\n\n```typescript\nconst kept = lines.filter(Boolean);\n```\n\n');
+});
+
+test('/listing lists the files of the clones of the references of the front matter by their references, and links the caption to GitHub at the commit of the clone (R-CODE-006)', async () => {
+  await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
+  const commit = 'f'.repeat(40);
+  fake.open(`${commit}\n`, '/folder/.markdownpaper/repos/server/.git/HEAD');
+  const api = fake.open('export {};\n// markdownnotes: snippet read\nconst request = read();\n// markdownnotes: /snippet read\n', '/folder/.markdownpaper/repos/server/src/api.ts', { languageId: 'typescript' });
+  // The clone of a layout is no reference of the paper, so its files are not in the list.
+  const layout = fake.open('body {}\n', '/folder/.markdownpaper/repos/thesis/style.css', { languageId: 'css' });
+  const keep = fake.documents.find((document) => document.uri.path === '/folder/src/keep.ts')!;
+  fake.found = [keep.uri, api.uri, layout.uri];
+  const paper = fake.open('---\nrepos:\n  server: org/server@main\n---\n\n/\n', '/folder/paper.md');
+  const editor = new FakeEditor(paper, 5);
+  editor.selection = { active: new FakePosition(5, 1) };
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  const item = fake.complete(paper, new FakePosition(5, 1)).find((candidate) => labelOf(candidate) === '/listing')!;
+  fake.pick = (choices) => (fake.picks.length === 1 ? choices.find((choice) => choice.description === 'server:src/api.ts') : choices.find((choice) => choice.label === 'read'));
+  await editor.edit((builder) => builder.replace(item.range!, item.insertText as string));
+  await fake.run(item.command!.command, ...(item.command!.arguments ?? []));
+  await settle();
+  expect(fake.picks[0].map((choice) => [choice.label, choice.description])).toEqual([
+    ['api.ts', 'server:src/api.ts'],
+    ['keep.ts', 'src/keep.ts'],
+  ]);
+  expect(paper.text).toBe(
+    `---\nrepos:\n  server: org/server@main\n---\n\nListing 1: [Caption](https://github.com/org/server/blob/${commit}/src/api.ts#L3) (api.ts, L3)\n\n<!-- listing: server:src/api.ts#read -->\n\n\`\`\`typescript\nconst request = read();\n\`\`\`\n\n`,
+  );
 });

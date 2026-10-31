@@ -50,7 +50,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Copy the text without notes](#copy-the-text-without-notes), for publishing | side view, Command Palette, command line | available | [R-HIDE-004](requirements.md#r-hide-004) |
 | [Figures, tables and links to them](#figures-tables-and-links-to-them), also to sections | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001) to [R-XREF-003](requirements.md#r-xref-003) |
 | [Values of the front matter](#values-of-the-front-matter) | text editor, formatter | available | [R-XREF-004](requirements.md#r-xref-004) |
-| [Listings of code](#listings-of-code) | text editor, formatter, command line | available | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003) |
+| [Listings of code](#listings-of-code) | text editor, formatter, command line | available, also of files of other repositories | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003), [R-CODE-006](requirements.md#r-code-006) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
 | [Checks of the footnotes](#checks-of-the-footnotes), [Renumber Footnotes](#renumber-the-footnotes) | text editor, Problems view, Command Palette, side view | available | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) |
 | [Make a note a footnote](#make-a-note-a-footnote) | side view | available | [R-FOOT-006](requirements.md#r-foot-006) |
@@ -896,6 +896,43 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   (Cmd+Click on a Mac) on the caption there, or on the path in the comment
   in the text editor of the file with markup, opens the source file at the
   snippet.
+
+### Listings of other repositories
+
+A paper about a project of more than one repository shows code of each
+repository ([R-CODE-006](requirements.md#r-code-006)). The front matter of
+the paper names each other repository as a reference, and the command `mp`
+of nimblescape Markdown Paper clones it:
+
+```markdown
+---
+title: The server of the project
+repos:
+  server: org/server@v2.1.0
+---
+```
+
+- `mp get org/server@v2.1.0` writes the reference into the front matter and
+  clones the repository into `.markdownpaper/repos/server/` of the project,
+  a folder that Git ignores. `mp get` alone clones the missing repositories
+  and pulls the branches. A tag or a commit after `@` pins the version; a
+  branch takes its head.
+- `/listing` lists the files of these clones too, by their references, for
+  example `server:src/api.ts`, and writes the listing
+  `<!-- listing: server:src/api.ts#read -->`. The files of other clones,
+  such as the clone of a layout, are not in the list.
+- The formatter reads the code from the clone, and the caption links to the
+  file on GitHub at the commit of the clone, for example
+  `Listing 1: [Reading the request](https://github.com/org/server/blob/3f2a…/src/api.ts#L12-L30) (api.ts, L12-L30)`.
+  After `mp get` pulled a branch, the next format writes the new code and
+  the new commit.
+- A listing whose reference is not in the front matter, or whose repository
+  is not cloned, keeps its code and gets a warning at its comment, which
+  names the command that fixes it, for example
+  `npx -y @nimblescape/markdownpaper get`. The formatter on the command
+  line reports it the same way.
+- Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the file
+  in the clone.
 
 ### Snippets
 

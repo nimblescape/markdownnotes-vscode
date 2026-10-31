@@ -149,6 +149,15 @@ describe('the command format', () => {
     expect(fake.stdout).toEqual([paper.replace('Listing: Reading', 'Listing 1: Reading')]);
   });
 
+  test('writes the code of a listing of another repository from its clone of mp get, and names the command for a missing clone (R-CODE-006)', () => {
+    const commit = 'e'.repeat(40);
+    const paper = ['---', 'repos:', '  server: org/server@v2.1.0', '  client: org/client', '---', '', 'Listing: Reading', '', '<!-- listing: server:src/api.ts -->', '', '```typescript', 'old', '```', '', '<!-- listing: client:src/app.ts -->', '', '```', 'kept', '```', ''].join('\n');
+    const fake = fakeOf({ 'paper/a.md': paper, '.markdownpaper/repos/server/.git/HEAD': `${commit}\n`, '.markdownpaper/repos/server/src/api.ts': 'export const api = 1;\n' }, paper);
+    expect(run(['format', 'paper/a.md'], fake)).toBe(0);
+    expect(fake.files.get('paper/a.md')).toBe(paper.replace('old', 'export const api = 1;').replace('Listing: Reading', `Listing 1: [Reading](https://github.com/org/server/blob/${commit}/src/api.ts) (api.ts)`));
+    expect(fake.errors).toEqual(['paper/a.md:15: the source client:src/app.ts of the listing was not found: The repository "client" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get']);
+  });
+
   test('exits with 2 for a file that it cannot write', () => {
     const fake = fakeOf({ 'a.md': unformatted });
     fake.writeFile = () => {

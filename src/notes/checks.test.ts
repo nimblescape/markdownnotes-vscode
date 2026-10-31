@@ -100,6 +100,14 @@ test('a listing whose file or snippet is not found gets a warning at its comment
   expect(reads).toBe(2);
 });
 
+test('a listing of another repository without its reference or its clone gets a warning that names the command (R-CODE-006)', () => {
+  const lines = ['---', 'repos:', '  client: org/client', '---', '', '<!-- listing: client:src/app.ts -->', '', '```', '```', '', '<!-- listing: tools:a.ts -->', '', '```', '```', ''];
+  expect(listingChecksOf(lines, () => undefined).map((check) => [check.range.start.line, check.message])).toEqual([
+    [5, 'The listing keeps its code. The repository "client" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get'],
+    [10, 'The listing keeps its code. "tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools'],
+  ]);
+});
+
 test('a reference without a definition, a definition without a reference and a second definition of a label get a warning with the code of their quick fix (R-FOOT-004)', () => {
   const lines = ['Text[^1] and[^gone].', '', '[^1]: One.', '', '  [^spare]: Nobody.', '', '[^1]: Again.'];
   expect(footnoteChecksOf(lines, read(lines)).map((check) => [check.range, check.severity, check.code, check.message])).toEqual([

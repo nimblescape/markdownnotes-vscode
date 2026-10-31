@@ -23,6 +23,7 @@ import * as path from 'node:path';
 import { version } from '../../package.json';
 import { formatMarkdown } from '../format/format';
 import { missingListings, type Source } from '../notes/listings';
+import { isMissing, missingMessage, sourceFilesOf } from '../notes/repos';
 import { formatVersion, newerFormat, type Version, versionText } from '../notes/doctype';
 import { stripText } from '../notes/strip';
 
@@ -167,8 +168,12 @@ export function run(args: readonly string[], io: Io): number {
       }
       const source = sourceFor(file, io);
       const formatted = formatText(text, source);
-      for (const listing of missingListings(formatted.split(/\r\n|\r|\n/), source)) {
-        io.err(`${file}:${listing.line + 1}: the source ${listing.path}${listing.snippet ? `#${listing.snippet}` : ''} of the listing was not found`);
+      const formattedLines = formatted.split(/\r\n|\r|\n/);
+      const files = sourceFilesOf(formattedLines, source);
+      for (const listing of missingListings(formattedLines, source)) {
+        const missing = files(listing.path);
+        const reason = isMissing(missing) ? `: ${missingMessage(missing)}` : '';
+        io.err(`${file}:${listing.line + 1}: the source ${listing.path}${listing.snippet ? `#${listing.snippet}` : ''} of the listing was not found${reason}`);
         unformatted ||= check;
       }
       if (file === '-') {

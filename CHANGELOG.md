@@ -90,6 +90,14 @@ The first version.
   becomes the footnote, the reference of the note gets the next free number,
   and the definition goes after the last one; the start marker and the
   replies go. A note with replies asks first.
+- Listings of files of other repositories: the front matter of a paper names
+  each other repository under `repos` as a GitHub reference with a rev, for
+  example `server: org/server@v2.1.0`, which the command `mp get` of
+  nimblescape Markdown Paper clones into `.markdownpaper/repos/server/`. A
+  listing `<!-- listing: server:src/api.ts#read -->` gets its code from the
+  clone, and its caption links to the file on GitHub at the commit of the
+  clone. `/listing` lists the files of the clones by their references, and a
+  missing reference or clone gets a warning with the command that fixes it.
 - Two changes of the notes of one file run one after the other. A change
   that VS Code does not write into the file, and a new note or footnote
   whose place an earlier change moved while it waited, are not saved, and

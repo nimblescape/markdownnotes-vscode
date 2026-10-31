@@ -27,6 +27,7 @@
 import { hiddenForm } from './edits';
 import { footnoteProblemsOf } from './footnotes';
 import { missingListings, type Source } from './listings';
+import { isMissing, missingMessage, sourceFilesOf } from './repos';
 import { firstLineOf, type Range, type Reading, same } from './notes';
 
 /**
@@ -178,7 +179,8 @@ export function footnoteChecksOf(lines: readonly string[], reading: Reading): Ch
 /**
  * listingChecksOf returns a warning at the comment of each listing of a Markdown text whose file or snippet the source
  * does not have, for example a listing that names a function, which is no snippet
- * ([R-CODE-005](../../docs/requirements.md#r-code-005)). The formatter keeps the code of such a listing.
+ * ([R-CODE-005](../../docs/requirements.md#r-code-005)), or a listing of another repository whose reference or clone
+ * is missing ([R-CODE-006](../../docs/requirements.md#r-code-006)). The formatter keeps the code of such a listing.
  * @param lines - The lines of the text.
  * @param source - Reads the files of the listings.
  */
@@ -190,7 +192,12 @@ export function listingChecksOf(lines: readonly string[], source: Source): Check
     }
     return texts.get(path);
   };
+  const files = sourceFilesOf(lines, read);
   return missingListings(lines, read).map((listing) => {
+    const file = files(listing.path);
+    if (isMissing(file)) {
+      return { range: lineRange(lines, listing.line), message: `The listing keeps its code. ${missingMessage(file)}`, severity: 'warning' };
+    }
     let path = listing.path;
     try {
       path = decodeURIComponent(path);
@@ -198,7 +205,7 @@ export function listingChecksOf(lines: readonly string[], source: Source): Check
       // The path keeps its escapes.
     }
     const message =
-      read(listing.path) === undefined
+      read(file.path) === undefined
         ? `The source file ${path} of the listing was not found. The listing keeps its code.`
         : `The file ${path} has no snippet "${listing.snippet}". A listing shows a whole file or a snippet: mark the code in the source file with /snippet. The listing keeps its code.`;
     return { range: lineRange(lines, listing.line), message, severity: 'warning' };

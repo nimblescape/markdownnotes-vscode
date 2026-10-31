@@ -37,6 +37,7 @@ import { formatMarkdown } from './format/format';
 import { doctypeEdit, newerFormat } from './notes/doctype';
 import { applyEdit, editBetween, hiddenForm } from './notes/edits';
 import type { Source } from './notes/listings';
+import { isMissing, sourceFilesOf } from './notes/repos';
 
 /** FormatStep is a step of the formatter that another extension adds, after the steps of the notes (R-GEN-012). */
 export interface FormatStep {
@@ -157,6 +158,31 @@ export function sourceOf(file: vscode.Uri): Source | undefined {
       const path = vscode.Uri.joinPath(folder, decodeURIComponent(relative));
       const open = vscode.workspace.textDocuments.find((other) => other.uri.toString() === path.toString());
       return open ? open.getText() : fs.readFileSync(path.fsPath, 'utf8');
+    } catch {
+      return undefined;
+    }
+  };
+}
+
+/**
+ * listingFilesOf returns the reader of the files of the listings of a Markdown file: the URI of the file and its path
+ * relative to the Markdown file, which `sourceOf` reads; the file of a path in the repository of the paper, or the
+ * file in the clone of a reference of the front matter for a path of another repository
+ * ([R-CODE-006](../docs/requirements.md#r-code-006)). It returns undefined for a missing reference or clone.
+ * @param file - The URI of the Markdown file.
+ * @param lines - The lines of the Markdown file.
+ */
+export function listingFilesOf(file: vscode.Uri, lines: readonly string[]): (path: string) => { uri: vscode.Uri; path: string } | undefined {
+  const source = sourceOf(file);
+  const files = source && sourceFilesOf(lines, source);
+  return (path) => {
+    const found = files?.(path);
+    if (found && isMissing(found)) {
+      return undefined;
+    }
+    const relative = found ? found.path : path;
+    try {
+      return { uri: vscode.Uri.joinPath(file, '..', decodeURIComponent(relative)), path: relative };
     } catch {
       return undefined;
     }

@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 134 requested features, 110 are built, among them the clean editing view
+Of 134 requested features, 112 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -27,10 +27,12 @@ source files of the repository with the snippets in them, and the numbers of
 the captions and the cite of a listing in the file by the principle "document driven", and
 the hidden form of the notes with the eye in the side view, which hides the
 notes from other viewers, also from GitHub, the text of a file without its
-notes for publishing, and the checks of the standard footnotes with
-"Renumber Footnotes". 2 features are planned but not built, and 1 is postponed: the features of the section
-[Planned features](#planned-features). The symbols of a listing with
-tree-sitter parsers are postponed ([decision 51](requirements.md#decisions)).
+notes for publishing, the checks of the standard footnotes with
+"Renumber Footnotes", and the listings of files of other repositories from
+the clones of the command `mp` of nimblescape Markdown Paper. No feature is
+planned and not built. The symbols of a listing with tree-sitter parsers are
+postponed ([decision 51](requirements.md#decisions)), the feature of the
+section [Planned features](#planned-features).
 Three questions are decided without a
 change of the code: there is no release for now, so the npm package is
 installed from GitHub only ([decision 48](requirements.md#decisions)); the
@@ -45,9 +47,8 @@ numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
 [decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
-The planned features that stay open are the listings of files of other
-repositories (step 68, [decision 55](requirements.md#decisions)) and the
-symbols of a listing with parsers (step 61, postponed).
+The planned feature that stays open is the symbols of a listing with
+parsers (step 61, postponed).
 
 The columns of the tables:
 
@@ -154,6 +155,7 @@ breaks and the cursor next to the hidden markers.
 | Snippets and listings in more file types | 10-30 04:29, 04:30 | [R-CODE-003](requirements.md#r-code-003), [R-CODE-001](requirements.md#r-code-001) | Built | Step 57: the marks in the comment form of more than 80 file types, also by the name of a file (`.env`, `Dockerfile`, `Makefile`); the symbols of the languages with braces and of Python are removed in step 60 |
 | `/snippet` from the start of VS Code | 10-30 07:31 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 66, [decision 43](requirements.md#decisions): the extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file before a Markdown file opens |
 | Snippets in any source | 10-30 04:30 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 58: a file type that the extension does not know gets the comment form of VS Code for its language ("Add Line Comment") |
+| Listings of files of other repositories, as references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption goes to the other repository at the commit of the clone | 10-30 07:34, 07:39; 10-31 02:32 to 04:07 | [R-CODE-006](requirements.md#r-code-006) | Built | Step 68, [decision 55](requirements.md#decisions), which replaces decision 46, and [decision 56](requirements.md#decisions): `<!-- listing: server:src/api.ts#read -->` reads the file from the clone in `.markdownpaper/repos/server/`, the caption links to GitHub at the commit of the clone, `/listing` lists the files of the clones by their references, and a missing reference or clone gets a warning with the npx command of Markdown Paper that fixes it |
 | The snippet as a tag in the source editor | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58, [decision 37](requirements.md#decisions): a code lens above the start mark with the listings that show the snippet, the marks dimmed; replaced in step 62 by the tags in place of the mark lines |
 | The mark as a tag in place of its line | 10-30 05:49, 05:57 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: each mark line shows a tag in the small gray letters of a code lens in place of the comment, `snippet keep-lines · Listing 2 in paper/paper.md` and `/snippet keep-lines`; the line keeps its height, because VS Code cannot remove a line |
 | Marks that cannot be edited | 10-30 05:49, 05:53 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: the cursor jumps over the mark lines, Backspace and Delete next to them do nothing; "Rename Snippet" and "Remove Snippet" in the light bulb change the marks, and Rename also changes the listings |
@@ -260,14 +262,13 @@ the same day.
 
 ## Planned features
 
-3 features are in the specification and the plan, or proposed, but not built. 2 are
-planned, and the symbols of a listing with parsers are postponed
+1 feature is in the specification and the plan but not built: the symbols
+of a listing with parsers are postponed
 ([decision 51](requirements.md#decisions)).
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
-| Listings of files of other repositories, as references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption goes to the other repository at the commit of the clone | 10-30 07:34, 07:39; 10-31 02:32 to 03:36 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 55](requirements.md#decisions), which replaces decision 46) | Planned |
 
 ## Moved to nimblescape Markdown Paper
 
@@ -308,13 +309,12 @@ is merged. The hidden notes and the text without notes (steps 29 to 31) are
 built in
 [pull request #3](https://github.com/nimblescape/markdownnotes-vscode/pull/3),
 which also takes steps 34 and 35: the checks of the footnotes, "Renumber
-Footnotes" and "Make Footnote" are built there too, and the fixes of the
-code review (step 78). The open work, in its order:
+Footnotes" and "Make Footnote" are built there too, the fixes of the code
+review (step 78), and the listings of files of other repositories (step 68),
+while nimblescape Markdown Paper builds the command `mp` that clones them.
+The open work:
 
-1. Step 68: the listings of files of other repositories
-   ([decision 55](requirements.md#decisions)), while nimblescape Markdown
-   Paper builds the command `mp` that clones them.
-2. There is no release for now ([decision 48](requirements.md#decisions));
+1. There is no release for now ([decision 48](requirements.md#decisions));
    before the first release, the Marketplace setup runs again for the new
    name of the repository.
 

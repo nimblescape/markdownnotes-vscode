@@ -402,6 +402,63 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   comment and an empty code block, and runs `markdownnotes format`, which
   writes the number, the link, the cite and the code.
 
+### 10.1 Listings of files of other repositories
+
+A paper about a project of more than one repository shows code of each
+repository ([R-CODE-006](requirements.md#r-code-006)). The YAML front matter
+of the paper names each other repository under `repos` as a GitHub reference
+`owner/repo@rev`, and the comment of a listing names the reference and the
+path in its repository:
+
+````markdown
+---
+title: The server of the project
+layout: majikmate/markdownpaper-layout-pht/thesis@main
+repos:
+  server: org/server@v2.1.0
+---
+
+Listing 1: [Reading the request](https://github.com/org/server/blob/3f2a…/src/api.ts#L12-L30) (api.ts, L12-L30)<a id="lst-reading-the-request"></a>
+
+<!-- listing: server:src/api.ts#read -->
+
+```typescript
+…
+```
+````
+
+- The name of a reference has letters, digits, `.`, `_` and `-`, from a
+  letter or a digit. The rev after `@` alone says how the paper follows the
+  repository: a tag, for example `@v2.1.0`, or a commit pins the version; a
+  branch, for example `@main`, takes the head of the branch. Without `@rev`,
+  the reference takes the default branch. The front matter holds no other
+  commit, and the paper needs no lock file. The key `layout` is a reference
+  of the same form, with the folder of the layout after the repository.
+- The comment of the listing names the reference, `:` and the path of the
+  file in its repository, with `/`, without `..`, and with the escapes of a
+  link: `<!-- listing: server:src/api.ts#read -->`. A snippet works as in a
+  file of the paper repository.
+- The command `mp` of nimblescape Markdown Paper clones each reference,
+  detached at its rev, into `.markdownpaper/repos/<name>/` of the project,
+  a folder that Git ignores. The formatter reads the file from the clone in
+  the folder of the Markdown file or in the first folder above it that has
+  the clone.
+- The link of the caption goes to the file on GitHub at the commit of the
+  clone when the formatter wrote the code,
+  `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the
+  link shows the code of the code block, also for a reference to a branch.
+  The cite after the link stays `(api.ts, L12-L30)`.
+- A listing whose reference is not under `repos`, or whose repository is not
+  cloned, keeps its code, and the formatter reports it.
+- An AI agent and CI run the commands of Markdown Paper with npx: `npx -y
+  @nimblescape/markdownpaper get owner/repo@rev --name <name>` writes a
+  reference into the front matter and clones it, and `npx -y
+  @nimblescape/markdownpaper get` clones the missing repositories and pulls
+  the branches, before `markdownnotes format` and before the PDF. The agent
+  edits no reference and no clone by hand. Until the first release, npx
+  installs the packages from their GitHub repositories
+  ([decision 48](requirements.md#decisions)).
+
 ## 11. The hidden form
 
 GitHub and other viewers show the notes of the visible form as footnotes. In

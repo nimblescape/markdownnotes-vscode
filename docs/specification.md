@@ -358,13 +358,18 @@ form of the notes in a file for programs and AI agents, and
   "Rename Snippet" and "Remove Snippet", and the buttons "Show Used
   Snippets" and "Hide Used Snippets" color the used snippets
   ([R-CODE-004](requirements.md#r-code-004), decision 37).
-- **Sources in other repositories, planned:** the front matter of the
-  paper names each other repository as a GitHub reference with a rev,
-  which the command `mp get` of nimblescape Markdown Paper clones into a
-  folder that Git ignores; a listing names a reference and a path,
-  `server:src/api.ts#read`, and the link of the caption goes to the other
-  repository at the commit of the clone when the formatter wrote the code
-  ([R-CODE-006](requirements.md#r-code-006), decision 55).
+- **Sources in other repositories:** the front matter of the paper names
+  each other repository as a GitHub reference with a rev, which the command
+  `mp get` of nimblescape Markdown Paper clones into
+  `.markdownpaper/repos/<name>/`, a folder that Git ignores; a listing names
+  a reference and a path, `server:src/api.ts#read`, the formatter reads the
+  file from the clone, and the link of the caption goes to the other
+  repository at the commit of the clone when the formatter wrote the code.
+  `/listing` lists the files of the clones by their references. A missing
+  reference or clone gets a warning that names the command
+  `npx -y @nimblescape/markdownpaper get`, which the instructions for AI
+  agents and CI use too
+  ([R-CODE-006](requirements.md#r-code-006), decisions 55 and 56).
 
 ## 12. API for other extensions
 

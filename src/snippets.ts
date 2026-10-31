@@ -20,7 +20,7 @@
 
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
-import { sourceOf } from './formatter';
+import { listingFilesOf, sourceOf } from './formatter';
 import { findItems } from './notes/figures';
 import { captionLinkOf, captionsOf, findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
 
@@ -259,14 +259,15 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
     const source = sourceOf(file);
     const listings = findListings(lines);
     const captions = real && listings.length > 0 ? captionsOf(lines, findItems(lines), listings) : [];
+    // The file of a listing of another repository is in its clone (R-CODE-006).
+    const files = listingFilesOf(file, lines);
     return listings.flatMap((listing, index) => {
-      let target: vscode.Uri;
-      try {
-        target = vscode.Uri.joinPath(file, '..', decodeURIComponent(listing.path));
-      } catch {
+      const listed = files(listing.path);
+      if (!listed) {
         return [];
       }
-      const code = listing.snippet ? source?.(listing.path)?.split(/\r\n|\r|\n/) : undefined;
+      const target = listed.uri;
+      const code = listing.snippet ? source?.(listed.path)?.split(/\r\n|\r|\n/) : undefined;
       const found = code && snippetsOf(code).find(({ name }) => name === listing.snippet);
       // The number of the first line of the snippet, from 1.
       const line = found ? found.first + 1 : undefined;

@@ -94,7 +94,7 @@ requirement, the plan and the decisions of Hannes.
 | 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
 | 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
 | 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
-| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46); after step 78, while Markdown Paper builds `mp` | [R-CODE-006](#r-code-006) | planned |
+| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46); after step 78, while Markdown Paper builds `mp` ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
 | 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
 | 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
 | 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
@@ -105,6 +105,7 @@ requirement, the plan and the decisions of Hannes.
 | 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
 | 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
 | 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | done |
+| 79 | The instructions for AI agents in the specification of the format and the messages of the extension and of the command call the commands of Markdown Paper with npx, `npx -y @nimblescape/markdownpaper get`, as CI does ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
 
 ## General
 
@@ -2223,8 +2224,9 @@ class or a method ([decision 38](#decisions)):
 repository shows code of each repository. The front matter of the paper
 names each other repository as a GitHub reference with a rev, and the
 command `mp` of nimblescape Markdown Paper clones it
-([decision 55](#decisions)). This requirement is planned and not built
-yet ([step 68](#plan)).
+([decision 55](#decisions)). Markdown Notes builds the listings
+([step 68](#plan)), and Markdown Paper builds the command `mp`
+([decision 56](#decisions)).
 
 ```yaml
 ---
@@ -2245,14 +2247,27 @@ repos:
   moves each tag to the newest tag. The key `layout` is a reference of the
   same form.
 - The comment of a listing names a reference and a path, for example
-  `<!-- listing: server:src/api.ts#read -->`. Markdown Notes reads the file
-  from the clone of that reference, through the API between the two
-  extensions ([R-GEN-012](#r-gen-012)).
+  `<!-- listing: server:src/api.ts#read -->`. The path has no `..`.
+  Markdown Notes reads the file from the clone of that reference in the
+  folder `.markdownpaper/repos/<name>/` of the folder of the Markdown file
+  or of the first folder above it that has the clone, in VS Code and on the
+  command line; the files of the clones are the contract between the two
+  extensions, so the formatter needs no API of Markdown Paper.
 - The code block of the listing holds the code, so GitHub shows it without
   the other repositories. The formatter writes the code anew from the clone
   at every format, so the check of a pull request and the PDF in CI run
-  `mp get` first, for all repositories that the paper names, with a token
-  with read access for each private one.
+  `npx -y @nimblescape/markdownpaper get` first, for all repositories that
+  the paper names, with a token with read access for each private one.
+- A listing whose reference is not under `repos`, whose repository is not
+  cloned, or whose path has `..` keeps its code. VS Code shows a warning at
+  its comment and the command reports it, and both name the command that
+  fixes it: `npx -y @nimblescape/markdownpaper get owner/repo@rev --name
+  <name>` for a missing reference, `npx -y @nimblescape/markdownpaper get`
+  for a missing clone.
+- `/listing` lists the files of the clones of the references of the front
+  matter by their references, such as `server:src/api.ts`, and not the
+  files of other clones, such as the clone of a layout. The comment of a
+  listing of another repository opens the file in its clone.
 - The link of the caption goes to the other repository at the commit of
   the clone when the formatter wrote the code, for example
   `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the
@@ -2840,6 +2855,16 @@ requirements above follow them.
     packages from GitHub, a fetch of the files over the network, the GitHub
     address in each listing, clones side by side, and copies of the shown
     files.
+56. **The listings of other repositories now, and npx for agents and CI**
+    ([R-CODE-006](#r-code-006)): step 68 is built now, in the order of the
+    plan, after step 78, while nimblescape Markdown Paper builds the command
+    `mp` with `create`, `get` and `build`; the files of the clones in
+    `.markdownpaper/repos/<name>/` are the contract between the two
+    extensions. The decisions about the listings go into the instructions
+    for AI agents, and these instructions and CI call the commands with npx,
+    `npx -y @nimblescape/markdownpaper get`, not with an installed `mp`; `mp`
+    is the name for authors. The other choices were to wait until a paper
+    needs the listings, and `mp` in the instructions and in CI.
 
 ---
 
