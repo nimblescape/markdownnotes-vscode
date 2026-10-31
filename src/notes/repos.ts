@@ -26,8 +26,11 @@ export interface Reference {
   readonly rev?: string;
 }
 
-/** referenceValue matches the value of a reference: the owner, the repository and the optional rev after `@`. */
-const referenceValue = /^([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)\/([A-Za-z0-9._-]+?)(?:\.git)?(?:@([^\s@]+))?$/;
+/**
+ * referenceValue matches the value of a reference: the owner, the repository and the optional rev after `@`, also with
+ * the older prefix `github:`, which `mp get` reads too.
+ */
+const referenceValue = /^(?:github:)?([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)\/([A-Za-z0-9._-]+?)(?:\.git)?(?:@([^\s@]+))?$/;
 
 /** referenceName matches the name of a reference: letters, digits, `.`, `_` and `-`, from a letter or a digit. */
 const referenceName = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -224,7 +227,7 @@ export const isMissing = (file: SourceFile | MissingFile): file is MissingFile =
 export function missingMessage(file: MissingFile): string {
   switch (file.problem) {
     case 'reference':
-      return `"${file.reference}" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name ${file.reference}`;
+      return `"${file.reference}" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name ${file.reference}, and the path of the Markdown file when the project has more than one paper.`;
     case 'clone':
       return `The repository "${file.reference}" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get`;
     case 'path':

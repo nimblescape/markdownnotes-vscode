@@ -434,6 +434,8 @@ Listing 1: [Reading the request](https://github.com/org/server/blob/3f2a…/src/
   the reference takes the default branch. The front matter holds no other
   commit, and the paper needs no lock file. The key `layout` is a reference
   of the same form, with the folder of the layout after the repository.
+  The older form with the prefix `github:`, `github:org/server@v2.1.0`, is
+  read too.
 - The comment of the listing names the reference, `:` and the path of the
   file in its repository, with `/`, without `..`, and with the escapes of a
   link: `<!-- listing: server:src/api.ts#read -->`. A snippet works as in a
@@ -452,7 +454,8 @@ Listing 1: [Reading the request](https://github.com/org/server/blob/3f2a…/src/
   cloned, keeps its code, and the formatter reports it.
 - An AI agent and CI run the commands of Markdown Paper with npx: `npx -y
   @nimblescape/markdownpaper get owner/repo@rev --name <name>` writes a
-  reference into the front matter and clones it, and `npx -y
+  reference into the front matter and clones it; in a project with more
+  than one paper, the path of the Markdown file follows. `npx -y
   @nimblescape/markdownpaper get` clones the missing repositories and pulls
   the branches, before `markdownnotes format` and before the PDF. The agent
   edits no reference and no clone by hand. Until the first release, npx

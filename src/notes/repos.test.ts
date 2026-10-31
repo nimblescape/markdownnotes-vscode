@@ -43,6 +43,10 @@ describe('the references of the front matter (R-CODE-006)', () => {
     );
   });
 
+  test('can have the older prefix github:, which mp get reads too', () => {
+    expect(referencesOf(['---', 'repos:', '  server: github:org/server@v2.1.0', '---'])).toEqual(new Map([['server', { owner: 'org', repo: 'server', rev: 'v2.1.0' }]]));
+  });
+
   test('leave out values that are no references, and a text without a YAML front matter has none', () => {
     expect(referencesOf(['---', 'repos:', '  server: https://github.com/org/server', '  ../x: org/x', '  ok: org/ok@v1', '---'])).toEqual(new Map([['ok', { owner: 'org', repo: 'ok', rev: 'v1' }]]));
     expect(referencesOf(['# Title', '', 'repos:', '  server: org/server'])).toEqual(new Map());
@@ -95,7 +99,7 @@ describe('the files of the listings (R-CODE-006)', () => {
     expect(files('tools:a.ts')).toEqual({ problem: 'reference', reference: 'tools' });
     expect(files('client:a.ts')).toEqual({ problem: 'clone', reference: 'client' });
     expect(files('server:../secret.ts')).toEqual({ problem: 'path', reference: 'server' });
-    expect(missingMessage({ problem: 'reference', reference: 'tools' })).toBe('"tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools');
+    expect(missingMessage({ problem: 'reference', reference: 'tools' })).toBe('"tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools, and the path of the Markdown file when the project has more than one paper.');
     expect(missingMessage({ problem: 'clone', reference: 'client' })).toBe('The repository "client" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get');
   });
 });

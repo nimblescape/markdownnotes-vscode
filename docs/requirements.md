@@ -2262,8 +2262,10 @@ repos:
   cloned, or whose path has `..` keeps its code. VS Code shows a warning at
   its comment and the command reports it, and both name the command that
   fixes it: `npx -y @nimblescape/markdownpaper get owner/repo@rev --name
-  <name>` for a missing reference, `npx -y @nimblescape/markdownpaper get`
-  for a missing clone.
+  <name>` for a missing reference, with the path of the Markdown file in a
+  project with more than one paper, and `npx -y @nimblescape/markdownpaper
+  get` for a missing clone. A reference may have the older prefix
+  `github:`, which `mp get` reads too.
 - `/listing` lists the files of the clones of the references of the front
   matter by their references, such as `server:src/api.ts`, and not the
   files of other clones, such as the clone of a layout. The comment of a

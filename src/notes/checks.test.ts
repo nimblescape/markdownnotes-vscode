@@ -104,7 +104,7 @@ test('a listing of another repository without its reference or its clone gets a 
   const lines = ['---', 'repos:', '  client: org/client', '---', '', '<!-- listing: client:src/app.ts -->', '', '```', '```', '', '<!-- listing: tools:a.ts -->', '', '```', '```', ''];
   expect(listingChecksOf(lines, () => undefined).map((check) => [check.range.start.line, check.message])).toEqual([
     [5, 'The listing keeps its code. The repository "client" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get'],
-    [10, 'The listing keeps its code. "tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools'],
+    [10, 'The listing keeps its code. "tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools, and the path of the Markdown file when the project has more than one paper.'],
   ]);
 });
 
