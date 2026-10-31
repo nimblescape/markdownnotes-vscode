@@ -41,6 +41,10 @@ function run(cwd: string, args: string[], input = '') {
 const unformatted = 'A paragraph\non two lines.\n\n| a | b |\n|-|-|\n| long cell | x |\n';
 const formatted = 'A paragraph on two lines.\n\n| a         | b   |\n| --------- | --- |\n| long cell | x   |\n';
 
+/** A text with a note and a standard footnote, and the text without its note (R-HIDE-004). */
+const noted = 'The <wbr><!--[note-7k2q-->text[^note-7k2q] of a paper.[^1]\n\n[^note-7k2q]: **hannes** · 2026-10-28 18:03+01:00\n\n    Please check.\n\n[^1]: A footnote.\n';
+const clean = 'The text of a paper.[^1]\n\n[^1]: A footnote.\n';
+
 /** Runs a script of Node.js in `cwd`; returns its exit code and its output. */
 function node(cwd: string, args: string[]) {
   const result = spawnSync(process.execPath, args, { cwd, encoding: 'utf8', timeout: 30_000 });
@@ -67,15 +71,24 @@ describe('the library of the npm package', () => {
     expect(node(folder, ['c.cjs'])).toEqual({ code: 0, stdout: '', stderr: '' });
   });
 
+  it('gives stripNotes, the text without notes (R-HIDE-004)', () => {
+    const folder = installed({
+      'a.mjs': `import { stripNotes } from '@nimblescape/markdownnotes';\nprocess.stdout.write(stripNotes(${JSON.stringify(noted.split('\n'))}).join('\\n'));\n`,
+    });
+    expect(node(folder, ['a.mjs'])).toEqual({ code: 0, stdout: clean, stderr: '' });
+  });
+
   it('has types that a program in TypeScript checks against without other packages', () => {
     const folder = installed({
-      'program.ts': `import { formatMarkdown } from '@nimblescape/markdownnotes';\nconst lines: string[] = formatMarkdown(['A', 'b']);\nexport default lines;\n`,
+      'program.ts': `import { formatMarkdown, stripNotes } from '@nimblescape/markdownnotes';\nconst lines: string[] = formatMarkdown(['A', 'b']);\nconst clean: string[] | undefined = stripNotes(lines);\nexport default clean;\n`,
       'wrong.ts': `import { formatMarkdown } from '@nimblescape/markdownnotes';\nconst text: string = formatMarkdown('A');\nexport default text;\n`,
+      // No types of other packages, not even of Node.js.
+      'tsconfig.json': JSON.stringify({ compilerOptions: { noEmit: true, strict: true, module: 'node16', moduleResolution: 'node16', types: [], skipLibCheck: false }, files: ['program.ts'] }),
+      'wrong.json': JSON.stringify({ extends: './tsconfig.json', files: ['wrong.ts'] }),
     });
     const tsc = path.join(repository, 'node_modules', 'typescript', 'bin', 'tsc');
-    const options = ['--noEmit', '--strict', '--module', 'node16', '--moduleResolution', 'node16', '--types', '', '--skipLibCheck', 'false'];
-    expect(node(folder, [tsc, ...options, 'program.ts'])).toMatchObject({ code: 0, stdout: '' });
-    expect(node(folder, [tsc, ...options, 'wrong.ts']).code).not.toBe(0);
+    expect(node(folder, [tsc, '-p', 'tsconfig.json'])).toMatchObject({ code: 0, stdout: '' });
+    expect(node(folder, [tsc, '-p', 'wrong.json']).code).not.toBe(0);
   });
 });
 
@@ -108,6 +121,18 @@ describe('the command markdownnotes', () => {
     expect(missing.stderr).toMatch(/^missing\.md: ENOENT/);
     expect(run(folder, ['lint', 'a.md']).code).toBe(2);
     expect(run(folder, ['format']).code).toBe(2);
+  });
+
+  it('writes the text without notes to the standard output, or a copy of each file into the folder of --out, and changes no file (R-HIDE-004)', () => {
+    const folder = tree({ 'a.md': noted, 'b.md': noted.replaceAll('\n', '\r\n') });
+    expect(run(folder, ['strip', 'a.md'])).toEqual({ code: 0, stdout: clean, stderr: '' });
+    expect(run(folder, ['strip', '-'], noted)).toEqual({ code: 0, stdout: clean, stderr: '' });
+    expect(run(folder, ['strip', '--out', 'public/site', 'a.md', 'b.md'])).toEqual({ code: 0, stdout: '', stderr: '' });
+    expect(fs.readFileSync(path.join(folder, 'public', 'site', 'a.md'), 'utf8')).toBe(clean);
+    expect(fs.readFileSync(path.join(folder, 'public', 'site', 'b.md'), 'utf8')).toBe(clean.replaceAll('\n', '\r\n'));
+    expect(fs.readFileSync(path.join(folder, 'a.md'), 'utf8')).toBe(noted);
+    expect(run(folder, ['strip', '--out', '.', 'a.md']).code).toBe(2);
+    expect(fs.readFileSync(path.join(folder, 'a.md'), 'utf8')).toBe(noted);
   });
 
   it('shows the version of the npm package and of the format of the notes', () => {

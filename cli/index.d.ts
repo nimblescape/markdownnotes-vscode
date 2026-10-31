@@ -24,3 +24,14 @@ export interface FormatOptions {
    */
   source?: (path: string) => string | undefined;
 }
+
+/**
+ * stripNotes returns the lines of a Markdown text without its notes, for a website, a PDF or another place where the
+ * text is published, as the command `markdownnotes strip` writes it: without the definitions of the notes, each with
+ * the blank line after it, without the start markers, the references and the end markers of the notes, and without the
+ * comment of the format, in the visible and in the hidden form of the notes. The standard footnotes, all other comments
+ * and the rest of the text stay as they are. It returns undefined for a text whose comment of the format names a higher
+ * major version, whose notes it cannot find.
+ * @param lines - The lines of the text, without their line breaks.
+ */
+export declare function stripNotes(lines: readonly string[]): string[] | undefined;

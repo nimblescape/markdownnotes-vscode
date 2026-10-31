@@ -17,6 +17,7 @@ test('the defaults show the highlights, open links in a new window, add the comm
     addFormatComment: true,
     formatOnSave: true,
     showFootnotes: true,
+    hideNotesInNewFiles: false,
   });
 });
 
@@ -27,6 +28,7 @@ test('checkedSettings keeps the values that the settings take', () => {
     addFormatComment: false,
     formatOnSave: false,
     showFootnotes: false,
+    hideNotesInNewFiles: true,
   };
   expect(checkedSettings((key) => values[key])).toEqual(values);
   expect(checkedSettings((key) => ({ openLinksIn: 'editor' })[key as string])).toMatchObject({ openLinksIn: 'editor' });
@@ -40,6 +42,7 @@ test('checkedSettings gives a missing value or a value that the setting does not
     addFormatComment: 'off',
     formatOnSave: 'no',
     showFootnotes: 1,
+    hideNotesInNewFiles: 'yes',
   };
   expect(checkedSettings((key) => values[key])).toEqual(defaultSettings);
   expect(checkedSettings((key) => (key === 'openLinksIn' ? 'NewWindow' : undefined)).openLinksIn).toBe('newWindow');

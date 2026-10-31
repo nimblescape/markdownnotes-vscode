@@ -12,7 +12,9 @@
  * The caption of a listing, the free text after `Listing` and its number, is a link to its source, so that a click on it
  * in any viewer of Markdown opens the file at the lines of the snippet, and the cite of the file and the lines follows
  * it: `Listing 1: [Parsing the notes](../src/fields.ts#L12-L30) (fields.ts, L12-L30)`. The formatter writes the link
- * around the caption and the cite after it, and keeps both current with the code.
+ * around the caption and the cite after it, and keeps both current with the code. A listing of a file of another
+ * repository names a reference of the front matter, `<!-- listing: server:src/api.ts#read -->`, and its caption links
+ * to the file on GitHub at the commit of the clone ([src/notes/repos.ts](repos.ts)).
  *
  * A snippet is code between two marks in comments of the source ([R-CODE-003](../../docs/requirements.md#r-code-003)):
  * `// markdownnotes: snippet parse-notes` and `// markdownnotes: /snippet parse-notes`, in the comment form of the
@@ -24,13 +26,17 @@
 
 import { findItems, type Item } from './figures';
 import { parse } from './notes';
+import { isMissing, sourceFilesOf } from './repos';
 import { noteCloseType, noteOpenType } from './syntax';
 
 /** Listing is a listing of a text: the line of its comment, its source, and the lines of its code block. */
 export interface Listing {
   /** line is the index of the line of the comment. */
   line: number;
-  /** path is the path of the file of the source, relative to the Markdown file, with `/`. */
+  /**
+   * path is the path of the file of the source, relative to the Markdown file, with `/`; or the name of a reference of
+   * the front matter and the path in its repository, `server:src/api.ts` ([R-CODE-006](../../docs/requirements.md#r-code-006)).
+   */
   path: string;
   /** snippet is the name of the snippet after `#`, or undefined for the whole file. */
   snippet?: string;
@@ -206,10 +212,10 @@ export function listingCite(target: string): string {
  * it. A caption without text stays as it is.
  * @param lines - The lines of the text.
  * @param caption - The caption.
- * @param listing - The listing of the caption.
+ * @param pattern - The pattern of the addresses of the source, such as its path.
  * @param target - The target.
  */
-function linkedCaption(lines: string[], caption: Item, listing: Listing, target: string): void {
+function linkedCaption(lines: string[], caption: Item, pattern: string, target: string): void {
   const link = captionLinkOf(lines, caption);
   if (link) {
     const line = lines[link.close.line];
@@ -222,8 +228,7 @@ function linkedCaption(lines: string[], caption: Item, listing: Listing, target:
   }
   const last = lines[caption.line];
   const paragraph = [...lines.slice(parts.first, caption.line), last.slice(0, parts.end)].join('\n');
-  const escaped = listing.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const text = paragraph.slice(parts.start).replace(new RegExp(String.raw`\[([^\[\]]*)\]\(${escaped}(?:#L\d+(?:-L\d+)?)?\)(?:[ \t]+\([^()\n]*\))?`, 'g'), '$1');
+  const text = paragraph.slice(parts.start).replace(new RegExp(String.raw`\[([^\[\]]*)\]\(${pattern}(?:#L\d+(?:-L\d+)?)?\)(?:[ \t]+\([^()\n]*\))?`, 'g'), '$1');
   if (text.trim() === '') {
     return;
   }
@@ -364,7 +369,7 @@ export function snippetsOf(lines: readonly string[]): { name: string; first: num
  * @param snippet - The name of the snippet, or undefined for the whole file.
  */
 export function codeOf(text: string, snippet?: string): string[] | undefined {
-  const lines = text.replace(/^﻿/, '').split(/\r\n|\r|\n/);
+  const lines = text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/);
   const code = (part: readonly string[]) => trimBlank(dedent(part.filter((line) => !snippetMark.test(line))));
   if (snippet === undefined) {
     return code(lines);
@@ -377,13 +382,16 @@ export function codeOf(text: string, snippet?: string): string[] | undefined {
 export type Source = (path: string) => string | undefined;
 
 /**
- * missingListings returns the listings of a text whose file or snippet the source does not have.
+ * missingListings returns the listings of a text whose file or snippet the source does not have, also a listing of
+ * another repository whose reference or clone is missing.
  * @param lines - The lines of the text.
  * @param source - Reads the files of the listings.
  */
 export function missingListings(lines: readonly string[], source: Source): Listing[] {
+  const files = sourceFilesOf(lines, source);
   return findListings(lines).filter((listing) => {
-    const text = source(listing.path);
+    const file = files(listing.path);
+    const text = isMissing(file) ? undefined : source(file.path);
     return text === undefined || codeOf(text, listing.snippet) === undefined;
   });
 }
@@ -391,8 +399,9 @@ export function missingListings(lines: readonly string[], source: Source): Listi
 /**
  * refreshListings returns the lines of a text with the current code of the source of each listing in its code block
  * ([R-CODE-002](../../docs/requirements.md#r-code-002)), and the caption of each listing as a link to the current
- * lines of its source. The fence gets longer when the code holds a fence of its length. A listing whose file or snippet
- * the source does not have keeps its code and its caption.
+ * lines of its source; the source of a listing of another repository is its clone, and its link goes to GitHub
+ * ([R-CODE-006](../../docs/requirements.md#r-code-006)). The fence gets longer when the code holds a fence of its
+ * length. A listing whose file or snippet the source does not have keeps its code and its caption.
  * @param lines - The lines of the text.
  * @param source - Reads the files of the listings.
  */
@@ -403,8 +412,10 @@ export function refreshListings(lines: readonly string[], source: Source): strin
   }
   const output = [...lines];
   const captions = captionsOf(lines, findItems(lines), listings);
+  const files = sourceFilesOf(lines, source);
   for (const [index, listing] of [...listings.entries()].reverse()) {
-    const text = source(listing.path);
+    const file = files(listing.path);
+    const text = isMissing(file) ? undefined : source(file.path);
     const code = text === undefined ? undefined : codeOf(text, listing.snippet);
     if (!code) {
       continue;
@@ -416,8 +427,8 @@ export function refreshListings(lines: readonly string[], source: Source): strin
     output.splice(listing.open, listing.close - listing.open + 1, `${indent}${marker}${info}`, ...code.map((line) => (line === '' ? '' : `${indent}${line}`)), `${indent}${marker}`);
     // The caption stands before the listing, so the new code block moves none of its lines.
     const caption = captions[index];
-    if (caption) {
-      linkedCaption(output, caption, listing, listingTarget(listing.path, text!, listing.snippet));
+    if (caption && !isMissing(file)) {
+      linkedCaption(output, caption, file.pattern, listingTarget(file.address, text!, listing.snippet));
     }
   }
   return output;
@@ -460,14 +471,16 @@ export const languageOf = (path: string): string => languages[fileTypeOf(path)] 
  * listingBlock returns the lines of a new listing: its caption line with the caption as a link to its source and the
  * cite after it, its comment and its code block, with a blank line between them, as the formatter writes them.
  * @param caption - The caption.
- * @param path - The path of the file of the source.
+ * @param path - The path of the file of the source, as the comment of the listing names it.
  * @param snippet - The name of the snippet, or undefined for the whole file.
  * @param text - The text of the source.
+ * @param address - The address of the file for the link of the caption: the path, or the address on GitHub of a file
+ * of another repository.
  */
-export function listingBlock(caption: string, path: string, snippet: string | undefined, text: string): string[] {
+export function listingBlock(caption: string, path: string, snippet: string | undefined, text: string, address = path): string[] {
   const code = codeOf(text, snippet) ?? [];
   const longest = Math.max(0, ...code.map((line) => (line.trim().startsWith('`') ? /^\s*(`+)/.exec(line)![1].length : 0)));
   const fence = '`'.repeat(Math.max(3, longest + 1));
-  const target = listingTarget(path, text, snippet);
+  const target = listingTarget(address, text, snippet);
   return [`Listing: [${caption}](${target}) ${listingCite(target)}`, '', listingText(path, snippet), '', `${fence}${languageOf(path)}`, ...code, fence];
 }

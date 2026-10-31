@@ -72,6 +72,10 @@ form of the notes in a file for programs and AI agents, and
 - **Links of a note** open a file in a new window by default; the setting
   `openLinksIn` chooses the editor or the system
   ([R-GEN-010](requirements.md#r-gen-010)).
+- **Fixes of the code review:** a queue of writes for each file, so that two
+  changes of the notes of one file run one after the other; tests and a type
+  check of the scripts of the side view and of the preview; and ESLint in CI
+  ([R-GEN-018](requirements.md#r-gen-018)).
 
 ## 3. The notes in the file
 
@@ -105,14 +109,21 @@ form of the notes in a file for programs and AI agents, and
 - **Todo notes:** the header of the first answer ends with `· todo` or
   `· done`; a check box in the side view changes it
   ([R-NOTE-008](requirements.md#r-note-008)).
-- **Hidden form, planned:** a switch at the top of the side view writes every
-  note of a file as an HTML comment, which every viewer hides, also GitHub,
-  with an escape of `-->`; all readers and writers accept both forms
-  ([R-HIDE-001](requirements.md#r-hide-001) to
+- **Hidden form:** each definition of a note is an HTML comment of its own,
+  the end marker is the comment `<!--note-7k2q]-->`, and the comment of the
+  format holds the word `hidden`, so that every viewer hides the notes, also
+  GitHub; the text of a note escapes `-->` and `--!>` with one more
+  backslash. All readers and writers accept both forms, and a file has one
+  form; without the comment of the format, a file is hidden when all its
+  notes are ([R-HIDE-001](requirements.md#r-hide-001),
   [R-HIDE-003](requirements.md#r-hide-003)).
-- **Text without notes, planned:** `markdownnotes strip`, "Copy without Notes"
-  and "Save Copy without Notes" write the text without the notes, for
-  publishing ([R-HIDE-004](requirements.md#r-hide-004)).
+- **Text without notes:** `markdownnotes strip <file>` (or `-`, or
+  `--out <folder>` for copies), the library `stripNotes(lines)`, and "Copy
+  without Notes" and "Save Copy without Notes" in VS Code write the text
+  without the notes, their markers and the comment of the format, in both
+  forms, for publishing; the standard footnotes and the rest of the text
+  stay, and the file itself never changes
+  ([R-HIDE-004](requirements.md#r-hide-004)).
 
 ## 4. Text editor
 
@@ -166,7 +177,7 @@ form of the notes in a file for programs and AI agents, and
   "Clear Filter"; the filters combine
   ([R-SIDE-008](requirements.md#r-side-008)).
 - **Editor:** icon buttons with tooltips: "Reply", "Edit", "Delete" for each
-  answer; color, line, "Show as Text", "Answer" and "Delete Thread" for each
+  answer; color, line, "Show as Text", "Answer", "Make Footnote" and "Delete Thread" for each
   thread; the tabs "Visual" and "Markdown" in each editor, and "Write" and
   "Preview" in the tab "Markdown" ([R-SIDE-002](requirements.md#r-side-002)).
 - **New note:** "Add Note" in the title and in the context menu, only for
@@ -175,6 +186,12 @@ form of the notes in a file for programs and AI agents, and
   `data:` or `javascript:` ([R-SIDE-005](requirements.md#r-side-005)).
 - **Show and hide** with one button, also in Zen Mode
   ([R-SIDE-006](requirements.md#r-side-006)).
+- **Hide the notes from other viewers:** the eye in the title of the view,
+  for a file with notes, shows its form and writes all its notes in the
+  other form in one edit; the commands "Hide Notes from Other Viewers" and
+  "Show Notes in Other Viewers"; the setting `hideNotesInNewFiles` chooses
+  the form of a file that gets its first note
+  ([R-HIDE-002](requirements.md#r-hide-002)).
 - **Smooth scroll:** the text editor and the preview scroll smoothly to the
   note that the view selects ([R-SIDE-007](requirements.md#r-side-007)).
 - **Visual editing:** the tab "Visual" of each editor edits the rendered
@@ -237,16 +254,18 @@ form of the notes in a file for programs and AI agents, and
   tables, no white space at line ends, one blank line between blocks,
   `<wbr>` before each start marker, a start marker for each note, the
   numbers of the links to figures, tables, listings and sections, the
-  current values of the front matter, and the current code of the listings
-  ([R-FMT-002](requirements.md#r-fmt-002)).
+  current values of the front matter, the current code of the listings, and
+  each note in the form of its file ([R-FMT-002](requirements.md#r-fmt-002),
+  [R-HIDE-003](requirements.md#r-hide-003)).
 - **Keeps** code blocks, HTML, front matter, math, containers, setext
   headings and the answers of the notes, and keeps the text when the result
   would render otherwise ([R-FMT-003](requirements.md#r-fmt-003)).
 - **Command line and library:** `markdownnotes format [--check] <file>...`
-  with Node.js 22 or later, installed from GitHub for now
-  ([decision 48](requirements.md#decisions)), and the library
-  `formatMarkdown(lines, { source })` for programs such as
-  `markdownpaper format` ([R-FMT-004](requirements.md#r-fmt-004)).
+  and `markdownnotes strip` with Node.js 22 or later, installed from GitHub
+  for now ([decision 48](requirements.md#decisions)), and the library
+  `formatMarkdown(lines, { source })` and `stripNotes(lines)` for programs
+  such as `markdownpaper format` ([R-FMT-004](requirements.md#r-fmt-004),
+  [R-HIDE-004](requirements.md#r-hide-004)).
 
 ## 10. Standard footnotes
 
@@ -256,9 +275,18 @@ form of the notes in a file for programs and AI agents, and
   [R-FOOT-002](requirements.md#r-foot-002)).
 - "Add Footnote" at the cursor: Shift+Alt+B, Cmd+K B on a Mac, and
   `/footnote` ([R-FOOT-003](requirements.md#r-foot-003)).
-- **Planned:** the checks of the footnotes, "Renumber Footnotes" and "Make
-  Footnote" ([R-FOOT-004](requirements.md#r-foot-004) to
-  [R-FOOT-006](requirements.md#r-foot-006)).
+- Warnings at a reference without a definition, a definition without a
+  reference and a second definition of a label, with the quick fixes "Add
+  Definition" and "Delete Definition"
+  ([R-FOOT-004](requirements.md#r-foot-004)).
+- "Renumber Footnotes": the footnotes whose labels are numbers get 1, 2, 3 …
+  in the order of their first reference, in one edit; labels that are words
+  stay ([R-FOOT-005](requirements.md#r-foot-005)).
+- "Make Footnote" at a thread: the text of the first answer becomes a
+  standard footnote with the next free number, whose reference takes the
+  place of the reference of the note and whose definition goes after the
+  last definition; the start marker and the replies go, and a note with
+  replies asks first ([R-FOOT-006](requirements.md#r-foot-006)).
 
 ## 11. Figures, tables, sections and listings
 
@@ -330,12 +358,18 @@ form of the notes in a file for programs and AI agents, and
   "Rename Snippet" and "Remove Snippet", and the buttons "Show Used
   Snippets" and "Hide Used Snippets" color the used snippets
   ([R-CODE-004](requirements.md#r-code-004), decision 37).
-- **Sources in other repositories, planned:** each other repository of a
-  project is a Git submodule of the repository of the paper, at a fixed
-  commit; a listing names a file of it by its path, the tools read it from
-  the disk, and the link of the caption goes to the other repository at
-  the commit of the submodule, read from `.gitmodules`
-  ([R-CODE-006](requirements.md#r-code-006), decision 46).
+- **Sources in other repositories:** the front matter of the paper names
+  each other repository as a GitHub reference with a rev, which the command
+  `mp get` of nimblescape Markdown Paper clones into
+  `.markdownpaper/repos/<name>/`, a folder that Git ignores; a listing names
+  a reference and a path, `server:src/api.ts#read`, the formatter reads the
+  file from the clone, and the link of the caption goes to the other
+  repository at the commit of the clone when the formatter wrote the code.
+  `/listing` lists the files of the clones by their references. A missing
+  reference or clone gets a warning that names the command
+  `npx -y @nimblescape/markdownpaper get`, which the instructions for AI
+  agents and CI use too
+  ([R-CODE-006](requirements.md#r-code-006), decisions 55 and 56).
 
 ## 12. API for other extensions
 

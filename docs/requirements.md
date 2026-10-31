@@ -55,13 +55,13 @@ requirement, the plan and the decisions of Hannes.
 | 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
 | 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
 | 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
-| 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | planned; before the first release |
-| 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | planned; before the first release |
-| 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
+| 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | done; checked with GitHub on [example-hidden.md](example-hidden.md) |
+| 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | done |
+| 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | done |
 | 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
 | 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
-| 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
-| 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
+| 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | done |
+| 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | done |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
 | 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
@@ -94,7 +94,7 @@ requirement, the plan and the decisions of Hannes.
 | 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
 | 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
 | 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
-| 68 | Listings of files of other repositories as Git submodules: the link of the caption to the other repository at the commit of the submodule ([decision 46](#decisions)) | [R-CODE-006](#r-code-006) | planned |
+| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46); after step 78, while Markdown Paper builds `mp` ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
 | 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
 | 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
 | 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
@@ -103,6 +103,13 @@ requirement, the plan and the decisions of Hannes.
 | 74 | The fixed width of the text editor in Zen Mode: the user guide and the README tell the user to turn on the setting of VS Code ([decision 49](#decisions)) | [R-SIDE-001](#r-side-001) | done |
 | 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
 | 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
+| 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
+| 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | done |
+| 79 | The instructions for AI agents in the specification of the format and the messages of the extension and of the command call the commands of Markdown Paper with npx, `npx -y @nimblescape/markdownpaper get`, as CI does ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
+| 80 | Full clones, and Ctrl+Click on the name of the reference of a listing opens its clone in a new window of VS Code ([decision 57](#decisions)) | [R-CODE-006](#r-code-006) | done |
+| 81 | The front matter is read-only in the clean editing view: an edit of it goes back, and Undo goes over it ([decision 58](#decisions)) | [R-TEXT-009](#r-text-009) | done |
+| 82 | The link above the front matter in the clean editing view: "Edit Front Matter" opens the view "Front Matter" of nimblescape Markdown Paper, else "Open File with Markup" ([decision 59](#decisions)) | [R-TEXT-009](#r-text-009) | done |
+| 83 | Snippets in a clone: "Add Snippet" and `/snippet` write nothing in a clone of a reference to a tag or a commit, and work in a clone on a branch ([decision 60](#decisions)) | [R-CODE-006](#r-code-006), [R-CODE-003](#r-code-003) | done |
 
 ## General
 
@@ -466,6 +473,27 @@ and installs the file `nimblescape-markdownnotes-<version>.tgz` that
 `npm install github:nimblescape/markdownnotes-vscode` does not give the
 package, because it installs the extension at the root of the repository,
 and the bundles of `cli/dist/` are not in Git.
+
+### R-GEN-018
+
+**Fixes of the code review.** The code review of 2026-10-28 left three
+fixes of the code that change no feature. They came after step 35
+([decision 54](#decisions)) and are built (step 78):
+
+- A queue of writes for each file: two changes of the notes of one file,
+  for example a save of an answer and a new note, run one after the other.
+  A change that VS Code does not write into the file gives a problem of its
+  own. A new note or a new footnote whose place an earlier change of the
+  extension changed while it waited is not written, and its message asks
+  the user to choose the place again.
+- Tests of the scripts of the side view and of the Markdown preview
+  (`media/notesView.js`, `media/markdownPreview.js`) in a page of
+  happy-dom, and a type check of the scripts with the types of the browser
+  (`media/tsconfig.json`).
+- ESLint for the sources with the recommended rules of ESLint and of
+  typescript-eslint, run by CI. TypeScript stays at version 6.0, the newest
+  version that typescript-eslint supports; TypeScript 7 has no compiler API
+  for it.
 
 ## Notes
 
@@ -842,10 +870,18 @@ extension ([R-NOTE-005](#r-note-005)), or that breaks a rule of the notes
 - a note whose highlight holds no text, a start marker directly before the
   reference;
 - a start marker without `<wbr>` at the start of a line, which ends the
-  paragraph.
+  paragraph;
+- an end marker of the hidden form at the start of a line, which ends the
+  paragraph ([R-HIDE-003](#r-hide-003));
+- a note, or the end of a highlight, in the other form than its file (a
+  hint, [R-HIDE-003](#r-hide-003)).
 
-"Format Document" adds a missing start marker and a missing `<wbr>`
-([R-FMT-002](#r-fmt-002)).
+In the hidden form, the warning of a note in a block quote does not apply,
+because GitHub shows no note of that form.
+
+"Format Document" adds a missing start marker and a missing `<wbr>`, joins an
+end marker at the start of a line to its paragraph, and writes each note in
+the form of its file ([R-FMT-002](#r-fmt-002)).
 
 ### R-TEXT-009
 
@@ -894,6 +930,21 @@ file at once, and keeps each note at its text:
   joined paragraphs take the definitions of the first one after the joined
   block.
 - Undo and Redo bring back the file as it was, with each note at its place.
+- The front matter is read-only ([decision 58](#decisions)): an edit that
+  changes, removes or adds a front matter goes back as a whole, the file
+  keeps its front matter, and the status bar names "Open File with Markup",
+  where the front matter can be changed. An edit after the closing line of
+  the front matter stays. Undo never brings such an edit back: one Undo goes
+  over it to the edit before it. A change of the front matter from
+  elsewhere, for example by `mp get` of nimblescape Markdown Paper, shows in
+  the view.
+- A link above the front matter shows how to change it
+  ([decision 59](#decisions)): "Edit Front Matter" runs the command
+  `nimblescape.markdownPaper.editFrontMatter` of nimblescape Markdown Paper
+  with the URI of the file, which opens its view "Front Matter" in the side
+  bar, a form with one row for each field of the layout. Without that
+  command, the link is "Open File with Markup". The message of the status bar
+  after a refused edit names the link of the form when it exists.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -1001,7 +1052,8 @@ dates have tooltips too. The buttons:
 - Each thread has the button with its color, which opens the colors of the
   notes ([R-TEXT-006](#r-text-006)), the line of its note, which shows the
   note in the text editor, and "Show as Text", "Answer" (a reply to the
-  note, [R-EDIT-005](#r-edit-005)) and "Delete Thread".
+  note, [R-EDIT-005](#r-edit-005)), "Make Footnote"
+  ([R-FOOT-006](#r-foot-006)) and "Delete Thread".
 - "Show as Text" switches the thread to its text view: the whole text of the
   note, the lines of its definition as the file holds them, in the font of
   the text editor. The user changes the text there. "Save" writes it into
@@ -1549,7 +1601,7 @@ on save too.
   line.
 - The columns of a table are aligned, with the alignment of its delimiter
   row, by the width that the text editor shows: without the hidden start
-  markers and references of the notes, and with two columns for each wide
+  markers, references and end markers of the notes, and with two columns for each wide
   character, such as Chinese characters and emoji. A table in a block quote
   or a list keeps its form.
 - No line ends with white space, apart from a hard line break.
@@ -1560,6 +1612,9 @@ on save too.
   the start of a line ends no paragraph on GitHub, and a note without a
   start marker gets one at the start of the text of the block of its
   reference ([R-NOTE-006](#r-note-006)). The color of a marker stays.
+- Each note is in the form of its file, visible or hidden
+  ([R-HIDE-003](#r-hide-003)), and an end marker of the hidden form at the
+  start of a line joins the paragraph before it.
 - The number in the text of each link to a figure, a table, a listing or a
   section follows their order in the file ([R-XREF-002](#r-xref-002)).
 - Each value of the front matter in the text gets the current value of its
@@ -1573,7 +1628,8 @@ on save too.
 blocks of HTML (also comments and the comment of the format of the notes,
 [R-NOTE-007](#r-note-007)), a front matter, blocks of math (`$$`),
 containers (`:::`), setext headings and the answers of the notes; of a
-note, it changes only the start marker ([R-FMT-002](#r-fmt-002)). The
+note, it changes only the start marker and its form, whose lines it keeps
+([R-FMT-002](#r-fmt-002)). The
 definition of a footnote stays on a line of its own. It reads the text as the
 Markdown preview reads it, and keeps the text as it was when the formatted
 text would show other blocks or another text in the preview.
@@ -1605,7 +1661,7 @@ file as the extension does on save.
 
 The command `markdownnotes strip` writes the text of a file without its
 notes, for a website or a document that is published
-([R-HIDE-004](#r-hide-004)).
+([R-HIDE-004](#r-hide-004)), and the library has `stripNotes(lines)` for it.
 
 The npm package also is a library for programs ([decision 34](#decisions)):
 `formatMarkdown(lines)` returns the formatted lines, with `require` and
@@ -1653,8 +1709,8 @@ footnotes too ([decision 24](#decisions)):
   highlighted text: the reference belongs to the highlight, the cursor on
   the reference selects the footnote, and the cursor on the rest of the
   highlight selects the note.
-- The button "Show Footnotes" or "Hide Footnotes" in the title of the side
-  view, and the setting `nimblescape.markdownNotes.showFootnotes` (on by
+- "Show Footnotes" or "Hide Footnotes" in the menu "…" of the title of the
+  side view ([decision 53](#decisions)), and the setting `nimblescape.markdownNotes.showFootnotes` (on by
   default), show or hide the footnotes in the side view. The notes stay.
 - The side view shows footnotes also in a Markdown file without notes. Such
   a file stays a file without notes: it gets no comment of the format
@@ -1716,22 +1772,44 @@ the file can be changed. VS Code uses these keys for nothing else.
 
 ### R-FOOT-004
 
-**Checks of the footnotes.** The text editor shows a warning for a
-reference without a definition, for a definition without a reference, and
-for two definitions with the same label. The quick fixes "Add Definition"
-(it opens the editor of a new definition for the label) and "Delete
-Definition" (for a definition without a reference) repair them. The checks
-cover the standard footnotes; the notes have their own warnings.
+**Checks of the footnotes.** The text editor of a Markdown file and the
+Problems view show a warning for each form of a standard footnote that
+GitHub and the Markdown preview show differently from what the author
+meant:
+
+- a reference without a definition, which shows as text;
+- a definition that no reference outside of it names, which no viewer shows;
+- a second definition of a label, whose references name the first one.
+
+The quick fix "Add Definition" at a reference without a definition opens the
+editor of a new definition for its label in the side view; "Save" writes the
+definition at the place of the definition of a new footnote
+([R-FOOT-003](#r-foot-003)), and selects the footnote. The quick fix "Delete
+Definition" at a definition without a reference removes it with the blank
+lines after it, as "Delete" of the side view does. A second definition has
+no quick fix: only the author knows whether it needs a label of its own. The
+checks cover the standard footnotes; the notes have their own warnings
+([R-TEXT-008](#r-text-008)). For a file in the clean editing view, the
+warnings show in the Problems view only ([R-TEXT-009](#r-text-009)).
 
 ### R-FOOT-005
 
 **Renumber the footnotes.** The command "Renumber Footnotes" gives the
 standard footnotes whose labels are numbers the labels 1, 2, 3 … in the
 order of their first reference, in the references and the definitions, in
-one edit that Undo takes back. A label that is a word, for example
-`[^smith-2020]`, stays, and so do the labels of the notes
+one edit that Undo takes back. The footnotes of such labels without a
+reference follow, in the order of their definitions. A label that is a word,
+for example `[^smith-2020]`, stays, and so do the labels of the notes
 ([R-NOTE-003](#r-note-003)). The numbers that a reader sees do not depend on
 the labels; the command makes the labels of the file match them.
+
+- The command is in the Command Palette for a Markdown file and in the menu
+  "…" of the side view, and works on the active Markdown file, also on the
+  file of a clean editing view.
+- It changes nothing and names the line when a reference of a number has no
+  definition or a number has a second definition, because a new label could
+  then name another footnote. It says so when the labels are in order
+  already.
 
 ### R-FOOT-006
 
@@ -1742,6 +1820,18 @@ text of the footnote, the reference at the end of the highlight gets the
 next free number as its label ([R-FOOT-003](#r-foot-003)), and the start
 marker and the replies go. It asks first when the note has replies. Undo
 brings the note back.
+
+- The definition goes at the place of the definition of a new footnote:
+  after the last definition of a standard footnote, or at the end of the
+  text ([R-FOOT-003](#r-foot-003)). The definition of the note goes with one
+  blank line, as with "Delete Thread" ([R-EDIT-004](#r-edit-004)).
+- The extension writes the change only when Markdown reads the changed text
+  as this footnote with one reference and without the note. A note without
+  a reference in the text, or whose first answer has no text, stays, and a
+  message says why.
+- A note of the hidden form ([R-HIDE-001](#r-hide-001)) becomes a footnote
+  that every viewer shows; its text loses the escape of the hidden form.
+- After the change, the side view selects the new footnote.
 
 ## Figures, tables and sections
 
@@ -2150,34 +2240,80 @@ class or a method ([decision 38](#decisions)):
 ### R-CODE-006
 
 **Sources in other repositories.** A paper about a project of more than one
-repository shows code of each repository. Each other repository is a Git
-submodule of the repository of the paper, at a fixed commit
-([decision 46](#decisions)). This requirement is planned and not built
-yet ([step 68](#plan)).
+repository shows code of each repository. The front matter of the paper
+names each other repository as a GitHub reference with a rev, and the
+command `mp` of nimblescape Markdown Paper clones it
+([decision 55](#decisions)). Markdown Notes builds the listings
+([step 68](#plan)), and Markdown Paper builds the command `mp`
+([decision 56](#decisions)).
 
-```text
-paper-repo/
-  paper/paper.md
-  repos/server/   (submodule)
-  repos/client/   (submodule)
+```yaml
+---
+title: The server of the project
+layout: majikmate/markdownpaper-layout-pht/thesis@main
+repos:
+  server: org/server@v2.1.0
+---
 ```
 
-- The comment of a listing names a file of a submodule by its path, as any
-  other file, for example `<!-- listing: ../repos/server/src/api.ts#read -->`.
-- VS Code, the command line and the check of a pull request read the files
-  from the disk. The check of a pull request checks out the submodules, for
-  example with `submodules: true` of `actions/checkout`. No network access
-  and no tokens are needed.
-- The commit of the submodule is the version of the code that the paper
-  shows. For a new version, the author updates the submodule and commits
-  it; the formatter then writes the current code and lines.
-- GitHub opens no relative link into a submodule. For a file of a
-  submodule, the formatter writes the link of the caption to the other
-  repository at the commit of the submodule, for example
-  `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`. It reads
-  the address of the repository from `.gitmodules` and the commit from the
-  submodule. The cite after the link stays `(api.ts, L12-L30)`
+- The rev alone says how the paper follows the repository: a tag or a
+  commit pins the version, and a branch takes its head. The front matter
+  holds no other commit, and the paper needs no lock file.
+- The commands belong to Markdown Paper: `mp get owner/repo@rev` writes or
+  changes a reference and clones the repository; `mp get` alone clones the
+  missing repositories and pulls the branches, into a folder that Git
+  ignores, for example `.markdownpaper/repos/server/`; `mp get -u` also
+  moves each tag to the newest tag. The key `layout` is a reference of the
+  same form.
+- The comment of a listing names a reference and a path, for example
+  `<!-- listing: server:src/api.ts#read -->`. The path has no `..`.
+  Markdown Notes reads the file from the clone of that reference in the
+  folder `.markdownpaper/repos/<name>/` of the folder of the Markdown file
+  or of the first folder above it that has the clone, in VS Code and on the
+  command line; the files of the clones are the contract between the two
+  extensions, so the formatter needs no API of Markdown Paper.
+- The code block of the listing holds the code, so GitHub shows it without
+  the other repositories. The formatter writes the code anew from the clone
+  at every format, so the check of a pull request and the PDF in CI run
+  `npx -y @nimblescape/markdownpaper get` first, for all repositories that
+  the paper names, with a token with read access for each private one.
+- A listing whose reference is not under `repos`, whose repository is not
+  cloned, or whose path has `..` keeps its code. VS Code shows a warning at
+  its comment and the command reports it, and both name the command that
+  fixes it: `npx -y @nimblescape/markdownpaper get owner/repo@rev --name
+  <name>` for a missing reference, with the path of the Markdown file in a
+  project with more than one paper, and `npx -y @nimblescape/markdownpaper
+  get` for a missing clone. A reference may have the older prefix
+  `github:`, which `mp get` reads too.
+- `/listing` lists the files of the clones of the references of the front
+  matter by their references, such as `server:src/api.ts`, and not the
+  files of other clones, such as the clone of a layout. The comment of a
+  listing of another repository opens the file in its clone.
+- The clones stay full Git clones ([decision 57](#decisions)). Inside the
+  repository of the paper, VS Code treats a clone in the ignored folder as
+  ignored files: Source Control shows only the repository of the paper. To
+  work in another repository, the author opens its clone in a new window of
+  VS Code: Ctrl+Click on the name of the reference in the comment of a
+  listing, `server` in `server:src/api.ts`, opens it, and Ctrl+Click on the
+  path opens the file in the clone. Markdown Paper has the command "Open
+  Repository in New Window" for the references of a paper.
+- The rev says what the author does with the other repository
+  ([decision 60](#decisions)). A reference to a branch, such as `@main`, is
+  for changes: `mp get` checks out the branch itself, and the author adds
+  snippets in the window of the clone and commits and pushes them there. A
+  reference to a tag or a commit uses the repository as it is: its clone
+  stays detached at that version, and "Add Snippet" and `/snippet` write
+  nothing in a file of it, with a message. Markdown Notes knows the kind
+  from the file `.git/HEAD` of the clone: a branch, or a commit.
+- The link of the caption goes to the other repository at the commit of
+  the clone when the formatter wrote the code, for example
+  `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the
+  link shows the code of the code block, also for a reference to a branch.
+  The cite after the link stays `(api.ts, L12-L30)`
   ([R-CODE-001](#r-code-001)).
+- The extensions connect to no address of their own: only `mp get`, which
+  the author or CI runs, fetches, with the Git access of the author
+  ([R-GEN-003](#r-gen-003)).
 
 ## Hidden notes
 
@@ -2197,7 +2333,8 @@ the same way.
   `[^note-7k2q]`.
 - The definition of each note is an HTML comment of its own: a line `<!--`,
   the definition as in the visible form, and a line `-->`, with a blank line
-  before and after the comment:
+  before and after the comment. In a block quote or a list item, each line of
+  the comment has the prefix of the block quote or the list item:
 
   ````markdown
   The agents <wbr><!--[note-7k2q-->change the work of teams<!--note-7k2q]--> in three ways.
@@ -2220,6 +2357,9 @@ the same way.
 - The text view of a thread ([R-SIDE-002](#r-side-002)) shows the definition
   without the lines `<!--` and `-->` and without the escape, as in the
   visible form.
+- The words of the comment of the format say that in a file with `hidden`,
+  each definition is in an HTML comment of its own, that the end marker is a
+  comment, and that the text of a note escapes the end of a comment.
 
 ### R-HIDE-002
 
@@ -2229,15 +2369,21 @@ decides whether other viewers show the notes of the active file:
 - The icon shows the form of the file: an eye for the visible form, an eye
   with a stroke for the hidden form. Its tooltip says the state and what a
   click does, for example "Other viewers show the notes, also GitHub. Click
-  to hide them."
+  to hide them." Both icons come from the icon font of the extension, made
+  from the codicon "eye", as the icons of the highlights
+  ([decision 26](#decisions)).
 - A click writes all notes of the file in the other form in one edit, which
   Undo takes back: it puts each definition into its comment or takes it
   out, exchanges the end markers, applies or removes the escape, and sets or
   removes the word `hidden`. The commands "Hide Notes from Other Viewers" and
-  "Show Notes in Other Viewers" of the Command Palette do the same.
+  "Show Notes in Other Viewers" of the Command Palette do the same. Each
+  thread of the side view keeps its note, and the selected note stays
+  selected. The definitions keep their lines as the file holds them; a
+  missing blank line before or after a definition is added.
 - The icon shows only for a file with notes. The setting
   `nimblescape.markdownNotes.hideNotesInNewFiles` (off by default) chooses
-  the form of a file that gets its first note.
+  the form of a file that gets its first note. A workspace or a folder can
+  set it, so that a repository keeps the notes of its new files hidden.
 - After the change, the extension writes each new note and answer in the
   form of the file.
 
@@ -2251,7 +2397,21 @@ AI agent added to a file in the hidden form ([R-FMT-002](#r-fmt-002)). The
 specification for programs ([docs/format.md](format.md)) describes the
 hidden form and its escape. The step that builds the form checks with the
 renderer of GitHub that a file in the hidden form shows no part of a note,
-and that its paragraphs, lists, block quotes and tables stay whole.
+and that its paragraphs, lists, block quotes and tables stay whole: GitHub
+shows [example-hidden.md](example-hidden.md) without any part of its five
+notes, with its list, its table, its block quote and its standard footnote
+whole.
+
+- Without the comment of the format, a file is in the hidden form when all
+  of its notes are.
+- The checks of the text editor ([R-TEXT-008](#r-text-008)) give a hint at a
+  note, or at the end of a highlight, in the other form than its file, which
+  the formatter then changes. An end marker at the start of a line gets a
+  warning, because it starts a block of HTML, which ends the paragraph; the
+  formatter joins the line to the paragraph before it.
+- The text editor hides the end markers as it hides the references
+  ([R-NOTE-006](#r-note-006)), and the clean editing view leaves out the
+  comments of the notes and the end markers ([R-TEXT-009](#r-text-009)).
 
 ### R-HIDE-004
 
@@ -2261,23 +2421,32 @@ notes:
 
 - `markdownnotes strip <file>` ([R-FMT-004](#r-fmt-004)) writes the text to
   the standard output; `-` reads the standard input, and `--out <folder>`
-  writes a copy of each file into the folder. The command never changes a
-  file itself.
+  writes a copy of each file into the folder, under the name of the file.
+  Several files need `--out`. The command never changes a file itself: it
+  refuses a copy that would replace one of its files, or the copy of another
+  file of the same name, and exits with 2. The library of the npm package
+  has `stripNotes(lines)`.
 - The commands "Copy without Notes" (to the clipboard) and "Save Copy without
   Notes" (with a dialog for the file) of VS Code do the same for the active
-  Markdown file.
-- The text has no definitions of notes with the blank line after each, no
-  start and end markers and no comment of the format, in both forms. The
-  standard footnotes, all other comments and the rest of the text stay as
-  they are. A test compares the rendering of the text without notes with
-  the rendering of the Markdown preview, which leaves the notes out.
+  Markdown file, also for the file of a clean editing view and with changes
+  that are not saved. The dialog proposes the name of the file with
+  `-without-notes` before the extension, and refuses the file itself. The
+  commands are in the Command Palette and in the menu "…" of the title of
+  the side view.
+- The text has no notes, in both forms: no definitions of notes with the
+  blank line after each, also of notes without a reference, no start and end
+  markers and no comment of the format. The standard footnotes, all other
+  comments, anchors, values of the front matter, listings and the rest of
+  the text stay as they are, with the line breaks and the byte order mark of
+  the file. A test compares the rendering of the text without notes with the
+  rendering of the Markdown preview, which leaves the notes out.
 - A file whose comment names a higher major version stays unread: the
   command writes nothing for it, says why, and exits with 2, as `format`
-  does.
+  does; the commands of VS Code show a warning.
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-10-30. The
+Hannes decided these questions from 2026-10-28 to 2026-10-31. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -2652,7 +2821,8 @@ requirements above follow them.
     repository at that commit. Planned; not built yet. The other choice was
     a list of repositories with versions in the front matter, whose files
     the tools fetch over the network, which needs a new form, network access
-    and tokens for private repositories.
+    and tokens for private repositories. [Decision 55](#decisions)
+    replaces this decision.
 47. **Nothing published before the release** ([R-GEN-017](#r-gen-017),
     [R-GEN-005](#r-gen-005)): no version of the extension or of the npm
     package goes to the Marketplace or to npmjs.com before the release.
@@ -2695,6 +2865,82 @@ requirements above follow them.
     an editor that never shows the marks but writes the whole Markdown text
     anew on a save, which can change the form of text that the user did not
     change.
+53. **"Show Footnotes" and "Hide Footnotes" in the menu "…"**
+    ([R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002)): at its default
+    width of about 290 pixels, the secondary side bar of VS Code shows three
+    buttons in the title of a view and puts further buttons into the menu
+    "…". The title of the side view shows "Add Note", "Add Footnote" and the
+    eye, and its menu "…" has "Show Footnotes" or "Hide Footnotes". The other
+    choices were the eye in the menu, or four buttons, of which VS Code put
+    "Add Note" into the menu at the default width.
+54. **The fixes of the code review after step 35**
+    ([R-GEN-018](#r-gen-018)): the queue of writes for each file, the tests
+    of the scripts of the side view and of the preview, and ESLint come
+    after the planned features of steps 31, 34 and 35. The other choices
+    were to build them next, after the hidden form, or not to build them.
+55. **Sources in other repositories as references in the front matter**
+    ([R-CODE-006](#r-code-006)): the front matter of a paper names each
+    other repository as a GitHub reference with a rev, for example
+    `server: org/server@v2.1.0` under `repos`. A tag or a commit pins the
+    version, and a branch takes its head; the front matter holds no other
+    commit, and the paper needs no lock file. The command `mp` of
+    nimblescape Markdown Paper clones and pulls the repositories with
+    `mp get`, as it does the repository of the layout. A listing names a
+    reference and a path, and its code block keeps the code. This replaces
+    [decision 46](#decisions). The other choices were the Git submodules of
+    decision 46, a list of sources with the clones of the author, npm
+    packages from GitHub, a fetch of the files over the network, the GitHub
+    address in each listing, clones side by side, and copies of the shown
+    files.
+56. **The listings of other repositories now, and npx for agents and CI**
+    ([R-CODE-006](#r-code-006)): step 68 is built now, in the order of the
+    plan, after step 78, while nimblescape Markdown Paper builds the command
+    `mp` with `create`, `get` and `build`; the files of the clones in
+    `.markdownpaper/repos/<name>/` are the contract between the two
+    extensions. The decisions about the listings go into the instructions
+    for AI agents, and these instructions and CI call the commands with npx,
+    `npx -y @nimblescape/markdownpaper get`, not with an installed `mp`; `mp`
+    is the name for authors. The other choices were to wait until a paper
+    needs the listings, and `mp` in the instructions and in CI.
+57. **Full clones, opened in a new window** ([R-CODE-006](#r-code-006)):
+    the clones of `mp get` stay full Git clones in
+    `.markdownpaper/repos/<name>/`, inside the repository of the paper. VS
+    Code treats a clone in this ignored folder as ignored files, also after
+    a file of the clone is opened or changed (tested in VS Code 1.144.0 and
+    1.125.0), so a Git repository inside the repository of the paper causes
+    no problem. The author works in another repository in a new window of
+    VS Code: Ctrl+Click on the name of the reference of a listing opens the
+    clone there, as the command "Open Repository in New Window" of
+    nimblescape Markdown Paper does. The other choices were bare clones in
+    a cache folder of the user with only the files in the project, and the
+    files read from that cache outside the workspace.
+58. **The front matter is read-only in the clean editing view**
+    ([R-TEXT-009](#r-text-009)): the front matter is no free text; its keys
+    are the fields of the layout of the paper and its values belong to the
+    file, so the layout and the front matter stay together. In the clean
+    editing view, the whole front matter is read-only: an edit of it goes
+    back, and Undo goes over such an edit. The front matter changes with the
+    commands of nimblescape Markdown Paper and in the text editor of "Open
+    File with Markup". The other choices were only the keys `layout` and
+    `repos` read-only, and a front matter that the view edits as text.
+59. **The form of the front matter is a view of Markdown Paper in the side
+    bar** ([R-TEXT-009](#r-text-009)): nimblescape Markdown Paper builds the
+    form, because it reads the fields of the layout from `layout.json`. Its
+    view "Front Matter" in the side bar always shows the form of the paper
+    in the active editor, also of the clean editing view. Markdown Notes
+    shows the link "Edit Front Matter" above the read-only front matter,
+    which opens and focuses the view. The other choices were a form beside
+    the editor, and a second tab of the Notes view, for which Markdown Notes
+    would read the fields of the layout from Markdown Paper.
+60. **The rev decides whether a clone takes new snippets**
+    ([R-CODE-006](#r-code-006)): with a reference to a branch, the author
+    adds snippets to the other repository while writing the paper, so `mp
+    get` checks out the branch itself, pulls it only forward, and leaves a
+    clone with work that is not pushed as it is. With a reference to a tag or
+    a commit, the paper uses the snippets that this version has, so its
+    clone stays detached, and "Add Snippet" and `/snippet` write nothing
+    there. The other choice was a detached clone for every reference, which
+    needs a switch to the branch before each commit.
 
 ---
 

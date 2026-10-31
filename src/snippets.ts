@@ -18,11 +18,13 @@
  * of the caption is the link.
  */
 
+import * as fs from 'node:fs';
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
-import { sourceOf } from './formatter';
+import { listingFilesOf, sourceOf } from './formatter';
 import { findItems } from './notes/figures';
 import { captionLinkOf, captionsOf, findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
+import { pinnedCloneOf, referencePath } from './notes/repos';
 
 /** CleanText gives the text of the file of a document of the clean editing view, and the places of the file there. */
 export interface CleanText {
@@ -30,11 +32,41 @@ export interface CleanText {
   toClean(file: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
 }
 
-/** snippetCommands are the commands of the snippets: the one of the Command Palette, and the one of `/snippet`. */
+/**
+ * snippetCommands are the commands of the snippets: the one of the Command Palette, the one of `/snippet`, and the one
+ * of the link of the name of a reference in a listing, which opens the clone of the reference in a new window.
+ */
 export const snippetCommands = {
   add: 'nimblescape.markdownNotes.addSnippet',
   slash: 'nimblescape.markdownNotes.slashSnippet',
+  repository: 'nimblescape.markdownNotes.openRepository',
 };
+
+/** pinnedMessage is the message of "Add Snippet" and `/snippet` in a clone of a reference to a tag or a commit (decision 60). */
+export const pinnedMessage =
+  'This file is in the clone of a reference to a tag or a commit, which stays at that version, so a snippet cannot be added here. A snippet needs a reference to a branch, for example @main, or a new version of the repository.';
+
+/**
+ * readPath returns the text of a file: of its open document, else from the disk, or undefined.
+ * @param uri - The URI of the file.
+ */
+function readPath(uri: vscode.Uri): string | undefined {
+  const open = vscode.workspace.textDocuments.find((document) => document.uri.toString() === uri.toString());
+  try {
+    return open ? open.getText() : fs.readFileSync(uri.fsPath, 'utf8');
+  } catch {
+    return undefined;
+  }
+}
+
+/** openRepository is the tooltip of the link that opens the clone of a reference in a new window. */
+const openRepository = 'Open Repository in New Window';
+
+/**
+ * openClone opens the folder of a clone in a new window of VS Code, where its files can be edited.
+ * @param folder - The folder of the clone.
+ */
+const openClone = (folder: vscode.Uri) => vscode.commands.executeCommand('vscode.openFolder', folder, { forceNewWindow: true });
 
 /**
  * uncommented are the IDs of the languages without comments, whose files get no marks: JSON (a `.json` file with
@@ -98,6 +130,7 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       vscode.workspace.onDidCloseTextDocument((document) => this.selections.delete(document.uri.toString())),
       vscode.commands.registerCommand(snippetCommands.add, (uri?: vscode.Uri, range?: vscode.Range, name?: string) => this.add(uri, range, name)),
       vscode.commands.registerCommand(snippetCommands.slash, (uri: vscode.Uri, range: vscode.Range) => this.add(uri, range)),
+      vscode.commands.registerCommand(snippetCommands.repository, (folder: string) => openClone(vscode.Uri.parse(folder))),
     ];
   }
 
@@ -191,6 +224,10 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       void vscode.window.showInformationMessage('Select the lines of the snippet in a source file, then run "Add Snippet".');
       return;
     }
+    if (document.uri.scheme === 'file' && pinnedCloneOf(document.uri.path, (path) => readPath(document.uri.with({ path })))) {
+      void vscode.window.showInformationMessage(pinnedMessage);
+      return;
+    }
     const first = lines.start.line;
     const last = lines.end.character === 0 && lines.end.line > first ? lines.end.line - 1 : lines.end.line;
     const text = document.getText(new vscode.Range(first, 0, last, document.lineAt(last).text.length));
@@ -244,8 +281,9 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
 
   /**
    * provideDocumentLinks returns the links of the listings of a Markdown file: the comment of each listing opens its
-   * source file at the first line of its snippet. A document of the clean editing view, which hides the comments, gets
-   * the links on the texts of the captions.
+   * source file at the first line of its snippet, and the name of the reference of a listing of another repository,
+   * `server` in `server:src/api.ts`, opens the clone of the reference in a new window. A document of the clean editing
+   * view, which hides the comments, gets the links on the texts of the captions.
    * @param document - The document.
    */
   provideDocumentLinks(document: vscode.TextDocument): vscode.DocumentLink[] {
@@ -259,14 +297,15 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
     const source = sourceOf(file);
     const listings = findListings(lines);
     const captions = real && listings.length > 0 ? captionsOf(lines, findItems(lines), listings) : [];
+    // The file of a listing of another repository is in its clone (R-CODE-006).
+    const files = listingFilesOf(file, lines);
     return listings.flatMap((listing, index) => {
-      let target: vscode.Uri;
-      try {
-        target = vscode.Uri.joinPath(file, '..', decodeURIComponent(listing.path));
-      } catch {
+      const listed = files(listing.path);
+      if (!listed) {
         return [];
       }
-      const code = listing.snippet ? source?.(listing.path)?.split(/\r\n|\r|\n/) : undefined;
+      const target = listed.uri;
+      const code = listing.snippet ? source?.(listed.path)?.split(/\r\n|\r|\n/) : undefined;
       const found = code && snippetsOf(code).find(({ name }) => name === listing.snippet);
       // The number of the first line of the snippet, from 1.
       const line = found ? found.first + 1 : undefined;
@@ -282,6 +321,18 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       } else {
         const reference = `${listing.path}${listing.snippet ? `#${listing.snippet}` : ''}`;
         const column = lines[listing.line].indexOf(reference);
+        const name = listed.clone && referencePath(listing.path)?.name;
+        if (listed.clone && name) {
+          // The name opens the clone, and the path after the colon the file.
+          const repository = new vscode.DocumentLink(
+            new vscode.Range(listing.line, column, listing.line, column + name.length),
+            vscode.Uri.parse(`command:${snippetCommands.repository}?${encodeURIComponent(JSON.stringify([listed.clone.toString()]))}`),
+          );
+          repository.tooltip = `${openRepository}: ${name}`;
+          const file = new vscode.DocumentLink(new vscode.Range(listing.line, column + name.length + 1, listing.line, column + reference.length), opens);
+          file.tooltip = tooltip;
+          return [repository, file];
+        }
         range = new vscode.Range(listing.line, column, listing.line, column + reference.length);
       }
       if (!range) {

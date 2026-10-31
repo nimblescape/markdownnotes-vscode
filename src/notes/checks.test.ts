@@ -5,12 +5,13 @@
 /**
  * These tests check the warnings of the notes of a Markdown text (R-TEXT-008): each form that GitHub or another
  * Markdown viewer shows differently from the extension gets one, and a note in the form that the extension writes
- * gets none. A listing whose source file or snippet is not found gets one too (R-CODE-005).
+ * gets none. A listing whose source file or snippet is not found gets one too (R-CODE-005), and so does a standard
+ * footnote that GitHub and the preview show differently from what the author meant (R-FOOT-004).
  */
 
 import { describe, expect, test } from 'vitest';
-import { checksOf, listingChecksOf } from './checks';
-import { readNotes } from './notes';
+import { checksOf, footnoteChecksOf, footnoteCodes, listingChecksOf } from './checks';
+import { read, readNotes } from './notes';
 
 /**
  * checks returns the line and the start of the message of each check of a text.
@@ -97,4 +98,33 @@ test('a listing whose file or snippet is not found gets a warning at its comment
   ]);
   // Each file is read once.
   expect(reads).toBe(2);
+});
+
+test('a listing of another repository without its reference or its clone gets a warning that names the command (R-CODE-006)', () => {
+  const lines = ['---', 'repos:', '  client: org/client', '---', '', '<!-- listing: client:src/app.ts -->', '', '```', '```', '', '<!-- listing: tools:a.ts -->', '', '```', '```', ''];
+  expect(listingChecksOf(lines, () => undefined).map((check) => [check.range.start.line, check.message])).toEqual([
+    [5, 'The listing keeps its code. The repository "client" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get'],
+    [10, 'The listing keeps its code. "tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools, and the path of the Markdown file when the project has more than one paper.'],
+  ]);
+});
+
+test('a reference without a definition, a definition without a reference and a second definition of a label get a warning with the code of their quick fix (R-FOOT-004)', () => {
+  const lines = ['Text[^1] and[^gone].', '', '[^1]: One.', '', '  [^spare]: Nobody.', '', '[^1]: Again.'];
+  expect(footnoteChecksOf(lines, read(lines)).map((check) => [check.range, check.severity, check.code, check.message])).toEqual([
+    [{ start: { line: 0, character: 12 }, end: { line: 0, character: 19 } }, 'warning', footnoteCodes.undefined, 'The file has no footnote [^gone], so this reference shows as text. Add its definition, or delete the reference.'],
+    // The range of a definition starts after its spaces.
+    [
+      { start: { line: 4, character: 2 }, end: { line: 4, character: 19 } },
+      'warning',
+      footnoteCodes.unreferenced,
+      'No reference [^spare] names this footnote, so GitHub and the preview do not show it. Add the reference to the text, or delete the definition.',
+    ],
+    [
+      { start: { line: 6, character: 0 }, end: { line: 6, character: 12 } },
+      'warning',
+      footnoteCodes.duplicate,
+      'An earlier footnote of the file has the label 1, and the references [^1] name that one. Give this footnote a label of its own, or delete it.',
+    ],
+  ]);
+  expect(footnoteChecksOf(['Text[^1].', '', '[^1]: One.'], read(['Text[^1].', '', '[^1]: One.']))).toEqual([]);
 });

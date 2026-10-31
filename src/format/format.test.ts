@@ -66,7 +66,7 @@ describe('the paragraphs', () => {
 
   test('give every start marker <wbr> before it, and a note without a start marker one at the start of the text of its block', () => {
     expect(format('The <!--[note-aaaa green-->text[^note-aaaa].\n\n' + note)).toBe('The <wbr><!--[note-aaaa green-->text[^note-aaaa].\n\n' + note);
-    expect(format('- The text[^note-aaaa].\n\n  ' + note.replace(/\n    /g, '\n      '))).toBe('- <wbr><!--[note-aaaa-->The text[^note-aaaa].\n\n  ' + note.replace(/\n    /g, '\n      '));
+    expect(format('- The text[^note-aaaa].\n\n  ' + note.replace(/\n {4}/g, '\n      '))).toBe('- <wbr><!--[note-aaaa-->The text[^note-aaaa].\n\n  ' + note.replace(/\n {4}/g, '\n      '));
     const written = 'The <wbr><!--[note-aaaa-->text[^note-aaaa].\n\n' + note;
     expect(format(written)).toBe(written);
   });

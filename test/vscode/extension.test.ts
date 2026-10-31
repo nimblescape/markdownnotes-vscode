@@ -5,7 +5,8 @@
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
 // R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), a listing in
-// the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), the commands of the eye that hide the
+// notes from other viewers (R-HIDE-002), the copy of a file without its notes (R-HIDE-004), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
@@ -224,6 +225,110 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
+  it('keeps the front matter read-only in the clean editing view: an edit of it goes back, the file keeps it, the link above it opens the file, and undo goes on with the edits before it (R-TEXT-009)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, `---\ntitle: A paper\n---\n\n${note}`);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+    // An edit after the front matter goes into the file.
+    await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('More.')), 'Even '));
+    await waitFor(() => (real()?.getText().includes('\nEven More.\n') ? true : undefined), 'the change in the file');
+    const before = view.document.getText();
+    // An edit of a value, and an edit that removes the front matter, go back; the file keeps its front matter.
+    for (const change of [
+      (edit: vscode.TextEditorEdit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('A paper')), 'The '),
+      (edit: vscode.TextEditorEdit) => edit.delete(new vscode.Range(0, 0, 4, 0)),
+    ]) {
+      assert.ok(await view.edit(change));
+      await waitFor(() => (view.document.getText() === before ? true : undefined), 'the front matter as it was');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    assert.equal(view.document.getText(), before);
+    assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), real()!.getText());
+    // Without nimblescape Markdown Paper, the link above the front matter opens the file itself.
+    const lenses = await vscode.commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', view.document.uri);
+    assert.deepEqual(
+      lenses.map((lens) => [lens.range.start.line, lens.command?.title, lens.command?.command]),
+      [[0, 'Open File with Markup', commandOf('openWithMarkup')]],
+    );
+    // Undo never brings an edit of the front matter back: one undo goes over each edit that went back.
+    let steps = 0;
+    while (steps < 4 && view.document.getText().includes('Even ')) {
+      await vscode.commands.executeCommand('undo');
+      steps++;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.ok(view.document.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), view.document.getText());
+    }
+    assert.equal(steps, 3, 'the undo of the edit before');
+    await waitFor(() => (real()?.getText().includes('\nMore.\n') ? true : undefined), 'the undo in the file');
+    assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n'));
+  });
+
+  it('hides the notes of a file from other viewers and shows them again with the commands of the eye, while the clean editing view keeps its text (R-HIDE-001 to R-HIDE-003)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const clean = view.document.getText();
+    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+    await vscode.commands.executeCommand(commandOf('hideNotesFromViewers'));
+    const hidden = await waitFor(() => (real()?.getText().includes('<!--note-bbbb]-->') ? real() : undefined), 'the hidden form in the file');
+    const text = hidden.getText();
+    assert.match(text.split('\n')[0], /^<!-- nimblescape-markdownnotes v\d+\.\d+\.\d+ hidden spec=/);
+    assert.ok(text.includes('The text<!--note-aaaa]--> of the page and <wbr><!--[note-bbbb green-->a highlight<!--note-bbbb]--> here.'), text);
+    assert.ok(text.includes('\n<!--\n[^note-bbbb]: **carl** · 2026-10-28 12:00Z\n\n    Inline\n-->\n\nMore.\n'), text);
+    const extension = await api();
+    const notes = await waitFor(() => {
+      const read = extension.notesOf(file);
+      return read.length === 2 && read.every((each) => each.hidden) ? read : undefined;
+    }, 'two hidden notes');
+    assert.deepEqual(notes.map((each) => each.answers.map((answer) => answer.author)), [['ann', 'bob'], ['carl']]);
+    await waitFor(() => (view.document.getText() === clean ? true : undefined), 'the text of the clean editing view');
+    await vscode.commands.executeCommand(commandOf('showNotesInViewers'));
+    await waitFor(() => (real()?.getText() === marked(note) ? true : undefined), 'the visible form in the file');
+    assert.equal(view.document.getText(), clean);
+    // A changed file that is not saved stays open after the close of the editors, and VS Code 1.125 then opens the file
+    // of the next test without its clean editing view.
+    assert.ok(await real()?.save(), 'the save of the file');
+  });
+
+  it('copies the text of the file of a clean editing view without its notes to the clipboard, and changes no file (R-HIDE-004)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, marked(`${note}\nEnd.[^1]\n\n[^1]: A footnote.\n`));
+    await vscode.commands.executeCommand('vscode.open', file);
+    await viewOf(file);
+    await vscode.env.clipboard.writeText('');
+    await vscode.commands.executeCommand(commandOf('copyWithoutNotes'));
+    assert.equal(await vscode.env.clipboard.readText(), '# Title\n\nThe text of the page and a highlight here.\n\nMore.\n\nEnd.[^1]\n\n[^1]: A footnote.\n');
+    assert.equal(fs.readFileSync(file.fsPath, 'utf8'), marked(`${note}\nEnd.[^1]\n\n[^1]: A footnote.\n`));
+  });
+
+  it('warns about a reference of a footnote without a definition, with the quick fix "Add Definition", and renumbers the footnotes in one change (R-FOOT-004, R-FOOT-005)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, 'B[^2] and A[^1] and[^gone].\n\n[^1]: One.\n\n[^2]: Two.\n');
+    const editor = await vscode.window.showTextDocument(file);
+    const warnings = await waitFor(() => {
+      const found = vscode.languages.getDiagnostics(file).filter((diagnostic) => diagnostic.source === 'Markdown Notes');
+      return found.length > 0 ? found : undefined;
+    }, 'the warning of the footnote');
+    assert.deepEqual(
+      warnings.map((diagnostic) => [diagnostic.code, diagnostic.range.start.line, diagnostic.range.start.character, diagnostic.range.end.character]),
+      [['footnote-undefined', 0, 19, 26]],
+    );
+    const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', file, warnings[0].range, vscode.CodeActionKind.QuickFix.value);
+    assert.ok(
+      actions.some((action) => action.title === 'Add Definition of [^gone]' && action.command?.command === commandOf('addFootnoteDefinition')),
+      actions.map((action) => action.title).join(', '),
+    );
+    const version = editor.document.version;
+    await vscode.commands.executeCommand(commandOf('renumberFootnotes'));
+    await waitFor(() => (editor.document.getText() === 'B[^1] and A[^2] and[^gone].\n\n[^2]: One.\n\n[^1]: Two.\n' ? true : undefined), 'the renumbered footnotes');
+    // One edit changes all labels, so one Undo takes it back.
+    assert.equal(editor.document.version, version + 1);
+    assert.ok(await editor.document.save(), 'the save of the file');
+  });
+
   it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     // Without the heading, the table is the first entry of the list of /ref.
@@ -418,6 +523,50 @@ describe('nimblescape Markdown Notes', () => {
       await vscode.commands.executeCommand(commandOf('addSnippet'), source, new vscode.Range(1, 0, 2, 0), 'kept');
       assert.equal(editor.document.getText(), expected);
       await vscode.commands.executeCommand('workbench.action.files.revert');
+    }
+  });
+
+  it('links the name of the reference of a listing of another repository to the command that opens its clone in a new window, and the path to the file in the clone (R-CODE-006)', async () => {
+    const project = path.join(folder, `project-${++count}`);
+    fs.mkdirSync(path.join(project, '.markdownpaper', 'repos', 'server', '.git'), { recursive: true });
+    fs.mkdirSync(path.join(project, '.markdownpaper', 'repos', 'server', 'src'));
+    fs.writeFileSync(path.join(project, '.markdownpaper', 'repos', 'server', '.git', 'HEAD'), `${'a'.repeat(40)}\n`);
+    fs.writeFileSync(path.join(project, '.markdownpaper', 'repos', 'server', 'src', 'api.ts'), 'export const read = 1;\n');
+    const paper = vscode.Uri.file(path.join(project, 'paper.md'));
+    fs.writeFileSync(paper.fsPath, '---\nrepos:\n  server: org/server@v1\n---\n\n<!-- listing: server:src/api.ts -->\n\n```\n```\n');
+    await vscode.window.showTextDocument(paper);
+    const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>('vscode.executeLinkProvider', paper);
+    const own = links.filter((link) => link.range.start.line === 5).sort((a, b) => a.range.start.character - b.range.start.character);
+    assert.deepEqual(
+      own.map((link) => [link.range.start.character, link.range.end.character, link.target?.scheme]),
+      [
+        [14, 20, 'command'],
+        [21, 31, 'file'],
+      ],
+    );
+    assert.equal(own[0].target?.path, 'nimblescape.markdownNotes.openRepository');
+    assert.equal(own[1].target?.fsPath, path.join(project, '.markdownpaper', 'repos', 'server', 'src', 'api.ts'));
+  });
+
+  it('writes no snippet into a clone of a reference to a tag or a commit, and writes it into a clone on a branch (R-CODE-006, decision 60)', async () => {
+    const project = path.join(folder, `project-${++count}`);
+    const files: vscode.Uri[] = [];
+    for (const [name, head] of [
+      ['server', `${'a'.repeat(40)}\n`],
+      ['tools', 'ref: refs/heads/main\n'],
+    ]) {
+      const clone = path.join(project, '.markdownpaper', 'repos', name);
+      fs.mkdirSync(path.join(clone, '.git'), { recursive: true });
+      fs.writeFileSync(path.join(clone, '.git', 'HEAD'), head);
+      fs.writeFileSync(path.join(clone, 'keep.ts'), 'export function keep(): number {\n  const kept = 1;\n  return kept;\n}\n');
+      files.push(vscode.Uri.file(path.join(clone, 'keep.ts')));
+    }
+    for (const file of files) {
+      const editor = await vscode.window.showTextDocument(file);
+      await vscode.commands.executeCommand(commandOf('addSnippet'), file, new vscode.Range(1, 0, 3, 0), 'kept');
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const marked = editor.document.getText().includes('markdownnotes: snippet kept');
+      assert.equal(marked, file === files[1], editor.document.getText());
     }
   });
 

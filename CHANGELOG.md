@@ -72,11 +72,39 @@ The first version.
   Command Palette) opens the editor of a new footnote for the place of the
   cursor, and writes its reference with the next free number and its
   definition after the last footnote. "Hide Footnotes" and "Show Footnotes"
-  in the title of the side view change the setting
+  in the menu "…" of the title of the side view change the setting
   `nimblescape.markdownNotes.showFootnotes`. While the side view shows the
   footnotes, the clean editing view of a file with notes hides the
   definitions of the footnotes that have a reference, as the definitions of
   the notes. A change of a footnote adds no comment of the format.
+- Checks of the standard footnotes: the text editor and the Problems view
+  warn at a reference without a definition, at a definition without a
+  reference and at a second definition of a label. The quick fix "Add
+  Definition" opens the editor of a new definition for the label in the side
+  view, and "Delete Definition" removes a definition without a reference.
+  "Renumber Footnotes" (Command Palette, menu "…" of the side view) gives the
+  footnotes whose labels are numbers the labels 1, 2, 3 … in the order of
+  their first reference, in one change; labels that are words stay.
+- "Make Footnote" at a thread of the side view turns a note whose text the
+  authors accept into a standard footnote: the text of the first answer
+  becomes the footnote, the reference of the note gets the next free number,
+  and the definition goes after the last one; the start marker and the
+  replies go. A note with replies asks first.
+- Listings of files of other repositories: the front matter of a paper names
+  each other repository under `repos` as a GitHub reference with a rev, for
+  example `server: org/server@v2.1.0`, which the command `mp get` of
+  nimblescape Markdown Paper clones into `.markdownpaper/repos/server/`. A
+  listing `<!-- listing: server:src/api.ts#read -->` gets its code from the
+  clone, and its caption links to the file on GitHub at the commit of the
+  clone. `/listing` lists the files of the clones by their references, and a
+  missing reference or clone gets a warning with the command that fixes it.
+  Ctrl+Click on the name of the reference of a listing opens the clone in a
+  new window of VS Code. "Add Snippet" and `/snippet` write nothing in a
+  clone of a reference to a tag or a commit, which stays at that version.
+- Two changes of the notes of one file run one after the other. A change
+  that VS Code does not write into the file, and a new note or footnote
+  whose place an earlier change moved while it waited, are not saved, and
+  their messages say why.
 - Todo notes: the header of the first answer of a note ends with ` · todo`
   for an open task and ` · done` for a completed one; a check box in the side
   view changes it.
@@ -151,7 +179,10 @@ The first version.
   at its text, also for Undo, and the save of the view saves the file. Its
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in
-  the Command Palette opens the file itself.
+  the Command Palette opens the file itself. The front matter is read-only in
+  the view: an edit of it goes back, and Undo goes over it. The link "Edit
+  Front Matter" above it opens the form of nimblescape Markdown Paper, or
+  "Open File with Markup" without it.
 - The text editor of the file itself, for example in the view of the changes
   of git, never shows the text of a note and its markers: it collapses the
   notes, and collapses again a note that VS Code opens; the cursor steps over
@@ -169,14 +200,33 @@ The first version.
   with the last note. The version `v1.0.0` is a semantic version: the
   extension writes a comment anew only when its own version is higher, and
   changes no note of a file whose comment names a higher major version.
+- Hidden notes: the eye in the title of the side view writes all notes of a
+  file in the hidden form, which GitHub and every other Markdown viewer
+  hide, or back in the visible form, in one edit that Undo takes back. In
+  the hidden form, each definition of a note is an HTML comment of its own,
+  the end of a highlight is the comment `<!--note-7k2q]-->`, the comment of
+  the format holds the word `hidden`, and the text of a note escapes `-->`
+  with a backslash, `--\>`. The extension shows the notes of both forms in
+  the same way, and writes new notes in the form of the file. The commands
+  "Hide Notes from Other Viewers" and "Show Notes in Other Viewers" do the
+  same as the eye, and the setting
+  `nimblescape.markdownNotes.hideNotesInNewFiles` chooses the form of a
+  file that gets its first note.
+- The text without notes, for publishing: "Copy without Notes" and "Save
+  Copy without Notes", in the Command Palette and in the menu "…" of the
+  title of the side view, write the text of the active Markdown file without
+  its notes, their markers and the comment of the format, to the clipboard
+  or to a new file. The standard footnotes, the other comments and the rest
+  of the text stay as they are. The file itself does not change.
 - The text editor and the Problems view warn at each form of a note that
   GitHub shows differently or that breaks a rule of the notes: no blank line
   before or after the note, lines without the indentation of four spaces, a
   second note of a label, a reference without a note or a note without a
   reference, a note in a block quote, a reference in the text of a link, in
   a heading or in a note, a note without a start marker or without
-  highlighted text, and a start marker without `<wbr>` at the start of a
-  line.
+  highlighted text, a start marker without `<wbr>` at the start of a
+  line, and an end marker of a hidden note at the start of a line. A hint
+  marks a note in the other form than its file.
 - An own Markdown formatter, the default for "Format Document" of Markdown
   files and the format on save of a Markdown file with notes or with the
   comment of the format; other Markdown files keep their text on a save
@@ -185,8 +235,8 @@ The first version.
   one blank line between blocks, one line break at the end of the file,
   `<wbr>` before each start marker, a start marker for each note without
   one, the numbers of the links to figures, tables, listings and sections,
-  the current values of the front matter and the current code of the
-  listings. A file with a listing, a value of the front matter or an anchor
+  the current values of the front matter, the current code of the
+  listings, and each note in the form of its file. A file with a listing, a value of the front matter or an anchor
   is formatted on a save as a file with notes. It keeps code blocks, HTML, a front matter, math, containers and the
   notes, and keeps the text as it was when the preview would show it
   differently.
@@ -197,7 +247,9 @@ The first version.
   is not formatted, and `-` formats the standard input. The specification of
   the format of the notes tells AI agents to run it after a change. Programs
   call the same formatter as the library `formatMarkdown(lines)` of the
-  package, with its types.
+  package, with its types. `markdownnotes strip <file>` writes the text of a
+  file without its notes to the standard output, and `--out <folder>` writes
+  copies of several files; the library has `stripNotes(lines)`.
 - The extension pack installs "Markdown Footnotes" of Matt Bierner, so that
   the preview shows the other footnotes of a file.
 - The notes work together with the Markdown extensions of other publishers,
@@ -215,5 +267,6 @@ The first version.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,
-  `nimblescape.markdownNotes.addFormatComment` and
-  `nimblescape.markdownNotes.formatOnSave`.
+  `nimblescape.markdownNotes.addFormatComment`,
+  `nimblescape.markdownNotes.formatOnSave` and
+  `nimblescape.markdownNotes.hideNotesInNewFiles`.

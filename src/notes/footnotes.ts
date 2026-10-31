@@ -7,8 +7,13 @@
  * ([R-FOOT-001](../../docs/requirements.md#r-foot-001)), and the changes of
  * the text when the side view saves, deletes or adds one
  * ([R-FOOT-002](../../docs/requirements.md#r-foot-002),
- * [R-FOOT-003](../../docs/requirements.md#r-foot-003)). A footnote is its
- * definition, `[^1]: ` and its text, and the references `[^1]` in the text:
+ * [R-FOOT-003](../../docs/requirements.md#r-foot-003)), the forms that the
+ * checks warn about ([R-FOOT-004](../../docs/requirements.md#r-foot-004)),
+ * the new labels of "Renumber Footnotes"
+ * ([R-FOOT-005](../../docs/requirements.md#r-foot-005)), and the note that
+ * becomes a footnote ([R-FOOT-006](../../docs/requirements.md#r-foot-006)).
+ * A footnote is its definition, `[^1]: ` and its text, and the references
+ * `[^1]` in the text:
  *
  * ```markdown
  * The agents change the work[^1] of teams.
@@ -32,8 +37,8 @@
  */
 
 import { frontMatterEnd } from './doctype';
-import { blockAt, type Edit, applyEdit, referenceAllowed } from './edits';
-import { before, type Position, type Range, type Reading, read, same } from './notes';
+import { blockAt, type Edit, applyEdit, editBetween, referenceAllowed, withoutNote } from './edits';
+import { before, type Note, type Position, type Range, type Reading, read, same } from './notes';
 import { normalizeBody, usedLabels } from './syntax';
 
 /** Footnote is a standard footnote of a text: its label, its definition, and its references. */
@@ -166,22 +171,13 @@ function referencesIn(lines: readonly string[], line: number, from: number, to: 
 }
 
 /**
- * readFootnotes returns the standard footnotes of a text that have a definition, in the order of their first
- * reference in the text, or of their definition without a reference ([R-FOOT-001](../../docs/requirements.md#r-foot-001)).
+ * standardReferences returns the references of the standard footnotes of a text in the order of the text, also of a
+ * label without a definition: in the text of the blocks, in the definitions and in the notes, and never in code.
  * @param lines - The lines of the text.
  * @param reading - The reading of the lines, with their blocks of text.
+ * @param definitions - The definitions of the footnotes and the notes of the text.
  */
-export function readFootnotes(lines: readonly string[], reading: Reading = read(lines)): Footnote[] {
-  const definitions = definitionsOf(lines);
-  const standard = new Map<string, Definition>();
-  for (const definition of definitions) {
-    if (!noteLabel.test(definition.label) && !standard.has(definition.label)) {
-      standard.set(definition.label, definition);
-    }
-  }
-  if (standard.size === 0) {
-    return [];
-  }
+function standardReferences(lines: readonly string[], reading: Reading, definitions: readonly Definition[]): { label: string; range: Range }[] {
   const seen = new Set<string>();
   const references: { label: string; range: Range }[] = [];
   /** add adds the references of a part of a line, once for each place. */
@@ -211,6 +207,27 @@ export function readFootnotes(lines: readonly string[], reading: Reading = read(
     }
   }
   references.sort((a, b) => (before(a.range.start, b.range.start) ? (same(a.range.start, b.range.start) ? 0 : -1) : 1));
+  return references;
+}
+
+/**
+ * readFootnotes returns the standard footnotes of a text that have a definition, in the order of their first
+ * reference in the text, or of their definition without a reference ([R-FOOT-001](../../docs/requirements.md#r-foot-001)).
+ * @param lines - The lines of the text.
+ * @param reading - The reading of the lines, with their blocks of text.
+ */
+export function readFootnotes(lines: readonly string[], reading: Reading = read(lines)): Footnote[] {
+  const definitions = definitionsOf(lines);
+  const standard = new Map<string, Definition>();
+  for (const definition of definitions) {
+    if (!noteLabel.test(definition.label) && !standard.has(definition.label)) {
+      standard.set(definition.label, definition);
+    }
+  }
+  if (standard.size === 0) {
+    return [];
+  }
+  const references = standardReferences(lines, reading, definitions);
   const footnotes = [...standard.values()].map(
     (definition): Footnote => ({
       label: definition.label,
@@ -304,7 +321,7 @@ export const normalizedText = (text: string): string =>
     .join('\n');
 
 /** FootnoteResult is the edits of a change of a footnote, or the problem that prevents it. */
-export type FootnoteResult = { edits: Edit[] } | { problem: 'empty' | 'structure' | 'place' };
+export type FootnoteResult = { edits: Edit[] } | { problem: 'empty' | 'structure' | 'place' | 'exists' };
 
 /**
  * readsBack tells whether the lines after a change hold the definition of a footnote with a text at a line.
@@ -499,4 +516,141 @@ export function insertFootnote(lines: readonly string[], position: Position, tex
   }
   const first = definition.at.line + (definition.text.startsWith('\n\n') ? 2 : 0);
   return readsBack(changed, label, first, normalized) ? { edits, label } : { problem: 'structure' };
+}
+
+/** FootnoteProblems are the forms of the standard footnotes of a text that the checks warn about. */
+export interface FootnoteProblems {
+  /** undefinedReferences are the references whose label has no definition, which show as text. */
+  undefinedReferences: { label: string; range: Range }[];
+  /** unreferenced are the definitions that no reference outside of them names, which no viewer shows. */
+  unreferenced: { label: string; line: number }[];
+  /** duplicates are the definitions of a label that an earlier definition has; the references name the first one. */
+  duplicates: { label: string; line: number }[];
+}
+
+/**
+ * footnoteProblemsOf returns the forms of the standard footnotes of a text that the checks warn about
+ * ([R-FOOT-004](../../docs/requirements.md#r-foot-004)): a reference without a definition, a definition without a
+ * reference, and a second definition of a label. The notes have their own checks.
+ * @param lines - The lines of the text.
+ * @param reading - The reading of the lines, with their blocks of text.
+ */
+export function footnoteProblemsOf(lines: readonly string[], reading: Reading = read(lines)): FootnoteProblems {
+  const definitions = definitionsOf(lines);
+  const first = new Map<string, Definition>();
+  const duplicates: FootnoteProblems['duplicates'] = [];
+  for (const definition of definitions.filter((candidate) => !noteLabel.test(candidate.label))) {
+    if (first.has(definition.label)) {
+      duplicates.push({ label: definition.label, line: definition.first });
+    } else {
+      first.set(definition.label, definition);
+    }
+  }
+  const references = standardReferences(lines, reading, definitions);
+  // A reference in the definition of its own footnote does not show the footnote.
+  const unreferenced = [...first.values()]
+    .filter((definition) => !references.some((reference) => reference.label === definition.label && (reference.range.start.line < definition.first || reference.range.start.line > definition.last)))
+    .map((definition) => ({ label: definition.label, line: definition.first }));
+  return { undefinedReferences: references.filter((reference) => !first.has(reference.label)), unreferenced, duplicates };
+}
+
+/**
+ * addDefinition returns the edit that adds the definition of a footnote whose references have none, for the quick fix
+ * "Add Definition" ([R-FOOT-004](../../docs/requirements.md#r-foot-004)): at the place of the definition of a new
+ * footnote ([R-FOOT-003](../../docs/requirements.md#r-foot-003)). It writes only a text that Markdown reads back as
+ * this definition, and nothing for a label that has a definition.
+ * @param lines - The lines of the Markdown text.
+ * @param label - The label of the footnote.
+ * @param text - The text of the editor.
+ */
+export function addDefinition(lines: readonly string[], label: string, text: string): FootnoteResult {
+  const normalized = normalizedText(text);
+  if (normalized === '') {
+    return { problem: 'empty' };
+  }
+  if (definitionsOf(lines).some((definition) => definition.label === label)) {
+    return { problem: 'exists' };
+  }
+  const definition = footnoteDefinition(lines, label, normalized);
+  const edit: Edit = { start: definition.at, end: definition.at, text: definition.text };
+  const first = definition.at.line + (definition.text.startsWith('\n\n') ? 2 : 0);
+  return readsBack(applyEdit(lines, edit), label, first, normalized) ? { edits: [edit] } : { problem: 'structure' };
+}
+
+/** MakeResult is the edit of "Make Footnote" with the label of the new footnote, or the problem that prevents it. */
+export type MakeResult = { edit: Edit; label: string } | { problem: 'reference' | 'empty' | 'structure' };
+
+/**
+ * makeFootnote returns the edit of "Make Footnote" ([R-FOOT-006](../../docs/requirements.md#r-foot-006)): the note
+ * becomes a standard footnote with the next free number as its label. The reference of the note at the end of its
+ * highlight becomes the reference of the footnote, and the text of the first answer the text of its definition, at the
+ * place of the definition of a new footnote ([R-FOOT-003](../../docs/requirements.md#r-foot-003)). The start marker and
+ * the definition of the note with its replies go, as with "Delete Thread". It writes only a text that Markdown reads
+ * back as this footnote with one reference, and without the note.
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ */
+export function makeFootnote(lines: readonly string[], note: Note): MakeResult {
+  if (!note.reference) {
+    return { problem: 'reference' };
+  }
+  const text = normalizedText(note.answers[0]?.body ?? '');
+  if (text === '') {
+    return { problem: 'empty' };
+  }
+  const label = nextFootnoteLabel(lines);
+  const next = withoutNote(lines, note, `[^${label}]`);
+  const definition = footnoteDefinition(next, label, text);
+  const changed = applyEdit(next, { start: definition.at, end: definition.at, text: definition.text });
+  const first = definition.at.line + (definition.text.startsWith('\n\n') ? 2 : 0);
+  const reading = read(changed);
+  const references = readFootnotes(changed, reading).find((footnote) => footnote.label === label)?.references.length;
+  const made = readsBack(changed, label, first, text) && references === 1 && !reading.notes.some((candidate) => candidate.label === note.label);
+  return made ? { edit: editBetween(lines, changed), label } : { problem: 'structure' };
+}
+
+/** RenumberResult is the edits of "Renumber Footnotes", or why it changes nothing. */
+export type RenumberResult = { edits: Edit[] } | { problem: 'numbered' } | { problem: 'undefined' | 'duplicate'; label: string; line: number };
+
+/** numberLabel matches a label that is a number. */
+const numberLabel = /^\d+$/;
+
+/**
+ * renumberFootnotes returns the edits of "Renumber Footnotes" ([R-FOOT-005](../../docs/requirements.md#r-foot-005)):
+ * the standard footnotes whose labels are numbers get the labels 1, 2, 3 … in the order of their first reference, and
+ * then the footnotes of such labels without a reference in the order of their definitions, in the references and the
+ * definitions. A label that is a word stays, and so do the labels of the notes. A reference of a number without a
+ * definition, or a second definition of a number, would take the new label of another footnote or leave unclear which
+ * footnote gets it, so the function then changes nothing and names it.
+ * @param lines - The lines of the Markdown text.
+ * @param reading - The reading of the lines, with their blocks of text.
+ */
+export function renumberFootnotes(lines: readonly string[], reading: Reading = read(lines)): RenumberResult {
+  const problems = footnoteProblemsOf(lines, reading);
+  const duplicate = problems.duplicates.find((candidate) => numberLabel.test(candidate.label));
+  if (duplicate) {
+    return { problem: 'duplicate', label: duplicate.label, line: duplicate.line };
+  }
+  const missing = problems.undefinedReferences.find((candidate) => numberLabel.test(candidate.label));
+  if (missing) {
+    return { problem: 'undefined', label: missing.label, line: missing.range.start.line };
+  }
+  const numbered = readFootnotes(lines, reading).filter((footnote) => numberLabel.test(footnote.label));
+  const ordered = [
+    ...numbered.filter((footnote) => footnote.references.length > 0),
+    ...numbered.filter((footnote) => footnote.references.length === 0).sort((a, b) => a.definition.first - b.definition.first),
+  ];
+  const edits: Edit[] = [];
+  ordered.forEach((footnote, index) => {
+    const label = String(index + 1);
+    if (label === footnote.label) {
+      return;
+    }
+    for (const range of footnote.references) {
+      edits.push({ start: { line: range.start.line, character: range.start.character + 2 }, end: { line: range.end.line, character: range.end.character - 1 }, text: label });
+    }
+    const at = footnote.indent.length + 2;
+    edits.push({ start: { line: footnote.definition.first, character: at }, end: { line: footnote.definition.first, character: at + footnote.label.length }, text: label });
+  });
+  return edits.length === 0 ? { problem: 'numbered' } : { edits: edits.sort((a, b) => (same(a.start, b.start) ? 0 : before(a.start, b.start) ? -1 : 1)) };
 }

@@ -283,7 +283,7 @@ export function anchorName(item: Item, items: readonly Item[]): string {
 }
 
 /** linkSearch matches a link to a place of the file with a word and a number as its text, such as `[Table 1](#tab-x)`. */
-const linkSearch = /\[([^\[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#([^()\s]+)\)/g;
+const linkSearch = /\[([^[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#([^()\s]+)\)/g;
 
 /**
  * sectionWords are the words of a link to the ID of a heading whose number the formatter writes, so that a link such as

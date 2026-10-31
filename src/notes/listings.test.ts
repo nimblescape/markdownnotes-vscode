@@ -300,3 +300,52 @@ describe('the caption of a listing', () => {
     expect(refreshListings(missing, source)).toEqual(missing);
   });
 });
+
+describe('a listing of a file of another repository (R-CODE-006)', () => {
+  /** commit is the commit of the clone of the reference server. */
+  const commit = 'c'.repeat(40);
+
+  /** paper is a paper with the reference server in its front matter and a listing of a snippet of its file api.ts. */
+  const paper = ['---', 'repos:', '  server: org/server@main', '---', '', 'Listing: Reading the request', '', '<!-- listing: server:src/api.ts#read -->', '', '```typescript', 'old', '```', ''];
+
+  /** api is the file api.ts of the clone, with the snippet read in its lines 2 to 3. */
+  const api = 'export {};\n// markdownnotes: snippet read\nconst request = read();\nuse(request);\n// markdownnotes: /snippet read\n';
+
+  /** cloned reads the clone of server in the folder .markdownpaper/repos/ above the folder of the paper. */
+  const cloned = (path: string) => ({ '../.markdownpaper/repos/server/.git/HEAD': `${commit}\n`, '../.markdownpaper/repos/server/src/api.ts': api })[path];
+
+  test('gets the code of the clone, and its caption links to the file on GitHub at the commit of the clone, with the cite of the file', () => {
+    const refreshed = refreshListings(paper, cloned);
+    expect(refreshed.slice(5, 12)).toEqual([
+      `Listing: [Reading the request](https://github.com/org/server/blob/${commit}/src/api.ts#L3-L4) (api.ts, L3-L4)`,
+      '',
+      '<!-- listing: server:src/api.ts#read -->',
+      '',
+      '```typescript',
+      'const request = read();',
+      'use(request);',
+    ]);
+    expect(refreshListings(refreshed, cloned)).toEqual(refreshed);
+    expect(missingListings(refreshed, cloned)).toEqual([]);
+    // A new commit of the clone gives the link the new commit; text outside the old link goes into the new link.
+    const moved = refreshed.map((line) => line.replace('Listing: [Reading', 'Listing: New [Reading').replace('(api.ts, L3-L4)', '(api.ts, L3-L4) here'));
+    const next = (path: string) => (path === '../.markdownpaper/repos/server/.git/HEAD' ? 'd'.repeat(40) : cloned(path));
+    expect(refreshListings(moved, next)[5]).toBe(`Listing: [New Reading the request here](https://github.com/org/server/blob/${'d'.repeat(40)}/src/api.ts#L3-L4) (api.ts, L3-L4)`);
+  });
+
+  test('without its clone or its reference keeps its code and its caption, and is missing', () => {
+    expect(refreshListings(paper, () => undefined)).toEqual(paper);
+    expect(missingListings(paper, () => undefined).map((listing) => listing.path)).toEqual(['server:src/api.ts']);
+    const unnamed = paper.map((line) => line.replace('  server:', '  client:'));
+    expect(refreshListings(unnamed, cloned)).toEqual(unnamed);
+    expect(missingListings(unnamed, cloned)).toHaveLength(1);
+  });
+
+  test('is written by /listing with the path of its reference and the address of the file on GitHub', () => {
+    expect(listingBlock('Reading', 'server:src/api.ts', 'read', api, `https://github.com/org/server/blob/${commit}/src/api.ts`).slice(0, 3)).toEqual([
+      `Listing: [Reading](https://github.com/org/server/blob/${commit}/src/api.ts#L3-L4) (api.ts, L3-L4)`,
+      '',
+      '<!-- listing: server:src/api.ts#read -->',
+    ]);
+  });
+});

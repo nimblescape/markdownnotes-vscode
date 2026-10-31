@@ -214,7 +214,7 @@ web page, so the extension:
 ## Changes of a file
 
 - The extension changes a document on a click on "Save", "Add Note",
-  "Answer", "Reply", "Delete" or "Delete Thread" or on a color in the side
+  "Answer", "Reply", "Delete", "Make Footnote" or "Delete Thread" or on a color in the side
   view, and on "Save" of the text view of a note, with one edit of the
   document (`vscode.workspace.applyEdit`). It changes a standard footnote on
   "Save", "Add Footnote" or "Delete" at the footnote, also with one edit;

@@ -46,15 +46,18 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
+| [Hide the notes from other viewers](#hide-the-notes-from-other-viewers), also from GitHub | side view, the Markdown file, formatter | available | [R-HIDE-001](requirements.md#r-hide-001) to [R-HIDE-003](requirements.md#r-hide-003) |
+| [Copy the text without notes](#copy-the-text-without-notes), for publishing | side view, Command Palette, command line | available | [R-HIDE-004](requirements.md#r-hide-004) |
 | [Figures, tables and links to them](#figures-tables-and-links-to-them), also to sections | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001) to [R-XREF-003](requirements.md#r-xref-003) |
 | [Values of the front matter](#values-of-the-front-matter) | text editor, formatter | available | [R-XREF-004](requirements.md#r-xref-004) |
-| [Listings of code](#listings-of-code) | text editor, formatter, command line | available | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003) |
+| [Listings of code](#listings-of-code) | text editor, formatter, command line | available, also of files of other repositories | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003), [R-CODE-006](requirements.md#r-code-006) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
-| Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
+| [Checks of the footnotes](#checks-of-the-footnotes), [Renumber Footnotes](#renumber-the-footnotes) | text editor, Problems view, Command Palette, side view | available | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) |
+| [Make a note a footnote](#make-a-note-a-footnote) | side view | available | [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
-| [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007), [R-FOOT-001](requirements.md#r-foot-001) |
+| [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007), [R-FOOT-001](requirements.md#r-foot-001), [R-HIDE-002](requirements.md#r-hide-002) |
 | Visual editing of an answer | side view | planned | [R-SIDE-004](requirements.md#r-side-004) |
 
 Earlier versions also showed the notes in boxes of the text editor, in the
@@ -253,8 +256,10 @@ AI agents: read the spec above before you read, change or add a note, and keep t
 ```
 
 - The first line names the format, its version `v1.0.0` and the address of
-  the specification `spec=`. Short lines of words follow, and `-->` ends the
-  comment. GitHub and the Markdown preview do not show it, and the text
+  the specification `spec=`. In a file whose notes are hidden from other
+  viewers, the word `hidden` follows the version
+  ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)).
+  Short lines of words follow, and `-->` ends the comment. GitHub and the Markdown preview do not show it, and the text
   editor folds it into its first line.
 - The comment stands at the top of the file with a blank line after it. A
   front matter stays the first block of the file: the comment follows the
@@ -375,6 +380,14 @@ into the file at once, and each note stays at its text:
 - A paragraph break inside a highlight ends the highlight there, and the note
   moves after the paragraph of its highlight.
 - Undo and Redo bring back the file as it was, with each note at its place.
+- The front matter at the top of the file is read-only in the view: an edit
+  of it goes back at once, and the status bar says so. Change the front
+  matter with the link above it: "Edit Front Matter" opens the form of
+  nimblescape Markdown Paper in the side bar; without Markdown Paper, the
+  link is "Open File with Markup". The commands of Markdown Paper, such as
+  `mp get`, change it too. Text after the
+  closing `---` can be edited as usual, and Undo goes over an edit that went
+  back.
 - A save of the view saves the file, with the format on save and the comment
   of the format. "Don't Save" at the close of the view brings the file back
   to its text on disk.
@@ -461,6 +474,9 @@ a rule of the notes:
 | The note highlights no text | The start marker stands directly before the reference; move it to the start of the text that the note is about. |
 | A start marker at the start of a line ends the paragraph | GitHub reads a comment at the start of a line as a block of HTML; "Format Document" puts `<wbr>` before it. |
 
+The standard footnotes have warnings of their own
+([Checks of the footnotes](#checks-of-the-footnotes)).
+
 ## Side view "Notes"
 
 The side view "Notes" is in the secondary side bar, at the right of the
@@ -482,11 +498,19 @@ text of the notes, and their editor:
 - The buttons are small icons with a tooltip, as the buttons in the title of
   an editor of VS Code. Each answer has "Reply" (an arrow), "Edit" (a pencil)
   and "Delete" (a trash can). Each thread has its color, "Line N", "Show as
-  Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can); a
+  Text", "Answer" (a speech bubble), "Make Footnote" (a numbered list) and
+  "Delete Thread" (a trash can); a
   todo note has its check box before its color ([Todo notes](#todo-notes)).
-  The title of the view has "Add Note" (`+`), "Add Footnote" (`+¹`) and
-  "Hide Footnotes" or "Show Footnotes"
-  ([Footnotes in the side view](#footnotes-in-the-side-view)).
+  The title of the view has "Add Note" (`+`), "Add Footnote" (`+¹`) and,
+  for a file with notes, the eye, which hides the notes from other viewers
+  or shows them
+  ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)).
+  Its menu "…" has "Hide Footnotes" or "Show Footnotes"
+  ([Footnotes in the side view](#footnotes-in-the-side-view)), and "Copy
+  without Notes" and "Save Copy without Notes"
+  ([Copy the text without notes](#copy-the-text-without-notes)). At the
+  default width of the secondary side bar, VS Code shows three buttons in
+  the title and puts further buttons into the menu.
 - The view selects the thread at the cursor of the text editor, and the
   thread whose highlight you clicked in the preview. Each thread that is not
   selected is dimmed, also under the pointer.
@@ -881,6 +905,51 @@ export function readFields(lines: readonly string[]): Map<string, string> {
   in the text editor of the file with markup, opens the source file at the
   snippet.
 
+### Listings of other repositories
+
+A paper about a project of more than one repository shows code of each
+repository ([R-CODE-006](requirements.md#r-code-006)). The front matter of
+the paper names each other repository as a reference, and the command `mp`
+of nimblescape Markdown Paper clones it:
+
+```markdown
+---
+title: The server of the project
+repos:
+  server: org/server@v2.1.0
+---
+```
+
+- `mp get org/server@v2.1.0` writes the reference into the front matter and
+  clones the repository into `.markdownpaper/repos/server/` of the project,
+  a folder that Git ignores. `mp get` alone clones the missing repositories
+  and pulls the branches. A tag or a commit after `@` pins the version; a
+  branch takes its head.
+- `/listing` lists the files of these clones too, by their references, for
+  example `server:src/api.ts`, and writes the listing
+  `<!-- listing: server:src/api.ts#read -->`. The files of other clones,
+  such as the clone of a layout, are not in the list.
+- The formatter reads the code from the clone, and the caption links to the
+  file on GitHub at the commit of the clone, for example
+  `Listing 1: [Reading the request](https://github.com/org/server/blob/3f2a…/src/api.ts#L12-L30) (api.ts, L12-L30)`.
+  After `mp get` pulled a branch, the next format writes the new code and
+  the new commit.
+- A listing whose reference is not in the front matter, or whose repository
+  is not cloned, keeps its code and gets a warning at its comment, which
+  names the command that fixes it, for example
+  `npx -y @nimblescape/markdownpaper get`. The formatter on the command
+  line reports it the same way.
+- Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the file
+  in the clone. Ctrl+Click on the name of the reference, `server` in
+  `server:src/api.ts`, opens the clone in a new window of VS Code, where you
+  work in the other repository with its own Source Control. In the window of
+  the paper, VS Code treats the clones as ignored files.
+- To add a snippet to the other repository, use a reference to a branch,
+  for example `server: org/server@main`. Its clone is on that branch: add
+  the snippet in the window of the clone, then commit and push it there. A
+  clone of a tag or a commit stays at that version, and "Add Snippet" shows
+  a message instead of writing.
+
 ### Snippets
 
 A snippet is a part of a source file, for example a function, a class or a
@@ -986,6 +1055,95 @@ and its start marker leave the text. Undo in the text editor of the file
 itself brings the answer or the note back; in the clean editing view, choose
 "Open File with Markup" first ([Limits](#limits)).
 
+## Hide the notes from other viewers
+
+GitHub and other Markdown viewers show the notes as footnotes at the end of
+the page. When other readers of a file must not see the notes, for example
+the readers of a text on GitHub, hide the notes of the file from other
+viewers. VS Code with the extension shows the notes of both forms in the
+same way: in the side view, as highlights, in the preview and in the clean
+editing view.
+
+- The eye in the title of the side view shows the form of the active file:
+  an open eye while other viewers show the notes, an eye with a stroke while
+  they hide them. Its tooltip says the state and what a click does. The eye
+  shows only for a file with notes.
+- A click on the eye writes all notes of the file in the other form, in one
+  edit that Undo takes back. Each thread of the side view keeps its note.
+  The commands "Markdown Notes: Hide Notes from Other Viewers" and "Markdown
+  Notes: Show Notes in Other Viewers" of the Command Palette do the same.
+- In the hidden form, the text of each note is an HTML comment of its own,
+  and the end of the highlight is a comment too, so that no viewer shows any
+  part of a note. The first line of the comment of the format holds the
+  word `hidden` ([Comment of the format](#comment-of-the-format)):
+
+  ````markdown
+  The agents <wbr><!--[note-7k2q green-->change the work of teams<!--note-7k2q]--> in three ways.
+
+  <!--
+  [^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+      Which three ways?
+  -->
+  ````
+
+- An HTML comment ends at `-->`. When the text of a note holds `-->`, for
+  example in HTML code, the file holds `--\>` instead, and the side view
+  shows `-->` again. You write the text as always; the extension adds and
+  removes the backslash. The
+  [specification](format.md#11-the-hidden-form) has the exact rule.
+- New notes and answers go into the form of their file. The setting
+  `nimblescape.markdownNotes.hideNotesInNewFiles` chooses the form of a file
+  that gets its first note; a workspace or a folder can set it, so that a
+  repository keeps the notes of its new files hidden.
+- When a note of the other form gets into a file, for example from a merge
+  or from an AI agent, the text editor shows a hint at the note, and the
+  formatter writes it in the form of the file ([Formatter](#formatter)).
+- Hidden notes are not secret. Everyone who opens the source of the file
+  reads them, for example in the view "Code" of GitHub or in the history of
+  the file. For a text that others must not read with its notes, publish a
+  copy without the notes
+  ([Copy the text without notes](#copy-the-text-without-notes)).
+
+[example-hidden.md](example-hidden.md) is a file whose notes are hidden.
+GitHub shows its text without any part of its five notes.
+
+## Copy the text without notes
+
+For a website, a PDF or another place where a text is published, copy the
+text of a file without its notes. The file itself does not change.
+
+- "Copy without Notes" writes the text of the active Markdown file without
+  its notes to the clipboard.
+- "Save Copy without Notes" asks for a new file and writes the text into it.
+  The dialog proposes the folder of the file and the name of the file with
+  `-without-notes` before the extension, for example
+  `paper-without-notes.md`. It does not replace the file itself; after the
+  save, "Open" opens the copy.
+
+Both commands are in the menu "…" of the title of the side view and in the
+Command Palette, as "Markdown Notes: Copy without Notes" and "Markdown
+Notes: Save Copy without Notes". They take the text of the open file, also
+with changes that are not saved, also from the clean editing view and the
+Markdown preview.
+
+The text has no part of the notes, in both forms
+([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)):
+no definitions of notes, also of notes without a highlight, each with the
+blank line after it, no start markers, no references or end markers, and no
+comment of the format. The standard footnotes, all other comments, the
+anchors of figures and tables, the values of the front matter, the listings
+and the rest of the text stay as they are, with the line breaks of the file.
+A note in a code block is code, so it stays too. The text renders as the
+Markdown preview shows the file, without the highlights.
+
+A file whose comment of the format names a higher major version than the
+extension knows gets a warning and no copy
+([Comment of the format](#comment-of-the-format)).
+
+On the command line, `markdownnotes strip` writes the same text
+([Formatter on the command line](#formatter-on-the-command-line)).
+
 ## Footnotes in the side view
 
 The side view also shows the standard footnotes of the file, the footnotes
@@ -1024,8 +1182,9 @@ Agents change the work of teams.[^1]
   reference to it in one change. Undo in the text editor of the file takes
   it back; in the clean editing view, choose "Open File with Markup" first
   ([Limits](#limits)).
-- "Hide Footnotes" in the title of the side view hides the footnotes, and
-  "Show Footnotes" shows them again; the notes stay. Both change the setting
+- "Hide Footnotes" in the menu "…" of the title of the side view hides the
+  footnotes, and "Show Footnotes" shows them again; the notes stay. The same
+  menu has "Renumber Footnotes" ([Renumber the footnotes](#renumber-the-footnotes)). Both change the setting
   `nimblescape.markdownNotes.showFootnotes` ([Settings](#settings)).
 - In the [clean editing view](#clean-editing-view) of a file with notes, the
   definitions of the footnotes that have a reference are hidden while the
@@ -1063,6 +1222,100 @@ one change:
 No reference goes into a code span, a code block, the text of a link or a
 marker of a note; the editor then asks you to put the cursor into the text,
 and the extension writes nothing.
+
+### Checks of the footnotes
+
+The text editor and the Problems view warn at each form of a standard
+footnote that GitHub and the Markdown preview show differently from what you
+meant. Click the light bulb, or press Ctrl+. (Cmd+. on a Mac), for the quick
+fix:
+
+| Warning | Why | Quick fix |
+| --- | --- | --- |
+| The file has no footnote … | The reference shows as text. | "Add Definition" opens the editor of a new definition for the label in the side view. Write the text and click "Add Definition"; the extension writes the definition after the last definition of a standard footnote and selects the footnote. |
+| No reference … names this footnote | GitHub and the preview do not show a footnote without a reference. A reference in its own definition does not count. | "Delete Definition" removes the definition with the blank line after it. Undo takes it back. |
+| An earlier footnote of the file has the label … | The references name the first definition of the label. | None: give the second footnote a label of its own, or delete it. |
+
+For a file in the [clean editing view](#clean-editing-view), the warnings
+show in the Problems view only.
+
+### Renumber the footnotes
+
+"Renumber Footnotes" gives the footnotes whose labels are numbers the labels
+1, 2, 3 … in the order of their first reference, after you added, moved or
+deleted footnotes. It changes the references and the definitions in one
+change, which Undo takes back. Before and after:
+
+```markdown
+First[^3], then[^1].
+
+[^1]: One.
+
+[^3]: Three.
+```
+
+```markdown
+First[^1], then[^2].
+
+[^2]: One.
+
+[^1]: Three.
+```
+
+- Choose it in the Command Palette for the active Markdown file, also in the
+  clean editing view, or in the menu "…" of the title of the side view.
+- The footnotes with a number but without a reference follow, in the order
+  of their definitions. A label that is a word, for example `[^hong2024]`,
+  stays, and so do the labels of the notes.
+- When a reference of a number has no definition, or a number has a second
+  definition, the command changes nothing and names the line: a new label
+  could name another footnote. Repair it first
+  ([Checks of the footnotes](#checks-of-the-footnotes)).
+- The numbers that GitHub and the preview show do not depend on the labels;
+  the command makes the labels of the file match the order of the text.
+
+### Make a note a footnote
+
+When the authors accept the text of a note into the document, "Make
+Footnote" (the numbered list in the header of the thread) turns the note into
+a standard footnote. Before and after:
+
+```markdown
+The agents <wbr><!--[note-7k2q-->change the work[^note-7k2q] of teams[^1].
+
+[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+    A source for this claim.
+
+    > **anna** · 2026-10-28 11:02+01:00
+    >
+    > Agreed.
+
+[^1]: One.
+```
+
+```markdown
+The agents change the work[^2] of teams[^1].
+
+[^1]: One.
+
+[^2]: A source for this claim.
+```
+
+- The text of the first answer becomes the text of the footnote. The
+  reference of the note at the end of the highlight becomes the reference of
+  the footnote, with the next free number as its label, as for
+  [a new footnote](#footnotes-in-the-side-view); its definition goes after
+  the last definition of a footnote, or at the end of the file.
+- The start marker, the definition of the note and its replies go. A note
+  with replies asks first. The side view then selects the new footnote.
+- A note of the hidden form becomes a footnote that every viewer shows.
+- A note without a reference in the text, or whose first answer has no text,
+  stays, and a message says why.
+- Undo in the text editor of the file itself brings the note back; in the
+  clean editing view, choose "Open File with Markup" first
+  ([Limits](#limits)). "Renumber Footnotes" then puts the numbers in the
+  order of the text ([Renumber the footnotes](#renumber-the-footnotes)).
 
 ## Highlights in the Markdown preview
 
@@ -1181,6 +1434,8 @@ runs as follows:
 markdownnotes format paper.md notes/*.md
 markdownnotes format --check paper.md
 cat paper.md | markdownnotes format -
+markdownnotes strip paper.md > public/paper.md
+markdownnotes strip --out public paper.md notes/*.md
 ```
 
 After a release, `npx -y @nimblescape/markdownnotes format paper.md` runs it
@@ -1197,14 +1452,24 @@ or a file that cannot be read or written. The specification of the format
 for AI agents ([docs/format.md](format.md)) tells them to run the command
 after a change of a file with notes.
 
+`markdownnotes strip` writes the text of a file without its notes, as "Copy
+without Notes" does ([Copy the text without notes](#copy-the-text-without-notes)):
+with one file to the standard output, with `-` from the standard input, and
+with `--out <folder>` a copy of each file into the folder, under the name of
+the file. Several files need `--out`. The command never changes a file
+itself: it refuses a copy that would replace one of its files, or the copy of
+another file of the same name, and exits with 2. A program calls the same
+code as `stripNotes(lines)` of the library of the npm package.
+
 ## Settings
 
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
-| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. The buttons "Hide Footnotes" and "Show Footnotes" in the title of the side view change it. |
+| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
+| `nimblescape.markdownNotes.hideNotesInNewFiles` | `false` | The value `true` hides the notes of a file that gets its first note from other viewers, also from GitHub ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)). A file that has notes keeps its form; the eye in the title of the side view changes it. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens from the side view: `newWindow` in a new window of VS Code, so that the Markdown file and its preview stay as they are; `editor` in the editor of VS Code; `system` with the program of your system, for example the PDF viewer. A link to a web page or an e-mail address always opens with your system. A folder of a workspace can have its own value. |
 
 For Zen Mode, turn on the setting
@@ -1237,7 +1502,9 @@ you can remove them from your settings.
   or a table cell. A note in a block quote shows in VS Code, but not on
   GitHub.
 - On GitHub, the notes share the numbers of the footnotes of the page, and
-  GitHub shows them at the end of the page with the other footnotes.
+  GitHub shows them at the end of the page with the other footnotes, unless
+  the notes of the file are hidden
+  ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)).
 - The notes of the older form `<!-- note … -->` are not converted; the
   extension no longer reads them.
 - A listing shows a whole file or a snippet, and never a function, a class
