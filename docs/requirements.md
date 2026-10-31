@@ -103,6 +103,7 @@ requirement, the plan and the decisions of Hannes.
 | 74 | The fixed width of the text editor in Zen Mode: the user guide and the README tell the user to turn on the setting of VS Code ([decision 49](#decisions)) | [R-SIDE-001](#r-side-001) | done |
 | 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
 | 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
+| 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
 
 ## General
 
@@ -1665,8 +1666,8 @@ footnotes too ([decision 24](#decisions)):
   highlighted text: the reference belongs to the highlight, the cursor on
   the reference selects the footnote, and the cursor on the rest of the
   highlight selects the note.
-- The button "Show Footnotes" or "Hide Footnotes" in the title of the side
-  view, and the setting `nimblescape.markdownNotes.showFootnotes` (on by
+- "Show Footnotes" or "Hide Footnotes" in the menu "…" of the title of the
+  side view ([decision 53](#decisions)), and the setting `nimblescape.markdownNotes.showFootnotes` (on by
   default), show or hide the footnotes in the side view. The notes stay.
 - The side view shows footnotes also in a Markdown file without notes. Such
   a file stays a file without notes: it gets no comment of the format
@@ -2313,7 +2314,7 @@ notes:
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-10-30. The
+Hannes decided these questions from 2026-10-28 to 2026-10-31. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -2731,6 +2732,14 @@ requirements above follow them.
     an editor that never shows the marks but writes the whole Markdown text
     anew on a save, which can change the form of text that the user did not
     change.
+53. **"Show Footnotes" and "Hide Footnotes" in the menu "…"**
+    ([R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002)): at its default
+    width of about 290 pixels, the secondary side bar of VS Code shows three
+    buttons in the title of a view and puts further buttons into the menu
+    "…". The title of the side view shows "Add Note", "Add Footnote" and the
+    eye, and its menu "…" has "Show Footnotes" or "Hide Footnotes". The other
+    choices were the eye in the menu, or four buttons, of which VS Code put
+    "Add Note" into the menu at the default width.
 
 ---
 

@@ -111,8 +111,8 @@ describes each step and where its protection ends.
   cursor and writes its reference with the next free number and its
   definition. In the clean editing view of a file with notes, the
   definitions of the footnotes are hidden, as the notes. "Hide Footnotes" in
-  the title of the side view shows the notes only, and the definitions in
-  the text.
+  the menu "…" of the title of the side view shows the notes only, and the
+  definitions in the text.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
   sentence before it), `/footnote` (the editor of a new footnote in the side
@@ -233,7 +233,7 @@ extension to everyone who opens it.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
-| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. The buttons "Hide Footnotes" and "Show Footnotes" in the title of the side view change it. |
+| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |

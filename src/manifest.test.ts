@@ -205,12 +205,14 @@ test('Add Footnote is a button of the title of the side view, an item of the con
   expect(manifest.contributes.keybindings[1]).toEqual({ command: viewCommands.newFootnote, key: 'shift+alt+b', mac: 'cmd+k b', when: 'editorTextFocus && editorLangId == markdown && !editorReadonly' });
 });
 
-test('the title of the side view has the button "Show Footnotes" or "Hide Footnotes" after the context key of the shown footnotes (R-FOOT-001)', () => {
+test('the menu "…" of the title of the side view has "Show Footnotes" or "Hide Footnotes" after the context key of the shown footnotes (R-FOOT-001)', () => {
   const view = `view == ${notesViewId}`;
+  // A group other than navigation puts the command into the menu, because VS Code shows only three buttons in the
+  // title of the secondary side bar at its default width (decision 53).
   expect(manifest.contributes.menus['view/title']).toEqual(
     expect.arrayContaining([
-      { command: footnoteCommands.show, group: 'navigation@3', when: `${view} && !${footnotesContext}` },
-      { command: footnoteCommands.hide, group: 'navigation@3', when: `${view} && ${footnotesContext}` },
+      { command: footnoteCommands.show, group: '1_footnotes@1', when: `${view} && !${footnotesContext}` },
+      { command: footnoteCommands.hide, group: '1_footnotes@1', when: `${view} && ${footnotesContext}` },
     ]),
   );
   expect(manifest.contributes.menus.commandPalette).toEqual(
@@ -328,10 +330,10 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
   expect(manifest.contributes.menus['view/title'].map((candidate: { command: string }) => candidate.command)).toEqual([
     viewCommands.newNote,
     viewCommands.newFootnote,
-    footnoteCommands.show,
-    footnoteCommands.hide,
     viewCommands.eyeShown,
     viewCommands.eyeHidden,
+    footnoteCommands.show,
+    footnoteCommands.hide,
     viewCommands.hide,
   ]);
   expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation@9' });
@@ -351,12 +353,12 @@ test('the eye at the top of the side view shows the form of the notes of a file 
   const command = (id: string) => commands.find((candidate) => candidate.command === id)!;
   expect(titles.find((item: { command: string }) => item.command === viewCommands.eyeShown)).toEqual({
     command: viewCommands.eyeShown,
-    group: 'navigation@4',
+    group: 'navigation@3',
     when: `view == ${notesViewId} && ${formContext} == 'visible'`,
   });
   expect(titles.find((item: { command: string }) => item.command === viewCommands.eyeHidden)).toEqual({
     command: viewCommands.eyeHidden,
-    group: 'navigation@4',
+    group: 'navigation@3',
     when: `view == ${notesViewId} && ${formContext} == 'hidden'`,
   });
   expect(command(viewCommands.eyeShown)).toMatchObject({ title: 'Other viewers show the notes, also GitHub. Click to hide them.', icon: '$(nimblescape-notes-shown)' });

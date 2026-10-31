@@ -487,11 +487,14 @@ text of the notes, and their editor:
   and "Delete" (a trash can). Each thread has its color, "Line N", "Show as
   Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can); a
   todo note has its check box before its color ([Todo notes](#todo-notes)).
-  The title of the view has "Add Note" (`+`), "Add Footnote" (`+¹`),
-  "Hide Footnotes" or "Show Footnotes"
-  ([Footnotes in the side view](#footnotes-in-the-side-view)), and for a
-  file with notes the eye, which hides the notes from other viewers or
-  shows them ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)).
+  The title of the view has "Add Note" (`+`), "Add Footnote" (`+¹`) and,
+  for a file with notes, the eye, which hides the notes from other viewers
+  or shows them
+  ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)).
+  Its menu "…" has "Hide Footnotes" or "Show Footnotes"
+  ([Footnotes in the side view](#footnotes-in-the-side-view)). At the
+  default width of the secondary side bar, VS Code shows three buttons in
+  the title and puts further buttons into the menu.
 - The view selects the thread at the cursor of the text editor, and the
   thread whose highlight you clicked in the preview. Each thread that is not
   selected is dimmed, also under the pointer.
@@ -1081,8 +1084,8 @@ Agents change the work of teams.[^1]
   reference to it in one change. Undo in the text editor of the file takes
   it back; in the clean editing view, choose "Open File with Markup" first
   ([Limits](#limits)).
-- "Hide Footnotes" in the title of the side view hides the footnotes, and
-  "Show Footnotes" shows them again; the notes stay. Both change the setting
+- "Hide Footnotes" in the menu "…" of the title of the side view hides the
+  footnotes, and "Show Footnotes" shows them again; the notes stay. Both change the setting
   `nimblescape.markdownNotes.showFootnotes` ([Settings](#settings)).
 - In the [clean editing view](#clean-editing-view) of a file with notes, the
   definitions of the footnotes that have a reference are hidden while the
@@ -1259,7 +1262,7 @@ after a change of a file with notes.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
-| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. The buttons "Hide Footnotes" and "Show Footnotes" in the title of the side view change it. |
+| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
 | `nimblescape.markdownNotes.hideNotesInNewFiles` | `false` | The value `true` hides the notes of a file that gets its first note from other viewers, also from GitHub ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)). A file that has notes keeps its form; the eye in the title of the side view changes it. A folder of a workspace can have its own value. |

@@ -344,24 +344,24 @@
           "when": "view == nimblescape.markdownNotes.notes"
         },
         {
-          "command": "nimblescape.markdownNotes.showFootnotes",
-          "group": "navigation@3",
-          "when": "view == nimblescape.markdownNotes.notes && !nimblescape.markdownNotes.footnotesShown"
-        },
-        {
-          "command": "nimblescape.markdownNotes.hideFootnotes",
-          "group": "navigation@3",
-          "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
-        },
-        {
           "command": "nimblescape.markdownNotes.notesShownToViewers",
-          "group": "navigation@4",
+          "group": "navigation@3",
           "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.notesForm == 'visible'"
         },
         {
           "command": "nimblescape.markdownNotes.notesHiddenFromViewers",
-          "group": "navigation@4",
+          "group": "navigation@3",
           "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.notesForm == 'hidden'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showFootnotes",
+          "group": "1_footnotes@1",
+          "when": "view == nimblescape.markdownNotes.notes && !nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideFootnotes",
+          "group": "1_footnotes@1",
+          "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
         },
         {
           "command": "nimblescape.markdownNotes.hideNotes",

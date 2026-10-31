@@ -72,7 +72,7 @@ The first version.
   Command Palette) opens the editor of a new footnote for the place of the
   cursor, and writes its reference with the next free number and its
   definition after the last footnote. "Hide Footnotes" and "Show Footnotes"
-  in the title of the side view change the setting
+  in the menu "…" of the title of the side view change the setting
   `nimblescape.markdownNotes.showFootnotes`. While the side view shows the
   footnotes, the clean editing view of a file with notes hides the
   definitions of the footnotes that have a reference, as the definitions of
