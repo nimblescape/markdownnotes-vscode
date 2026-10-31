@@ -108,6 +108,7 @@ requirement, the plan and the decisions of Hannes.
 | 79 | The instructions for AI agents in the specification of the format and the messages of the extension and of the command call the commands of Markdown Paper with npx, `npx -y @nimblescape/markdownpaper get`, as CI does ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
 | 80 | Full clones, and Ctrl+Click on the name of the reference of a listing opens its clone in a new window of VS Code ([decision 57](#decisions)) | [R-CODE-006](#r-code-006) | done |
 | 81 | The front matter is read-only in the clean editing view: an edit of it goes back, and Undo goes over it ([decision 58](#decisions)) | [R-TEXT-009](#r-text-009) | done |
+| 82 | The link above the front matter in the clean editing view: "Edit Front Matter" opens the view "Front Matter" of nimblescape Markdown Paper, else "Open File with Markup" ([decision 59](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 
 ## General
 
@@ -936,6 +937,13 @@ file at once, and keeps each note at its text:
   over it to the edit before it. A change of the front matter from
   elsewhere, for example by `mp get` of nimblescape Markdown Paper, shows in
   the view.
+- A link above the front matter shows how to change it
+  ([decision 59](#decisions)): "Edit Front Matter" runs the command
+  `nimblescape.markdownPaper.editFrontMatter` of nimblescape Markdown Paper
+  with the URI of the file, which opens its view "Front Matter" in the side
+  bar, a form with one row for each field of the layout. Without that
+  command, the link is "Open File with Markup". The message of the status bar
+  after a refused edit names the link of the form when it exists.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -2906,6 +2914,15 @@ requirements above follow them.
     commands of nimblescape Markdown Paper and in the text editor of "Open
     File with Markup". The other choices were only the keys `layout` and
     `repos` read-only, and a front matter that the view edits as text.
+59. **The form of the front matter is a view of Markdown Paper in the side
+    bar** ([R-TEXT-009](#r-text-009)): nimblescape Markdown Paper builds the
+    form, because it reads the fields of the layout from `layout.json`. Its
+    view "Front Matter" in the side bar always shows the form of the paper
+    in the active editor, also of the clean editing view. Markdown Notes
+    shows the link "Edit Front Matter" above the read-only front matter,
+    which opens and focuses the view. The other choices were a form beside
+    the editor, and a second tab of the Notes view, for which Markdown Notes
+    would read the fields of the layout from Markdown Paper.
 
 ---
 

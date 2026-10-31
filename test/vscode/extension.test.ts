@@ -225,7 +225,7 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
-  it('keeps the front matter read-only in the clean editing view: an edit of it goes back, the file keeps it, and undo goes on with the edits before it (R-TEXT-009)', async () => {
+  it('keeps the front matter read-only in the clean editing view: an edit of it goes back, the file keeps it, the link above it opens the file, and undo goes on with the edits before it (R-TEXT-009)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, `---\ntitle: A paper\n---\n\n${note}`);
     await vscode.commands.executeCommand('vscode.open', file);
@@ -246,6 +246,12 @@ describe('nimblescape Markdown Notes', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     assert.equal(view.document.getText(), before);
     assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), real()!.getText());
+    // Without nimblescape Markdown Paper, the link above the front matter opens the file itself.
+    const lenses = await vscode.commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', view.document.uri);
+    assert.deepEqual(
+      lenses.map((lens) => [lens.range.start.line, lens.command?.title, lens.command?.command]),
+      [[0, 'Open File with Markup', commandOf('openWithMarkup')]],
+    );
     // Undo never brings an edit of the front matter back: one undo goes over each edit that went back.
     let steps = 0;
     while (steps < 4 && view.document.getText().includes('Even ')) {

@@ -16,7 +16,8 @@
  * side view, comes back into the clean text. A save of the view saves the file.
  * The highlights of the notes show in the view as in the text editor of the
  * file. The front matter is read-only in the view (decision 58): an edit of it
- * goes back, and Undo goes over such an edit.
+ * goes back, and Undo goes over such an edit. The link above it opens the form
+ * of the front matter of nimblescape Markdown Paper (decision 59).
  *
  * A Markdown file with notes always opens in the view: each text editor of such
  * a file that shows becomes the view, in its group and at its place of the
@@ -28,6 +29,7 @@
 import * as vscode from 'vscode';
 import { highlightStyles } from './noteEditor';
 import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, keepsFrontMatter, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { frontMatterEnd } from './notes/doctype';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
@@ -39,6 +41,24 @@ export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWi
 
 /** frontMatterReadOnly is the message of the status bar after an edit of the front matter in the clean editing view. */
 export const frontMatterReadOnly = 'The front matter is read-only in the clean editing view. Change it with "Open File with Markup".';
+
+/** frontMatterInForm is the message of the status bar after an edit of the front matter, while the form of nimblescape Markdown Paper exists. */
+export const frontMatterInForm = 'The front matter is read-only in the clean editing view. Change it with "Edit Front Matter" above it.';
+
+/**
+ * paper names nimblescape Markdown Paper and its command that opens and focuses its view "Front Matter", the form of the
+ * front matter of a file, with the URI of the file as its argument.
+ */
+export const paper = { extension: 'nimblescape.nimblescape-markdownpaper', editFrontMatter: 'nimblescape.markdownPaper.editFrontMatter' };
+
+/**
+ * hasFrontMatterForm tells whether the installed nimblescape Markdown Paper has the command of its form of the front
+ * matter. VS Code starts the extension when the command runs.
+ */
+function hasFrontMatterForm(): boolean {
+  const commands: unknown = vscode.extensions.getExtension(paper.extension)?.packageJSON?.contributes?.commands;
+  return Array.isArray(commands) && commands.some((command: { command?: unknown }) => command?.command === paper.editFrontMatter);
+}
 
 /**
  * resourceFolder is the name of the folder beside a clean document that holds the files of the folder of the workspace
@@ -220,6 +240,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly changes = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this.changes.event;
   private readonly fileChanges = new vscode.EventEmitter<vscode.Uri>();
+  /** lensChanges fires when the link above the front matter changes, after an extension was installed or removed. */
+  private readonly lensChanges = new vscode.EventEmitter<void>();
   /**
    * onDidChangeMarkup tells the file of a view whose text changed from elsewhere, for example a new note of the side
    * view: the Markdown preview of the view renders the file again, also when its clean text stays.
@@ -365,6 +387,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const registrations = [
       vscode.workspace.registerFileSystemProvider(cleanScheme, this, { isCaseSensitive: true }),
       vscode.commands.registerCommand(cleanCommands.openWithMarkup, () => this.openWithMarkup()),
+      vscode.languages.registerCodeLensProvider({ scheme: cleanScheme }, { onDidChangeCodeLenses: this.lensChanges.event, provideCodeLenses: (document) => this.frontMatterLenses(document) }),
+      vscode.extensions.onDidChange(() => this.lensChanges.fire()),
       vscode.workspace.onDidOpenTextDocument((document) => this.opened(document)),
       vscode.workspace.onDidChangeTextDocument((event) => {
         void this.changed(event);
@@ -403,6 +427,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   dispose(): void {
     this.changes.dispose();
     this.fileChanges.dispose();
+    this.lensChanges.dispose();
     this.log.dispose();
     for (const type of this.highlights.flat()) {
       type.dispose();
@@ -963,8 +988,27 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // A typed edit, or its Redo: its undo step comes back to the clean text before it.
       mirror.refused = [...refused, { text, clean }].slice(-historySize);
     }
-    vscode.window.setStatusBarMessage(frontMatterReadOnly, 5000);
+    vscode.window.setStatusBarMessage(hasFrontMatterForm() ? frontMatterInForm : frontMatterReadOnly, 5000);
     void this.writeClean(document.uri, mirror);
+  }
+
+  /**
+   * frontMatterLenses returns the link above the front matter of a clean document, which is read-only in the view: "Edit
+   * Front Matter", which opens the form of the front matter of nimblescape Markdown Paper for the file, or without it
+   * "Open File with Markup", which opens the file itself.
+   * @param document - The clean document.
+   */
+  private frontMatterLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    const file = fileOf(document.uri);
+    if (!file || frontMatterEnd(document.getText().split(/\r\n|\r|\n/)) === 0) {
+      return [];
+    }
+    const range = new vscode.Range(0, 0, 0, 0);
+    return [
+      hasFrontMatterForm()
+        ? new vscode.CodeLens(range, { title: 'Edit Front Matter', command: paper.editFrontMatter, arguments: [file], tooltip: 'Open the form of the front matter of nimblescape Markdown Paper' })
+        : new vscode.CodeLens(range, { title: 'Open File with Markup', command: cleanCommands.openWithMarkup, tooltip: 'The front matter is read-only here: open the file itself to change it' }),
+    ];
   }
 
   /**

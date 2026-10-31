@@ -601,6 +601,8 @@ export class Fake {
   symbols = new Map<string, unknown[]>();
   /** codeLenses holds the providers of the code lenses. */
   codeLenses: { provideCodeLenses(document: FakeDocument): Promise<FakeCodeLens[]> | FakeCodeLens[] }[] = [];
+  /** extensions are the other installed extensions, by their identifiers, each with its manifest. */
+  extensions = new Map<string, { packageJSON: unknown }>();
   /** watched holds the listeners of the watchers of files, by the kind of the change. */
   watched: { kind: 'create' | 'change' | 'delete'; listener: (uri: FakeUri) => void }[] = [];
   /**
@@ -698,6 +700,7 @@ export class Fake {
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },
       TextDocumentSaveReason: { Manual: 1, AfterDelay: 2, FocusOut: 3 },
+      TextDocumentChangeReason: { Undo: 1, Redo: 2 },
       FileType: { File: 1, Directory: 2 },
       FilePermission: { Readonly: 1 },
       FileChangeType: { Changed: 1, Created: 2, Deleted: 3 },
@@ -922,7 +925,8 @@ export class Fake {
         onWillSaveTextDocument: on('willSave'),
       },
       extensions: {
-        getExtension: (id: string) => (id === 'vscode.markdown-language-features' ? { isActive: true } : undefined),
+        getExtension: (id: string) => (id === 'vscode.markdown-language-features' ? { isActive: true } : this.extensions.get(id)),
+        onDidChange: on('extensions'),
       },
       authentication: {
         getSession: async (provider: string, scopes: readonly string[], options: { createIfNone?: boolean; silent?: boolean }) => {

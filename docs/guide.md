@@ -382,8 +382,10 @@ into the file at once, and each note stays at its text:
 - Undo and Redo bring back the file as it was, with each note at its place.
 - The front matter at the top of the file is read-only in the view: an edit
   of it goes back at once, and the status bar says so. Change the front
-  matter with "Markdown Notes: Open File with Markup", or with the
-  commands of nimblescape Markdown Paper, such as `mp get`. Text after the
+  matter with the link above it: "Edit Front Matter" opens the form of
+  nimblescape Markdown Paper in the side bar; without Markdown Paper, the
+  link is "Open File with Markup". The commands of Markdown Paper, such as
+  `mp get`, change it too. Text after the
   closing `---` can be edited as usual, and Undo goes over an edit that went
   back.
 - A save of the view saves the file, with the format on save and the comment

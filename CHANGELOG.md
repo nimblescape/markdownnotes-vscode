@@ -179,7 +179,9 @@ The first version.
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in
   the Command Palette opens the file itself. The front matter is read-only in
-  the view: an edit of it goes back, and Undo goes over it.
+  the view: an edit of it goes back, and Undo goes over it. The link "Edit
+  Front Matter" above it opens the form of nimblescape Markdown Paper, or
+  "Open File with Markup" without it.
 - The text editor of the file itself, for example in the view of the changes
   of git, never shows the text of a note and its markers: it collapses the
   notes, and collapses again a note that VS Code opens; the cursor steps over

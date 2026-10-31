@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 136 requested features, 114 are built, among them the clean editing view
+Of 137 requested features, 115 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -120,6 +120,7 @@ breaks and the cursor next to the hidden markers.
 | --- | --- | --- | --- | --- |
 | Line breaks and editing next to the hidden markers | 10-29 09:09 | [R-TEXT-005](requirements.md#r-text-005) | Built | VS Code wraps a line by all its characters, also the hidden ones, so a row ended early. Fixed by the clean editing view of [decision 27](requirements.md#decisions) (10-29 09:37), which shows no hidden characters |
 | The notes markup has no effect on the editing | 10-29 09:17 | [R-TEXT-009](requirements.md#r-text-009) | Built | [Decision 27](requirements.md#decisions): the clean editing view, step 38 of the plan; a prototype shown at 10:20, the full build checked in VS Code 1.144. Its limits are in [R-TEXT-009](requirements.md#r-text-009) |
+| A form for the front matter | 10-31 08:04, 11:33 | [R-TEXT-009](requirements.md#r-text-009) | Built | Step 82, [decision 59](requirements.md#decisions): the view "Front Matter" of nimblescape Markdown Paper in the side bar holds the form; Markdown Notes shows the link "Edit Front Matter" above the read-only front matter of the clean editing view, which opens it, and "Open File with Markup" without Markdown Paper |
 | The front matter read-only in the clean editing view | 10-31 07:54, 08:01, 08:03 | [R-TEXT-009](requirements.md#r-text-009) | Built | Step 81, [decision 58](requirements.md#decisions): an edit that changes, removes or adds a front matter goes back as a whole, the status bar names "Open File with Markup", and one Undo goes over such an edit; the discussion and a form for the values are in Claude Docs |
 | A file with notes always in the clean editing view | 10-29 11:11 | [R-TEXT-009](requirements.md#r-text-009) | Built | From the Explorer, a search, a link, the last session and the first note; "Open File with Markup" in the Command Palette shows the file itself, and the view of the changes of git shows the file |
 | A better icon for "Show Highlights" | 10-29 08:57 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 26](requirements.md#decisions) (10-29 09:35): a highlighter pen from an icon font of the extension, in place of the eye; commit [8ab9937](https://github.com/nimblescape/markdownnotes-vscode/commit/8ab9937) |
@@ -314,7 +315,8 @@ built in
 which also takes steps 34 and 35: the checks of the footnotes, "Renumber
 Footnotes" and "Make Footnote" are built there too, the fixes of the code
 review (step 78), the listings of files of other repositories (step 68), the
-clone in a new window (step 80) and the read-only front matter (step 81),
+clone in a new window (step 80), the read-only front matter (step 81) and its
+link to the form of Markdown Paper (step 82),
 while nimblescape Markdown Paper builds the command `mp` that clones them.
 The open work:
 

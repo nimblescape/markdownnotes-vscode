@@ -118,8 +118,8 @@ test('each mark line shows as a tag in place of its comment: the start mark with
     [4, 'snippet unused · in no listing'],
     [6, '/snippet unused'],
   ]);
-  // The extension shows no code lens.
-  expect(fake.codeLenses).toEqual([]);
+  // The extension shows no code lens in a source file; its only code lens is the link above the front matter of a clean editing view.
+  expect((await Promise.all(fake.codeLenses.map((provider) => provider.provideCodeLenses(editor.document)))).flat()).toEqual([]);
 });
 
 test('the cursor jumps over a mark line, and a click on a tag opens the listing of its snippet (R-CODE-004)', async () => {
