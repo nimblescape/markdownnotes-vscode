@@ -82,11 +82,13 @@ describe('the library of the npm package', () => {
     const folder = installed({
       'program.ts': `import { formatMarkdown, stripNotes } from '@nimblescape/markdownnotes';\nconst lines: string[] = formatMarkdown(['A', 'b']);\nconst clean: string[] | undefined = stripNotes(lines);\nexport default clean;\n`,
       'wrong.ts': `import { formatMarkdown } from '@nimblescape/markdownnotes';\nconst text: string = formatMarkdown('A');\nexport default text;\n`,
+      // No types of other packages, not even of Node.js.
+      'tsconfig.json': JSON.stringify({ compilerOptions: { noEmit: true, strict: true, module: 'node16', moduleResolution: 'node16', types: [], skipLibCheck: false }, files: ['program.ts'] }),
+      'wrong.json': JSON.stringify({ extends: './tsconfig.json', files: ['wrong.ts'] }),
     });
     const tsc = path.join(repository, 'node_modules', 'typescript', 'bin', 'tsc');
-    const options = ['--noEmit', '--strict', '--module', 'node16', '--moduleResolution', 'node16', '--types', '', '--skipLibCheck', 'false'];
-    expect(node(folder, [tsc, ...options, 'program.ts'])).toMatchObject({ code: 0, stdout: '' });
-    expect(node(folder, [tsc, ...options, 'wrong.ts']).code).not.toBe(0);
+    expect(node(folder, [tsc, '-p', 'tsconfig.json'])).toMatchObject({ code: 0, stdout: '' });
+    expect(node(folder, [tsc, '-p', 'wrong.json']).code).not.toBe(0);
   });
 });
 

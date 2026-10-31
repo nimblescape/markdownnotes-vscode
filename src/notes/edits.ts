@@ -42,7 +42,9 @@ export interface Edit {
  * that the document no longer holds, a footnote that changed after the editor opened, and a definition for a label that
  * has one already ([R-FOOT-004](../../docs/requirements.md#r-foot-004)). `notMade` is a note that cannot become a
  * footnote ([R-FOOT-006](../../docs/requirements.md#r-foot-006)): without a reference, with a first answer without a
- * text, or with a result that Markdown would not read back as the footnote.
+ * text, or with a result that Markdown would not read back as the footnote. `notWritten` is a change that VS Code
+ * did not write into the document, and `moved` a new note or footnote whose place an earlier write of the extension
+ * changed while the change waited for it ([R-GEN-018](../../docs/requirements.md#r-gen-018)).
  */
 export type Problem =
   | { kind: 'empty' }
@@ -60,7 +62,9 @@ export type Problem =
   | { kind: 'footnoteMissing' }
   | { kind: 'footnoteChanged' }
   | { kind: 'footnoteExists' }
-  | { kind: 'notMade'; reason: 'reference' | 'empty' | 'structure' };
+  | { kind: 'notMade'; reason: 'reference' | 'empty' | 'structure' }
+  | { kind: 'notWritten' }
+  | { kind: 'moved' };
 
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };

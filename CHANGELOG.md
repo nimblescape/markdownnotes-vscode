@@ -90,6 +90,10 @@ The first version.
   becomes the footnote, the reference of the note gets the next free number,
   and the definition goes after the last one; the start marker and the
   replies go. A note with replies asks first.
+- Two changes of the notes of one file run one after the other. A change
+  that VS Code does not write into the file, and a new note or footnote
+  whose place an earlier change moved while it waited, are not saved, and
+  their messages say why.
 - Todo notes: the header of the first answer of a note ends with ` · todo`
   for an open task and ` · done` for a completed one; a check box in the side
   view changes it.

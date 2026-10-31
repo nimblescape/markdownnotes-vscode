@@ -162,6 +162,10 @@ export function problemMessage(problem: Problem): string {
       return 'The change was not saved: the footnote changed in the meantime. Look at the footnote again, and repeat the change if it is still needed.';
     case 'footnoteExists':
       return 'The definition was not added: the file has a definition of this footnote already.';
+    case 'moved':
+      return 'The change was not saved: the file changed while the change waited for an earlier change of the extension, so its place is not sure. Choose the place again and repeat the change.';
+    case 'notWritten':
+      return 'The change was not saved: VS Code did not write it into the file, for example because the file cannot be changed. Try again.';
     case 'notMade':
       switch (problem.reason) {
         case 'reference':
@@ -226,6 +230,8 @@ export class NoteThreads implements vscode.Disposable {
   private readonly listeners = new Set<(document: vscode.Uri) => void>();
   /** changing holds the edits of the extension that VS Code did not apply yet, of each document by its URI. */
   private readonly changing = new Map<string, Set<Promise<boolean>>>();
+  /** writes holds the last write of the extension to each document by its URI, which the next write waits for. */
+  private readonly writes = new Map<string, Promise<void>>();
   /** count is the number of threads that the extension created, for their identifiers. */
   private count = 0;
 
@@ -505,6 +511,29 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
+   * queued runs a write of the extension to a document after the writes to the same document that started before it,
+   * so that each write reads the lines that the write before it left, also while VS Code applies an edit late
+   * ([R-GEN-018](../docs/requirements.md#r-gen-018)). A write that fails does not stop the writes after it.
+   * @param uri - The URI of the document.
+   * @param write - The write: it reads the lines of the document, makes its edit and applies it.
+   */
+  private queued<T>(uri: vscode.Uri, write: () => Promise<T>): Promise<T> {
+    const key = uri.toString();
+    const result = (this.writes.get(key) ?? Promise.resolve()).then(write);
+    const done = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.writes.set(key, done);
+    void done.then(() => {
+      if (this.writes.get(key) === done) {
+        this.writes.delete(key);
+      }
+    });
+    return result;
+  }
+
+  /**
    * change writes the edit of a note of a document: it reads the notes first, so that the edit fits the text of the
    * document, and again after the edit.
    * @param uri - The URI of the document.
@@ -520,31 +549,33 @@ export class NoteThreads implements vscode.Disposable {
     keepsNote: (note: Note) => boolean,
     written?: () => void,
   ): Promise<Problem | undefined> {
-    const document = await vscode.workspace.openTextDocument(uri);
-    this.sync(document);
-    const entry = this.entryOf(uri, id);
-    if (!entry) {
-      return { kind: 'missing' };
-    }
-    const lines = linesOf(document);
-    const format = newerFormat(lines);
-    if (format !== undefined) {
-      return { kind: 'format', format };
-    }
-    const result = edit(lines, entry.note);
-    if ('problem' in result) {
-      return result.problem;
-    }
-    // The comment of the format of the notes comes with each change of the extension (R-NOTE-007).
-    const { edits, shift } = withDoctype(lines, result.edit);
-    entry.expected = keepsNote(entry.note) ? shift(entry.note.start) : undefined;
-    if (!(await this.apply(document, edits))) {
-      entry.expected = undefined;
-      return { kind: 'structure' };
-    }
-    written?.();
-    this.sync(document);
-    return undefined;
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      this.sync(document);
+      const entry = this.entryOf(uri, id);
+      if (!entry) {
+        return { kind: 'missing' };
+      }
+      const lines = linesOf(document);
+      const format = newerFormat(lines);
+      if (format !== undefined) {
+        return { kind: 'format', format };
+      }
+      const result = edit(lines, entry.note);
+      if ('problem' in result) {
+        return result.problem;
+      }
+      // The comment of the format of the notes comes with each change of the extension (R-NOTE-007).
+      const { edits, shift } = withDoctype(lines, result.edit);
+      entry.expected = keepsNote(entry.note) ? shift(entry.note.start) : undefined;
+      if (!(await this.apply(document, edits))) {
+        entry.expected = undefined;
+        return { kind: 'notWritten' };
+      }
+      written?.();
+      this.sync(document);
+      return undefined;
+    });
   }
 
   /**
@@ -567,27 +598,29 @@ export class NoteThreads implements vscode.Disposable {
    * @param uri - The URI of the document.
    * @param hidden - Whether the notes go into the hidden form.
    */
-  async changeForm(uri: vscode.Uri, hidden: boolean): Promise<Problem | undefined> {
-    const document = await vscode.workspace.openTextDocument(uri);
-    this.sync(document);
-    const lines = linesOf(document);
-    const result = convertForm(lines, hidden);
-    if ('problem' in result) {
-      return result.problem;
-    }
-    const moved = findNotes(applyEdit(lines, result.edit));
-    const entries = this.entries.get(uri.toString()) ?? [];
-    entries.forEach((entry, index) => {
-      entry.expected = moved[index]?.start;
-    });
-    if (!(await this.apply(document, [result.edit]))) {
-      for (const entry of entries) {
-        entry.expected = undefined;
+  changeForm(uri: vscode.Uri, hidden: boolean): Promise<Problem | undefined> {
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      this.sync(document);
+      const lines = linesOf(document);
+      const result = convertForm(lines, hidden);
+      if ('problem' in result) {
+        return result.problem;
       }
-      return { kind: 'structure' };
-    }
-    this.sync(document);
-    return undefined;
+      const moved = findNotes(applyEdit(lines, result.edit));
+      const entries = this.entries.get(uri.toString()) ?? [];
+      entries.forEach((entry, index) => {
+        entry.expected = moved[index]?.start;
+      });
+      if (!(await this.apply(document, [result.edit]))) {
+        for (const entry of entries) {
+          entry.expected = undefined;
+        }
+        return { kind: 'notWritten' };
+      }
+      this.sync(document);
+      return undefined;
+    });
   }
 
   /**
@@ -734,36 +767,44 @@ export class NoteThreads implements vscode.Disposable {
    * @returns The identifier of the thread of the new note, or the problem that prevents it.
    */
   async addNote(uri: vscode.Uri, range: vscode.Range, text: string, color?: string, todo = false, hideInNewFile = false): Promise<{ id: string } | { problem: Problem }> {
+    // The range refers to the text before the sign-in and the writes that wait in the queue: a write that changed its
+    // text leaves the note unwritten.
+    const selected = (await vscode.workspace.openTextDocument(uri)).getText(range);
     const author = await this.authorOf();
     if (!author) {
       return { problem: { kind: 'signIn' } };
     }
-    const document = await vscode.workspace.openTextDocument(uri);
-    const before = linesOf(document);
-    const format = newerFormat(before);
-    if (format !== undefined) {
-      return { problem: { kind: 'format', format } };
-    }
-    const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()), ...(todo ? { todo: 'todo' as const } : {}) }, undefined, color, hideInNewFile);
-    if ('problem' in result) {
-      return result;
-    }
-    const { edits, shift } = withDoctype(before, result.edit);
-    if (!(await this.apply(document, edits))) {
-      return { problem: { kind: 'structure' } };
-    }
-    const lines = linesOf(document);
-    const start = shift(result.start!);
-    const note = findNotes(lines).find((candidate) => candidate.start.line === start.line && candidate.start.character === start.character);
-    if (!note) {
-      return { problem: { kind: 'structure' } };
-    }
-    // The thread of the new note takes it, so that the next reading keeps the thread.
-    const entry = this.create(note, document.getText(rangeOf(note)));
-    entry.expected = note.start;
-    this.entries.set(uri.toString(), [...(this.entries.get(uri.toString()) ?? []), entry]);
-    this.sync(document);
-    return { id: entry.id };
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      if (document.getText(range) !== selected) {
+        return { problem: { kind: 'moved' } };
+      }
+      const before = linesOf(document);
+      const format = newerFormat(before);
+      if (format !== undefined) {
+        return { problem: { kind: 'format', format } };
+      }
+      const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()), ...(todo ? { todo: 'todo' as const } : {}) }, undefined, color, hideInNewFile);
+      if ('problem' in result) {
+        return result;
+      }
+      const { edits, shift } = withDoctype(before, result.edit);
+      if (!(await this.apply(document, edits))) {
+        return { problem: { kind: 'notWritten' } };
+      }
+      const lines = linesOf(document);
+      const start = shift(result.start!);
+      const note = findNotes(lines).find((candidate) => candidate.start.line === start.line && candidate.start.character === start.character);
+      if (!note) {
+        return { problem: { kind: 'structure' } };
+      }
+      // The thread of the new note takes it, so that the next reading keeps the thread.
+      const entry = this.create(note, document.getText(rangeOf(note)));
+      entry.expected = note.start;
+      this.entries.set(uri.toString(), [...(this.entries.get(uri.toString()) ?? []), entry]);
+      this.sync(document);
+      return { id: entry.id };
+    });
   }
 
   /**
@@ -773,21 +814,23 @@ export class NoteThreads implements vscode.Disposable {
    * @param label - The label of the footnote.
    * @param edit - Returns the edits for the lines of the document and the footnote.
    */
-  private async changeFootnote(uri: vscode.Uri, label: string, edit: (lines: string[], footnote: Footnote) => FootnoteResult | { problem: Problem }): Promise<Problem | undefined> {
-    const document = await vscode.workspace.openTextDocument(uri);
-    const footnote = this.footnotesOf(uri).find((candidate) => candidate.label === label);
-    if (!footnote) {
-      return { kind: 'footnoteMissing' };
-    }
-    const result = edit(linesOf(document), footnote);
-    if ('problem' in result) {
-      return typeof result.problem === 'string' ? { kind: footnoteProblems[result.problem] } : result.problem;
-    }
-    if (!(await this.apply(document, result.edits))) {
-      return { kind: 'footnoteStructure' };
-    }
-    this.sync(document);
-    return undefined;
+  private changeFootnote(uri: vscode.Uri, label: string, edit: (lines: string[], footnote: Footnote) => FootnoteResult | { problem: Problem }): Promise<Problem | undefined> {
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      const footnote = this.footnotesOf(uri).find((candidate) => candidate.label === label);
+      if (!footnote) {
+        return { kind: 'footnoteMissing' };
+      }
+      const result = edit(linesOf(document), footnote);
+      if ('problem' in result) {
+        return typeof result.problem === 'string' ? { kind: footnoteProblems[result.problem] } : result.problem;
+      }
+      if (!(await this.apply(document, result.edits))) {
+        return { kind: 'notWritten' };
+      }
+      this.sync(document);
+      return undefined;
+    });
   }
 
   /**
@@ -819,17 +862,19 @@ export class NoteThreads implements vscode.Disposable {
    * @param label - The label of the footnote.
    * @param text - The text of the footnote.
    */
-  async addDefinition(uri: vscode.Uri, label: string, text: string): Promise<Problem | undefined> {
-    const document = await vscode.workspace.openTextDocument(uri);
-    const result = addDefinition(linesOf(document), label, text);
-    if ('problem' in result) {
-      return { kind: footnoteProblems[result.problem] };
-    }
-    if (!(await this.apply(document, result.edits))) {
-      return { kind: 'footnoteStructure' };
-    }
-    this.sync(document);
-    return undefined;
+  addDefinition(uri: vscode.Uri, label: string, text: string): Promise<Problem | undefined> {
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      const result = addDefinition(linesOf(document), label, text);
+      if ('problem' in result) {
+        return { kind: footnoteProblems[result.problem] };
+      }
+      if (!(await this.apply(document, result.edits))) {
+        return { kind: 'notWritten' };
+      }
+      this.sync(document);
+      return undefined;
+    });
   }
 
   /**
@@ -838,17 +883,19 @@ export class NoteThreads implements vscode.Disposable {
    * @param uri - The URI of the document.
    * @returns Nothing after the change, or why nothing changed; `failed` when VS Code did not apply the edit.
    */
-  async renumberFootnotes(uri: vscode.Uri): Promise<Exclude<RenumberResult, { edits: unknown }> | { problem: 'failed' } | undefined> {
-    const document = await vscode.workspace.openTextDocument(uri);
-    const result = renumberFootnotes(linesOf(document), this.textReadingOf(document));
-    if ('problem' in result) {
-      return result;
-    }
-    if (!(await this.apply(document, result.edits))) {
-      return { problem: 'failed' };
-    }
-    this.sync(document);
-    return undefined;
+  renumberFootnotes(uri: vscode.Uri): Promise<Exclude<RenumberResult, { edits: unknown }> | { problem: 'failed' } | undefined> {
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      const result = renumberFootnotes(linesOf(document), this.textReadingOf(document));
+      if ('problem' in result) {
+        return result;
+      }
+      if (!(await this.apply(document, result.edits))) {
+        return { problem: 'failed' as const };
+      }
+      this.sync(document);
+      return undefined;
+    });
   }
 
   /**
@@ -860,16 +907,24 @@ export class NoteThreads implements vscode.Disposable {
    * @returns The label of the new footnote, or the problem that prevents it.
    */
   async addFootnote(uri: vscode.Uri, position: Position, text: string): Promise<{ label: string } | { problem: Problem }> {
-    const document = await vscode.workspace.openTextDocument(uri);
-    const result = insertFootnote(linesOf(document), position, text, this.textReadingOf(document));
-    if ('problem' in result) {
-      return { problem: { kind: footnoteProblems[result.problem] } };
-    }
-    if (!(await this.apply(document, result.edits))) {
-      return { problem: { kind: 'footnoteStructure' } };
-    }
-    this.sync(document);
-    return { label: result.label! };
+    // The position refers to the text before the writes that wait in the queue: a write that changed its line leaves the
+    // footnote unwritten.
+    const line = linesOf(await vscode.workspace.openTextDocument(uri))[position.line];
+    return this.queued(uri, async () => {
+      const document = await vscode.workspace.openTextDocument(uri);
+      if (linesOf(document)[position.line] !== line) {
+        return { problem: { kind: 'moved' as const } };
+      }
+      const result = insertFootnote(linesOf(document), position, text, this.textReadingOf(document));
+      if ('problem' in result) {
+        return { problem: { kind: footnoteProblems[result.problem] } };
+      }
+      if (!(await this.apply(document, result.edits))) {
+        return { problem: { kind: 'notWritten' as const } };
+      }
+      this.sync(document);
+      return { label: result.label! };
+    });
   }
 
   /** dispose removes the threads and the warnings. */

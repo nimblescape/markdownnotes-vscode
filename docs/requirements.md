@@ -94,7 +94,7 @@ requirement, the plan and the decisions of Hannes.
 | 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
 | 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
 | 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
-| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46) | [R-CODE-006](#r-code-006) | planned |
+| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46); after step 78, while Markdown Paper builds `mp` | [R-CODE-006](#r-code-006) | planned |
 | 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
 | 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
 | 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
@@ -104,7 +104,7 @@ requirement, the plan and the decisions of Hannes.
 | 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
 | 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
 | 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
-| 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | planned |
+| 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | done |
 
 ## General
 
@@ -472,16 +472,23 @@ and the bundles of `cli/dist/` are not in Git.
 ### R-GEN-018
 
 **Fixes of the code review.** The code review of 2026-10-28 left three
-fixes of the code that change no feature. They come after step 35
-([decision 54](#decisions)):
+fixes of the code that change no feature. They came after step 35
+([decision 54](#decisions)) and are built (step 78):
 
 - A queue of writes for each file: two changes of the notes of one file,
-  for example a save of an answer and a new note, run one after the other,
-  and a failed write gives a problem of its own.
+  for example a save of an answer and a new note, run one after the other.
+  A change that VS Code does not write into the file gives a problem of its
+  own. A new note or a new footnote whose place an earlier change of the
+  extension changed while it waited is not written, and its message asks
+  the user to choose the place again.
 - Tests of the scripts of the side view and of the Markdown preview
-  (`media/notesView.js`, `media/markdownPreview.js`), with a type check of
-  the scripts.
-- ESLint for the sources, run by CI.
+  (`media/notesView.js`, `media/markdownPreview.js`) in a page of
+  happy-dom, and a type check of the scripts with the types of the browser
+  (`media/tsconfig.json`).
+- ESLint for the sources with the recommended rules of ESLint and of
+  typescript-eslint, run by CI. TypeScript stays at version 6.0, the newest
+  version that typescript-eslint supports; TypeScript 7 has no compiler API
+  for it.
 
 ## Notes
 

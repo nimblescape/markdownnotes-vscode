@@ -289,6 +289,69 @@ test('Delete and Delete Thread remove an answer and a note, and a missing note s
   expect(fake.errors).toEqual(['The change was not saved: the file no longer holds the note.']);
 });
 
+test('two changes of one file run one after the other, also while VS Code applies an edit late, and a change that VS Code does not write has a message of its own (R-GEN-018)', async () => {
+  const { document, view } = await start();
+  let release = (): void => undefined;
+  fake.held = new Promise((resolve) => (release = resolve));
+  // The second change waits for the first one, so it reads the lines that the first one left.
+  const colored = view.send({ type: 'color', id: '1', color: 'green' });
+  await settle();
+  const deleted = view.send({ type: 'deleteAnswer', id: '1', answer: { index: 1, author: 'bob', date: '2026-10-28 11:00+01:00', body: 'An answer.' } });
+  await settle();
+  release();
+  await Promise.all([colored, deleted]);
+  await settle();
+  expect(document.text).toBe(marked('# Title\n\n<wbr><!--[note-aaaa green-->The text[^note-aaaa] of the page.\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    The **text**.\n\nMore.\n'));
+  expect(fake.errors).toEqual([]);
+  fake.refuses = true;
+  await send(view, { type: 'deleteNote', id: '1' });
+  expect(fake.errors).toEqual(['The change was not saved: VS Code did not write it into the file, for example because the file cannot be changed. Try again.']);
+  expect(view.state().threads).toHaveLength(1);
+});
+
+test('a new note whose text an earlier change of the extension moved while it waited is not written (R-GEN-018)', async () => {
+  const { document, editor, view } = await start(note, 2);
+  fake.signIn = 'ann';
+  editor.selection = { anchor: new FakePosition(2, 4), active: new FakePosition(2, 8) };
+  fake.fire('selection', { textEditor: editor, kind: 2 });
+  await settle();
+  let release = (): void => undefined;
+  fake.held = new Promise((resolve) => (release = resolve));
+  // The color writes the start marker before "text" while the new note waits, so the selected range no longer holds "text".
+  const colored = view.send({ type: 'color', id: '1', color: 'green' });
+  await settle();
+  const added = view.send({ type: 'add', request: 1, text: 'Why?' });
+  await settle();
+  release();
+  await Promise.all([colored, added]);
+  await settle();
+  expect(results(view).map((result) => result.message)).toEqual([
+    'The change was not saved: the file changed while the change waited for an earlier change of the extension, so its place is not sure. Choose the place again and repeat the change.',
+  ]);
+  expect(document.text).not.toContain('Why?');
+});
+
+test('a new footnote whose line an earlier change of the extension changed while it waited is not written (R-GEN-018)', async () => {
+  const { document, editor, view } = await start(note, 2);
+  editor.selection = { active: new FakePosition(2, 8) };
+  fake.fire('selection', { textEditor: editor });
+  await settle();
+  let release = (): void => undefined;
+  fake.held = new Promise((resolve) => (release = resolve));
+  // The color writes the start marker at the start of the line while the new footnote waits.
+  const colored = view.send({ type: 'color', id: '1', color: 'green' });
+  await settle();
+  const added = view.send({ type: 'addFootnote', request: 1, text: 'A source.' });
+  await settle();
+  release();
+  await Promise.all([colored, added]);
+  await settle();
+  expect(results(view).map((result) => result.message)).toEqual([
+    'The change was not saved: the file changed while the change waited for an earlier change of the extension, so its place is not sure. Choose the place again and repeat the change.',
+  ]);
+  expect(document.text).not.toContain('A source.');
+});
+
 /** three is a note of ann with the answers of bob (index 1) and of cid (index 2), from the code review of 2026-10-28. */
 const three = note.replace('    > An answer.\n', '    > Answer of bob.\n\n    > **cid** · 2026-10-28 11:30+01:00\n    >\n    > Answer of cid.\n');
 

@@ -81,11 +81,14 @@
 // editor of a new footnote (R-FOOT-003) names in its title the text before
 // the place of its reference, which follows the cursor of the text editor.
 
+// @ts-check
+
 (() => {
   'use strict';
 
   const vscode = acquireVsCodeApi();
-  const root = document.getElementById('notes');
+  // The page of the view holds the element; src/notesView.ts writes the page.
+  const root = /** @type {HTMLElement} */ (document.getElementById('notes'));
 
   /**
    * @typedef {{ author: string, date: string, authorDate: string, written: string, body: string, html: string, depth: number, parent: number | undefined }} AnswerState
@@ -160,6 +163,9 @@
    */
   let newFootnoteLabel;
 
+  /** box is the path of the empty box of an open todo, which the box of a completed todo draws too. */
+  const box = 'M4 2H12C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4C2 2.89543 2.89543 2 4 2ZM4 3C3.44772 3 3 3.44772 3 4V12C3 12.5523 3.44772 13 4 13H12C12.5523 13 13 12.5523 13 12V4C13 3.44772 12.5523 3 12 3H4Z';
+
   /**
    * icons are the paths of the codicons of VS Code that the buttons show (https://github.com/microsoft/vscode-codicons,
    * CC BY 4.0, version 0.0.46-24, which VS Code 1.144 shows), each drawn in a square of 16 units: "reply", "edit",
@@ -201,11 +207,10 @@
       'M3.68423 1.01091C3.87729 1.05479 4.01368 1.2207 4.01368 1.41166V4.70581C4.01368 4.93322 3.82219 5.11757 3.58596 5.11757C3.34974 5.11757 3.15825 4.93322 3.15825 4.70581V2.57963C2.97169 2.73831 2.75056 2.89181 2.49409 3.01526C2.28281 3.11697 2.02589 3.03452 1.92025 2.83112C1.81461 2.62771 1.90025 2.38037 2.11153 2.27867C2.46535 2.10836 2.74051 1.84713 2.93118 1.61767C3.02531 1.50441 3.09555 1.40286 3.1415 1.33097C3.1627 1.2978 3.18339 1.26423 3.20219 1.22973C3.29453 1.06158 3.48853 0.966435 3.68423 1.01091ZM2.15471 7.05586C1.98767 6.89507 1.98765 6.63435 2.15467 6.47354L2.15572 6.47253L2.15693 6.47137L2.15988 6.46859L2.16776 6.46129C2.17391 6.45568 2.18184 6.44859 2.19152 6.44025C2.21087 6.42357 2.23731 6.40176 2.27057 6.3766C2.33688 6.32642 2.43152 6.26193 2.55214 6.19802C2.79299 6.07042 3.1454 5.94109 3.58393 5.94111L3.59112 5.94117C3.91125 5.94637 4.25871 6.0263 4.53792 6.22535C4.83289 6.43563 5.02344 6.76107 5.02344 7.17649C5.02344 7.62757 4.81618 7.94311 4.53538 8.16839C4.32073 8.34059 4.04529 8.47067 3.82121 8.5765C3.78525 8.59348 3.7506 8.60985 3.7177 8.62568C3.45144 8.75385 3.24954 8.86678 3.10777 9.01691C3.05092 9.07712 2.99998 9.14746 2.96119 9.23535H4.59572C4.83194 9.23535 5.02344 9.4197 5.02344 9.64712C5.02344 9.87453 4.83146 10.0589 4.59524 10.0589H2.45713C2.22091 10.0589 2.02941 9.87453 2.02941 9.64712C2.02941 9.13717 2.19981 8.75415 2.4748 8.46294C2.73402 8.18843 3.06676 8.01827 3.33515 7.88909C3.37811 7.86841 3.41971 7.84859 3.45892 7.8299C3.69012 7.71973 3.85827 7.6396 3.98775 7.53573C4.10794 7.4393 4.168 7.34307 4.168 7.17649C4.168 7.02774 4.11074 6.94556 4.02884 6.88718C3.93179 6.81799 3.77468 6.76838 3.58027 6.76465C3.3214 6.76534 3.1117 6.84157 2.9646 6.91951C2.89091 6.95855 2.83494 6.99702 2.7992 7.02406C2.78144 7.0375 2.76901 7.04787 2.76223 7.05372L2.7566 7.05867C2.58935 7.21663 2.32076 7.2157 2.15471 7.05586ZM3.09366 12.9412C3.09366 12.7137 3.28516 12.5294 3.52138 12.5294C3.81461 12.5294 3.97666 12.4498 4.05829 12.3786C4.13892 12.3083 4.17203 12.221 4.1686 12.1331C4.1624 11.9737 4.00959 11.7059 3.52138 11.7059C3.16851 11.7059 2.98575 11.7896 2.9032 11.8426C2.85995 11.8703 2.8367 11.8944 2.82745 11.9051L2.82395 11.9093C2.82756 11.9032 2.83103 11.8969 2.83435 11.8906L2.83348 11.8922L2.83236 11.8943L2.83029 11.8981L2.82682 11.9042C2.82481 11.9077 2.82222 11.9116 2.82222 11.9116L2.82395 11.9093C2.71246 12.0985 2.46527 12.1726 2.2608 12.0742C2.04952 11.9725 1.96388 11.7251 2.06952 11.5217L2.07013 11.5205L2.07077 11.5193L2.07213 11.5168L2.07516 11.5112L2.08257 11.4982C2.08813 11.4888 2.09495 11.4778 2.10316 11.4655C2.11958 11.4409 2.14161 11.411 2.17029 11.3779C2.22786 11.3114 2.31154 11.2325 2.42869 11.1574C2.66693 11.0045 3.01882 10.8823 3.52138 10.8823C4.40187 10.8823 4.99757 11.438 5.02344 12.1022C5.03523 12.4048 4.92247 12.7081 4.68433 12.9412C4.92247 13.1743 5.03523 13.4775 5.02344 13.7801C4.99757 14.4443 4.40187 15 3.52138 15C3.01882 15 2.66693 14.8779 2.42869 14.725C2.31154 14.6498 2.22786 14.5709 2.17029 14.5044C2.14161 14.4713 2.11958 14.4414 2.10316 14.4168C2.09495 14.4045 2.08813 14.3935 2.08257 14.3841L2.07516 14.3711L2.07213 14.3655L2.07077 14.363L2.07013 14.3618L2.06952 14.3606C1.96388 14.1572 2.04952 13.9099 2.2608 13.8082C2.46527 13.7098 2.71246 13.7838 2.82395 13.973L2.82745 13.9772C2.8367 13.9879 2.85995 14.012 2.9032 14.0397C2.98575 14.0927 3.16851 14.1765 3.52138 14.1765C4.00959 14.1765 4.1624 13.9086 4.1686 13.7493C4.17203 13.6613 4.13892 13.574 4.05829 13.5037C3.97666 13.4325 3.81461 13.3529 3.52138 13.3529C3.28516 13.3529 3.09366 13.1686 3.09366 12.9412ZM7.5 3C7.22386 3 7 3.22386 7 3.5C7 3.77614 7.22386 4 7.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H7.5ZM7.5 7C7.22386 7 7 7.22386 7 7.5C7 7.77614 7.22386 8 7.5 8H13.5C13.7761 8 14 7.77614 14 7.5C14 7.22386 13.7761 7 13.5 7H7.5ZM7.5 11C7.22386 11 7 11.2239 7 11.5C7 11.7761 7.22386 12 7.5 12H13.5C13.7761 12 14 11.7761 14 11.5C14 11.2239 13.7761 11 13.5 11H7.5Z',
     quote:
       'M5.99902 2.99902C6.55101 2.99904 6.99902 3.44703 6.99902 3.99902V4.99902C6.99902 7.59102 6.47153 9.73354 4.35254 11.8525C4.15754 12.0475 3.84148 12.0475 3.64648 11.8525C3.45148 11.6575 3.45148 11.3415 3.64648 11.1465C5.03348 9.76049 5.65377 8.38594 5.88477 6.79395C5.61781 6.9259 5.31794 7 5 7H4C3.448 7 3 6.552 3 6V4C3.00001 3.44801 3.44801 3 4 3H6L5.99902 2.99902ZM11.999 2.99902C12.551 2.99904 12.999 3.44703 12.999 3.99902V4.99902C12.999 7.59102 12.4715 9.73354 10.3525 11.8525C10.1575 12.0475 9.84148 12.0475 9.64648 11.8525C9.45148 11.6575 9.45148 11.3415 9.64648 11.1465C11.0335 9.76049 11.6538 8.38594 11.8848 6.79395C11.6178 6.9259 11.3179 7 11 7H10C9.448 7 9 6.552 9 6V4C9.00001 3.44801 9.44801 3 10 3H12L11.999 2.99902Z',
+    todoOpen: box,
+    todoDone: `${box}M11.3536 5.64645C11.5488 5.84171 11.5488 6.15829 11.3536 6.35355L7.35355 10.3536C7.15829 10.5488 6.84171 10.5488 6.64645 10.3536L4.64645 8.35355C4.45118 8.15829 4.45118 7.84171 4.64645 7.64645C4.84171 7.45118 5.15829 7.45118 5.35355 7.64645L7 9.29289L10.6464 5.64645C10.8417 5.45118 11.1583 5.45118 11.3536 5.64645Z`,
   };
 
-  const box = 'M4 2H12C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4C2 2.89543 2.89543 2 4 2ZM4 3C3.44772 3 3 3.44772 3 4V12C3 12.5523 3.44772 13 4 13H12C12.5523 13 13 12.5523 13 12V4C13 3.44772 12.5523 3 12 3H4Z';
-  icons.todoOpen = box;
-  icons.todoDone = `${box}M11.3536 5.64645C11.5488 5.84171 11.5488 6.15829 11.3536 6.35355L7.35355 10.3536C7.15829 10.5488 6.84171 10.5488 6.64645 10.3536L4.64645 8.35355C4.45118 8.15829 4.45118 7.84171 4.64645 7.64645C4.84171 7.45118 5.15829 7.45118 5.35355 7.64645L7 9.29289L10.6464 5.64645C10.8417 5.45118 11.1583 5.45118 11.3536 5.64645Z`;
 
   /** requests holds the keys of the editors whose texts the extension handles, by the number of the request. @type {Map<number, string>} */
   const requests = new Map();
@@ -237,6 +242,7 @@
       }
       for (const attribute of [...node.attributes]) {
         const name = attribute.name.toLowerCase();
+        // eslint-disable-next-line no-control-regex -- the control characters are what the check removes.
         const address = attribute.value.replace(/[\s\u0000-\u001f]/g, '').toLowerCase();
         if (name.startsWith('on') || name === 'srcdoc' || name === 'style' || (linkAttributes.has(name) && /(^|,)(javascript|vbscript):/.test(address))) {
           node.removeAttribute(attribute.name);
@@ -248,10 +254,12 @@
 
   /**
    * element creates an element with a class, a text and attributes.
-   * @param {string} tag
+   * @template {keyof HTMLElementTagNameMap} K
+   * @param {K} tag
    * @param {string} [className]
    * @param {string} [text]
    * @param {Record<string, string>} [attributes]
+   * @returns {HTMLElementTagNameMap[K]}
    */
   const element = (tag, className, text, attributes = {}) => {
     const created = document.createElement(tag);
@@ -357,10 +365,10 @@
    */
   const tabsOf = (key, editor) => {
     const tabs = element('div', 'tabs', undefined, { role: 'tablist', 'aria-label': 'Editor' });
-    for (const [tab, name, tooltip] of [
+    for (const [tab, name, tooltip] of /** @type {const} */ ([
       ['visual', 'Visual', 'Edit the rendered text'],
       ['write', 'Markdown', 'Edit the Markdown text'],
-    ]) {
+    ])) {
       const chosen = tab === 'visual' ? editor.tab === 'visual' : editor.tab !== 'visual';
       const created = button(name, chosen ? 'tab chosen' : 'tab', () => {
         if (chosen) {
@@ -388,7 +396,8 @@
    * @param {(request: number, text: string) => object} message - The message of the text.
    */
   const editorOf = (key, label, saveLabel, message) => {
-    const editor = editors.get(key);
+    // The view shows an editor only while it is open.
+    const editor = /** @type {Editor} */ (editors.get(key));
     const box = element('div', 'editor', undefined, { 'data-key': key });
     if (visualEditor) {
       box.append(tabsOf(key, editor));
@@ -404,7 +413,8 @@
           save: () => send(key, message),
           cancel: () => close(key),
           open: (href) => vscode.postMessage({ type: 'openLink', href }),
-          button: (icon, tooltip, action) => iconButton(icon, tooltip, action),
+          // The visual editor names the icons of its toolbar, which icons holds.
+          button: (icon, tooltip, action) => iconButton(/** @type {keyof typeof icons} */ (icon), tooltip, action),
         });
         visuals.set(key, visual);
       }
@@ -436,6 +446,7 @@
       box.append(element('p', 'problem', editor.problem, { role: 'alert' }));
     }
     const buttons = element('div', 'buttons');
+    /** @type {Record<string, string>} */
     const pending = editor.request !== undefined ? { disabled: '' } : {};
     const writing = editor.tab === 'write';
     if (editor.tab !== 'visual') {
@@ -504,6 +515,7 @@
       box.append(element('p', 'problem', editor.problem, { role: 'alert' }));
     }
     const buttons = element('div', 'buttons');
+    /** @type {Record<string, string>} */
     const pending = editor?.request !== undefined ? { disabled: '' } : {};
     buttons.append(
       element('span', 'spacer'),
@@ -1210,7 +1222,7 @@
       const key = requests.get(message.request);
       requests.delete(message.request);
       const editor = key ? editors.get(key) : undefined;
-      if (editor) {
+      if (key && editor) {
         editor.request = undefined;
         if (message.message) {
           editor.problem = message.message;

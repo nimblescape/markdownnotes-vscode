@@ -186,7 +186,7 @@ const mergedKind = (a: HiddenKind, b: HiddenKind): HiddenKind =>
  * @param finder - Finds the blocks.
  */
 const blocksOf = (lines: readonly string[], finder: BlockFinder | undefined): Block[] => {
-  let found: readonly Block[] = [];
+  let found: readonly Block[];
   try {
     found = finder?.(lines) ?? [];
   } catch {
@@ -205,7 +205,7 @@ const blocksOf = (lines: readonly string[], finder: BlockFinder | undefined): Bl
  * @param finder - Finds the markers.
  */
 const markersOf = (lines: readonly string[], finder: MarkerFinder | undefined): Marker[] => {
-  let found: readonly Marker[] = [];
+  let found: readonly Marker[];
   try {
     found = finder?.(lines) ?? [];
   } catch {

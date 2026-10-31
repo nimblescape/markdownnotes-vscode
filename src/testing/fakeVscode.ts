@@ -636,6 +636,8 @@ export class Fake {
   uriHandler: { handleUri(uri: FakeUri): unknown } | undefined;
   /** held makes each edit of applyEdit wait until it resolves, as VS Code applies an edit some time after the call. */
   held: Promise<void> | undefined;
+  /** refuses makes applyEdit change nothing and return false, as VS Code does for an edit that it cannot apply. */
+  refuses = false;
   /** shown records the documents and the options of showTextDocument. */
   shown: { document: FakeDocument; options: unknown }[] = [];
   /**
@@ -659,7 +661,8 @@ export class Fake {
   readonly api: Record<string, unknown>;
 
   constructor() {
-    // The getters of the API read the fields of this fake.
+    // The getters of the API read the fields of this fake: inside a getter, this is the object of the API.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const fake = this;
     const on = (name: string) => (listener: (event: unknown) => void) => {
       this.listeners.set(name, [...(this.listeners.get(name) ?? []), listener]);
@@ -966,6 +969,9 @@ export class Fake {
    */
   async applyEdit(edit: FakeWorkspaceEdit): Promise<boolean> {
     await this.held;
+    if (this.refuses) {
+      return false;
+    }
     const changed = new Set<FakeDocument>();
     // The ranges of the replacements refer to the text before the edit, so they apply from the end of the text.
     const replacements = edit.replacements.map(({ uri, range, text }) => {

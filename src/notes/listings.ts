@@ -364,7 +364,7 @@ export function snippetsOf(lines: readonly string[]): { name: string; first: num
  * @param snippet - The name of the snippet, or undefined for the whole file.
  */
 export function codeOf(text: string, snippet?: string): string[] | undefined {
-  const lines = text.replace(/^﻿/, '').split(/\r\n|\r|\n/);
+  const lines = text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/);
   const code = (part: readonly string[]) => trimBlank(dedent(part.filter((line) => !snippetMark.test(line))));
   if (snippet === undefined) {
     return code(lines);

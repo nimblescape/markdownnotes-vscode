@@ -295,8 +295,9 @@ layout, and the comment of the format names no style.
 
 The later fixes of the code review of 2026-10-28, a queue of writes for each
 file, tests of the scripts of the side view and of the preview, and ESLint,
-change no feature. They are [R-GEN-018](requirements.md#r-gen-018) and come
-after step 35 ([decision 54](requirements.md#decisions)).
+change no feature. They are [R-GEN-018](requirements.md#r-gen-018), came
+after step 35 ([decision 54](requirements.md#decisions)) and are built
+(step 78).
 
 ## Open work and its order
 
@@ -307,11 +308,12 @@ is merged. The hidden notes and the text without notes (steps 29 to 31) are
 built in
 [pull request #3](https://github.com/nimblescape/markdownnotes-vscode/pull/3),
 which also takes steps 34 and 35: the checks of the footnotes, "Renumber
-Footnotes" and "Make Footnote" are built there too. The open work, in its
-order:
+Footnotes" and "Make Footnote" are built there too, and the fixes of the
+code review (step 78). The open work, in its order:
 
-1. Step 78: the fixes of the code review
-   ([decision 54](requirements.md#decisions)).
+1. Step 68: the listings of files of other repositories
+   ([decision 55](requirements.md#decisions)), while nimblescape Markdown
+   Paper builds the command `mp` that clones them.
 2. There is no release for now ([decision 48](requirements.md#decisions));
    before the first release, the Marketplace setup runs again for the new
    name of the repository.

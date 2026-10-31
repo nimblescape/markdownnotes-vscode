@@ -74,7 +74,7 @@ describe('the command format', () => {
   test('keeps the line breaks of the file and its byte order mark', () => {
     const crlf = unformatted.replaceAll('\n', '\r\n');
     expect(formatText(crlf)).toBe(formatted.replaceAll('\n', '\r\n'));
-    expect(formatText(`﻿${unformatted}`)).toBe(`﻿${formatted}`);
+    expect(formatText(`\uFEFF${unformatted}`)).toBe(`\uFEFF${formatted}`);
   });
 
   test('keeps the notes and the comment of the format', () => {

@@ -453,7 +453,7 @@ test('the extension runs in Restricted Mode and in virtual workspaces (R-GEN-003
 
 test('the manifest contributes the settings of src/settings.ts with their defaults', () => {
   const properties = manifest.contributes.configuration.properties;
-  const contributed = Object.fromEntries(Object.entries<any>(properties).map(([key, value]) => [key, value.default]));
+  const contributed = Object.fromEntries(Object.entries<{ default: unknown }>(properties).map(([key, value]) => [key, value.default]));
   const expected = Object.fromEntries(Object.entries(defaultSettings).map(([key, value]) => [`${settingsSection}.${key}`, value]));
   expect(contributed).toEqual(expected);
   // A setting of a choice offers the values that src/settings.ts takes, each with a description.

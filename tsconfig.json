@@ -20,6 +20,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "media/*.test.ts", "media/raw.d.ts"],
   "exclude": ["src/webview/visualEditor.ts"]
 }
