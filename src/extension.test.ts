@@ -22,6 +22,7 @@ import { cleanCommands } from './cleanView';
 import { footnoteCommands, footnotesContext, highlightCommands, highlightsContext } from './extension';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
+import { publishCommands } from './publish';
 import { settingsSection } from './settings';
 import { slashCommandIds } from './slashCommands';
 import { snippetCommands } from './snippets';
@@ -88,6 +89,7 @@ test('the activation registers the commands, the side view and the handler of li
       ...Object.values(slashCommandIds),
       ...Object.values(snippetCommands),
       ...Object.values(usedSnippetCommands),
+      ...Object.values(publishCommands),
     ].sort(),
   );
   expect([...fake.views.keys()]).toEqual([notesViewId]);

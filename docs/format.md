@@ -250,6 +250,11 @@ A program, for example an AI agent, follows these steps:
   [CONTRIBUTING.md](../CONTRIBUTING.md#npm-package) describes. After a
   release, `npx -y @nimblescape/markdownnotes format <file>` runs it without
   an installation.
+- **Publish a text without notes:** when the user asks for the text of a
+  file without its notes, for example for a website or a PDF, run
+  `markdownnotes strip <file>`, which writes it to the standard output, or
+  `markdownnotes strip --out <folder> <file>...` for copies. Never delete the
+  notes from the file itself for this.
 - **Add a figure or a table:** write its caption line before it, for example
   `Figure: Plan of the study`, a blank line and the image; the formatter
   writes the number ([8](#8-figures-tables-and-links-to-them)).

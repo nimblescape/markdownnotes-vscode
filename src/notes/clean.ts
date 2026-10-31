@@ -105,6 +105,13 @@ export interface Options {
   blocks?: BlockFinder;
   /** markers finds the markers that other extensions hide. */
   markers?: MarkerFinder;
+  /**
+   * publish leaves out every note, also one without a reference or with the label of an earlier note, and of the rest
+   * only the comment of the format: the text without notes for publishing
+   * ([R-HIDE-004](../../docs/requirements.md#r-hide-004)). The anchors, the values of the front matter and the
+   * listings stay.
+   */
+  publish?: boolean;
 }
 
 /** Hidden is a part of the file that the clean text leaves out, from its start to its end, as offsets in the file. */
@@ -214,7 +221,8 @@ const markersOf = (lines: readonly string[], finder: MarkerFinder | undefined): 
  * project returns the clean text of the text of a file: without the start markers, the references and the definitions
  * of its notes, without the comment of the format, the anchors of the figures and tables, the comments of the listings
  * and the links of their captions, and the blocks and the markers of other extensions; with the option
- * `footnotes`, also without the definitions of the standard footnotes that have a reference. A definition goes with one blank line after it, so that the blocks
+ * `footnotes`, also without the definitions of the standard footnotes that have a reference; with the option `publish`,
+ * without every note and the comment of the format only. A definition goes with one blank line after it, so that the blocks
  * around it keep one blank line between them; at the end of the file it goes with the blank lines before it. Only a
  * note or a footnote with a reference is hidden: the other parts of the form of a note, and a definition without a
  * reference, stay in the text, where the user sees them.
@@ -227,7 +235,7 @@ export function project(text: string, options: Options = {}): Projection {
   const offset = (position: { line: number; character: number }): number => starts[position.line] + position.character;
   const lineEnd = (line: number): number => starts[line] + lines[line].length;
   const reading = readNotes(lines);
-  const notes = reading.notes.filter((note): note is Note & { reference: Range } => note.reference !== undefined && !note.duplicate);
+  const notes = options.publish ? reading.notes : reading.notes.filter((note): note is Note & { reference: Range } => note.reference !== undefined && !note.duplicate);
   const doctype = findDoctype(lines);
   const blocks = blocksOf(lines, options.blocks);
   const footnotes = options.footnotes
@@ -265,7 +273,9 @@ export function project(text: string, options: Options = {}): Projection {
     if (note.marker) {
       parts.push({ kind: 'marker', start: offset(note.marker.start), end: offset(note.marker.end) });
     }
-    parts.push({ kind: 'reference', start: offset(note.reference.start), end: offset(note.reference.end) });
+    if (note.reference) {
+      parts.push({ kind: 'reference', start: offset(note.reference.start), end: offset(note.reference.end) });
+    }
     parts.push(block('definition', note.start.line, note.end.line));
     if (note.selection) {
       highlights.push({ label: note.label, color: note.color, start: offset(note.selection.start), end: offset(note.selection.end) });
@@ -274,17 +284,17 @@ export function project(text: string, options: Options = {}): Projection {
   for (const { definition } of footnotes) {
     parts.push(block('footnote', definition.first, definition.last));
   }
-  for (const anchor of anchorsOf(lines)) {
+  for (const anchor of options.publish ? [] : anchorsOf(lines)) {
     parts.push({ kind: 'anchor', start: starts[anchor.line] + anchor.start, end: starts[anchor.line] + anchor.end });
   }
-  for (const field of findFields(lines)) {
+  for (const field of options.publish ? [] : findFields(lines)) {
     parts.push({ kind: 'fieldStart', start: starts[field.line] + field.start, end: starts[field.line] + field.valueStart });
     parts.push({ kind: 'fieldEnd', start: starts[field.line] + field.valueEnd, end: starts[field.line] + field.end });
   }
   if (doctype) {
     parts.push(block('doctype', doctype.start, doctype.end));
   }
-  const listings = findListings(lines);
+  const listings = options.publish ? [] : findListings(lines);
   const captions = listings.length > 0 ? captionsOf(lines, findItems(lines), listings) : [];
   listings.forEach((listing, index) => {
     parts.push(block('listing', listing.line, listing.line));

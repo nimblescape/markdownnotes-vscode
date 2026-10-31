@@ -6,7 +6,7 @@
 // R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), a listing in
 // the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), the commands of the eye that hide the
-// notes from other viewers (R-HIDE-002), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
+// notes from other viewers (R-HIDE-002), the copy of a file without its notes (R-HIDE-004), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
 // R-PREV-004) with the markdown-it plugin of the extension, and the headings of the links of the side view in the HTML
 // of the preview (R-SIDE-005). The tests add no note and no answer, because these need a GitHub sign-in (R-GEN-006), which a test
 // cannot give.
@@ -248,6 +248,20 @@ describe('nimblescape Markdown Notes', () => {
     await vscode.commands.executeCommand(commandOf('showNotesInViewers'));
     await waitFor(() => (real()?.getText() === marked(note) ? true : undefined), 'the visible form in the file');
     assert.equal(view.document.getText(), clean);
+    // A changed file that is not saved stays open after the close of the editors, and VS Code 1.125 then opens the file
+    // of the next test without its clean editing view.
+    assert.ok(await real()?.save(), 'the save of the file');
+  });
+
+  it('copies the text of the file of a clean editing view without its notes to the clipboard, and changes no file (R-HIDE-004)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, marked(`${note}\nEnd.[^1]\n\n[^1]: A footnote.\n`));
+    await vscode.commands.executeCommand('vscode.open', file);
+    await viewOf(file);
+    await vscode.env.clipboard.writeText('');
+    await vscode.commands.executeCommand(commandOf('copyWithoutNotes'));
+    assert.equal(await vscode.env.clipboard.readText(), '# Title\n\nThe text of the page and a highlight here.\n\nMore.\n\nEnd.[^1]\n\n[^1]: A footnote.\n');
+    assert.equal(fs.readFileSync(file.fsPath, 'utf8'), marked(`${note}\nEnd.[^1]\n\n[^1]: A footnote.\n`));
   });
 
   it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {

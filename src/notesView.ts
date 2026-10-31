@@ -423,6 +423,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     });
   }
 
+  /**
+   * activeFile is the URI of the Markdown file whose notes the view shows: the file of the text editor, of the preview
+   * or of the mode "Markdown Editor", and the file behind a clean editing view.
+   */
+  get activeFile(): vscode.Uri | undefined {
+    return this.document;
+  }
+
   /** visible tells whether the view is open and shows its content. */
   get visible(): boolean {
     return this.view?.visible === true;

@@ -15,6 +15,7 @@ process.exitCode = run(process.argv.slice(2), {
   readFile: (path) => fs.readFileSync(path, 'utf8'),
   writeFile: (path, text) => fs.writeFileSync(path, text, 'utf8'),
   readStdin: () => fs.readFileSync(0, 'utf8'),
+  makeFolder: (path) => fs.mkdirSync(path, { recursive: true }),
   writeStdout: (text) => process.stdout.write(text),
   out: (line) => process.stdout.write(`${line}\n`),
   err: (line) => process.stderr.write(`${line}\n`),

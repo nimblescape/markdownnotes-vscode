@@ -251,6 +251,16 @@
         "command": "nimblescape.markdownNotes.keepSnippetMark",
         "title": "Keep the Mark of a Snippet",
         "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.copyWithoutNotes",
+        "title": "Copy without Notes",
+        "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.saveCopyWithoutNotes",
+        "title": "Save Copy without Notes",
+        "category": "Markdown Notes"
       }
     ],
     "icons": {
@@ -364,6 +374,16 @@
           "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
         },
         {
+          "command": "nimblescape.markdownNotes.copyWithoutNotes",
+          "group": "2_publish@1",
+          "when": "view == nimblescape.markdownNotes.notes"
+        },
+        {
+          "command": "nimblescape.markdownNotes.saveCopyWithoutNotes",
+          "group": "2_publish@2",
+          "when": "view == nimblescape.markdownNotes.notes"
+        },
+        {
           "command": "nimblescape.markdownNotes.hideNotes",
           "group": "navigation@9",
           "when": "view == nimblescape.markdownNotes.notes && activeAuxiliary == 'workbench.view.extension.nimblescape-markdownnotes' && config.workbench.activityBar.location != 'default'"
@@ -457,6 +477,14 @@
         {
           "command": "nimblescape.markdownNotes.notesHiddenFromViewers",
           "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.copyWithoutNotes",
+          "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.saveCopyWithoutNotes",
+          "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'"
         }
       ],
       "editor/context": [

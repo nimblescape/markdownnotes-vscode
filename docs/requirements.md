@@ -57,7 +57,7 @@ requirement, the plan and the decisions of Hannes.
 | 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
 | 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | done; checked with GitHub on [example-hidden.md](example-hidden.md) |
 | 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | done |
-| 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | planned |
+| 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | done |
 | 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
 | 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
@@ -1633,7 +1633,7 @@ file as the extension does on save.
 
 The command `markdownnotes strip` writes the text of a file without its
 notes, for a website or a document that is published
-([R-HIDE-004](#r-hide-004)).
+([R-HIDE-004](#r-hide-004)), and the library has `stripNotes(lines)` for it.
 
 The npm package also is a library for programs ([decision 34](#decisions)):
 `formatMarkdown(lines)` returns the formatted lines, with `require` and
@@ -2313,19 +2313,28 @@ notes:
 
 - `markdownnotes strip <file>` ([R-FMT-004](#r-fmt-004)) writes the text to
   the standard output; `-` reads the standard input, and `--out <folder>`
-  writes a copy of each file into the folder. The command never changes a
-  file itself.
+  writes a copy of each file into the folder, under the name of the file.
+  Several files need `--out`. The command never changes a file itself: it
+  refuses a copy that would replace one of its files, or the copy of another
+  file of the same name, and exits with 2. The library of the npm package
+  has `stripNotes(lines)`.
 - The commands "Copy without Notes" (to the clipboard) and "Save Copy without
   Notes" (with a dialog for the file) of VS Code do the same for the active
-  Markdown file.
-- The text has no definitions of notes with the blank line after each, no
-  start and end markers and no comment of the format, in both forms. The
-  standard footnotes, all other comments and the rest of the text stay as
-  they are. A test compares the rendering of the text without notes with
-  the rendering of the Markdown preview, which leaves the notes out.
+  Markdown file, also for the file of a clean editing view and with changes
+  that are not saved. The dialog proposes the name of the file with
+  `-without-notes` before the extension, and refuses the file itself. The
+  commands are in the Command Palette and in the menu "…" of the title of
+  the side view.
+- The text has no notes, in both forms: no definitions of notes with the
+  blank line after each, also of notes without a reference, no start and end
+  markers and no comment of the format. The standard footnotes, all other
+  comments, anchors, values of the front matter, listings and the rest of
+  the text stay as they are, with the line breaks and the byte order mark of
+  the file. A test compares the rendering of the text without notes with the
+  rendering of the Markdown preview, which leaves the notes out.
 - A file whose comment names a higher major version stays unread: the
   command writes nothing for it, says why, and exits with 2, as `format`
-  does.
+  does; the commands of VS Code show a warning.
 
 ## Decisions
 

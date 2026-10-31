@@ -21,6 +21,7 @@ import { cleanCommands } from './cleanView';
 import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath } from './extension';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { formContext, notesViewId, viewCommands } from './notesView';
+import { publishCommands } from './publish';
 import { defaultSettings, linkTargets, settingsSection } from './settings';
 import { snippetCommands } from './snippets';
 import { usedSnippetCommands, usedSnippetContexts } from './usedSnippets';
@@ -139,10 +140,23 @@ test('the manifest contributes the side view "Notes" in a container of its own i
   }
 });
 
-test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker, of the snippets and of the used snippets, and no other', () => {
+test('the manifest contributes the commands of the side view, of the highlights, of the footnotes, of the keys next to a hidden marker, of the snippets, of the used snippets and of the text without notes, and no other', () => {
   const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command);
   expect([...contributed].sort()).toEqual(
-    [...Object.values(viewCommands), ...Object.values(highlightCommands), ...Object.values(footnoteCommands), ...Object.values(deleteCommands), ...Object.values(cleanCommands), snippetCommands.add, usedSnippetCommands.show, usedSnippetCommands.hide, usedSnippetCommands.rename, usedSnippetCommands.remove, usedSnippetCommands.keep].sort(),
+    [
+      ...Object.values(viewCommands),
+      ...Object.values(highlightCommands),
+      ...Object.values(footnoteCommands),
+      ...Object.values(deleteCommands),
+      ...Object.values(cleanCommands),
+      snippetCommands.add,
+      usedSnippetCommands.show,
+      usedSnippetCommands.hide,
+      usedSnippetCommands.rename,
+      usedSnippetCommands.remove,
+      usedSnippetCommands.keep,
+      ...Object.values(publishCommands),
+    ].sort(),
   );
 });
 
@@ -334,6 +348,8 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
     viewCommands.eyeHidden,
     footnoteCommands.show,
     footnoteCommands.hide,
+    publishCommands.copy,
+    publishCommands.save,
     viewCommands.hide,
   ]);
   expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation@9' });
@@ -374,6 +390,26 @@ test('the eye at the top of the side view shows the form of the notes of a file 
     ]),
   );
   expect(manifest.contributes.configuration.properties['nimblescape.markdownNotes.hideNotesInNewFiles']).toMatchObject({ type: 'boolean', default: false, scope: 'resource' });
+});
+
+test('"Copy without Notes" and "Save Copy without Notes" are commands of the Command Palette for a Markdown file and entries of the menu "…" of the side view (R-HIDE-004)', () => {
+  const markdown =
+    "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'";
+  const commands = manifest.contributes.commands as { command: string; title: string; category: string }[];
+  expect(commands.find((command) => command.command === publishCommands.copy)).toEqual({ command: publishCommands.copy, title: 'Copy without Notes', category: 'Markdown Notes' });
+  expect(commands.find((command) => command.command === publishCommands.save)).toEqual({ command: publishCommands.save, title: 'Save Copy without Notes', category: 'Markdown Notes' });
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: publishCommands.copy, when: markdown },
+      { command: publishCommands.save, when: markdown },
+    ]),
+  );
+  expect(manifest.contributes.menus['view/title']).toEqual(
+    expect.arrayContaining([
+      { command: publishCommands.copy, group: '2_publish@1', when: `view == ${notesViewId}` },
+      { command: publishCommands.save, group: '2_publish@2', when: `view == ${notesViewId}` },
+    ]),
+  );
 });
 
 test('the extension is the default formatter of Markdown files, without format on save of VS Code for every Markdown file, and a Markdown editor scrolls smoothly; the user can change both (R-FMT-001, R-SIDE-007)', () => {

@@ -47,6 +47,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
 | [Delete an answer or a note](#delete-an-answer-or-a-note) | side view | available | [R-EDIT-004](requirements.md#r-edit-004), [R-EDIT-007](requirements.md#r-edit-007) |
 | [Hide the notes from other viewers](#hide-the-notes-from-other-viewers), also from GitHub | side view, the Markdown file, formatter | available | [R-HIDE-001](requirements.md#r-hide-001) to [R-HIDE-003](requirements.md#r-hide-003) |
+| [Copy the text without notes](#copy-the-text-without-notes), for publishing | side view, Command Palette, command line | available | [R-HIDE-004](requirements.md#r-hide-004) |
 | [Figures, tables and links to them](#figures-tables-and-links-to-them), also to sections | text editor, formatter | available | [R-XREF-001](requirements.md#r-xref-001) to [R-XREF-003](requirements.md#r-xref-003) |
 | [Values of the front matter](#values-of-the-front-matter) | text editor, formatter | available | [R-XREF-004](requirements.md#r-xref-004) |
 | [Listings of code](#listings-of-code) | text editor, formatter, command line | available | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003) |
@@ -492,7 +493,9 @@ text of the notes, and their editor:
   or shows them
   ([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)).
   Its menu "…" has "Hide Footnotes" or "Show Footnotes"
-  ([Footnotes in the side view](#footnotes-in-the-side-view)). At the
+  ([Footnotes in the side view](#footnotes-in-the-side-view)), and "Copy
+  without Notes" and "Save Copy without Notes"
+  ([Copy the text without notes](#copy-the-text-without-notes)). At the
   default width of the secondary side bar, VS Code shows three buttons in
   the title and puts further buttons into the menu.
 - The view selects the thread at the cursor of the text editor, and the
@@ -1040,11 +1043,48 @@ editing view.
   formatter writes it in the form of the file ([Formatter](#formatter)).
 - Hidden notes are not secret. Everyone who opens the source of the file
   reads them, for example in the view "Code" of GitHub or in the history of
-  the file. A copy of the file without its notes, for publishing, is
-  planned ([R-HIDE-004](requirements.md#r-hide-004)).
+  the file. For a text that others must not read with its notes, publish a
+  copy without the notes
+  ([Copy the text without notes](#copy-the-text-without-notes)).
 
 [example-hidden.md](example-hidden.md) is a file whose notes are hidden.
 GitHub shows its text without any part of its five notes.
+
+## Copy the text without notes
+
+For a website, a PDF or another place where a text is published, copy the
+text of a file without its notes. The file itself does not change.
+
+- "Copy without Notes" writes the text of the active Markdown file without
+  its notes to the clipboard.
+- "Save Copy without Notes" asks for a new file and writes the text into it.
+  The dialog proposes the folder of the file and the name of the file with
+  `-without-notes` before the extension, for example
+  `paper-without-notes.md`. It does not replace the file itself; after the
+  save, "Open" opens the copy.
+
+Both commands are in the menu "…" of the title of the side view and in the
+Command Palette, as "Markdown Notes: Copy without Notes" and "Markdown
+Notes: Save Copy without Notes". They take the text of the open file, also
+with changes that are not saved, also from the clean editing view and the
+Markdown preview.
+
+The text has no part of the notes, in both forms
+([Hide the notes from other viewers](#hide-the-notes-from-other-viewers)):
+no definitions of notes, also of notes without a highlight, each with the
+blank line after it, no start markers, no references or end markers, and no
+comment of the format. The standard footnotes, all other comments, the
+anchors of figures and tables, the values of the front matter, the listings
+and the rest of the text stay as they are, with the line breaks of the file.
+A note in a code block is code, so it stays too. The text renders as the
+Markdown preview shows the file, without the highlights.
+
+A file whose comment of the format names a higher major version than the
+extension knows gets a warning and no copy
+([Comment of the format](#comment-of-the-format)).
+
+On the command line, `markdownnotes strip` writes the same text
+([Formatter on the command line](#formatter-on-the-command-line)).
 
 ## Footnotes in the side view
 
@@ -1241,6 +1281,8 @@ runs as follows:
 markdownnotes format paper.md notes/*.md
 markdownnotes format --check paper.md
 cat paper.md | markdownnotes format -
+markdownnotes strip paper.md > public/paper.md
+markdownnotes strip --out public paper.md notes/*.md
 ```
 
 After a release, `npx -y @nimblescape/markdownnotes format paper.md` runs it
@@ -1256,6 +1298,15 @@ standard input to the standard output. The exit code 2 means a wrong command
 or a file that cannot be read or written. The specification of the format
 for AI agents ([docs/format.md](format.md)) tells them to run the command
 after a change of a file with notes.
+
+`markdownnotes strip` writes the text of a file without its notes, as "Copy
+without Notes" does ([Copy the text without notes](#copy-the-text-without-notes)):
+with one file to the standard output, with `-` from the standard input, and
+with `--out <folder>` a copy of each file into the folder, under the name of
+the file. Several files need `--out`. The command never changes a file
+itself: it refuses a copy that would replace one of its files, or the copy of
+another file of the same name, and exits with 2. A program calls the same
+code as `stripNotes(lines)` of the library of the npm package.
 
 ## Settings
 

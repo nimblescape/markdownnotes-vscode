@@ -21,7 +21,8 @@
  * note, and the links of the button "Add Note" at the selected text of the
  * preview, which add a note to that text
  * ([R-PREV-008](../docs/requirements.md#r-prev-008)), and the buttons "Show
- * Highlights" and "Hide Highlights", and refreshes the previews and the notes
+ * Highlights" and "Hide Highlights", the commands of the text without notes
+ * ([src/publish.ts](publish.ts)), and refreshes the previews and the notes
  * when a setting of the extension changes. Its export `getAPI` gives other
  * extensions, such as nimblescape Markdown Paper, a versioned API
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)).
@@ -46,6 +47,7 @@ import { findDoctype } from './notes/doctype';
 import type { BlockFinder, MarkerFinder } from './notes/clean';
 import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
+import { registerPublishCommands } from './publish';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
 import { type SlashCommand, SlashCommands } from './slashCommands';
@@ -393,6 +395,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     ...slash.register(),
     ...new Snippets(clean).register(),
     ...new UsedSnippets().register(),
+    ...registerPublishCommands(() => view.activeFile),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);

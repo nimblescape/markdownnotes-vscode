@@ -116,9 +116,13 @@ form of the notes in a file for programs and AI agents, and
   form; without the comment of the format, a file is hidden when all its
   notes are ([R-HIDE-001](requirements.md#r-hide-001),
   [R-HIDE-003](requirements.md#r-hide-003)).
-- **Text without notes, planned:** `markdownnotes strip`, "Copy without Notes"
-  and "Save Copy without Notes" write the text without the notes, for
-  publishing ([R-HIDE-004](requirements.md#r-hide-004)).
+- **Text without notes:** `markdownnotes strip <file>` (or `-`, or
+  `--out <folder>` for copies), the library `stripNotes(lines)`, and "Copy
+  without Notes" and "Save Copy without Notes" in VS Code write the text
+  without the notes, their markers and the comment of the format, in both
+  forms, for publishing; the standard footnotes and the rest of the text
+  stay, and the file itself never changes
+  ([R-HIDE-004](requirements.md#r-hide-004)).
 
 ## 4. Text editor
 
@@ -256,10 +260,11 @@ form of the notes in a file for programs and AI agents, and
   headings and the answers of the notes, and keeps the text when the result
   would render otherwise ([R-FMT-003](requirements.md#r-fmt-003)).
 - **Command line and library:** `markdownnotes format [--check] <file>...`
-  with Node.js 22 or later, installed from GitHub for now
-  ([decision 48](requirements.md#decisions)), and the library
-  `formatMarkdown(lines, { source })` for programs such as
-  `markdownpaper format` ([R-FMT-004](requirements.md#r-fmt-004)).
+  and `markdownnotes strip` with Node.js 22 or later, installed from GitHub
+  for now ([decision 48](requirements.md#decisions)), and the library
+  `formatMarkdown(lines, { source })` and `stripNotes(lines)` for programs
+  such as `markdownpaper format` ([R-FMT-004](requirements.md#r-fmt-004),
+  [R-HIDE-004](requirements.md#r-hide-004)).
 
 ## 10. Standard footnotes
 

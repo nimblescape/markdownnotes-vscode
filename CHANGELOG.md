@@ -181,6 +181,12 @@ The first version.
   same as the eye, and the setting
   `nimblescape.markdownNotes.hideNotesInNewFiles` chooses the form of a
   file that gets its first note.
+- The text without notes, for publishing: "Copy without Notes" and "Save
+  Copy without Notes", in the Command Palette and in the menu "…" of the
+  title of the side view, write the text of the active Markdown file without
+  its notes, their markers and the comment of the format, to the clipboard
+  or to a new file. The standard footnotes, the other comments and the rest
+  of the text stay as they are. The file itself does not change.
 - The text editor and the Problems view warn at each form of a note that
   GitHub shows differently or that breaks a rule of the notes: no blank line
   before or after the note, lines without the indentation of four spaces, a
@@ -210,7 +216,9 @@ The first version.
   is not formatted, and `-` formats the standard input. The specification of
   the format of the notes tells AI agents to run it after a change. Programs
   call the same formatter as the library `formatMarkdown(lines)` of the
-  package, with its types.
+  package, with its types. `markdownnotes strip <file>` writes the text of a
+  file without its notes to the standard output, and `--out <folder>` writes
+  copies of several files; the library has `stripNotes(lines)`.
 - The extension pack installs "Markdown Footnotes" of Matt Bierner, so that
   the preview shows the other footnotes of a file.
 - The notes work together with the Markdown extensions of other publishers,

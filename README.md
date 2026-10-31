@@ -101,6 +101,11 @@ describes each step and where its protection ends.
   of a note; a second click shows them again. VS Code with the extension
   shows the notes of both forms in the same way. The setting
   `hideNotesInNewFiles` hides the notes of new files.
+- **Publish the text without notes.** "Copy without Notes" and "Save Copy
+  without Notes", in the menu "…" of the title of the side view, write the
+  text of the file without its notes to the clipboard or to a new file, for
+  a website or a PDF. The standard footnotes and the rest of the text stay.
+  On the command line, `markdownnotes strip paper.md` does the same.
 - **Todo notes.** A note can be a task: ` · todo` at the end of the header of
   its first answer, ` · done` when it is completed. A check box in the side
   view marks it completed.
@@ -216,6 +221,7 @@ you add or answer a note. In the side view "Notes":
 | Add a footnote | Put the cursor where the reference goes, then press Shift+Alt+B (Cmd+K B on a Mac), click "Add Footnote" (`+¹`) in the title of the side view, or type `/footnote` after the word. Write the text, then click "Add Footnote". |
 | Edit or delete a footnote | Click "Edit" (pencil) or "Delete" (trash can) at the footnote. |
 | Hide the notes from other viewers | Click the eye in the title of the side view. Click it again to show them. |
+| Copy the text without notes | Click "…" in the title of the side view, then "Copy without Notes" or "Save Copy without Notes". |
 
 In the text editor or in the Markdown preview (Ctrl+K V opens it to the
 side), click a highlight to select its note, and double-click it to open the

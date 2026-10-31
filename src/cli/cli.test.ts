@@ -6,18 +6,21 @@
  * These tests check the command line tool of the formatter (R-FMT-004): the command `format` writes only the files
  * that change, with their line breaks and byte order mark, the current code of the listings (R-CODE-002), `--check`
  * changes no file and exits with 1, `-` formats the standard input, and a wrong command, a wrong option, a file that
- * cannot be read or a file of a higher major version of the format exits with 2.
+ * cannot be read or a file of a higher major version of the format exits with 2. The command `strip` (R-HIDE-004) writes
+ * the text without notes to the standard output or into a folder, and never changes a file.
  */
 
 import { describe, expect, test } from 'vitest';
 import { version } from '../../package.json';
 import { formatVersion, versionText } from '../notes/doctype';
-import { command, formatText, type Io, run, usage } from './cli';
+import { doctypeLines } from '../notes/doctype';
+import { command, formatText, type Io, run, stripText, usage } from './cli';
 
 /** Fake is an Io in memory, with the files, the standard input, and what the tool wrote. */
 interface Fake extends Io {
   files: Map<string, string>;
   written: string[];
+  folders: string[];
   stdout: string[];
   errors: string[];
 }
@@ -31,6 +34,7 @@ function fakeOf(files: Record<string, string>, stdin = ''): Fake {
   const fake: Fake = {
     files: new Map(Object.entries(files)),
     written: [],
+    folders: [],
     stdout: [],
     errors: [],
     readFile: (path) => {
@@ -45,6 +49,7 @@ function fakeOf(files: Record<string, string>, stdin = ''): Fake {
       fake.written.push(path);
     },
     readStdin: () => stdin,
+    makeFolder: (path) => fake.folders.push(path),
     writeStdout: (text) => fake.stdout.push(text),
     out: (line) => fake.stdout.push(`${line}\n`),
     err: (line) => fake.errors.push(line),
@@ -151,6 +156,80 @@ describe('the command format', () => {
     };
     expect(run(['format', 'a.md'], fake)).toBe(2);
     expect(fake.errors).toEqual(['a.md: EACCES: permission denied']);
+  });
+});
+
+/** noted is a file with the comment of the format, a note and a standard footnote. */
+const noted = [...doctypeLines, '', 'The <wbr><!--[note-7k2q-->text[^note-7k2q] of a paper.[^1]', '', '[^note-7k2q]: **hannes** · 2026-10-28 18:03+01:00', '', '    Please check.', '', '[^1]: A footnote.', ''].join('\n');
+/** clean is the text of noted without its note. */
+const clean = 'The text of a paper.[^1]\n\n[^1]: A footnote.\n';
+
+describe('the command strip (R-HIDE-004)', () => {
+  test('writes the text of a file without its notes to the standard output, and changes no file', () => {
+    const fake = fakeOf({ 'paper.md': noted });
+    expect(run(['strip', 'paper.md'], fake)).toBe(0);
+    expect(fake.stdout).toEqual([clean]);
+    expect(fake.written).toEqual([]);
+    expect(fake.errors).toEqual([]);
+  });
+
+  test('keeps the line breaks of the file and its byte order mark', () => {
+    expect(stripText(noted.replaceAll('\n', '\r\n'))).toBe(clean.replaceAll('\n', '\r\n'));
+    expect(stripText(`\uFEFF${noted}`)).toBe(`\uFEFF${clean}`);
+  });
+
+  test('reads the standard input with -', () => {
+    const fake = fakeOf({}, noted);
+    expect(run(['strip', '-'], fake)).toBe(0);
+    expect(fake.stdout).toEqual([clean]);
+  });
+
+  test('writes a copy of each file into the folder of --out, and never over a file itself or another copy', () => {
+    const fake = fakeOf({ 'paper/a.md': noted, 'paper/b.md': clean, 'other/a.md': noted });
+    expect(run(['strip', '--out', 'public', 'paper/a.md', 'paper/b.md'], fake)).toBe(0);
+    expect(fake.written).toEqual(['public/a.md', 'public/b.md']);
+    expect(fake.files.get('public/a.md')).toBe(clean);
+    expect(fake.files.get('paper/a.md')).toBe(noted);
+    expect(fake.folders).toContain('public');
+    const same = fakeOf({ 'paper/a.md': noted, 'other/a.md': noted });
+    expect(run(['strip', 'paper/a.md', '--out', 'paper', 'other/a.md'], same)).toBe(2);
+    expect(same.written).toEqual([]);
+    expect(same.errors).toEqual([
+      'paper/a.md: the copy paper/a.md would replace the file itself; choose another folder',
+      'other/a.md: the copy paper/a.md would replace another file of the command; choose another folder',
+    ]);
+    const twins = fakeOf({ 'paper/a.md': noted, 'other/a.md': noted });
+    expect(run(['strip', '--out', 'public', 'paper/a.md', 'other/a.md'], twins)).toBe(2);
+    expect(twins.written).toEqual(['public/a.md']);
+    expect(twins.errors).toEqual(['other/a.md: the copy public/a.md would replace the copy of another file of the same name; choose another folder']);
+  });
+
+  test('writes nothing for a file of a higher major version of the format, and exits with 2', () => {
+    const newer = noted.replace(/v\d+\.\d+\.\d+/, 'v2.0.0');
+    const fake = fakeOf({ 'new.md': newer }, newer);
+    expect(run(['strip', 'new.md'], fake)).toBe(2);
+    expect(fake.stdout).toEqual([]);
+    expect(fake.errors).toEqual([
+      'new.md: the file uses version 2.0.0 of the format of the notes, and this version of markdownnotes knows only the versions 1.x, so it writes no text without notes for it. Run the newest version: npx -y @nimblescape/markdownnotes@latest strip',
+    ]);
+  });
+
+  test('exits with 2 for a wrong use: no file, several files without --out, --out without a folder, - with --out, an unknown option', () => {
+    const fake = fakeOf({ 'a.md': noted, 'b.md': noted });
+    expect(run(['strip'], fake)).toBe(2);
+    expect(run(['strip', 'a.md', 'b.md'], fake)).toBe(2);
+    expect(run(['strip', 'a.md', '--out'], fake)).toBe(2);
+    expect(run(['strip', '--out', 'public', '-'], fake)).toBe(2);
+    expect(run(['strip', '--all', 'a.md'], fake)).toBe(2);
+    expect(fake.errors.map((error) => error.split('\n')[0])).toEqual([
+      'No file to strip.',
+      'Several files need --out <folder>.',
+      'The option --out needs a folder.',
+      'The standard input goes to the standard output, without --out.',
+      'Unknown option "--all".',
+    ]);
+    expect(fake.stdout).toEqual([]);
+    expect(fake.written).toEqual([]);
   });
 });
 
