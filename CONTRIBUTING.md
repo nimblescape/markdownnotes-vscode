@@ -42,7 +42,7 @@ describes its security model.
 | `src/snippets.ts` | The snippets of the source files and the links of the listings: `/snippet` after a slash that replaced selected lines of a source file, the command and the light bulb action "Add Snippet", which ask for the name and write the two marks, and the links of the listings in a Markdown file to their source at the line of the snippet: on the comment of each listing, and in the clean editing view, which hides the comment, on the text of the caption. |
 | `src/usedSnippets.ts` | The snippets in the text editor of a source file ([R-CODE-004](docs/requirements.md#r-code-004)): the tags in place of the mark lines of each snippet, the start tag with the listings of the Markdown files of the workspace that show it (`usesOfText`); the cursor that jumps over the mark lines (`offLines` of `src/notes/cursor.ts`) and the keys next to them that do nothing; the click on a start tag that opens a listing and on an end tag that goes to the start; "Rename Snippet" and "Remove Snippet" in the light bulb; and the buttons "Show Used Snippets" and "Hide Used Snippets" with their context keys. The uses are read again half a second after a change of a Markdown file. |
 | `src/notes/slash.ts` | The text of the slash commands: the typed command, the sentence before it for `/todo`, and the date and the time. It uses no API of VS Code. |
-| `src/notes/footnotes.ts` | The standard footnotes of a Markdown text, the footnotes that are no note: their definitions, read line by line as markdown-it-footnote and GitHub read them, their references, their order and the numbers that GitHub and the Markdown preview show, and the edits that save, delete and add a footnote, with the next free number, the place of a new reference at the cursor and the place of its definition; the forms that the checks warn about (`footnoteProblemsOf`), the definition of the quick fix "Add Definition" (`addDefinition`) and the new labels of "Renumber Footnotes" (`renumberFootnotes`). It uses no API of VS Code. |
+| `src/notes/footnotes.ts` | The standard footnotes of a Markdown text, the footnotes that are no note: their definitions, read line by line as markdown-it-footnote and GitHub read them, their references, their order and the numbers that GitHub and the Markdown preview show, and the edits that save, delete and add a footnote, with the next free number, the place of a new reference at the cursor and the place of its definition; the forms that the checks warn about (`footnoteProblemsOf`), the definition of the quick fix "Add Definition" (`addDefinition`), the new labels of "Renumber Footnotes" (`renumberFootnotes`) and the note that becomes a footnote (`makeFootnote`). It uses no API of VS Code. |
 | `src/links.ts` | The links of the rendered notes in the side view: web and mail links with the system, files in VS Code at a line or a heading, other schemes after a question, and no command links. |
 | `src/format/format.ts` | The Markdown formatter: the steps of the figures, the tables and the listings of `src/notes/figures.ts` and `src/notes/listings.ts`, each paragraph on one line with its hard line breaks, the aligned columns of the tables by the width that the text editor shows, the white space at the ends of the lines, the blank lines between the blocks and the line break at the end, read with markdown-it as the preview reads the text, and the check that the formatted text shows the same blocks in the preview. It uses no API of VS Code. |
 | `src/formatter.ts` | The provider of "Format Document" for Markdown files, and the changes on the save of a Markdown file (`onWillSaveTextDocument`): the format of a file with notes, with the comment of the format, with a part whose text the formatter keeps current (`keptCurrent` of `src/format/format.ts`) or with a part that a step of another extension formats, the reader of the source files of the listings (`sourceOf`: the open document, else the disk), the steps of other extensions after the steps of the notes (`FormatSteps`), which run again with the steps of the notes while they change the text, at most three times, and a missing comment of the format of a file with notes, in one edit of the changed lines with the line breaks of the document. |
@@ -327,7 +327,9 @@ comment keeps the line in the paragraph. A note of an older file without a
 start marker has the highlight from the start of the text of its block, for
 the warning and for the formatter, which adds the marker there. `colorNote`
 writes the color into the start marker. `deleteNote` removes the start marker
-and the reference with the definition. The storage of the notes stays in
+and the reference with the definition (`withoutNote`), and `makeFootnote` of
+`src/notes/footnotes.ts` puts the reference of a standard footnote in place
+of the reference. The storage of the notes stays in
 `src/notes/`, so that another form of storage changes only this folder.
 
 **Warnings** ([R-TEXT-008](docs/requirements.md#r-text-008)). `checksOf` in
@@ -505,8 +507,8 @@ markdown-it and has no blocks for it, so the action and the side view use
 for each version.
 
 The operations `saveAnswer`, `answer` (with the parent of a reply),
-`addNote`, `colorNote`, `saveNoteText`, `deleteAnswer` and `deleteNote` of
-`NoteThreads` write the changes of the side view, and `saveFootnote`,
+`addNote`, `colorNote`, `saveNoteText`, `deleteAnswer`, `deleteNote` and
+`makeFootnote` of `NoteThreads` write the changes of the side view, and `saveFootnote`,
 `deleteFootnote` and `addFootnote` the changes of a standard footnote, which
 add no comment of the format and need no check of its version, because a
 footnote is no note. Each one reads the notes of
@@ -633,7 +635,7 @@ the preview does, and keeps up to 200 rendered texts.
   todo note), `color`, `todo` (the check box of a todo note, with `done`),
   `saveText` (the text view, with the text that it started with),
   `deleteAnswer` (with the `AnswerRef`),
-  `deleteNote`, `reveal`, `render` (the preview of an editor), `openLink` (a
+  `deleteNote`, `makeFootnote`, `reveal`, `render` (the preview of an editor), `openLink` (a
   click on a link of a rendered text, which `src/links.ts` opens),
   `deselect`, `signIn` and `ready`, and for a standard footnote
   `saveFootnote` (with the text that the editor started with),

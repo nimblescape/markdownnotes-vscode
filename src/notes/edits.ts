@@ -40,7 +40,9 @@ export interface Edit {
  * ([R-FOOT-002](../../docs/requirements.md#r-foot-002), [R-FOOT-003](../../docs/requirements.md#r-foot-003)): an empty
  * text, a cursor where no reference can stand, a text that Markdown would not read back as the footnote, a footnote
  * that the document no longer holds, a footnote that changed after the editor opened, and a definition for a label that
- * has one already ([R-FOOT-004](../../docs/requirements.md#r-foot-004)).
+ * has one already ([R-FOOT-004](../../docs/requirements.md#r-foot-004)). `notMade` is a note that cannot become a
+ * footnote ([R-FOOT-006](../../docs/requirements.md#r-foot-006)): without a reference, with a first answer without a
+ * text, or with a result that Markdown would not read back as the footnote.
  */
 export type Problem =
   | { kind: 'empty' }
@@ -57,7 +59,8 @@ export type Problem =
   | { kind: 'footnoteStructure' }
   | { kind: 'footnoteMissing' }
   | { kind: 'footnoteChanged' }
-  | { kind: 'footnoteExists' };
+  | { kind: 'footnoteExists' }
+  | { kind: 'notMade'; reason: 'reference' | 'empty' | 'structure' };
 
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };
@@ -530,17 +533,23 @@ export function insertNote(
 }
 
 /**
- * deleteNote returns the edit that removes a note from the text: its definition with one blank line next to it, and
- * its reference and its start marker ([R-EDIT-004](../../docs/requirements.md#r-edit-004)).
+ * withoutNote returns the lines of the text without a note: without its definition and one blank line next to it, and
+ * without its start marker, with a text in place of its reference.
  * @param lines - The lines of the Markdown text.
  * @param note - The note.
+ * @param reference - The text in place of the reference; empty to remove it.
  */
-export function deleteNote(lines: readonly string[], note: Note): Edit {
+export function withoutNote(lines: readonly string[], note: Note, reference = ''): string[] {
   const next = [...lines];
-  const parts = [note.reference, note.marker].filter((part): part is Range => part !== undefined).sort((a, b) => (before(a.start, b.start) ? 1 : -1));
-  for (const part of parts) {
-    const line = next[part.start.line];
-    next[part.start.line] = line.slice(0, part.start.character) + line.slice(part.end.character);
+  const parts = [
+    { range: note.reference, text: reference },
+    { range: note.marker, text: '' },
+  ]
+    .filter((part): part is { range: Range; text: string } => part.range !== undefined)
+    .sort((a, b) => (before(a.range.start, b.range.start) ? 1 : -1));
+  for (const { range, text } of parts) {
+    const line = next[range.start.line];
+    next[range.start.line] = line.slice(0, range.start.character) + text + line.slice(range.end.character);
   }
   const at = note.start.line;
   next.splice(at, note.end.line - at + 1);
@@ -548,7 +557,17 @@ export function deleteNote(lines: readonly string[], note: Note): Edit {
   if (at > 0 && blank(at - 1) && blank(at)) {
     next.splice(at - 1, 1);
   }
-  return editBetween(lines, next);
+  return next;
+}
+
+/**
+ * deleteNote returns the edit that removes a note from the text: its definition with one blank line next to it, and
+ * its reference and its start marker ([R-EDIT-004](../../docs/requirements.md#r-edit-004)).
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ */
+export function deleteNote(lines: readonly string[], note: Note): Edit {
+  return editBetween(lines, withoutNote(lines, note));
 }
 
 /**

@@ -23,6 +23,7 @@ import {
   footnoteDefinition,
   footnoteProblemsOf,
   insertFootnote,
+  makeFootnote,
   nextFootnoteLabel,
   placeText,
   readFootnotes,
@@ -30,6 +31,7 @@ import {
   renumberFootnotes,
   replaceFootnote,
 } from './footnotes';
+import { findNotes } from './notes';
 
 /**
  * lines returns the lines of a text.
@@ -318,5 +320,57 @@ describe('"Renumber Footnotes" (R-FOOT-005)', () => {
     const text = ['A[^2] b[^gone].', '', '[^2]: x'];
     const result = renumberFootnotes(text);
     expect('edits' in result && applied(text, result.edits)).toBe(['A[^1] b[^gone].', '', '[^1]: x'].join('\n'));
+  });
+});
+
+describe('"Make Footnote" (R-FOOT-006)', () => {
+  /**
+   * made returns the text after "Make Footnote" for the first note of a text, with the label of the footnote, or the
+   * problem.
+   * @param text - The lines of the text.
+   */
+  const made = (text: string[]): { text: string; label: string } | string => {
+    const result = makeFootnote(text, findNotes(text)[0]);
+    return 'problem' in result ? result.problem : { text: applyEdit(text, result.edit).join('\n'), label: result.label };
+  };
+
+  test('the reference of the note gets the next free number, the first answer becomes the definition after the last one, and the marker and the replies go', () => {
+    const text = [
+      'The agents <wbr><!--[note-7k2q green-->change[^note-7k2q] the work[^1].',
+      '',
+      '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00 · todo',
+      '',
+      '    Which teams?',
+      '',
+      '    > **anna** · 2026-10-28 11:02+01:00',
+      '    >',
+      '    > The teams of the plan.',
+      '',
+      'Next.',
+      '',
+      '[^1]: One.',
+      '',
+    ];
+    expect(made(text)).toEqual({ text: ['The agents change[^2] the work[^1].', '', 'Next.', '', '[^1]: One.', '', '[^2]: Which teams?', ''].join('\n'), label: '2' });
+  });
+
+  test('a text of more than one paragraph keeps its paragraphs, indented by four spaces, at the end of a text without a footnote', () => {
+    const text = ['Text <!--[note-7k2q-->here[^note-7k2q].', '', '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00', '', '    First, *in part* bold.', '', '    Second.', ''];
+    expect(made(text)).toEqual({ text: 'Text here[^1].\n\n[^1]: First, *in part* bold.\n\n    Second.\n', label: '1' });
+  });
+
+  test('a note of the hidden form becomes a footnote that every viewer shows, with the text without its escape', () => {
+    const text = ['Text <wbr><!--[note-7k2q-->here<!--note-7k2q]-->.', '', '<!--', '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00', '', '    a --\\> b', '-->', ''];
+    expect(made(text)).toEqual({ text: 'Text here[^1].\n\n[^1]: a --> b\n', label: '1' });
+  });
+
+  test('a reference in the text of a link stays there, as GitHub and the Markdown preview read it in a link too', () => {
+    const text = ['A [link <!--[note-7k2q-->text[^note-7k2q]](https://example.com).', '', '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00', '', '    Body.'];
+    expect(made(text)).toEqual({ text: 'A [link text[^1]](https://example.com).\n\n[^1]: Body.', label: '1' });
+  });
+
+  test('a note without a reference and a first answer without a text change nothing', () => {
+    expect(made(['Text.', '', '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00', '', '    Body.'])).toBe('reference');
+    expect(made(['Text[^note-7k2q].', '', '[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00'])).toBe('empty');
   });
 });

@@ -58,7 +58,18 @@ import {
 } from './notes/edits';
 import { checksOf, footnoteChecksOf, listingChecksOf } from './notes/checks';
 import { formatVersion, newerFormat, versionText } from './notes/doctype';
-import { addDefinition, deleteFootnote, type Footnote, type FootnoteResult, insertFootnote, readFootnotes, type RenumberResult, renumberFootnotes, replaceFootnote } from './notes/footnotes';
+import {
+  addDefinition,
+  deleteFootnote,
+  type Footnote,
+  type FootnoteResult,
+  insertFootnote,
+  makeFootnote,
+  readFootnotes,
+  type RenumberResult,
+  renumberFootnotes,
+  replaceFootnote,
+} from './notes/footnotes';
 import { findNotes, type Note, noteAt, ownLines, type Position, type Reading, read, readNotes } from './notes/notes';
 import { formatDate, normalizeBody, type TodoState } from './notes/syntax';
 
@@ -151,6 +162,15 @@ export function problemMessage(problem: Problem): string {
       return 'The change was not saved: the footnote changed in the meantime. Look at the footnote again, and repeat the change if it is still needed.';
     case 'footnoteExists':
       return 'The definition was not added: the file has a definition of this footnote already.';
+    case 'notMade':
+      switch (problem.reason) {
+        case 'reference':
+          return 'The note did not become a footnote: the text holds no reference of the note, so the footnote would have no place.';
+        case 'empty':
+          return 'The note did not become a footnote: its first answer has no text. Write the text of the footnote into the first answer first.';
+        case 'structure':
+          return 'The note did not become a footnote: Markdown would not read the changed text as one footnote with one reference.';
+      }
   }
 }
 
@@ -637,6 +657,31 @@ export class NoteThreads implements vscode.Disposable {
    */
   deleteNote(document: vscode.Uri, id: string): Promise<Problem | undefined> {
     return this.change(document, id, (lines, note) => ({ edit: deleteNote(lines, note) }), () => false);
+  }
+
+  /**
+   * makeFootnote turns a note into a standard footnote with the next free number as its label, in one edit that Undo
+   * takes back ([R-FOOT-006](../docs/requirements.md#r-foot-006)).
+   * @param document - The URI of the document.
+   * @param id - The identifier of the thread of the note.
+   * @returns The label of the new footnote, or the problem that prevents the change.
+   */
+  async makeFootnote(document: vscode.Uri, id: string): Promise<{ label: string } | { problem: Problem }> {
+    let label = '';
+    const problem = await this.change(
+      document,
+      id,
+      (lines, note) => {
+        const result = makeFootnote(lines, note);
+        if ('problem' in result) {
+          return { problem: { kind: 'notMade', reason: result.problem } };
+        }
+        label = result.label;
+        return { edit: result.edit };
+      },
+      () => false,
+    );
+    return problem ? { problem } : { label };
   }
 
   /**

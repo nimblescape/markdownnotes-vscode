@@ -85,6 +85,11 @@ The first version.
   "Renumber Footnotes" (Command Palette, menu "…" of the side view) gives the
   footnotes whose labels are numbers the labels 1, 2, 3 … in the order of
   their first reference, in one change; labels that are words stay.
+- "Make Footnote" at a thread of the side view turns a note whose text the
+  authors accept into a standard footnote: the text of the first answer
+  becomes the footnote, the reference of the note gets the next free number,
+  and the definition goes after the last one; the start marker and the
+  replies go. A note with replies asks first.
 - Todo notes: the header of the first answer of a note ends with ` · todo`
   for an open task and ` · done` for a completed one; a check box in the side
   view changes it.

@@ -176,7 +176,7 @@ form of the notes in a file for programs and AI agents, and
   "Clear Filter"; the filters combine
   ([R-SIDE-008](requirements.md#r-side-008)).
 - **Editor:** icon buttons with tooltips: "Reply", "Edit", "Delete" for each
-  answer; color, line, "Show as Text", "Answer" and "Delete Thread" for each
+  answer; color, line, "Show as Text", "Answer", "Make Footnote" and "Delete Thread" for each
   thread; the tabs "Visual" and "Markdown" in each editor, and "Write" and
   "Preview" in the tab "Markdown" ([R-SIDE-002](requirements.md#r-side-002)).
 - **New note:** "Add Note" in the title and in the context menu, only for
@@ -281,7 +281,11 @@ form of the notes in a file for programs and AI agents, and
 - "Renumber Footnotes": the footnotes whose labels are numbers get 1, 2, 3 …
   in the order of their first reference, in one edit; labels that are words
   stay ([R-FOOT-005](requirements.md#r-foot-005)).
-- **Planned:** "Make Footnote" ([R-FOOT-006](requirements.md#r-foot-006)).
+- "Make Footnote" at a thread: the text of the first answer becomes a
+  standard footnote with the next free number, whose reference takes the
+  place of the reference of the note and whose definition goes after the
+  last definition; the start marker and the replies go, and a note with
+  replies asks first ([R-FOOT-006](requirements.md#r-foot-006)).
 
 ## 11. Figures, tables, sections and listings
 

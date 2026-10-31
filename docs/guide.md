@@ -53,7 +53,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Listings of code](#listings-of-code) | text editor, formatter, command line | available | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
 | [Checks of the footnotes](#checks-of-the-footnotes), [Renumber Footnotes](#renumber-the-footnotes) | text editor, Problems view, Command Palette, side view | available | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) |
-| "Make Footnote" | side view | planned | [R-FOOT-006](requirements.md#r-foot-006) |
+| [Make a note a footnote](#make-a-note-a-footnote) | side view | available | [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
@@ -490,7 +490,8 @@ text of the notes, and their editor:
 - The buttons are small icons with a tooltip, as the buttons in the title of
   an editor of VS Code. Each answer has "Reply" (an arrow), "Edit" (a pencil)
   and "Delete" (a trash can). Each thread has its color, "Line N", "Show as
-  Text", "Answer" (a speech bubble) and "Delete Thread" (a trash can); a
+  Text", "Answer" (a speech bubble), "Make Footnote" (a numbered list) and
+  "Delete Thread" (a trash can); a
   todo note has its check box before its color ([Todo notes](#todo-notes)).
   The title of the view has "Add Note" (`+`), "Add Footnote" (`+¹`) and,
   for a file with notes, the eye, which hides the notes from other viewers
@@ -1219,6 +1220,49 @@ First[^1], then[^2].
   ([Checks of the footnotes](#checks-of-the-footnotes)).
 - The numbers that GitHub and the preview show do not depend on the labels;
   the command makes the labels of the file match the order of the text.
+
+### Make a note a footnote
+
+When the authors accept the text of a note into the document, "Make
+Footnote" (the numbered list in the header of the thread) turns the note into
+a standard footnote. Before and after:
+
+```markdown
+The agents <wbr><!--[note-7k2q-->change the work[^note-7k2q] of teams[^1].
+
+[^note-7k2q]: **hannes** · 2026-10-28 10:15+01:00
+
+    A source for this claim.
+
+    > **anna** · 2026-10-28 11:02+01:00
+    >
+    > Agreed.
+
+[^1]: One.
+```
+
+```markdown
+The agents change the work[^2] of teams[^1].
+
+[^1]: One.
+
+[^2]: A source for this claim.
+```
+
+- The text of the first answer becomes the text of the footnote. The
+  reference of the note at the end of the highlight becomes the reference of
+  the footnote, with the next free number as its label, as for
+  [a new footnote](#footnotes-in-the-side-view); its definition goes after
+  the last definition of a footnote, or at the end of the file.
+- The start marker, the definition of the note and its replies go. A note
+  with replies asks first. The side view then selects the new footnote.
+- A note of the hidden form becomes a footnote that every viewer shows.
+- A note without a reference in the text, or whose first answer has no text,
+  stays, and a message says why.
+- Undo in the text editor of the file itself brings the note back; in the
+  clean editing view, choose "Open File with Markup" first
+  ([Limits](#limits)). "Renumber Footnotes" then puts the numbers in the
+  order of the text ([Renumber the footnotes](#renumber-the-footnotes)).
 
 ## Highlights in the Markdown preview
 

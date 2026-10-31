@@ -899,6 +899,31 @@ test('Edit saves the text of a footnote, a click shows its first reference, or i
   expect(view.state().threads.map((thread) => thread.id)).toEqual(['1', 'footnote-src', 'footnote-alone']);
 });
 
+test('"Make Footnote" asks first for a note with replies, turns the note into a standard footnote with the next free number, and selects it (R-FOOT-006)', async () => {
+  const { document, view } = await start();
+  const before = document.text;
+  await send(view, { type: 'makeFootnote', id: '1' });
+  expect(fake.warnings).toEqual([
+    'Make the note a footnote? The text of its first answer becomes the text of the footnote, and its reply goes with the note. Undo in the text editor of the file brings the note back; in the clean editing view, choose "Open File with Markup" first.',
+  ]);
+  expect(document.text).toBe(before);
+  fake.answer = 'Make Footnote';
+  await send(view, { type: 'makeFootnote', id: '1' });
+  // The file holds no note any more, so the comment of the format goes, as after "Delete Thread".
+  expect(document.text).toBe('# Title\n\nThe text[^1] of the page.\n\nMore.\n\n[^1]: The **text**.\n');
+  expect(view.state().threads.map((thread) => thread.id)).toEqual(['footnote-1']);
+  expect(view.state().selected).toBe('footnote-1');
+});
+
+test('"Make Footnote" of a note without replies asks nothing, and a first answer without a text shows why the note stays (R-FOOT-006)', async () => {
+  const { document, view } = await start('Text[^note-aaaa] and[^1].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n[^1]: One.\n');
+  const before = document.text;
+  await send(view, { type: 'makeFootnote', id: '1' });
+  expect(fake.warnings).toEqual([]);
+  expect(fake.errors).toEqual(['The note did not become a footnote: its first answer has no text. Write the text of the footnote into the first answer first.']);
+  expect(document.text).toBe(before);
+});
+
 test('"Add Footnote" opens the editor of a new footnote, whose title follows the cursor, and Save writes the reference at the cursor and the definition (R-FOOT-003)', async () => {
   const text = 'The agents change the work.\n\n`code`\n';
   const { document, editor, view } = await start(text, 2);

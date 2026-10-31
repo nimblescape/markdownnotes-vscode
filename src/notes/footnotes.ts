@@ -9,9 +9,11 @@
  * ([R-FOOT-002](../../docs/requirements.md#r-foot-002),
  * [R-FOOT-003](../../docs/requirements.md#r-foot-003)), the forms that the
  * checks warn about ([R-FOOT-004](../../docs/requirements.md#r-foot-004)),
- * and the new labels of "Renumber Footnotes"
- * ([R-FOOT-005](../../docs/requirements.md#r-foot-005)). A footnote is its
- * definition, `[^1]: ` and its text, and the references `[^1]` in the text:
+ * the new labels of "Renumber Footnotes"
+ * ([R-FOOT-005](../../docs/requirements.md#r-foot-005)), and the note that
+ * becomes a footnote ([R-FOOT-006](../../docs/requirements.md#r-foot-006)).
+ * A footnote is its definition, `[^1]: ` and its text, and the references
+ * `[^1]` in the text:
  *
  * ```markdown
  * The agents change the work[^1] of teams.
@@ -35,8 +37,8 @@
  */
 
 import { frontMatterEnd } from './doctype';
-import { blockAt, type Edit, applyEdit, referenceAllowed } from './edits';
-import { before, type Position, type Range, type Reading, read, same } from './notes';
+import { blockAt, type Edit, applyEdit, editBetween, referenceAllowed, withoutNote } from './edits';
+import { before, type Note, type Position, type Range, type Reading, read, same } from './notes';
 import { normalizeBody, usedLabels } from './syntax';
 
 /** Footnote is a standard footnote of a text: its label, its definition, and its references. */
@@ -573,6 +575,38 @@ export function addDefinition(lines: readonly string[], label: string, text: str
   const edit: Edit = { start: definition.at, end: definition.at, text: definition.text };
   const first = definition.at.line + (definition.text.startsWith('\n\n') ? 2 : 0);
   return readsBack(applyEdit(lines, edit), label, first, normalized) ? { edits: [edit] } : { problem: 'structure' };
+}
+
+/** MakeResult is the edit of "Make Footnote" with the label of the new footnote, or the problem that prevents it. */
+export type MakeResult = { edit: Edit; label: string } | { problem: 'reference' | 'empty' | 'structure' };
+
+/**
+ * makeFootnote returns the edit of "Make Footnote" ([R-FOOT-006](../../docs/requirements.md#r-foot-006)): the note
+ * becomes a standard footnote with the next free number as its label. The reference of the note at the end of its
+ * highlight becomes the reference of the footnote, and the text of the first answer the text of its definition, at the
+ * place of the definition of a new footnote ([R-FOOT-003](../../docs/requirements.md#r-foot-003)). The start marker and
+ * the definition of the note with its replies go, as with "Delete Thread". It writes only a text that Markdown reads
+ * back as this footnote with one reference, and without the note.
+ * @param lines - The lines of the Markdown text.
+ * @param note - The note.
+ */
+export function makeFootnote(lines: readonly string[], note: Note): MakeResult {
+  if (!note.reference) {
+    return { problem: 'reference' };
+  }
+  const text = normalizedText(note.answers[0]?.body ?? '');
+  if (text === '') {
+    return { problem: 'empty' };
+  }
+  const label = nextFootnoteLabel(lines);
+  const next = withoutNote(lines, note, `[^${label}]`);
+  const definition = footnoteDefinition(next, label, text);
+  const changed = applyEdit(next, { start: definition.at, end: definition.at, text: definition.text });
+  const first = definition.at.line + (definition.text.startsWith('\n\n') ? 2 : 0);
+  const reading = read(changed);
+  const references = readFootnotes(changed, reading).find((footnote) => footnote.label === label)?.references.length;
+  const made = readsBack(changed, label, first, text) && references === 1 && !reading.notes.some((candidate) => candidate.label === note.label);
+  return made ? { edit: editBetween(lines, changed), label } : { problem: 'structure' };
 }
 
 /** RenumberResult is the edits of "Renumber Footnotes", or why it changes nothing. */

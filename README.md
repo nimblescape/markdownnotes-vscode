@@ -81,7 +81,7 @@ describes each step and where its protection ends.
   thread to the top, and each thread that is not selected is dimmed. The buttons are icons with tooltips, as in the title of
   an editor:
   "Reply", "Edit" and "Delete" at each answer, the color, "Show as Text",
-  "Answer" and "Delete Thread" at each thread. "Show as Text" shows the whole
+  "Answer", "Make Footnote" and "Delete Thread" at each thread. "Show as Text" shows the whole
   note as the file holds it, and you can change it there. Each editor of a
   text has the tabs "Visual", where you edit the rendered text with the
   editor of the VS Code Markdown Editor, a toolbar and Ctrl+B, Ctrl+I,
@@ -221,6 +221,7 @@ you add or answer a note. In the side view "Notes":
 | Change the color | Click the color at the left of the thread, then a new color. |
 | See the whole note | Click "Show as Text" at the thread. |
 | Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor of the file itself ("Open File with Markup") brings it back. |
+| Make a note a footnote | Click "Make Footnote" (numbered list) at the thread. The text of the first answer becomes a standard footnote with the next free number, at the end of the highlight; the replies go. A note with replies asks first. Undo in the text editor of the file itself brings the note back. |
 | Add a footnote | Put the cursor where the reference goes, then press Shift+Alt+B (Cmd+K B on a Mac), click "Add Footnote" (`+¹`) in the title of the side view, or type `/footnote` after the word. Write the text, then click "Add Footnote". |
 | Edit or delete a footnote | Click "Edit" (pencil) or "Delete" (trash can) at the footnote. |
 | Hide the notes from other viewers | Click the eye in the title of the side view. Click it again to show them. |

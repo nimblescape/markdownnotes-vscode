@@ -61,7 +61,7 @@ requirement, the plan and the decisions of Hannes.
 | 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
 | 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
 | 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | done |
-| 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
+| 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | done |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
 | 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
@@ -1025,7 +1025,8 @@ dates have tooltips too. The buttons:
 - Each thread has the button with its color, which opens the colors of the
   notes ([R-TEXT-006](#r-text-006)), the line of its note, which shows the
   note in the text editor, and "Show as Text", "Answer" (a reply to the
-  note, [R-EDIT-005](#r-edit-005)) and "Delete Thread".
+  note, [R-EDIT-005](#r-edit-005)), "Make Footnote"
+  ([R-FOOT-006](#r-foot-006)) and "Delete Thread".
 - "Show as Text" switches the thread to its text view: the whole text of the
   note, the lines of its definition as the file holds them, in the font of
   the text editor. The user changes the text there. "Save" writes it into
@@ -1793,6 +1794,18 @@ next free number as its label ([R-FOOT-003](#r-foot-003)), and the start
 marker and the replies go. It asks first when the note has replies. Undo
 brings the note back.
 
+- The definition goes at the place of the definition of a new footnote:
+  after the last definition of a standard footnote, or at the end of the
+  text ([R-FOOT-003](#r-foot-003)). The definition of the note goes with one
+  blank line, as with "Delete Thread" ([R-EDIT-004](#r-edit-004)).
+- The extension writes the change only when Markdown reads the changed text
+  as this footnote with one reference and without the note. A note without
+  a reference in the text, or whose first answer has no text, stays, and a
+  message says why.
+- A note of the hidden form ([R-HIDE-001](#r-hide-001)) becomes a footnote
+  that every viewer shows; its text loses the escape of the hidden form.
+- After the change, the side view selects the new footnote.
+
 ## Figures, tables and sections
 
 ### R-XREF-001
@@ -2222,15 +2235,17 @@ repos:
   changes a reference and clones the repository; `mp get` alone clones the
   missing repositories and pulls the branches, into a folder that Git
   ignores, for example `.markdownpaper/repos/server/`; `mp get -u` also
-  moves each tag to the newest tag. CI runs `mp get` before the PDF. The
-  key `layout` is a reference of the same form.
+  moves each tag to the newest tag. The key `layout` is a reference of the
+  same form.
 - The comment of a listing names a reference and a path, for example
   `<!-- listing: server:src/api.ts#read -->`. Markdown Notes reads the file
   from the clone of that reference, through the API between the two
   extensions ([R-GEN-012](#r-gen-012)).
-- The code block of the listing holds the code, so GitHub, the check of a
-  pull request and the PDF need only the repository of the paper for the
-  code.
+- The code block of the listing holds the code, so GitHub shows it without
+  the other repositories. The formatter writes the code anew from the clone
+  at every format, so the check of a pull request and the PDF in CI run
+  `mp get` first, for all repositories that the paper names, with a token
+  with read access for each private one.
 - The link of the caption goes to the other repository at the commit of
   the clone when the formatter wrote the code, for example
   `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the

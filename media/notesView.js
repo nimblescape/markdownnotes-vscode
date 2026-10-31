@@ -166,8 +166,9 @@
    * "trash", "comment", "check", "close", "preview" (the button of the mode "Markdown Preview" of VS Code),
    * and "go-to-file"; the buttons of the toolbar of the visual editor, from version 0.0.46-36 of the codicons, which
    * the package of the visual editor holds: "bold", "italic", "code", "link", "list-unordered", "list-ordered" and
-   * "quote"; and the boxes of the todo notes, drawn for the view: an empty box for an open todo, and a box with a
-   * check mark for a completed one.
+   * "quote", of which "list-ordered" also shows on the button "Make Footnote" of a thread, the numbered list of the
+   * footnotes as on the buttons "Show Footnotes" and "Hide Footnotes"; and the boxes of the todo notes, drawn for the
+   * view: an empty box for an open todo, and a box with a check mark for a completed one.
    */
   const icons = {
     reply:
@@ -723,6 +724,7 @@
         texts.delete(thread.id);
         open(`reply:${thread.id}`, '');
       }),
+      iconButton('list-ordered', 'Make Footnote', () => vscode.postMessage({ type: 'makeFootnote', id: thread.id })),
       iconButton('trash', 'Delete Thread', () => vscode.postMessage({ type: 'deleteNote', id: thread.id })),
     );
     header.append(swatch, button(`Line ${thread.line + 1}`, 'link reveal', () => vscode.postMessage({ type: 'reveal', id: thread.id }), { 'data-tooltip': 'Show the note in the text editor' }), actions);

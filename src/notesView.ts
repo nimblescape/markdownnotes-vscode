@@ -131,6 +131,7 @@ export type Message =
   | { type: 'todo'; id: string; done: boolean }
   | { type: 'deleteAnswer'; id: string; answer: AnswerRef }
   | { type: 'deleteNote'; id: string }
+  | { type: 'makeFootnote'; id: string }
   | { type: 'color'; id: string; color: string | undefined }
   | { type: 'saveText'; request: number; id: string; text: string; original: string }
   | { type: 'render'; request: number; text: string }
@@ -1212,6 +1213,28 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         if (problem) {
           void vscode.window.showErrorMessage(problemMessage(problem));
         }
+        return;
+      }
+      case 'makeFootnote': {
+        const replies = (this.threads.entriesOf(document).find((entry) => entry.id === message.id)?.note.answers.length ?? 1) - 1;
+        if (replies > 0) {
+          // The replies go with the note: the user confirms it first.
+          const choice = await vscode.window.showWarningMessage(
+            `Make the note a footnote? The text of its first answer becomes the text of the footnote, and ${replies === 1 ? 'its reply goes' : `its ${replies} replies go`} with the note. Undo in the text editor of the file brings the note back; in the clean editing view, choose "Open File with Markup" first.`,
+            { modal: true },
+            'Make Footnote',
+          );
+          if (choice !== 'Make Footnote') {
+            return;
+          }
+        }
+        const result = await this.threads.makeFootnote(document, message.id);
+        if ('problem' in result) {
+          void vscode.window.showErrorMessage(problemMessage(result.problem));
+          return;
+        }
+        this.select(document, footnoteId(result.label));
+        await this.refresh();
         return;
       }
       case 'color':
