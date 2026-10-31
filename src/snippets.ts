@@ -23,6 +23,7 @@ import { fileOf } from './cleanView';
 import { listingFilesOf, sourceOf } from './formatter';
 import { findItems } from './notes/figures';
 import { captionLinkOf, captionsOf, findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
+import { referencePath } from './notes/repos';
 
 /** CleanText gives the text of the file of a document of the clean editing view, and the places of the file there. */
 export interface CleanText {
@@ -30,11 +31,24 @@ export interface CleanText {
   toClean(file: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
 }
 
-/** snippetCommands are the commands of the snippets: the one of the Command Palette, and the one of `/snippet`. */
+/**
+ * snippetCommands are the commands of the snippets: the one of the Command Palette, the one of `/snippet`, and the one
+ * of the link of the name of a reference in a listing, which opens the clone of the reference in a new window.
+ */
 export const snippetCommands = {
   add: 'nimblescape.markdownNotes.addSnippet',
   slash: 'nimblescape.markdownNotes.slashSnippet',
+  repository: 'nimblescape.markdownNotes.openRepository',
 };
+
+/** openRepository is the tooltip of the link that opens the clone of a reference in a new window. */
+const openRepository = 'Open Repository in New Window';
+
+/**
+ * openClone opens the folder of a clone in a new window of VS Code, where its files can be edited.
+ * @param folder - The folder of the clone.
+ */
+const openClone = (folder: vscode.Uri) => vscode.commands.executeCommand('vscode.openFolder', folder, { forceNewWindow: true });
 
 /**
  * uncommented are the IDs of the languages without comments, whose files get no marks: JSON (a `.json` file with
@@ -98,6 +112,7 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       vscode.workspace.onDidCloseTextDocument((document) => this.selections.delete(document.uri.toString())),
       vscode.commands.registerCommand(snippetCommands.add, (uri?: vscode.Uri, range?: vscode.Range, name?: string) => this.add(uri, range, name)),
       vscode.commands.registerCommand(snippetCommands.slash, (uri: vscode.Uri, range: vscode.Range) => this.add(uri, range)),
+      vscode.commands.registerCommand(snippetCommands.repository, (folder: string) => openClone(vscode.Uri.parse(folder))),
     ];
   }
 
@@ -244,8 +259,9 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
 
   /**
    * provideDocumentLinks returns the links of the listings of a Markdown file: the comment of each listing opens its
-   * source file at the first line of its snippet. A document of the clean editing view, which hides the comments, gets
-   * the links on the texts of the captions.
+   * source file at the first line of its snippet, and the name of the reference of a listing of another repository,
+   * `server` in `server:src/api.ts`, opens the clone of the reference in a new window. A document of the clean editing
+   * view, which hides the comments, gets the links on the texts of the captions.
    * @param document - The document.
    */
   provideDocumentLinks(document: vscode.TextDocument): vscode.DocumentLink[] {
@@ -283,6 +299,18 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
       } else {
         const reference = `${listing.path}${listing.snippet ? `#${listing.snippet}` : ''}`;
         const column = lines[listing.line].indexOf(reference);
+        const name = listed.clone && referencePath(listing.path)?.name;
+        if (listed.clone && name) {
+          // The name opens the clone, and the path after the colon the file.
+          const repository = new vscode.DocumentLink(
+            new vscode.Range(listing.line, column, listing.line, column + name.length),
+            vscode.Uri.parse(`command:${snippetCommands.repository}?${encodeURIComponent(JSON.stringify([listed.clone.toString()]))}`),
+          );
+          repository.tooltip = `${openRepository}: ${name}`;
+          const file = new vscode.DocumentLink(new vscode.Range(listing.line, column + name.length + 1, listing.line, column + reference.length), opens);
+          file.tooltip = tooltip;
+          return [repository, file];
+        }
         range = new vscode.Range(listing.line, column, listing.line, column + reference.length);
       }
       if (!range) {

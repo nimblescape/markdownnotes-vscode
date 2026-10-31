@@ -380,6 +380,12 @@ into the file at once, and each note stays at its text:
 - A paragraph break inside a highlight ends the highlight there, and the note
   moves after the paragraph of its highlight.
 - Undo and Redo bring back the file as it was, with each note at its place.
+- The front matter at the top of the file is read-only in the view: an edit
+  of it goes back at once, and the status bar says so. Change the front
+  matter with "Markdown Notes: Open File with Markup", or with the
+  commands of nimblescape Markdown Paper, such as `mp get`. Text after the
+  closing `---` can be edited as usual, and Undo goes over an edit that went
+  back.
 - A save of the view saves the file, with the format on save and the comment
   of the format. "Don't Save" at the close of the view brings the file back
   to its text on disk.
@@ -932,7 +938,10 @@ repos:
   `npx -y @nimblescape/markdownpaper get`. The formatter on the command
   line reports it the same way.
 - Ctrl+Click (Cmd+Click on a Mac) on the path in the comment opens the file
-  in the clone.
+  in the clone. Ctrl+Click on the name of the reference, `server` in
+  `server:src/api.ts`, opens the clone in a new window of VS Code, where you
+  work in the other repository with its own Source Control. In the window of
+  the paper, VS Code treats the clones as ignored files.
 
 ### Snippets
 

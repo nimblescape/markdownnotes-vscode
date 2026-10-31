@@ -696,3 +696,26 @@ export const labelsOf = (text: string): string[] =>
     .notes.filter((note) => note.reference && !note.duplicate)
     .map((note) => note.label)
     .sort();
+
+/**
+ * frontMatterOf returns the lines of the front matter of a text, with its fences, or none without a front matter.
+ * @param text - The text of a file.
+ */
+const frontMatterOf = (text: string): string[] => {
+  const lines = text.split(/\r\n|\r|\n/);
+  return lines.slice(0, frontMatterEnd(lines));
+};
+
+/**
+ * keepsFrontMatter tells whether an edit of a file keeps its front matter as it is: the same lines with the same
+ * fences, or no front matter before and after the edit. The front matter is read-only in the clean editing view
+ * ([R-TEXT-009](../../docs/requirements.md#r-text-009)), so an edit that changes, removes or adds a front matter goes
+ * back.
+ * @param before - The text of the file before the edit.
+ * @param after - The text of the file after the edit.
+ */
+export const keepsFrontMatter = (before: string, after: string): boolean => {
+  const kept = frontMatterOf(before);
+  const changed = frontMatterOf(after);
+  return kept.length === changed.length && kept.every((line, index) => line === changed[index]);
+};

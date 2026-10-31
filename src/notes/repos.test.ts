@@ -75,6 +75,7 @@ describe('the files of the listings (R-CODE-006)', () => {
       address: `https://github.com/org/server/blob/${commit}/src/api.ts`,
       pattern: 'https://github\\.com/org/server/blob/[^/\\s()]+/src/api\\.ts',
       reference: 'server',
+      clone: '../../.markdownpaper/repos/server/',
     });
     // The clone in the folder of the file comes first.
     const near = sourceFilesOf(paper, sourceOf({ '.markdownpaper/repos/server/.git/HEAD': other, '../../.markdownpaper/repos/server/.git/HEAD': commit }));

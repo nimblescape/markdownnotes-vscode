@@ -225,6 +225,40 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
+  it('keeps the front matter read-only in the clean editing view: an edit of it goes back, the file keeps it, and undo goes on with the edits before it (R-TEXT-009)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, `---\ntitle: A paper\n---\n\n${note}`);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+    // An edit after the front matter goes into the file.
+    await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('More.')), 'Even '));
+    await waitFor(() => (real()?.getText().includes('\nEven More.\n') ? true : undefined), 'the change in the file');
+    const before = view.document.getText();
+    // An edit of a value, and an edit that removes the front matter, go back; the file keeps its front matter.
+    for (const change of [
+      (edit: vscode.TextEditorEdit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('A paper')), 'The '),
+      (edit: vscode.TextEditorEdit) => edit.delete(new vscode.Range(0, 0, 4, 0)),
+    ]) {
+      assert.ok(await view.edit(change));
+      await waitFor(() => (view.document.getText() === before ? true : undefined), 'the front matter as it was');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    assert.equal(view.document.getText(), before);
+    assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), real()!.getText());
+    // Undo never brings an edit of the front matter back: one undo goes over each edit that went back.
+    let steps = 0;
+    while (steps < 4 && view.document.getText().includes('Even ')) {
+      await vscode.commands.executeCommand('undo');
+      steps++;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.ok(view.document.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), view.document.getText());
+    }
+    assert.equal(steps, 3, 'the undo of the edit before');
+    await waitFor(() => (real()?.getText().includes('\nMore.\n') ? true : undefined), 'the undo in the file');
+    assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n'));
+  });
+
   it('hides the notes of a file from other viewers and shows them again with the commands of the eye, while the clean editing view keeps its text (R-HIDE-001 to R-HIDE-003)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, note);
@@ -484,6 +518,28 @@ describe('nimblescape Markdown Notes', () => {
       assert.equal(editor.document.getText(), expected);
       await vscode.commands.executeCommand('workbench.action.files.revert');
     }
+  });
+
+  it('links the name of the reference of a listing of another repository to the command that opens its clone in a new window, and the path to the file in the clone (R-CODE-006)', async () => {
+    const project = path.join(folder, `project-${++count}`);
+    fs.mkdirSync(path.join(project, '.markdownpaper', 'repos', 'server', '.git'), { recursive: true });
+    fs.mkdirSync(path.join(project, '.markdownpaper', 'repos', 'server', 'src'));
+    fs.writeFileSync(path.join(project, '.markdownpaper', 'repos', 'server', '.git', 'HEAD'), `${'a'.repeat(40)}\n`);
+    fs.writeFileSync(path.join(project, '.markdownpaper', 'repos', 'server', 'src', 'api.ts'), 'export const read = 1;\n');
+    const paper = vscode.Uri.file(path.join(project, 'paper.md'));
+    fs.writeFileSync(paper.fsPath, '---\nrepos:\n  server: org/server@v1\n---\n\n<!-- listing: server:src/api.ts -->\n\n```\n```\n');
+    await vscode.window.showTextDocument(paper);
+    const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>('vscode.executeLinkProvider', paper);
+    const own = links.filter((link) => link.range.start.line === 5).sort((a, b) => a.range.start.character - b.range.start.character);
+    assert.deepEqual(
+      own.map((link) => [link.range.start.character, link.range.end.character, link.target?.scheme]),
+      [
+        [14, 20, 'command'],
+        [21, 31, 'file'],
+      ],
+    );
+    assert.equal(own[0].target?.path, 'nimblescape.markdownNotes.openRepository');
+    assert.equal(own[1].target?.fsPath, path.join(project, '.markdownpaper', 'repos', 'server', 'src', 'api.ts'));
   });
 
   it('moves the cursor over the mark lines of a snippet, which show as tags (R-CODE-004)', async () => {

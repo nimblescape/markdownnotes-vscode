@@ -9,6 +9,7 @@
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { snippetCommands } from './snippets';
 import { Fake, FakeCodeActionKind, type FakeCompletionItem, FakeEditor, FakePosition, FakeRange, FakeSelection, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
@@ -146,7 +147,15 @@ test('the comment of a listing of another repository is a link to the file in it
   fake.open('export {};\n// markdownnotes: snippet read\nconst request = read();\n// markdownnotes: /snippet read\n', '/folder/.markdownpaper/repos/server/src/api.ts');
   const paper = fake.open('---\nrepos:\n  server: org/server\n  client: org/client\n---\n\n<!-- listing: server:src/api.ts#read -->\n\n```\n```\n\n<!-- listing: client:a.ts -->\n\n```\n```\n', '/folder/paper/a.md');
   const links = fake.links.get('markdown')!.provideDocumentLinks(paper);
-  expect(links.map((link) => [link.range.start.line, link.target?.path, link.target?.fragment, link.tooltip])).toEqual([[6, '/folder/.markdownpaper/repos/server/src/api.ts', 'L3', 'Open read in server:src/api.ts']]);
+  // The name of the reference opens the clone in a new window, and the path after the colon the file.
+  expect(links.map((link) => [link.range.start.line, link.range.start.character, link.range.end.character, link.target?.scheme, link.target?.path, link.target?.fragment, link.tooltip])).toEqual([
+    [6, 14, 20, 'command', snippetCommands.repository, '', 'Open Repository in New Window: server'],
+    [6, 21, 36, 'file', '/folder/.markdownpaper/repos/server/src/api.ts', 'L3', 'Open read in server:src/api.ts'],
+  ]);
+  const [folder] = JSON.parse(decodeURIComponent(links[0].target!.query)) as string[];
+  await fake.run(snippetCommands.repository, folder);
+  const opened = fake.calls.find((call) => call.command === 'vscode.openFolder')!;
+  expect([(opened.args[0] as { path: string }).path, opened.args[1]]).toEqual(['/folder/.markdownpaper/repos/server', { forceNewWindow: true }]);
 });
 
 test('/listing in a Markdown file lists the whole file and the snippets of the chosen file, and inserts the code of a snippet without its marks (R-CODE-001, R-CODE-003)', async () => {

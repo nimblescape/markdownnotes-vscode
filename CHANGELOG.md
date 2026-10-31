@@ -98,6 +98,8 @@ The first version.
   clone, and its caption links to the file on GitHub at the commit of the
   clone. `/listing` lists the files of the clones by their references, and a
   missing reference or clone gets a warning with the command that fixes it.
+  Ctrl+Click on the name of the reference of a listing opens the clone in a
+  new window of VS Code.
 - Two changes of the notes of one file run one after the other. A change
   that VS Code does not write into the file, and a new note or footnote
   whose place an earlier change moved while it waited, are not saved, and
@@ -176,7 +178,8 @@ The first version.
   at its text, also for Undo, and the save of the view saves the file. Its
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in
-  the Command Palette opens the file itself.
+  the Command Palette opens the file itself. The front matter is read-only in
+  the view: an edit of it goes back, and Undo goes over it.
 - The text editor of the file itself, for example in the view of the changes
   of git, never shows the text of a note and its markers: it collapses the
   notes, and collapses again a note that VS Code opens; the cursor steps over

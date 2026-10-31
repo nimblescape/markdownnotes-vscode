@@ -121,6 +121,8 @@ export interface SourceFile {
   readonly pattern: string;
   /** reference is the name of the reference of a file of another repository. */
   readonly reference?: string;
+  /** clone is the folder of the clone of the reference, relative to the Markdown file, with a `/` at its end. */
+  readonly clone?: string;
 }
 
 /** MissingFile is a file of a listing in another repository that cannot be read, and the reason. */
@@ -209,6 +211,7 @@ export function sourceFilesOf(lines: readonly string[], source: Source): (path: 
       address: `${repository}${clone.commit ?? reference.rev ?? 'HEAD'}/${other.path}`,
       pattern: `${escaped(repository)}[^/\\s()]+/${escaped(other.path)}`,
       reference: other.name,
+      clone: clone.folder,
     };
   };
 }

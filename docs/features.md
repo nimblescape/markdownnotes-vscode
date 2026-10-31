@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 134 requested features, 112 are built, among them the clean editing view
+Of 136 requested features, 114 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -29,7 +29,8 @@ the hidden form of the notes with the eye in the side view, which hides the
 notes from other viewers, also from GitHub, the text of a file without its
 notes for publishing, the checks of the standard footnotes with
 "Renumber Footnotes", and the listings of files of other repositories from
-the clones of the command `mp` of nimblescape Markdown Paper. No feature is
+the clones of the command `mp` of nimblescape Markdown Paper, which open in a
+new window, and the read-only front matter of the clean editing view. No feature is
 planned and not built. The symbols of a listing with tree-sitter parsers are
 postponed ([decision 51](requirements.md#decisions)), the feature of the
 section [Planned features](#planned-features).
@@ -119,6 +120,7 @@ breaks and the cursor next to the hidden markers.
 | --- | --- | --- | --- | --- |
 | Line breaks and editing next to the hidden markers | 10-29 09:09 | [R-TEXT-005](requirements.md#r-text-005) | Built | VS Code wraps a line by all its characters, also the hidden ones, so a row ended early. Fixed by the clean editing view of [decision 27](requirements.md#decisions) (10-29 09:37), which shows no hidden characters |
 | The notes markup has no effect on the editing | 10-29 09:17 | [R-TEXT-009](requirements.md#r-text-009) | Built | [Decision 27](requirements.md#decisions): the clean editing view, step 38 of the plan; a prototype shown at 10:20, the full build checked in VS Code 1.144. Its limits are in [R-TEXT-009](requirements.md#r-text-009) |
+| The front matter read-only in the clean editing view | 10-31 07:54, 08:01, 08:03 | [R-TEXT-009](requirements.md#r-text-009) | Built | Step 81, [decision 58](requirements.md#decisions): an edit that changes, removes or adds a front matter goes back as a whole, the status bar names "Open File with Markup", and one Undo goes over such an edit; the discussion and a form for the values are in Claude Docs |
 | A file with notes always in the clean editing view | 10-29 11:11 | [R-TEXT-009](requirements.md#r-text-009) | Built | From the Explorer, a search, a link, the last session and the first note; "Open File with Markup" in the Command Palette shows the file itself, and the view of the changes of git shows the file |
 | A better icon for "Show Highlights" | 10-29 08:57 | [R-GEN-011](requirements.md#r-gen-011) | Built | [Decision 26](requirements.md#decisions) (10-29 09:35): a highlighter pen from an icon font of the extension, in place of the eye; commit [8ab9937](https://github.com/nimblescape/markdownnotes-vscode/commit/8ab9937) |
 | Notes always collapsed | 10-28 20:02 | [R-TEXT-005](requirements.md#r-text-005) | Built | Also at the start of VS Code (10-28 14:37) |
@@ -156,6 +158,7 @@ breaks and the cursor next to the hidden markers.
 | `/snippet` from the start of VS Code | 10-30 07:31 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 66, [decision 43](requirements.md#decisions): the extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file before a Markdown file opens |
 | Snippets in any source | 10-30 04:30 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 58: a file type that the extension does not know gets the comment form of VS Code for its language ("Add Line Comment") |
 | Listings of files of other repositories, as references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption goes to the other repository at the commit of the clone | 10-30 07:34, 07:39; 10-31 02:32 to 04:07 | [R-CODE-006](requirements.md#r-code-006) | Built | Step 68, [decision 55](requirements.md#decisions), which replaces decision 46, and [decision 56](requirements.md#decisions): `<!-- listing: server:src/api.ts#read -->` reads the file from the clone in `.markdownpaper/repos/server/`, the caption links to GitHub at the commit of the clone, `/listing` lists the files of the clones by their references, and a missing reference or clone gets a warning with the npx command of Markdown Paper that fixes it |
+| Open the clone of a reference in a new window | 10-31 07:52 | [R-CODE-006](requirements.md#r-code-006) | Built | Step 80, [decision 57](requirements.md#decisions): the clones stay full Git clones, which VS Code treats as ignored files in the window of the paper; Ctrl+Click on the name of the reference of a listing, `server` in `server:src/api.ts`, opens the clone in a new window, as the command "Open Repository in New Window" of Markdown Paper does |
 | The snippet as a tag in the source editor | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58, [decision 37](requirements.md#decisions): a code lens above the start mark with the listings that show the snippet, the marks dimmed; replaced in step 62 by the tags in place of the mark lines |
 | The mark as a tag in place of its line | 10-30 05:49, 05:57 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: each mark line shows a tag in the small gray letters of a code lens in place of the comment, `snippet keep-lines · Listing 2 in paper/paper.md` and `/snippet keep-lines`; the line keeps its height, because VS Code cannot remove a line |
 | Marks that cannot be edited | 10-30 05:49, 05:53 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: the cursor jumps over the mark lines, Backspace and Delete next to them do nothing; "Rename Snippet" and "Remove Snippet" in the light bulb change the marks, and Rename also changes the listings |
@@ -310,7 +313,8 @@ built in
 [pull request #3](https://github.com/nimblescape/markdownnotes-vscode/pull/3),
 which also takes steps 34 and 35: the checks of the footnotes, "Renumber
 Footnotes" and "Make Footnote" are built there too, the fixes of the code
-review (step 78), and the listings of files of other repositories (step 68),
+review (step 78), the listings of files of other repositories (step 68), the
+clone in a new window (step 80) and the read-only front matter (step 81),
 while nimblescape Markdown Paper builds the command `mp` that clones them.
 The open work:
 

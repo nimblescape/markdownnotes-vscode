@@ -106,6 +106,8 @@ requirement, the plan and the decisions of Hannes.
 | 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
 | 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | done |
 | 79 | The instructions for AI agents in the specification of the format and the messages of the extension and of the command call the commands of Markdown Paper with npx, `npx -y @nimblescape/markdownpaper get`, as CI does ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
+| 80 | Full clones, and Ctrl+Click on the name of the reference of a listing opens its clone in a new window of VS Code ([decision 57](#decisions)) | [R-CODE-006](#r-code-006) | done |
+| 81 | The front matter is read-only in the clean editing view: an edit of it goes back, and Undo goes over it ([decision 58](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 
 ## General
 
@@ -926,6 +928,14 @@ file at once, and keeps each note at its text:
   joined paragraphs take the definitions of the first one after the joined
   block.
 - Undo and Redo bring back the file as it was, with each note at its place.
+- The front matter is read-only ([decision 58](#decisions)): an edit that
+  changes, removes or adds a front matter goes back as a whole, the file
+  keeps its front matter, and the status bar names "Open File with Markup",
+  where the front matter can be changed. An edit after the closing line of
+  the front matter stays. Undo never brings such an edit back: one Undo goes
+  over it to the edit before it. A change of the front matter from
+  elsewhere, for example by `mp get` of nimblescape Markdown Paper, shows in
+  the view.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -2270,6 +2280,14 @@ repos:
   matter by their references, such as `server:src/api.ts`, and not the
   files of other clones, such as the clone of a layout. The comment of a
   listing of another repository opens the file in its clone.
+- The clones stay full Git clones ([decision 57](#decisions)). Inside the
+  repository of the paper, VS Code treats a clone in the ignored folder as
+  ignored files: Source Control shows only the repository of the paper. To
+  work in another repository, the author opens its clone in a new window of
+  VS Code: Ctrl+Click on the name of the reference in the comment of a
+  listing, `server` in `server:src/api.ts`, opens it, and Ctrl+Click on the
+  path opens the file in the clone. Markdown Paper has the command "Open
+  Repository in New Window" for the references of a paper.
 - The link of the caption goes to the other repository at the commit of
   the clone when the formatter wrote the code, for example
   `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the
@@ -2867,6 +2885,27 @@ requirements above follow them.
     `npx -y @nimblescape/markdownpaper get`, not with an installed `mp`; `mp`
     is the name for authors. The other choices were to wait until a paper
     needs the listings, and `mp` in the instructions and in CI.
+57. **Full clones, opened in a new window** ([R-CODE-006](#r-code-006)):
+    the clones of `mp get` stay full Git clones in
+    `.markdownpaper/repos/<name>/`, inside the repository of the paper. VS
+    Code treats a clone in this ignored folder as ignored files, also after
+    a file of the clone is opened or changed (tested in VS Code 1.144.0 and
+    1.125.0), so a Git repository inside the repository of the paper causes
+    no problem. The author works in another repository in a new window of
+    VS Code: Ctrl+Click on the name of the reference of a listing opens the
+    clone there, as the command "Open Repository in New Window" of
+    nimblescape Markdown Paper does. The other choices were bare clones in
+    a cache folder of the user with only the files in the project, and the
+    files read from that cache outside the workspace.
+58. **The front matter is read-only in the clean editing view**
+    ([R-TEXT-009](#r-text-009)): the front matter is no free text; its keys
+    are the fields of the layout of the paper and its values belong to the
+    file, so the layout and the front matter stay together. In the clean
+    editing view, the whole front matter is read-only: an edit of it goes
+    back, and Undo goes over such an edit. The front matter changes with the
+    commands of nimblescape Markdown Paper and in the text editor of "Open
+    File with Markup". The other choices were only the keys `layout` and
+    `repos` read-only, and a front matter that the view edits as text.
 
 ---
 
