@@ -109,6 +109,7 @@ requirement, the plan and the decisions of Hannes.
 | 80 | Full clones, and Ctrl+Click on the name of the reference of a listing opens its clone in a new window of VS Code ([decision 57](#decisions)) | [R-CODE-006](#r-code-006) | done |
 | 81 | The front matter is read-only in the clean editing view: an edit of it goes back, and Undo goes over it ([decision 58](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 | 82 | The link above the front matter in the clean editing view: "Edit Front Matter" opens the view "Front Matter" of nimblescape Markdown Paper, else "Open File with Markup" ([decision 59](#decisions)) | [R-TEXT-009](#r-text-009) | done |
+| 83 | Snippets in a clone: "Add Snippet" and `/snippet` write nothing in a clone of a reference to a tag or a commit, and work in a clone on a branch ([decision 60](#decisions)) | [R-CODE-006](#r-code-006), [R-CODE-003](#r-code-003) | done |
 
 ## General
 
@@ -2296,6 +2297,14 @@ repos:
   listing, `server` in `server:src/api.ts`, opens it, and Ctrl+Click on the
   path opens the file in the clone. Markdown Paper has the command "Open
   Repository in New Window" for the references of a paper.
+- The rev says what the author does with the other repository
+  ([decision 60](#decisions)). A reference to a branch, such as `@main`, is
+  for changes: `mp get` checks out the branch itself, and the author adds
+  snippets in the window of the clone and commits and pushes them there. A
+  reference to a tag or a commit uses the repository as it is: its clone
+  stays detached at that version, and "Add Snippet" and `/snippet` write
+  nothing in a file of it, with a message. Markdown Notes knows the kind
+  from the file `.git/HEAD` of the clone: a branch, or a commit.
 - The link of the caption goes to the other repository at the commit of
   the clone when the formatter wrote the code, for example
   `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the
@@ -2923,6 +2932,15 @@ requirements above follow them.
     which opens and focuses the view. The other choices were a form beside
     the editor, and a second tab of the Notes view, for which Markdown Notes
     would read the fields of the layout from Markdown Paper.
+60. **The rev decides whether a clone takes new snippets**
+    ([R-CODE-006](#r-code-006)): with a reference to a branch, the author
+    adds snippets to the other repository while writing the paper, so `mp
+    get` checks out the branch itself, pulls it only forward, and leaves a
+    clone with work that is not pushed as it is. With a reference to a tag or
+    a commit, the paper uses the snippets that this version has, so its
+    clone stays detached, and "Add Snippet" and `/snippet` write nothing
+    there. The other choice was a detached clone for every reference, which
+    needs a switch to the branch before each commit.
 
 ---
 

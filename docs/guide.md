@@ -944,6 +944,11 @@ repos:
   `server:src/api.ts`, opens the clone in a new window of VS Code, where you
   work in the other repository with its own Source Control. In the window of
   the paper, VS Code treats the clones as ignored files.
+- To add a snippet to the other repository, use a reference to a branch,
+  for example `server: org/server@main`. Its clone is on that branch: add
+  the snippet in the window of the clone, then commit and push it there. A
+  clone of a tag or a commit stays at that version, and "Add Snippet" shows
+  a message instead of writing.
 
 ### Snippets
 

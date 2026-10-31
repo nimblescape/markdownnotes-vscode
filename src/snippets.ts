@@ -18,12 +18,13 @@
  * of the caption is the link.
  */
 
+import * as fs from 'node:fs';
 import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
 import { listingFilesOf, sourceOf } from './formatter';
 import { findItems } from './notes/figures';
 import { captionLinkOf, captionsOf, findListings, isSnippetName, snippetLines, snippetsOf, snippetText } from './notes/listings';
-import { referencePath } from './notes/repos';
+import { pinnedCloneOf, referencePath } from './notes/repos';
 
 /** CleanText gives the text of the file of a document of the clean editing view, and the places of the file there. */
 export interface CleanText {
@@ -40,6 +41,23 @@ export const snippetCommands = {
   slash: 'nimblescape.markdownNotes.slashSnippet',
   repository: 'nimblescape.markdownNotes.openRepository',
 };
+
+/** pinnedMessage is the message of "Add Snippet" and `/snippet` in a clone of a reference to a tag or a commit (decision 60). */
+export const pinnedMessage =
+  'This file is in the clone of a reference to a tag or a commit, which stays at that version, so a snippet cannot be added here. A snippet needs a reference to a branch, for example @main, or a new version of the repository.';
+
+/**
+ * readPath returns the text of a file: of its open document, else from the disk, or undefined.
+ * @param uri - The URI of the file.
+ */
+function readPath(uri: vscode.Uri): string | undefined {
+  const open = vscode.workspace.textDocuments.find((document) => document.uri.toString() === uri.toString());
+  try {
+    return open ? open.getText() : fs.readFileSync(uri.fsPath, 'utf8');
+  } catch {
+    return undefined;
+  }
+}
 
 /** openRepository is the tooltip of the link that opens the clone of a reference in a new window. */
 const openRepository = 'Open Repository in New Window';
@@ -204,6 +222,10 @@ export class Snippets implements vscode.CompletionItemProvider, vscode.CodeActio
     const lines = range ?? editor?.selection;
     if (!editor || !document || !lines || lines.isEmpty || !this.marked(document)) {
       void vscode.window.showInformationMessage('Select the lines of the snippet in a source file, then run "Add Snippet".');
+      return;
+    }
+    if (document.uri.scheme === 'file' && pinnedCloneOf(document.uri.path, (path) => readPath(document.uri.with({ path })))) {
+      void vscode.window.showInformationMessage(pinnedMessage);
       return;
     }
     const first = lines.start.line;

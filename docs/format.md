@@ -440,11 +440,15 @@ Listing 1: [Reading the request](https://github.com/org/server/blob/3f2a…/src/
   file in its repository, with `/`, without `..`, and with the escapes of a
   link: `<!-- listing: server:src/api.ts#read -->`. A snippet works as in a
   file of the paper repository.
-- The command `mp` of nimblescape Markdown Paper clones each reference,
-  detached at its rev, into `.markdownpaper/repos/<name>/` of the project,
-  a folder that Git ignores. The formatter reads the file from the clone in
+- The command `mp` of nimblescape Markdown Paper clones each reference
+  into `.markdownpaper/repos/<name>/` of the project, a folder that Git
+  ignores: a reference to a branch on that branch, and a reference to a tag
+  or a commit detached at it. The formatter reads the file from the clone in
   the folder of the Markdown file or in the first folder above it that has
   the clone.
+- New snippets go only into a clone on a branch, where the author commits
+  and pushes them. A clone of a tag or a commit stays at that version: a
+  listing uses only the snippets that it has.
 - The link of the caption goes to the file on GitHub at the commit of the
   clone when the formatter wrote the code,
   `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the

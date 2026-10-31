@@ -548,6 +548,28 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(own[1].target?.fsPath, path.join(project, '.markdownpaper', 'repos', 'server', 'src', 'api.ts'));
   });
 
+  it('writes no snippet into a clone of a reference to a tag or a commit, and writes it into a clone on a branch (R-CODE-006, decision 60)', async () => {
+    const project = path.join(folder, `project-${++count}`);
+    const files: vscode.Uri[] = [];
+    for (const [name, head] of [
+      ['server', `${'a'.repeat(40)}\n`],
+      ['tools', 'ref: refs/heads/main\n'],
+    ]) {
+      const clone = path.join(project, '.markdownpaper', 'repos', name);
+      fs.mkdirSync(path.join(clone, '.git'), { recursive: true });
+      fs.writeFileSync(path.join(clone, '.git', 'HEAD'), head);
+      fs.writeFileSync(path.join(clone, 'keep.ts'), 'export function keep(): number {\n  const kept = 1;\n  return kept;\n}\n');
+      files.push(vscode.Uri.file(path.join(clone, 'keep.ts')));
+    }
+    for (const file of files) {
+      const editor = await vscode.window.showTextDocument(file);
+      await vscode.commands.executeCommand(commandOf('addSnippet'), file, new vscode.Range(1, 0, 3, 0), 'kept');
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const marked = editor.document.getText().includes('markdownnotes: snippet kept');
+      assert.equal(marked, file === files[1], editor.document.getText());
+    }
+  });
+
   it('moves the cursor over the mark lines of a snippet, which show as tags (R-CODE-004)', async () => {
     const source = vscode.Uri.file(path.join(folder, 'src', `tag-${++count}.py`));
     fs.mkdirSync(path.dirname(source.fsPath), { recursive: true });

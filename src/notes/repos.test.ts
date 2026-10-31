@@ -3,7 +3,7 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 import { describe, expect, test } from 'vitest';
-import { missingMessage, referencePath, referencesOf, sourceFilesOf } from './repos';
+import { missingMessage, pinnedCloneOf, referencePath, referencesOf, sourceFilesOf } from './repos';
 
 /** commit and other are commits of the clone of a test. */
 const commit = 'a'.repeat(40);
@@ -102,5 +102,23 @@ describe('the files of the listings (R-CODE-006)', () => {
     expect(files('server:../secret.ts')).toEqual({ problem: 'path', reference: 'server' });
     expect(missingMessage({ problem: 'reference', reference: 'tools' })).toBe('"tools" is no reference under repos in the front matter. Add it with: npx -y @nimblescape/markdownpaper get owner/repo@rev --name tools, and the path of the Markdown file when the project has more than one paper.');
     expect(missingMessage({ problem: 'clone', reference: 'client' })).toBe('The repository "client" is not cloned. Clone it with: npx -y @nimblescape/markdownpaper get');
+  });
+});
+
+describe('the pinned clones (R-CODE-006)', () => {
+  const commit = 'a'.repeat(40);
+  test('a clone whose HEAD names a commit is pinned, and a clone on a branch is not (decision 60)', () => {
+    const heads: Record<string, string> = {
+      '/p/.markdownpaper/repos/server/.git/HEAD': `${commit}\n`,
+      '/p/.markdownpaper/repos/tools/.git/HEAD': 'ref: refs/heads/main\n',
+      '/p/.markdownpaper/repos/server/.markdownpaper/repos/inner/.git/HEAD': 'ref: refs/heads/dev\n',
+    };
+    const read = (path: string) => heads[path];
+    expect(pinnedCloneOf('/p/.markdownpaper/repos/server/src/api.ts', read)).toBe('/p/.markdownpaper/repos/server/');
+    expect(pinnedCloneOf('/p/.markdownpaper/repos/tools/build.sh', read)).toBeUndefined();
+    // The innermost clone counts, a missing HEAD is no clone, and a file outside the clones is in none.
+    expect(pinnedCloneOf('/p/.markdownpaper/repos/server/.markdownpaper/repos/inner/a.ts', read)).toBeUndefined();
+    expect(pinnedCloneOf('/p/.markdownpaper/repos/other/a.ts', read)).toBeUndefined();
+    expect(pinnedCloneOf('/p/src/a.ts', read)).toBeUndefined();
   });
 });

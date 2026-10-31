@@ -102,6 +102,27 @@ test('/snippet after a slash that replaced selected lines puts them back with th
   expect(fake.complete(document, new FakePosition(0, 1)).map(labelOf)).toEqual([]);
 });
 
+test('"Add Snippet" writes nothing in a clone of a reference to a tag or a commit, and writes the marks in a clone on a branch (R-CODE-006, decision 60)', async () => {
+  const { pinnedMessage } = await import('./snippets');
+  fake.open(`${'a'.repeat(40)}\n`, '/folder/.markdownpaper/repos/server/.git/HEAD');
+  fake.open('ref: refs/heads/main\n', '/folder/.markdownpaper/repos/tools/.git/HEAD');
+  const pinned = fake.open(code, '/folder/.markdownpaper/repos/server/src/keep.ts', { languageId: 'typescript' });
+  const branch = fake.open(code, '/folder/.markdownpaper/repos/tools/src/keep.ts', { languageId: 'typescript' });
+  for (const document of [pinned, branch]) {
+    const editor = new FakeEditor(document, 1);
+    editor.selection = new FakeSelection(new FakePosition(1, 2), new FakePosition(3, 0));
+    fake.editors.push(editor);
+  }
+  await fake.activate();
+  fake.input = 'kept-lines';
+  await fake.run('nimblescape.markdownNotes.addSnippet', pinned.uri, new FakeRange(1, 2, 3, 0));
+  expect(pinned.text).toBe(code);
+  expect(fake.infos).toEqual([pinnedMessage]);
+  expect(fake.inputs).toEqual([]);
+  await fake.run('nimblescape.markdownNotes.addSnippet', branch.uri, new FakeRange(1, 2, 3, 0));
+  expect(branch.text).toContain('  // markdownnotes: snippet kept-lines\n');
+});
+
 test('"Add Snippet" in a file type that the extension does not know writes the marks in the comment form of VS Code for its language (R-CODE-003)', async () => {
   await open(new FakeSelection(new FakePosition(0, 0), new FakePosition(0, 0)));
   const nim = fake.open('proc keep() =\n  echo "kept"\n', '/folder/src/keep.nim', { languageId: 'nim' });

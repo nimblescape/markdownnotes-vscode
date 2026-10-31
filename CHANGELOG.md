@@ -99,7 +99,8 @@ The first version.
   clone. `/listing` lists the files of the clones by their references, and a
   missing reference or clone gets a warning with the command that fixes it.
   Ctrl+Click on the name of the reference of a listing opens the clone in a
-  new window of VS Code.
+  new window of VS Code. "Add Snippet" and `/snippet` write nothing in a
+  clone of a reference to a tag or a commit, which stays at that version.
 - Two changes of the notes of one file run one after the other. A change
   that VS Code does not write into the file, and a new note or footnote
   whose place an earlier change moved while it waited, are not saved, and

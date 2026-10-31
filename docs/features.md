@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 137 requested features, 115 are built, among them the clean editing view
+Of 138 requested features, 116 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -160,6 +160,7 @@ breaks and the cursor next to the hidden markers.
 | Snippets in any source | 10-30 04:30 | [R-CODE-003](requirements.md#r-code-003) | Built | Step 58: a file type that the extension does not know gets the comment form of VS Code for its language ("Add Line Comment") |
 | Listings of files of other repositories, as references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption goes to the other repository at the commit of the clone | 10-30 07:34, 07:39; 10-31 02:32 to 04:07 | [R-CODE-006](requirements.md#r-code-006) | Built | Step 68, [decision 55](requirements.md#decisions), which replaces decision 46, and [decision 56](requirements.md#decisions): `<!-- listing: server:src/api.ts#read -->` reads the file from the clone in `.markdownpaper/repos/server/`, the caption links to GitHub at the commit of the clone, `/listing` lists the files of the clones by their references, and a missing reference or clone gets a warning with the npx command of Markdown Paper that fixes it |
 | Open the clone of a reference in a new window | 10-31 07:52 | [R-CODE-006](requirements.md#r-code-006) | Built | Step 80, [decision 57](requirements.md#decisions): the clones stay full Git clones, which VS Code treats as ignored files in the window of the paper; Ctrl+Click on the name of the reference of a listing, `server` in `server:src/api.ts`, opens the clone in a new window, as the command "Open Repository in New Window" of Markdown Paper does |
+| Snippets only in a clone on a branch | 10-31 11:44, 11:48 | [R-CODE-006](requirements.md#r-code-006) | Built | Step 83, [decision 60](requirements.md#decisions): "Add Snippet" and `/snippet` write nothing in a clone of a reference to a tag or a commit, with a message, and work in a clone on a branch; nimblescape Markdown Paper checks out a reference to a branch as that branch |
 | The snippet as a tag in the source editor | 10-30 04:34 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 58, [decision 37](requirements.md#decisions): a code lens above the start mark with the listings that show the snippet, the marks dimmed; replaced in step 62 by the tags in place of the mark lines |
 | The mark as a tag in place of its line | 10-30 05:49, 05:57 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: each mark line shows a tag in the small gray letters of a code lens in place of the comment, `snippet keep-lines · Listing 2 in paper/paper.md` and `/snippet keep-lines`; the line keeps its height, because VS Code cannot remove a line |
 | Marks that cannot be edited | 10-30 05:49, 05:53 | [R-CODE-004](requirements.md#r-code-004) | Built | Step 62: the cursor jumps over the mark lines, Backspace and Delete next to them do nothing; "Rename Snippet" and "Remove Snippet" in the light bulb change the marks, and Rename also changes the listings |
@@ -316,7 +317,8 @@ which also takes steps 34 and 35: the checks of the footnotes, "Renumber
 Footnotes" and "Make Footnote" are built there too, the fixes of the code
 review (step 78), the listings of files of other repositories (step 68), the
 clone in a new window (step 80), the read-only front matter (step 81) and its
-link to the form of Markdown Paper (step 82),
+link to the form of Markdown Paper (step 82), and the snippets only in a
+clone on a branch (step 83),
 while nimblescape Markdown Paper builds the command `mp` that clones them.
 The open work:
 

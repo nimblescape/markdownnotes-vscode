@@ -107,6 +107,21 @@ export function referencePath(path: string): { name: string; path: string } | un
 /** cloneFolder is the folder of the clones of `mp get` in the project, relative to the root of the project. */
 export const cloneFolder = '.markdownpaper/repos';
 
+/**
+ * pinnedCloneOf returns the folder of the clone that holds a file, with a `/` at its end, when the clone is pinned to a
+ * tag or a commit: a clone in `.markdownpaper/repos/<name>/` whose `.git/HEAD` names a commit and no branch. `mp get`
+ * checks out a reference to a branch as that branch, so its clone is for changes, such as new snippets, and a pinned
+ * clone is not ([decision 60](../../docs/requirements.md#decisions)). A file outside a clone, or in a clone on a branch,
+ * gives undefined. In nested clones, the innermost one counts.
+ * @param path - The path of the file, with `/` between its folders.
+ * @param read - Reads a file by its path, or returns undefined.
+ */
+export function pinnedCloneOf(path: string, read: (path: string) => string | undefined): string | undefined {
+  const clone = new RegExp(`^(.*/${escaped(cloneFolder)}/[^/]+/)`).exec(path)?.[1];
+  const head = clone === undefined ? undefined : read(`${clone}.git/HEAD`)?.trim();
+  return head !== undefined && /^[0-9a-f]{40}([0-9a-f]{24})?$/.test(head) ? clone : undefined;
+}
+
 /** levels is the number of folders above the Markdown file in which the module looks for the clones. */
 const levels = 16;
 
