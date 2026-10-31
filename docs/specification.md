@@ -72,6 +72,9 @@ form of the notes in a file for programs and AI agents, and
 - **Links of a note** open a file in a new window by default; the setting
   `openLinksIn` chooses the editor or the system
   ([R-GEN-010](requirements.md#r-gen-010)).
+- **Fixes of the code review, planned after step 35:** a queue of writes for
+  each file, tests of the scripts of the side view and of the preview, and
+  ESLint ([R-GEN-018](requirements.md#r-gen-018)).
 
 ## 3. The notes in the file
 

@@ -104,6 +104,7 @@ requirement, the plan and the decisions of Hannes.
 | 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
 | 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
 | 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
+| 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | planned |
 
 ## General
 
@@ -467,6 +468,20 @@ and installs the file `nimblescape-markdownnotes-<version>.tgz` that
 `npm install github:nimblescape/markdownnotes-vscode` does not give the
 package, because it installs the extension at the root of the repository,
 and the bundles of `cli/dist/` are not in Git.
+
+### R-GEN-018
+
+**Fixes of the code review.** The code review of 2026-10-28 left three
+fixes of the code that change no feature. They come after step 35
+([decision 54](#decisions)):
+
+- A queue of writes for each file: two changes of the notes of one file,
+  for example a save of an answer and a new note, run one after the other,
+  and a failed write gives a problem of its own.
+- Tests of the scripts of the side view and of the Markdown preview
+  (`media/notesView.js`, `media/markdownPreview.js`), with a type check of
+  the scripts.
+- ESLint for the sources, run by CI.
 
 ## Notes
 
@@ -2740,6 +2755,11 @@ requirements above follow them.
     eye, and its menu "…" has "Show Footnotes" or "Hide Footnotes". The other
     choices were the eye in the menu, or four buttons, of which VS Code put
     "Add Note" into the menu at the default width.
+54. **The fixes of the code review after step 35**
+    ([R-GEN-018](#r-gen-018)): the queue of writes for each file, the tests
+    of the scripts of the side view and of the preview, and ESLint come
+    after the planned features of steps 31, 34 and 35. The other choices
+    were to build them next, after the hidden form, or not to build them.
 
 ---
 

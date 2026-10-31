@@ -289,9 +289,10 @@ layout, and the comment of the format names no style.
 | "/source" lists all files of the folder `bib/` | 10-30 02:45 | [R-XREF-001](requirements.md#r-xref-001) | | Moved |
 | The table of contents, the list of figures, the list of tables and the list of listings in the file | 10-30 07:10, 07:11 | [R-GEN-016](requirements.md#r-gen-016) | 65 | Moved |
 
-The later fixes of the code review of 2026-10-28 are not in the
-specification: a queue of writes for each file, tests of the script of the
-side view, and ESLint.
+The later fixes of the code review of 2026-10-28, a queue of writes for each
+file, tests of the scripts of the side view and of the preview, and ESLint,
+change no feature. They are [R-GEN-018](requirements.md#r-gen-018) and come
+after step 35 ([decision 54](requirements.md#decisions)).
 
 ## Open work and its order
 
@@ -302,7 +303,9 @@ is merged. The open work, in its order:
 
 1. Steps 31, 34 and 35: the text without notes, the checks of the
    footnotes, "Renumber Footnotes" and "Make Footnote".
-2. There is no release for now ([decision 48](requirements.md#decisions));
+2. Step 78: the fixes of the code review
+   ([decision 54](requirements.md#decisions)).
+3. There is no release for now ([decision 48](requirements.md#decisions));
    before the first release, the Marketplace setup runs again for the new
    name of the repository.
 
