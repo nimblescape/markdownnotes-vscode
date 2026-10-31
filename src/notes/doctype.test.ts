@@ -59,13 +59,13 @@ describe('the comment of the format', () => {
   });
 
   test('is found at the start of a line outside code blocks, with its version', () => {
-    expect(findDoctype(lines(`# T\n\n${comment}\n`))).toEqual({ start: 2, end: 2 + doctypeLines.length - 1, version: { major: 1, minor: 0, patch: 0 } });
-    expect(findDoctype(['<!-- nimblescape-markdownnotes v2.10.3 spec=x -->'])).toEqual({ start: 0, end: 0, version: { major: 2, minor: 10, patch: 3 } });
-    expect(findDoctype(['<!-- nimblescape-markdownnotes', '-->'])).toEqual({ start: 0, end: 1, version: undefined });
+    expect(findDoctype(lines(`# T\n\n${comment}\n`))).toEqual({ start: 2, end: 2 + doctypeLines.length - 1, version: { major: 1, minor: 0, patch: 0 }, hidden: false });
+    expect(findDoctype(['<!-- nimblescape-markdownnotes v2.10.3 spec=x -->'])).toEqual({ start: 0, end: 0, version: { major: 2, minor: 10, patch: 3 }, hidden: false });
+    expect(findDoctype(['<!-- nimblescape-markdownnotes', '-->'])).toEqual({ start: 0, end: 1, version: undefined, hidden: false });
     // The first form of the comment named the version as format=1, which reads as no version.
-    expect(findDoctype(['<!-- nimblescape-markdownnotes format=1 spec=x -->'])).toEqual({ start: 0, end: 0, version: undefined });
+    expect(findDoctype(['<!-- nimblescape-markdownnotes format=1 spec=x -->'])).toEqual({ start: 0, end: 0, version: undefined, hidden: false });
     // The comment of the earlier name counts as older.
-    expect(findDoctype(['<!-- nimblescape-markdown-notes v1.0.0 spec=x -->'])).toEqual({ start: 0, end: 0, version: undefined });
+    expect(findDoctype(['<!-- nimblescape-markdown-notes v1.0.0 spec=x -->'])).toEqual({ start: 0, end: 0, version: undefined, hidden: false });
     expect(findDoctype(lines(`\`\`\`markdown\n${comment}\n\`\`\`\n`))).toBeUndefined();
     expect(findDoctype(['Text <!-- nimblescape-markdownnotes -->'])).toBeUndefined();
   });

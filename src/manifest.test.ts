@@ -20,7 +20,7 @@ import { expect, test, vi } from 'vitest';
 import { cleanCommands } from './cleanView';
 import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath } from './extension';
 import { deleteCommands, markerContexts } from './noteEditor';
-import { notesViewId, viewCommands } from './notesView';
+import { formContext, notesViewId, viewCommands } from './notesView';
 import { defaultSettings, linkTargets, settingsSection } from './settings';
 import { snippetCommands } from './snippets';
 import { usedSnippetCommands, usedSnippetContexts } from './usedSnippets';
@@ -291,10 +291,18 @@ const glyphOf = (font: Buffer, character: number): { glyph: number; size: number
   return { glyph, size: glyph ? offset(glyph + 1) - offset(glyph) : 0 };
 };
 
-test('the buttons of the highlights show a highlighter pen, and the buttons of the footnotes a plus with the number 1 and a numbered list, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001)', () => {
-  // The highlighter pen is the icon of the highlights (decision 26); the eye stays for the icon of the hidden notes (R-HIDE-002).
+test('the buttons of the highlights show a highlighter pen, the buttons of the footnotes a plus with the number 1 and a numbered list, and the form of the notes an eye, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001, R-HIDE-002)', () => {
+  // The highlighter pen is the icon of the highlights (decision 26); the eye is the icon of the hidden notes (R-HIDE-002).
   const font = 'resources/notes-icons.ttf';
-  const icons = { 'highlights-show': 0xe001, 'highlights-hide': 0xe002, 'footnote-add': 0xe003, 'footnotes-show': 0xe004, 'footnotes-hide': 0xe005 };
+  const icons = {
+    'highlights-show': 0xe001,
+    'highlights-hide': 0xe002,
+    'footnote-add': 0xe003,
+    'footnotes-show': 0xe004,
+    'footnotes-hide': 0xe005,
+    'notes-shown': 0xe006,
+    'notes-hidden': 0xe007,
+  };
   expect(manifest.contributes.icons).toEqual(
     Object.fromEntries(
       Object.entries(icons).map(([name, character]) => [`nimblescape-${name}`, { description: expect.any(String), default: { fontPath: font, fontCharacter: `\\${character.toString(16).toUpperCase()}` } }]),
@@ -308,7 +316,7 @@ test('the buttons of the highlights show a highlighter pen, and the buttons of t
     expect(size).toBeGreaterThan(0);
   }
   expect(new Set(glyphs.map(({ glyph }) => glyph)).size).toBe(glyphs.length);
-  for (const image of ['highlighter.svg', 'footnote-add.svg', 'footnotes.svg']) {
+  for (const image of ['highlighter.svg', 'footnote-add.svg', 'footnotes.svg', 'eye.svg']) {
     expect(read('scripts/icon-font.py')).toContain(`'${image}'`);
     expect(fs.existsSync(path.join(repository, 'resources/icons', image)), image).toBe(true);
   }
@@ -322,6 +330,8 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
     viewCommands.newFootnote,
     footnoteCommands.show,
     footnoteCommands.hide,
+    viewCommands.eyeShown,
+    viewCommands.eyeHidden,
     viewCommands.hide,
   ]);
   expect(item).toMatchObject({ command: viewCommands.hide, group: 'navigation@9' });
@@ -333,6 +343,35 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
   // The button in the title of the text editor and of the preview of a Markdown file shows a codicon.
   expect(manifest.contributes.menus['editor/title']).toEqual(expect.arrayContaining([expect.objectContaining({ command: viewCommands.toggle })]));
   expect(manifest.contributes.commands.find((command: { command: string }) => command.command === viewCommands.toggle).icon).toBe('$(comment-discussion)');
+});
+
+test('the eye at the top of the side view shows the form of the notes of a file with notes, with a tooltip that says the state and what a click does, and the Command Palette has the command of the other form (R-HIDE-002)', () => {
+  const titles = manifest.contributes.menus['view/title'];
+  const commands = manifest.contributes.commands as { command: string; title: string; icon?: string }[];
+  const command = (id: string) => commands.find((candidate) => candidate.command === id)!;
+  expect(titles.find((item: { command: string }) => item.command === viewCommands.eyeShown)).toEqual({
+    command: viewCommands.eyeShown,
+    group: 'navigation@4',
+    when: `view == ${notesViewId} && ${formContext} == 'visible'`,
+  });
+  expect(titles.find((item: { command: string }) => item.command === viewCommands.eyeHidden)).toEqual({
+    command: viewCommands.eyeHidden,
+    group: 'navigation@4',
+    when: `view == ${notesViewId} && ${formContext} == 'hidden'`,
+  });
+  expect(command(viewCommands.eyeShown)).toMatchObject({ title: 'Other viewers show the notes, also GitHub. Click to hide them.', icon: '$(nimblescape-notes-shown)' });
+  expect(command(viewCommands.eyeHidden)).toMatchObject({ title: 'Other viewers hide the notes, also GitHub. Click to show them.', icon: '$(nimblescape-notes-hidden)' });
+  expect(command(viewCommands.hideFromViewers).title).toBe('Hide Notes from Other Viewers');
+  expect(command(viewCommands.showInViewers).title).toBe('Show Notes in Other Viewers');
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: viewCommands.hideFromViewers, when: `${formContext} == 'visible'` },
+      { command: viewCommands.showInViewers, when: `${formContext} == 'hidden'` },
+      { command: viewCommands.eyeShown, when: 'false' },
+      { command: viewCommands.eyeHidden, when: 'false' },
+    ]),
+  );
+  expect(manifest.contributes.configuration.properties['nimblescape.markdownNotes.hideNotesInNewFiles']).toMatchObject({ type: 'boolean', default: false, scope: 'resource' });
 });
 
 test('the extension is the default formatter of Markdown files, without format on save of VS Code for every Markdown file, and a Markdown editor scrolls smoothly; the user can change both (R-FMT-001, R-SIDE-007)', () => {

@@ -3,15 +3,16 @@
 # Licensed under the MIT License. See LICENSE in the repository root for details.
 
 # Builds the icon font resources/notes-icons.ttf of the buttons "Show Highlights" and "Hide Highlights" from
-# resources/icons/highlighter.svg, of "Add Footnote" from resources/icons/footnote-add.svg, and of "Show Footnotes" and
-# "Hide Footnotes" from resources/icons/footnotes.svg. The extension contributes the characters as the icons
-# nimblescape-highlights-show, nimblescape-highlights-hide, nimblescape-footnote-add, nimblescape-footnotes-show and
-# nimblescape-footnotes-hide (contributes.icons in package.json), so that VS Code draws them in the icon color of the
+# resources/icons/highlighter.svg, of "Add Footnote" from resources/icons/footnote-add.svg, of "Show Footnotes" and
+# "Hide Footnotes" from resources/icons/footnotes.svg, and of the eye of the hidden notes from resources/icons/eye.svg.
+# The extension contributes the characters as the icons nimblescape-highlights-show, nimblescape-highlights-hide,
+# nimblescape-footnote-add, nimblescape-footnotes-show, nimblescape-footnotes-hide, nimblescape-notes-shown and
+# nimblescape-notes-hidden (contributes.icons in package.json), so that VS Code draws them in the icon color of the
 # theme, as it draws its codicons. A font holds no strokes: the script turns the strokes of an image into outlines, adds
 # the stroke of a "Hide" button with its gap, and writes the font with the metrics of codicon.ttf (300 units for 16
-# pixels, the baseline at the bottom of the icon). The images of the footnotes are made from codicons of VS Code, under
-# CC BY 4.0; the font names them in its copyright. The font is in the repository; run the script after a change of an
-# image:
+# pixels, the baseline at the bottom of the icon). The images of the footnotes and of the eye are made from codicons of
+# VS Code, under CC BY 4.0; the font names them in its copyright. The font is in the repository; run the script after a
+# change of an image:
 #
 #   python3 -m pip install fonttools picosvg skia-pathops
 #   python3 scripts/icon-font.py
@@ -39,9 +40,12 @@ GLYPHS = [
     ('footnote-add', 0xE003, 'footnote-add.svg', False),
     ('footnotes-show', 0xE004, 'footnotes.svg', False),
     ('footnotes-hide', 0xE005, 'footnotes.svg', True),
+    ('notes-shown', 0xE006, 'eye.svg', False),
+    ('notes-hidden', 0xE007, 'eye.svg', True),
 ]
 COPYRIGHT = (
-    '© 2026 Hannes Stauss, MIT License. The icons footnote-add, footnotes-show and footnotes-hide are made from the '
+    '© 2026 Hannes Stauss, MIT License. The icons footnote-add, footnotes-show, footnotes-hide, notes-shown and '
+    'notes-hidden are made from the '
     'codicons of VS Code (https://github.com/microsoft/vscode-codicons), © Microsoft Corporation, CC BY 4.0.'
 )
 # As codicon.ttf: 16 pixels of the image are 300 units of the font.

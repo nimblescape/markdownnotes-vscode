@@ -35,7 +35,7 @@ import * as vscode from 'vscode';
 import { cleanScheme } from './cleanView';
 import { formatMarkdown } from './format/format';
 import { doctypeEdit, newerFormat } from './notes/doctype';
-import { applyEdit, editBetween } from './notes/edits';
+import { applyEdit, editBetween, hiddenForm } from './notes/edits';
 import type { Source } from './notes/listings';
 
 /** FormatStep is a step of the formatter that another extension adds, after the steps of the notes (R-GEN-012). */
@@ -189,7 +189,7 @@ export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, s
       break;
     }
   }
-  const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true) : undefined;
+  const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true, hiddenForm(changed) === true) : undefined;
   if (comment) {
     changed = applyEdit(changed, comment);
   }

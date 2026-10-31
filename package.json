@@ -177,6 +177,30 @@
         "icon": "$(nimblescape-footnotes-hide)"
       },
       {
+        "command": "nimblescape.markdownNotes.hideNotesFromViewers",
+        "title": "Hide Notes from Other Viewers",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-notes-shown)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.showNotesInViewers",
+        "title": "Show Notes in Other Viewers",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-notes-hidden)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.notesShownToViewers",
+        "title": "Other viewers show the notes, also GitHub. Click to hide them.",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-notes-shown)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.notesHiddenFromViewers",
+        "title": "Other viewers hide the notes, also GitHub. Click to show them.",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-notes-hidden)"
+      },
+      {
         "command": "nimblescape.markdownNotes.hideNotes",
         "title": "Hide Notes",
         "category": "Markdown Notes",
@@ -264,6 +288,20 @@
           "fontPath": "resources/notes-icons.ttf",
           "fontCharacter": "\\E005"
         }
+      },
+      "nimblescape-notes-shown": {
+        "description": "Markdown Notes: the eye at the top of the side view while other viewers show the notes of the file, an eye.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E006"
+        }
+      },
+      "nimblescape-notes-hidden": {
+        "description": "Markdown Notes: the eye at the top of the side view while the notes of the file are hidden from other viewers, the eye with a stroke.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E007"
+        }
       }
     },
     "menus": {
@@ -314,6 +352,16 @@
           "command": "nimblescape.markdownNotes.hideFootnotes",
           "group": "navigation@3",
           "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.notesShownToViewers",
+          "group": "navigation@4",
+          "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.notesForm == 'visible'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.notesHiddenFromViewers",
+          "group": "navigation@4",
+          "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.notesForm == 'hidden'"
         },
         {
           "command": "nimblescape.markdownNotes.hideNotes",
@@ -392,6 +440,22 @@
         },
         {
           "command": "nimblescape.markdownNotes.keepSnippetMark",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.hideNotesFromViewers",
+          "when": "nimblescape.markdownNotes.notesForm == 'visible'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.showNotesInViewers",
+          "when": "nimblescape.markdownNotes.notesForm == 'hidden'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.notesShownToViewers",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.notesHiddenFromViewers",
           "when": "false"
         }
       ],
@@ -480,6 +544,12 @@
           "default": true,
           "scope": "window",
           "markdownDescription": "Show the standard footnotes of a Markdown file in the side view \"Notes\", the footnotes that are no note, each at the place of its first reference, with \"Edit\", \"Go to Definition\" and \"Delete\". The value `false` shows only the notes. The buttons \"Hide Footnotes\" and \"Show Footnotes\" in the title of the side view change this setting."
+        },
+        "nimblescape.markdownNotes.hideNotesInNewFiles": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "markdownDescription": "Write the notes of a file that gets its first note in the hidden form: each note is an HTML comment, so that GitHub and every other Markdown viewer hide it. A file with notes keeps its form; the eye at the top of the side view \"Notes\" changes it."
         },
         "nimblescape.markdownNotes.addFormatComment": {
           "type": "boolean",

@@ -92,15 +92,29 @@ export const notesViewId = 'nimblescape.markdownNotes.notes';
 /**
  * viewCommands are the commands of the side view: the buttons "Add Note", "Add Footnote"
  * ([R-FOOT-003](../docs/requirements.md#r-foot-003)) and "Hide Notes" in its title
- * ([R-SIDE-003](../docs/requirements.md#r-side-003)), and "Show or Hide Notes" of the title of the Markdown editors and
- * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
+ * ([R-SIDE-003](../docs/requirements.md#r-side-003)), "Show or Hide Notes" of the title of the Markdown editors and
+ * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)), and the eye in its title with the commands
+ * "Hide Notes from Other Viewers" and "Show Notes in Other Viewers" of the Command Palette
+ * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): the eye has a command for each state, whose title is the tooltip
+ * that says the state and what a click does.
  */
 export const viewCommands = {
   newNote: 'nimblescape.markdownNotes.newNote',
   newFootnote: 'nimblescape.markdownNotes.addFootnote',
   hide: 'nimblescape.markdownNotes.hideNotes',
   toggle: 'nimblescape.markdownNotes.toggleNotes',
+  hideFromViewers: 'nimblescape.markdownNotes.hideNotesFromViewers',
+  showInViewers: 'nimblescape.markdownNotes.showNotesInViewers',
+  eyeShown: 'nimblescape.markdownNotes.notesShownToViewers',
+  eyeHidden: 'nimblescape.markdownNotes.notesHiddenFromViewers',
 };
+
+/**
+ * formContext is the context key that tells the menus the form of the notes of the document of the side view
+ * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): `visible`, `hidden`, or empty for a document without notes, for
+ * which the eye does not show.
+ */
+export const formContext = 'nimblescape.markdownNotes.notesForm';
 
 /** Message is a message of the script of the view. */
 export type Message =
@@ -319,6 +333,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private newPending: { type: 'new'; todo?: boolean } | { type: 'newFootnote' } | undefined;
   /** footnoteEditor tells whether the editor of a new footnote is open, whose title names the place of its reference. */
   private footnoteEditor = false;
+  /** form is the form of the notes that the menus know, the value of the context key formContext. */
+  private form: string | undefined;
   /**
    * account is the GitHub login of the user that the view shows, read once for each change of the sessions: VS Code can
    * take seconds for a session, and the view shows each selected note at once.
@@ -364,6 +380,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       vscode.commands.registerCommand(viewCommands.newFootnote, () => this.newFootnote()),
       vscode.commands.registerCommand(viewCommands.hide, () => this.hide()),
       vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
+      vscode.commands.registerCommand(viewCommands.hideFromViewers, () => this.changeForm(true)),
+      vscode.commands.registerCommand(viewCommands.eyeShown, () => this.changeForm(true)),
+      vscode.commands.registerCommand(viewCommands.showInViewers, () => this.changeForm(false)),
+      vscode.commands.registerCommand(viewCommands.eyeHidden, () => this.changeForm(false)),
     ];
     this.follow(vscode.window.activeTextEditor);
     this.followTab();
@@ -922,8 +942,36 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     };
   }
 
-  /** refresh sends the content of the view to its script, when the view is open. */
+  /**
+   * changeForm writes all notes of the document of the view in a form, for the eye and its commands
+   * ([R-HIDE-002](../docs/requirements.md#r-hide-002)), and says why when it cannot.
+   * @param hidden - Whether the notes go into the hidden form.
+   */
+  private async changeForm(hidden: boolean): Promise<void> {
+    const document = this.document;
+    if (!document) {
+      return;
+    }
+    const problem = await this.threads.changeForm(document, hidden);
+    if (problem) {
+      void vscode.window.showWarningMessage(problemMessage(problem));
+    }
+    await this.refresh();
+  }
+
+  /** showForm tells the menus the form of the notes of the document of the view, for the eye in its title. */
+  private showForm(): void {
+    const hidden = this.document && this.threads.formOf(this.document);
+    const form = hidden === undefined ? '' : hidden ? 'hidden' : 'visible';
+    if (form !== this.form) {
+      this.form = form;
+      void vscode.commands.executeCommand('setContext', formContext, form);
+    }
+  }
+
+  /** refresh sends the content of the view to its script, when the view is open, and the form of the notes to the menus. */
   private async refresh(): Promise<void> {
+    this.showForm();
     if (!this.view) {
       return;
     }
@@ -1071,7 +1119,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;
         const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
-        const result = await this.threads.addNote(document, range, message.text, colorNames.find((name) => name === message.color), message.todo === true);
+        const result = await this.threads.addNote(
+          document,
+          range,
+          message.text,
+          colorNames.find((name) => name === message.color),
+          message.todo === true,
+          this.settingsOf(document).hideNotesInNewFiles,
+        );
         if ('id' in result) {
           this.select(document, result.id);
           await this.refresh();

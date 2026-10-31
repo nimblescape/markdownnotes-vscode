@@ -39,11 +39,27 @@
 
 import * as vscode from 'vscode';
 import { sourceOf } from './formatter';
-import { appendAnswer, colorNote, deleteAnswer, deleteNote, type Edit, insertNote, type Problem, replaceAnswer, replaceNoteText, type Result, todoNote, withDoctype } from './notes/edits';
+import {
+  appendAnswer,
+  applyEdit,
+  colorNote,
+  convertForm,
+  deleteAnswer,
+  deleteNote,
+  type Edit,
+  hiddenForm,
+  insertNote,
+  type Problem,
+  replaceAnswer,
+  replaceNoteText,
+  type Result,
+  todoNote,
+  withDoctype,
+} from './notes/edits';
 import { checksOf, listingChecksOf } from './notes/checks';
 import { formatVersion, newerFormat, versionText } from './notes/doctype';
 import { deleteFootnote, type Footnote, type FootnoteResult, insertFootnote, readFootnotes, replaceFootnote } from './notes/footnotes';
-import { findNotes, type Note, noteAt, type Position, type Reading, read, readNotes } from './notes/notes';
+import { findNotes, type Note, noteAt, ownLines, type Position, type Reading, read, readNotes } from './notes/notes';
 import { formatDate, normalizeBody, type TodoState } from './notes/syntax';
 
 /** changeDelay is the pause, in milliseconds, after the last change of a document before its notes are read again. */
@@ -64,22 +80,17 @@ interface Entry {
 export interface NoteEntry {
   id: string;
   note: Note;
-  /** text is the text of the definition of the note in the document, without the prefix of its block quotes and list items. */
+  /** text is the text of the definition of the note in the document, without the prefix of its block quotes and list items, and in the hidden form without its comment and its escape. */
   text: string;
 }
 
 /**
  * ownText returns the text of the definition of a note without the prefix of its block quotes and list items on its
- * further lines.
+ * further lines, and in the hidden form without the lines `<!--` and `-->` and without the escape.
  * @param raw - The text of the definition in the document.
- * @param prefix - The prefix of the further lines.
+ * @param note - The note.
  */
-function ownText(raw: string, prefix: string): string {
-  return raw
-    .split(/\r\n|\r|\n/)
-    .map((line, index) => (index === 0 ? line : line.startsWith(prefix) ? line.slice(prefix.length) : line.startsWith(prefix.trimEnd()) ? line.slice(prefix.trimEnd().length) : line))
-    .join('\n');
-}
+const ownText = (raw: string, note: Note): string => ownLines(raw.split(/\r\n|\r|\n/), note.prefix, note.hidden).join('\n');
 
 /**
  * AnswerRef names an answer of a note as the side view showed it: its index in the tree, and the author, the date and
@@ -232,7 +243,7 @@ export class NoteThreads implements vscode.Disposable {
    * @param document - The URI of the document.
    */
   entriesOf(document: vscode.Uri): NoteEntry[] {
-    return (this.entries.get(document.toString()) ?? []).map(({ id, note, raw }) => ({ id, note, text: ownText(raw, note.prefix) }));
+    return (this.entries.get(document.toString()) ?? []).map(({ id, note, raw }) => ({ id, note, text: ownText(raw, note) }));
   }
 
   /**
@@ -502,6 +513,49 @@ export class NoteThreads implements vscode.Disposable {
   }
 
   /**
+   * formOf returns the form of the notes of an open document ([R-HIDE-001](../docs/requirements.md#r-hide-001)): true
+   * for the hidden form, false for the visible form, and undefined for a document without notes.
+   * @param uri - The URI of the document.
+   */
+  formOf(uri: vscode.Uri): boolean | undefined {
+    const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri.toString());
+    if (!document || !isNoteDocument(document)) {
+      return undefined;
+    }
+    const reading = this.readingOf(document);
+    return reading.notes.length > 0 ? hiddenForm(linesOf(document), reading) : undefined;
+  }
+
+  /**
+   * changeForm writes all notes of a document in a form, for the icon at the top of the side view and its commands
+   * ([R-HIDE-002](../docs/requirements.md#r-hide-002)), in one edit. Each thread keeps its note.
+   * @param uri - The URI of the document.
+   * @param hidden - Whether the notes go into the hidden form.
+   */
+  async changeForm(uri: vscode.Uri, hidden: boolean): Promise<Problem | undefined> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    this.sync(document);
+    const lines = linesOf(document);
+    const result = convertForm(lines, hidden);
+    if ('problem' in result) {
+      return result.problem;
+    }
+    const moved = findNotes(applyEdit(lines, result.edit));
+    const entries = this.entries.get(uri.toString()) ?? [];
+    entries.forEach((entry, index) => {
+      entry.expected = moved[index]?.start;
+    });
+    if (!(await this.apply(document, [result.edit]))) {
+      for (const entry of entries) {
+        entry.expected = undefined;
+      }
+      return { kind: 'structure' };
+    }
+    this.sync(document);
+    return undefined;
+  }
+
+  /**
    * saveAnswer writes a text into an answer of a note ([R-EDIT-002](../docs/requirements.md#r-edit-002)), with the
    * date of the save when the text changed.
    * @param document - The URI of the document.
@@ -616,9 +670,10 @@ export class NoteThreads implements vscode.Disposable {
    * @param text - The text of the note.
    * @param color - The name of the color of the note, or undefined for the default color.
    * @param todo - Whether the note is an open todo ([R-NOTE-008](../docs/requirements.md#r-note-008)).
+   * @param hideInNewFile - Whether the first note of a file is in the hidden form ([R-HIDE-002](../docs/requirements.md#r-hide-002)).
    * @returns The identifier of the thread of the new note, or the problem that prevents it.
    */
-  async addNote(uri: vscode.Uri, range: vscode.Range, text: string, color?: string, todo = false): Promise<{ id: string } | { problem: Problem }> {
+  async addNote(uri: vscode.Uri, range: vscode.Range, text: string, color?: string, todo = false, hideInNewFile = false): Promise<{ id: string } | { problem: Problem }> {
     const author = await this.authorOf();
     if (!author) {
       return { problem: { kind: 'signIn' } };
@@ -629,7 +684,7 @@ export class NoteThreads implements vscode.Disposable {
     if (format !== undefined) {
       return { problem: { kind: 'format', format } };
     }
-    const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()), ...(todo ? { todo: 'todo' as const } : {}) }, undefined, color);
+    const result = insertNote(before, range, normalizeBody(text), { author, date: formatDate(new Date()), ...(todo ? { todo: 'todo' as const } : {}) }, undefined, color, hideInNewFile);
     if ('problem' in result) {
       return result;
     }

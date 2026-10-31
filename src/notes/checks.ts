@@ -11,15 +11,19 @@
  * second definition of a label, a reference without a note or a note without
  * a reference, a note in a block quote, a reference in the text of a link or
  * of a note, a reference in a heading, a note without a start marker or
- * without highlighted text, and a
- * start marker at the start of a line without `<wbr>` before it. A listing
+ * without highlighted text, a
+ * start marker at the start of a line without `<wbr>` before it, and an end
+ * marker of the hidden form at the start of a line. A note in the other form
+ * than its file gets a hint, because the formatter writes it in the form of the
+ * file ([R-HIDE-003](../../docs/requirements.md#r-hide-003)). A listing
  * whose source file or snippet is not found gets a warning too
  * ([R-CODE-005](../../docs/requirements.md#r-code-005)). The module uses no
  * API of VS Code.
  */
 
+import { hiddenForm } from './edits';
 import { missingListings, type Source } from './listings';
-import { type Range, type Reading, same } from './notes';
+import { firstLineOf, type Range, type Reading, same } from './notes';
 
 /** Check is one finding of the checks: the part of the text, the message, and whether it is a warning or a hint. */
 export interface Check {
@@ -53,25 +57,44 @@ export function checksOf(lines: readonly string[], reading: Reading): Check[] {
     checks.push({ range, message, severity });
   };
   const labels = new Set(reading.notes.map((note) => note.label));
+  const form = hiddenForm(lines, reading);
+  const formText = (hidden: boolean): string => (hidden ? 'hidden' : 'visible');
+  const otherForm = (hidden: boolean): string =>
+    `in the ${formText(hidden)} form in a file whose notes ${hidden ? 'other viewers show' : 'are hidden from other viewers'}. "Format Document" writes it in the ${formText(!hidden)} form.`;
   for (const note of reading.notes) {
     const first = lineRange(lines, note.start.line, note.start.character);
     if (note.duplicate) {
       add(first, `Another note of the file has the label ${note.label}. Its references name the first one; give this note a label of its own.`);
       continue;
     }
-    if (!note.reference) {
-      add(first, `No reference [^${note.label}] names this note, so GitHub does not show it. Add the reference to the text, or delete the note.`);
+    // One hint for each note: at its definition, or else at the end of its highlight.
+    const ending = note.reference && lines[note.reference.start.line].startsWith('<!--', note.reference.start.character);
+    if (form !== undefined && note.hidden !== form) {
+      add(first, `The note is ${otherForm(note.hidden)}`, 'information');
+    } else if (note.reference && form !== undefined && ending !== form) {
+      add(note.reference, `The end of the highlight is ${otherForm(ending === true)}`, 'information');
     }
-    if (note.prefix.includes('>')) {
+    if (!note.reference) {
+      add(
+        first,
+        note.hidden
+          ? `No end marker <!--${note.label}]--> ends the highlight of this note. Add it at the end of the text of the note, or delete the note.`
+          : `No reference [^${note.label}] names this note, so GitHub does not show it. Add the reference to the text, or delete the note.`,
+      );
+    }
+    if (note.prefix.includes('>') && !note.hidden) {
       add(first, 'GitHub does not show a footnote in a block quote. Move the note after the block quote, at the start of the line.');
     }
     if (note.start.line > 0 && !isBlank(lines[note.start.line - 1])) {
-      add(first, 'Put a blank line before the note, so that every Markdown viewer reads it as a footnote.');
+      add(first, note.hidden ? 'Put a blank line before the comment of the note, as the format of the notes asks.' : 'Put a blank line before the note, so that every Markdown viewer reads it as a footnote.');
     }
     if (!isBlank(lines[note.end.line + 1])) {
-      add(lineRange(lines, note.end.line), 'Put a blank line after the note: a line of text directly after it belongs to the note.');
+      add(
+        lineRange(lines, note.end.line),
+        note.hidden ? 'Put a blank line after the comment of the note, as the format of the notes asks.' : 'Put a blank line after the note: a line of text directly after it belongs to the note.',
+      );
     }
-    for (let line = note.start.line + 1; line <= note.end.line; line++) {
+    for (let line = firstLineOf(note) + 1; line <= note.end.line - (note.hidden ? 1 : 0); line++) {
       const text = (lines[line] ?? '').slice(note.prefix.length);
       if (!isBlank(text) && !/^ {4}/.test(text)) {
         add(lineRange(lines, line), 'Indent each line of a note by four spaces. A line of text without them directly after the note still belongs to the note.', 'information');
@@ -100,6 +123,9 @@ export function checksOf(lines: readonly string[], reading: Reading): Check[] {
   }
   for (const position of reading.markersInHtml) {
     add(lineRange(lines, position.line, position.character), 'A start marker at the start of a line ends the paragraph. Put <wbr> before it; "Format Document" does it.');
+  }
+  for (const position of reading.endMarkersInHtml) {
+    add(lineRange(lines, position.line, position.character), 'An end marker at the start of a line ends the paragraph. Put it directly after the text before it; "Format Document" does it.');
   }
   return checks.sort((a, b) => a.range.start.line - b.range.start.line || a.range.start.character - b.range.start.character);
 }

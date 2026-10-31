@@ -18,9 +18,9 @@
  */
 
 import { colorNames } from './colors';
-import { doctypeEdit, type Version } from './doctype';
-import { before, findNotes, type Note, type Position, type Range, read, type Reading, same, type TextBlock } from './notes';
-import { type AnswerText, type Header, markerText, newLabel, noteLines, referenceText, type TodoState, usedLabels } from './syntax';
+import { doctypeEdit, findDoctype, newerFormat, type Version } from './doctype';
+import { before, findNotes, type Note, ownLines, type Position, type Range, read, type Reading, readNotes, same, type TextBlock } from './notes';
+import { type AnswerText, escapeHidden, type Header, hiddenClose, hiddenLines, hiddenOpen, markerText, newLabel, noteLines, referenceOf, type TodoState, unescapeHidden, usedLabels } from './syntax';
 
 /** Edit replaces the text between two positions of the lines of a text. Its text has `\n` as line breaks. */
 export interface Edit {
@@ -105,7 +105,8 @@ export interface Edits {
  * @param edit - The edit of the change.
  */
 export function withDoctype(lines: readonly string[], edit: Edit): Edits {
-  const top = doctypeEdit(lines, findNotes(applyEdit(lines, edit)).length > 0);
+  const after = applyEdit(lines, edit);
+  const top = doctypeEdit(lines, findNotes(after).length > 0, hiddenForm(after) === true);
   if (!top) {
     return { edits: [edit], shift: (position) => position };
   }
@@ -182,15 +183,17 @@ function subtreeEnd(answers: readonly DeepAnswer[], index: number): number {
 }
 
 /**
- * readsBack tells whether a text has the note of a label with the expected answers and with a reference.
+ * readsBack tells whether a text has the note of a label with the expected answers, in the expected form.
  * @param lines - The lines of the text.
  * @param label - The label of the note.
  * @param answers - The expected answers.
+ * @param hidden - Whether the note is in the hidden form.
  */
-function readsBack(lines: readonly string[], label: string, answers: readonly AnswerText[]): boolean {
+function readsBack(lines: readonly string[], label: string, answers: readonly AnswerText[], hidden = false): boolean {
   const note = findNotes(lines).find((candidate) => candidate.label === label && !candidate.duplicate);
   return (
     note !== undefined &&
+    note.hidden === hidden &&
     note.answers.length === answers.length &&
     note.answers.every(
       (answer, index) =>
@@ -211,10 +214,18 @@ function readsBack(lines: readonly string[], label: string, answers: readonly An
  * @param answers - The new answers, at least one.
  */
 function rewrite(lines: readonly string[], note: Note, answers: readonly AnswerText[]): Result {
-  const written = withPrefix(noteLines(note.label, answers), note.prefix);
+  const written = withPrefix(inForm(noteLines(note.label, answers), note.hidden), note.prefix);
   const next = [...lines.slice(0, note.start.line), lines[note.start.line].slice(0, note.start.character) + written[0], ...written.slice(1), ...lines.slice(note.end.line + 1)];
-  return readsBack(next, note.label, answers) ? { edit: editBetween(lines, next) } : { problem: { kind: 'structure' } };
+  return readsBack(next, note.label, answers, note.hidden) ? { edit: editBetween(lines, next) } : { problem: { kind: 'structure' } };
 }
+
+/**
+ * inForm returns the lines of a definition in a form: as they are in the visible form, and in the hidden form inside
+ * the lines `<!--` and `-->` and escaped ([R-HIDE-001](../../docs/requirements.md#r-hide-001)).
+ * @param lines - The lines of the definition in the visible form.
+ * @param hidden - Whether the note is in the hidden form.
+ */
+const inForm = (lines: readonly string[], hidden: boolean): string[] => (hidden ? hiddenLines(lines) : [...lines]);
 
 /**
  * replaceAnswer returns the edit that gives an answer of a note a new body
@@ -470,8 +481,18 @@ export function highlightFor(lines: readonly string[], range: Range, reading: Re
  * @param fields - The author and the date.
  * @param random - Returns a random number from 0 to below 1, for the label.
  * @param color - The name of the color of the note, or undefined for the default color.
+ * @param hideInNewFile - Whether the first note of a text is in the hidden form
+ * ([R-HIDE-002](../../docs/requirements.md#r-hide-002)); a text with notes keeps its form.
  */
-export function insertNote(lines: readonly string[], range: Range, body: string, fields: Fields, random?: () => number, color?: string): Result & { label?: string; start?: Position } {
+export function insertNote(
+  lines: readonly string[],
+  range: Range,
+  body: string,
+  fields: Fields,
+  random?: () => number,
+  color?: string,
+  hideInNewFile = false,
+): Result & { label?: string; start?: Position } {
   if (body === '') {
     return { problem: { kind: 'empty' } };
   }
@@ -483,9 +504,10 @@ export function insertNote(lines: readonly string[], range: Range, body: string,
     return { problem: { kind: 'place' } };
   }
   const label = newLabel(usedLabels(lines), random);
+  const hidden = hiddenForm(lines) ?? hideInNewFile;
   const next = [...lines];
   const parts = [
-    { position: place.reference, text: referenceText(label) },
+    { position: place.reference, text: referenceOf(label, hidden) },
     { position: place.marker, text: markerText(label, color) },
   ].sort((a, b) => (before(a.position, b.position) ? (same(a.position, b.position) ? 0 : 1) : -1));
   // The later part goes first, so that the position of the earlier one stays; at the same position the marker goes before the reference.
@@ -493,13 +515,13 @@ export function insertNote(lines: readonly string[], range: Range, body: string,
     const line = next[position.line];
     next[position.line] = line.slice(0, position.character) + text + line.slice(position.character);
   }
-  const definition = noteLines(label, [{ ...fields, body }]);
+  const definition = inForm(noteLines(label, [{ ...fields, body }]), hidden);
   const blankBefore = place.line > 0 && next[place.line - 1].trim() !== '';
   const blankAfter = place.line < next.length && next[place.line].trim() !== '';
   next.splice(place.line, 0, ...(blankBefore ? [''] : []), ...definition, ...(blankAfter ? [''] : []));
   const start = { line: place.line + (blankBefore ? 1 : 0), character: 0 };
   const written = findNotes(next).find((note) => note.label === label);
-  if (!readsBack(next, label, [{ ...fields, body }]) || !written?.reference) {
+  if (!readsBack(next, label, [{ ...fields, body }], hidden) || !written?.reference) {
     return { problem: { kind: 'structure' } };
   }
   return { edit: editBetween(lines, next), label, start };
@@ -562,11 +584,124 @@ export function replaceNoteText(lines: readonly string[], note: Note, text: stri
   if (own.join('').trim() === '') {
     return { problem: { kind: 'empty' } };
   }
-  const written = withPrefix(own, note.prefix);
+  const written = withPrefix(inForm(own, note.hidden), note.prefix);
   const next = [...lines.slice(0, note.start.line), lines[note.start.line].slice(0, note.start.character) + written[0], ...written.slice(1), ...lines.slice(note.end.line + 1)];
   const count = findNotes(lines).length;
   const notes = findNotes(next);
   const changed = notes.find((candidate) => candidate.label === note.label && !candidate.duplicate);
-  const fits = changed !== undefined && changed.start.line === note.start.line && changed.end.line === note.start.line + written.length - 1 && notes.length === count;
+  const fits =
+    changed !== undefined && changed.hidden === note.hidden && changed.start.line === note.start.line && changed.end.line === note.start.line + written.length - 1 && notes.length === count;
   return fits ? { edit: editBetween(lines, next) } : { problem: { kind: 'text', label: note.label } };
+}
+
+/**
+ * hiddenForm tells the form of the notes of a text ([R-HIDE-001](../../docs/requirements.md#r-hide-001)): true for the
+ * hidden form, false for the visible form, and undefined for a text without notes and without the comment of the
+ * format. The comment decides: its first line holds the word `hidden` in the hidden form. Without the comment, the
+ * text is in the hidden form when all of its notes are.
+ * @param lines - The lines of the text.
+ * @param reading - The reading of the lines.
+ */
+export function hiddenForm(lines: readonly string[], reading: Reading = readNotes(lines)): boolean | undefined {
+  const doctype = findDoctype(lines);
+  if (doctype) {
+    return doctype.hidden;
+  }
+  return reading.notes.length > 0 ? reading.notes.every((note) => note.hidden) : undefined;
+}
+
+/**
+ * isBlankLine tells whether a line holds nothing but the prefix of block quotes and list items, and white space.
+ * @param line - The line, or undefined outside the text.
+ */
+const isBlankLine = (line: string | undefined): boolean => line === undefined || /^[ \t>]*$/.test(line);
+
+/**
+ * convert returns the lines of a text with each note and each end of a highlight in a form, or undefined when
+ * markdown-it would not read the result as the same notes. A definition keeps its lines and moves into its comment or
+ * out of it, with the escape, and with a blank line before and after it; a reference becomes an end marker, or the other
+ * way. The parts of the notes that are in the form already stay as they are.
+ * @param lines - The lines of the text.
+ * @param reading - The reading of the lines.
+ * @param hidden - Whether the notes go into the hidden form.
+ */
+function convert(lines: readonly string[], reading: Reading, hidden: boolean): string[] | undefined {
+  const labels = new Set(reading.notes.map((note) => note.label));
+  const edits: Edit[] = [];
+  for (const note of reading.notes.filter((candidate) => candidate.hidden !== hidden)) {
+    const head = lines[note.start.line].slice(0, note.start.character);
+    const first = lines[note.start.line].slice(note.start.character);
+    const further = lines.slice(note.start.line + 1, note.end.line + 1);
+    // The prefix of a line holds no `--`, so the escape of the whole line is the escape of its text.
+    const text = hidden
+      ? [head + hiddenOpen, note.prefix + escapeHidden(first), ...further.map(escapeHidden), note.prefix + hiddenClose]
+      : [head + unescapeHidden(ownLines([first, further[0] ?? ''], note.prefix, false)[1]), ...further.slice(1, -1).map(unescapeHidden)];
+    const blank = note.prefix.trimEnd();
+    const blankBefore = isBlankLine(lines[note.start.line - 1]) ? '' : `${blank}\n`;
+    const blankAfter = isBlankLine(lines[note.end.line + 1]) ? '' : `\n${blank}`;
+    edits.push({ start: { line: note.start.line, character: 0 }, end: { line: note.end.line, character: lines[note.end.line].length }, text: `${blankBefore}${text.join('\n')}${blankAfter}` });
+  }
+  for (const reference of reading.references.filter((candidate) => labels.has(candidate.label))) {
+    const written = lines[reference.start.line].slice(reference.start.character, reference.end.character);
+    if (written.startsWith('<!--') !== hidden) {
+      edits.push({ start: reference.start, end: reference.end, text: referenceOf(reference.label, hidden) });
+    }
+  }
+  let next = [...lines];
+  for (const edit of edits.sort((a, b) => (before(a.start, b.start) ? 1 : -1))) {
+    next = applyEdit(next, edit);
+  }
+  const notes = findNotes(next);
+  const alike = (a: Note, b: Note): boolean =>
+    a.label === b.label &&
+    a.answers.length === b.answers.length &&
+    a.answers.every((answer, index) => {
+      const other = b.answers[index];
+      return answer.author === other.author && answer.date === other.date && answer.todo === other.todo && answer.body === other.body && answer.depth === other.depth;
+    });
+  const kept =
+    notes.length === reading.notes.length &&
+    notes.every((note, index) => note.hidden === hidden && alike(note, reading.notes[index]) && (reading.notes[index].reference === undefined) === (note.reference === undefined));
+  return kept ? next : undefined;
+}
+
+/**
+ * convertForm returns the edit that writes all notes of a text in a form, for the icon of the side view and its
+ * commands ([R-HIDE-002](../../docs/requirements.md#r-hide-002)): each definition moves into its comment or out of it,
+ * with the escape, each reference becomes an end marker or the other way, and the comment of the format gets the word
+ * `hidden` or loses it, all in one edit, which Undo takes back.
+ * @param lines - The lines of the text.
+ * @param hidden - Whether the notes go into the hidden form.
+ */
+export function convertForm(lines: readonly string[], hidden: boolean): Result {
+  const format = newerFormat(lines);
+  if (format) {
+    return { problem: { kind: 'format', format } };
+  }
+  const reading = readNotes(lines);
+  if (reading.notes.length === 0) {
+    return { problem: { kind: 'missing' } };
+  }
+  const next = convert(lines, reading, hidden);
+  if (!next) {
+    return { problem: { kind: 'structure' } };
+  }
+  const top = doctypeEdit(next, true, hidden);
+  return { edit: editBetween(lines, top ? applyEdit(next, top) : next) };
+}
+
+/**
+ * notesInForm returns the lines of a text with each note in the form of the text, for the formatter
+ * ([R-HIDE-003](../../docs/requirements.md#r-hide-003)): for example a note in the visible form that a merge or an AI
+ * agent added to a text in the hidden form. The text stays as it is when it has no notes, when its notes are in its
+ * form, or when the result would not read as the same notes.
+ * @param lines - The lines of the text.
+ */
+export function notesInForm(lines: readonly string[]): string[] {
+  const reading = readNotes(lines);
+  const hidden = hiddenForm(lines, reading);
+  if (hidden === undefined || reading.notes.length === 0) {
+    return [...lines];
+  }
+  return convert(lines, reading, hidden) ?? [...lines];
 }
