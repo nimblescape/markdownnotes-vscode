@@ -353,12 +353,13 @@ form of the notes in a file for programs and AI agents, and
   "Rename Snippet" and "Remove Snippet", and the buttons "Show Used
   Snippets" and "Hide Used Snippets" color the used snippets
   ([R-CODE-004](requirements.md#r-code-004), decision 37).
-- **Sources in other repositories, planned:** each other repository of a
-  project is a Git submodule of the repository of the paper, at a fixed
-  commit; a listing names a file of it by its path, the tools read it from
-  the disk, and the link of the caption goes to the other repository at
-  the commit of the submodule, read from `.gitmodules`
-  ([R-CODE-006](requirements.md#r-code-006), decision 46).
+- **Sources in other repositories, planned:** the front matter of the
+  paper names each other repository as a GitHub reference with a rev,
+  which the command `mp get` of nimblescape Markdown Paper clones into a
+  folder that Git ignores; a listing names a reference and a path,
+  `server:src/api.ts#read`, and the link of the caption goes to the other
+  repository at the commit of the clone when the formatter wrote the code
+  ([R-CODE-006](requirements.md#r-code-006), decision 55).
 
 ## 12. API for other extensions
 

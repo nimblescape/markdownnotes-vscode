@@ -94,7 +94,7 @@ requirement, the plan and the decisions of Hannes.
 | 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
 | 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
 | 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
-| 68 | Listings of files of other repositories as Git submodules: the link of the caption to the other repository at the commit of the submodule ([decision 46](#decisions)) | [R-CODE-006](#r-code-006) | planned |
+| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46) | [R-CODE-006](#r-code-006) | planned |
 | 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
 | 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
 | 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
@@ -2200,34 +2200,46 @@ class or a method ([decision 38](#decisions)):
 ### R-CODE-006
 
 **Sources in other repositories.** A paper about a project of more than one
-repository shows code of each repository. Each other repository is a Git
-submodule of the repository of the paper, at a fixed commit
-([decision 46](#decisions)). This requirement is planned and not built
+repository shows code of each repository. The front matter of the paper
+names each other repository as a GitHub reference with a rev, and the
+command `mp` of nimblescape Markdown Paper clones it
+([decision 55](#decisions)). This requirement is planned and not built
 yet ([step 68](#plan)).
 
-```text
-paper-repo/
-  paper/paper.md
-  repos/server/   (submodule)
-  repos/client/   (submodule)
+```yaml
+---
+title: The server of the project
+layout: majikmate/markdownpaper-layout-pht/thesis@main
+repos:
+  server: org/server@v2.1.0
+---
 ```
 
-- The comment of a listing names a file of a submodule by its path, as any
-  other file, for example `<!-- listing: ../repos/server/src/api.ts#read -->`.
-- VS Code, the command line and the check of a pull request read the files
-  from the disk. The check of a pull request checks out the submodules, for
-  example with `submodules: true` of `actions/checkout`. No network access
-  and no tokens are needed.
-- The commit of the submodule is the version of the code that the paper
-  shows. For a new version, the author updates the submodule and commits
-  it; the formatter then writes the current code and lines.
-- GitHub opens no relative link into a submodule. For a file of a
-  submodule, the formatter writes the link of the caption to the other
-  repository at the commit of the submodule, for example
-  `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`. It reads
-  the address of the repository from `.gitmodules` and the commit from the
-  submodule. The cite after the link stays `(api.ts, L12-L30)`
+- The rev alone says how the paper follows the repository: a tag or a
+  commit pins the version, and a branch takes its head. The front matter
+  holds no other commit, and the paper needs no lock file.
+- The commands belong to Markdown Paper: `mp get owner/repo@rev` writes or
+  changes a reference and clones the repository; `mp get` alone clones the
+  missing repositories and pulls the branches, into a folder that Git
+  ignores, for example `.markdownpaper/repos/server/`; `mp get -u` also
+  moves each tag to the newest tag. CI runs `mp get` before the PDF. The
+  key `layout` is a reference of the same form.
+- The comment of a listing names a reference and a path, for example
+  `<!-- listing: server:src/api.ts#read -->`. Markdown Notes reads the file
+  from the clone of that reference, through the API between the two
+  extensions ([R-GEN-012](#r-gen-012)).
+- The code block of the listing holds the code, so GitHub, the check of a
+  pull request and the PDF need only the repository of the paper for the
+  code.
+- The link of the caption goes to the other repository at the commit of
+  the clone when the formatter wrote the code, for example
+  `https://github.com/org/server/blob/<commit>/src/api.ts#L12-L30`, so the
+  link shows the code of the code block, also for a reference to a branch.
+  The cite after the link stays `(api.ts, L12-L30)`
   ([R-CODE-001](#r-code-001)).
+- The extensions connect to no address of their own: only `mp get`, which
+  the author or CI runs, fetches, with the Git access of the author
+  ([R-GEN-003](#r-gen-003)).
 
 ## Hidden notes
 
@@ -2735,7 +2747,8 @@ requirements above follow them.
     repository at that commit. Planned; not built yet. The other choice was
     a list of repositories with versions in the front matter, whose files
     the tools fetch over the network, which needs a new form, network access
-    and tokens for private repositories.
+    and tokens for private repositories. [Decision 55](#decisions)
+    replaces this decision.
 47. **Nothing published before the release** ([R-GEN-017](#r-gen-017),
     [R-GEN-005](#r-gen-005)): no version of the extension or of the npm
     package goes to the Marketplace or to npmjs.com before the release.
@@ -2791,6 +2804,20 @@ requirements above follow them.
     of the scripts of the side view and of the preview, and ESLint come
     after the planned features of steps 31, 34 and 35. The other choices
     were to build them next, after the hidden form, or not to build them.
+55. **Sources in other repositories as references in the front matter**
+    ([R-CODE-006](#r-code-006)): the front matter of a paper names each
+    other repository as a GitHub reference with a rev, for example
+    `server: org/server@v2.1.0` under `repos`. A tag or a commit pins the
+    version, and a branch takes its head; the front matter holds no other
+    commit, and the paper needs no lock file. The command `mp` of
+    nimblescape Markdown Paper clones and pulls the repositories with
+    `mp get`, as it does the repository of the layout. A listing names a
+    reference and a path, and its code block keeps the code. This replaces
+    [decision 46](#decisions). The other choices were the Git submodules of
+    decision 46, a list of sources with the clones of the author, npm
+    packages from GitHub, a fetch of the files over the network, the GitHub
+    address in each listing, clones side by side, and copies of the shown
+    files.
 
 ---
 

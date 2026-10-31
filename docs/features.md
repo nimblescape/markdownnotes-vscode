@@ -267,7 +267,7 @@ planned, and the symbols of a listing with parsers are postponed
 | --- | --- | --- | --- | --- |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
-| Listings of files of other repositories, as Git submodules of the repository of the paper; the link of the caption goes to the other repository at the commit of the submodule | 10-30 07:34, 07:39 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 46](requirements.md#decisions)) | Planned |
+| Listings of files of other repositories, as references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption goes to the other repository at the commit of the clone | 10-30 07:34, 07:39; 10-31 02:32 to 03:36 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 55](requirements.md#decisions), which replaces decision 46) | Planned |
 
 ## Moved to nimblescape Markdown Paper
 
