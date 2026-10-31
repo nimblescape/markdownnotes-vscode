@@ -56,9 +56,9 @@ import {
   todoNote,
   withDoctype,
 } from './notes/edits';
-import { checksOf, listingChecksOf } from './notes/checks';
+import { checksOf, footnoteChecksOf, listingChecksOf } from './notes/checks';
 import { formatVersion, newerFormat, versionText } from './notes/doctype';
-import { deleteFootnote, type Footnote, type FootnoteResult, insertFootnote, readFootnotes, replaceFootnote } from './notes/footnotes';
+import { addDefinition, deleteFootnote, type Footnote, type FootnoteResult, insertFootnote, readFootnotes, type RenumberResult, renumberFootnotes, replaceFootnote } from './notes/footnotes';
 import { findNotes, type Note, noteAt, ownLines, type Position, type Reading, read, readNotes } from './notes/notes';
 import { formatDate, normalizeBody, type TodoState } from './notes/syntax';
 
@@ -149,14 +149,22 @@ export function problemMessage(problem: Problem): string {
       return 'The change was not saved: the file no longer holds the footnote.';
     case 'footnoteChanged':
       return 'The change was not saved: the footnote changed in the meantime. Look at the footnote again, and repeat the change if it is still needed.';
+    case 'footnoteExists':
+      return 'The definition was not added: the file has a definition of this footnote already.';
   }
 }
 
 /** footnoteProblems are the problems of the changes of a standard footnote, by the problems of footnotes.ts. */
-const footnoteProblems = { empty: 'footnoteEmpty', structure: 'footnoteStructure', place: 'footnotePlace' } as const;
+const footnoteProblems = { empty: 'footnoteEmpty', structure: 'footnoteStructure', place: 'footnotePlace', exists: 'footnoteExists' } as const;
 
 /** definitionSearch matches a text with the definition of a footnote, so that a text without one needs no reading of its footnotes. */
 const definitionSearch = /^ {0,3}\[\^[^\]\s]+\]:/m;
+
+/** footnoteSearch matches a text with a reference or a definition of a footnote, so that a text without one needs no checks of footnotes. */
+const footnoteSearch = /\[\^[^\]\s]+\]/;
+
+/** diagnosticSource is the source of the warnings of the extension, which the quick fixes of the footnotes look for. */
+export const diagnosticSource = 'Markdown Notes';
 
 /**
  * isNoteDocument tells whether a document can have notes: a Markdown document that the extension can change, in a
@@ -366,11 +374,18 @@ export class NoteThreads implements vscode.Disposable {
     const source = sourceOf(document.uri);
     this.diagnostics.set(
       document.uri,
-      [...checksOf(lines, this.readingOf(document)), ...(source ? listingChecksOf(lines, source) : [])].map((check) => {
+      [
+        ...checksOf(lines, this.readingOf(document)),
+        ...(footnoteSearch.test(document.getText()) ? footnoteChecksOf(lines, this.textReadingOf(document)) : []),
+        ...(source ? listingChecksOf(lines, source) : []),
+      ].map((check) => {
         const range = new vscode.Range(check.range.start.line, check.range.start.character, check.range.end.line, check.range.end.character);
         const severity = check.severity === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Information;
         const diagnostic = new vscode.Diagnostic(range, check.message, severity);
-        diagnostic.source = 'Markdown Notes';
+        diagnostic.source = diagnosticSource;
+        if (check.code) {
+          diagnostic.code = check.code;
+        }
         return diagnostic;
       }),
     );
@@ -750,6 +765,45 @@ export class NoteThreads implements vscode.Disposable {
    */
   deleteFootnote(document: vscode.Uri, label: string): Promise<Problem | undefined> {
     return this.changeFootnote(document, label, (lines, footnote) => ({ edits: deleteFootnote(lines, footnote) }));
+  }
+
+  /**
+   * addDefinition adds the definition of a standard footnote whose references have none, with a text, for the quick fix
+   * "Add Definition" ([R-FOOT-004](../docs/requirements.md#r-foot-004)).
+   * @param uri - The URI of the document.
+   * @param label - The label of the footnote.
+   * @param text - The text of the footnote.
+   */
+  async addDefinition(uri: vscode.Uri, label: string, text: string): Promise<Problem | undefined> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    const result = addDefinition(linesOf(document), label, text);
+    if ('problem' in result) {
+      return { kind: footnoteProblems[result.problem] };
+    }
+    if (!(await this.apply(document, result.edits))) {
+      return { kind: 'footnoteStructure' };
+    }
+    this.sync(document);
+    return undefined;
+  }
+
+  /**
+   * renumberFootnotes gives the standard footnotes of a document whose labels are numbers the labels 1, 2, 3 … in the
+   * order of their first reference, in one edit ([R-FOOT-005](../docs/requirements.md#r-foot-005)).
+   * @param uri - The URI of the document.
+   * @returns Nothing after the change, or why nothing changed; `failed` when VS Code did not apply the edit.
+   */
+  async renumberFootnotes(uri: vscode.Uri): Promise<Exclude<RenumberResult, { edits: unknown }> | { problem: 'failed' } | undefined> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    const result = renumberFootnotes(linesOf(document), this.textReadingOf(document));
+    if ('problem' in result) {
+      return result;
+    }
+    if (!(await this.apply(document, result.edits))) {
+      return { problem: 'failed' };
+    }
+    this.sync(document);
+    return undefined;
   }
 
   /**

@@ -17,20 +17,31 @@
  * than its file gets a hint, because the formatter writes it in the form of the
  * file ([R-HIDE-003](../../docs/requirements.md#r-hide-003)). A listing
  * whose source file or snippet is not found gets a warning too
- * ([R-CODE-005](../../docs/requirements.md#r-code-005)). The module uses no
+ * ([R-CODE-005](../../docs/requirements.md#r-code-005)), and so do the
+ * standard footnotes: a reference without a definition, a definition without
+ * a reference and a second definition of a label
+ * ([R-FOOT-004](../../docs/requirements.md#r-foot-004)). The module uses no
  * API of VS Code.
  */
 
 import { hiddenForm } from './edits';
+import { footnoteProblemsOf } from './footnotes';
 import { missingListings, type Source } from './listings';
 import { firstLineOf, type Range, type Reading, same } from './notes';
 
-/** Check is one finding of the checks: the part of the text, the message, and whether it is a warning or a hint. */
+/**
+ * Check is one finding of the checks: the part of the text, the message, whether it is a warning or a hint, and the code
+ * of a finding that has a quick fix.
+ */
 export interface Check {
   range: Range;
   message: string;
   severity: 'warning' | 'information';
+  code?: (typeof footnoteCodes)[keyof typeof footnoteCodes];
 }
+
+/** footnoteCodes are the codes of the checks of the standard footnotes, which name their quick fixes. */
+export const footnoteCodes = { undefined: 'footnote-undefined', unreferenced: 'footnote-unreferenced', duplicate: 'footnote-duplicate' } as const;
 
 /**
  * lineRange returns the range of the text of a line.
@@ -128,6 +139,40 @@ export function checksOf(lines: readonly string[], reading: Reading): Check[] {
     add(lineRange(lines, position.line, position.character), 'An end marker at the start of a line ends the paragraph. Put it directly after the text before it; "Format Document" does it.');
   }
   return checks.sort((a, b) => a.range.start.line - b.range.start.line || a.range.start.character - b.range.start.character);
+}
+
+/**
+ * footnoteChecksOf returns the checks of the standard footnotes of a Markdown text
+ * ([R-FOOT-004](../../docs/requirements.md#r-foot-004)): a warning at each reference without a definition, at each
+ * definition without a reference and at each second definition of a label. The first two have the quick fixes "Add
+ * Definition" and "Delete Definition".
+ * @param lines - The lines of the text.
+ * @param reading - The reading of the text, with its blocks of text.
+ */
+export function footnoteChecksOf(lines: readonly string[], reading: Reading): Check[] {
+  const problems = footnoteProblemsOf(lines, reading);
+  const definitionRange = (line: number): Range => lineRange(lines, line, /^ */.exec(lines[line])![0].length);
+  return [
+    ...problems.undefinedReferences.map(
+      ({ label, range }): Check => ({ range, message: `The file has no footnote [^${label}], so this reference shows as text. Add its definition, or delete the reference.`, severity: 'warning', code: footnoteCodes.undefined }),
+    ),
+    ...problems.unreferenced.map(
+      ({ label, line }): Check => ({
+        range: definitionRange(line),
+        message: `No reference [^${label}] names this footnote, so GitHub and the preview do not show it. Add the reference to the text, or delete the definition.`,
+        severity: 'warning',
+        code: footnoteCodes.unreferenced,
+      }),
+    ),
+    ...problems.duplicates.map(
+      ({ label, line }): Check => ({
+        range: definitionRange(line),
+        message: `An earlier footnote of the file has the label ${label}, and the references [^${label}] name that one. Give this footnote a label of its own, or delete it.`,
+        severity: 'warning',
+        code: footnoteCodes.duplicate,
+      }),
+    ),
+  ].sort((a, b) => a.range.start.line - b.range.start.line || a.range.start.character - b.range.start.character);
 }
 
 /**

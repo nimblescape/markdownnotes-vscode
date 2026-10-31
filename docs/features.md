@@ -16,7 +16,7 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 134 requested features, 109 are built, among them the clean editing view
+Of 134 requested features, 110 are built, among them the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -26,8 +26,9 @@ values of the front matter in the text, the listings of code from the
 source files of the repository with the snippets in them, and the numbers of
 the captions and the cite of a listing in the file by the principle "document driven", and
 the hidden form of the notes with the eye in the side view, which hides the
-notes from other viewers, also from GitHub, and the text of a file without its
-notes for publishing. 3 features are planned but not built, and 1 is postponed: the features of the section
+notes from other viewers, also from GitHub, the text of a file without its
+notes for publishing, and the checks of the standard footnotes with
+"Renumber Footnotes". 2 features are planned but not built, and 1 is postponed: the features of the section
 [Planned features](#planned-features). The symbols of a listing with
 tree-sitter parsers are postponed ([decision 51](requirements.md#decisions)).
 Three questions are decided without a
@@ -44,8 +45,8 @@ numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
 [decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
-The main gaps are the text without notes for publishing and the checks of
-the footnotes.
+The main gap is "Make Footnote", which turns an accepted note into a
+standard footnote.
 
 The columns of the tables:
 
@@ -229,8 +230,9 @@ need Hannes after the merge of
 
 The side view is also the editor of the standard footnotes of a file, the
 footnotes that are no note, since the evening of 2026-10-29 (steps 32 and 33
-of the plan). The checks of the footnotes, "Renumber Footnotes" and "Make
-Footnote" are in the section [Planned features](#planned-features).
+of the plan); the checks of the footnotes and "Renumber Footnotes" followed
+on 2026-10-31 (step 34). "Make Footnote" is in the section
+[Planned features](#planned-features).
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
@@ -238,6 +240,7 @@ Footnote" are in the section [Planned features](#planned-features).
 | "Add Footnote" at the cursor | 10-29 08:01 | [R-FOOT-003](requirements.md#r-foot-003) | Built | Shift+Alt+B (Cmd+K B on macOS), the title of the side view, the context menu and the Command Palette; the editor of the new footnote in the side view, with the text before the place in its title |
 | `/footnote` opens the editor of the new footnote in the side view | 10-29 18:51 | [R-EDIT-008](requirements.md#r-edit-008), [R-FOOT-003](requirements.md#r-foot-003) | Built | The command leaves the text, and "Add Footnote" in the editor writes the reference and the definition |
 | Citations as footnotes inside the highlight of a note | 10-29 20:12 | [R-FOOT-001](requirements.md#r-foot-001) | Built | It worked for GitHub, the preview and the formatter; the fix: the cursor on the reference selects the footnote, and the rest of the highlight the note. The citations themselves moved to nimblescape Markdown Paper ([decision 32](requirements.md#decisions)) |
+| Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | Built | Step 34: warnings at a reference without a definition, a definition without a reference and a second definition of a label, in the text editor and the Problems view; the quick fixes "Add Definition" (the editor of a new definition in the side view) and "Delete Definition"; "Renumber Footnotes" in the Command Palette and the menu "…" of the side view, which refuses a reference of a number without a definition and a second definition of a number |
 | The definitions of the footnotes hidden in the text | 10-29 20:42 | [R-TEXT-009](requirements.md#r-text-009), [R-FOOT-001](requirements.md#r-foot-001) | Built | In the clean editing view of a file with notes, while the side view shows the footnotes; the references stay, and a definition without a reference too. A definition typed in the view stays until the view reads the file anew. A file with only standard footnotes opens in its own text editor, with its definitions |
 
 ## Hidden notes
@@ -256,13 +259,12 @@ the same day.
 
 ## Planned features
 
-4 features are in the specification and the plan, or proposed, but not built. 3 are
+3 features are in the specification and the plan, or proposed, but not built. 2 are
 planned, and the symbols of a listing with parsers are postponed
 ([decision 51](requirements.md#decisions)).
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
-| Checks of the footnotes and "Renumber Footnotes" | 10-29 08:01 | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) | 34 | Planned |
 | "Make Footnote": an accepted note becomes a standard footnote | 10-29 08:01 | [R-FOOT-006](requirements.md#r-foot-006) | 35 | Planned |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
 | Listings of files of other repositories, as Git submodules of the repository of the paper; the link of the caption goes to the other repository at the commit of the submodule | 10-30 07:34, 07:39 | [R-CODE-006](requirements.md#r-code-006) | 68, later ([decision 46](requirements.md#decisions)) | Planned |
@@ -304,10 +306,10 @@ is built, and
 is merged. The hidden notes and the text without notes (steps 29 to 31) are
 built in
 [pull request #3](https://github.com/nimblescape/markdownnotes-vscode/pull/3),
-which also takes steps 34 and 35. The open work, in its order:
+which also takes steps 34 and 35; step 34, the checks of the footnotes and
+"Renumber Footnotes", is built there too. The open work, in its order:
 
-1. Steps 34 and 35: the checks of the footnotes, "Renumber Footnotes" and
-   "Make Footnote".
+1. Step 35: "Make Footnote".
 2. Step 78: the fixes of the code review
    ([decision 54](requirements.md#decisions)).
 3. There is no release for now ([decision 48](requirements.md#decisions));

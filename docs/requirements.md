@@ -60,7 +60,7 @@ requirement, the plan and the decisions of Hannes.
 | 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | done |
 | 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
 | 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
-| 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | planned |
+| 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | done |
 | 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | planned |
 | 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
 | 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
@@ -1744,22 +1744,44 @@ the file can be changed. VS Code uses these keys for nothing else.
 
 ### R-FOOT-004
 
-**Checks of the footnotes.** The text editor shows a warning for a
-reference without a definition, for a definition without a reference, and
-for two definitions with the same label. The quick fixes "Add Definition"
-(it opens the editor of a new definition for the label) and "Delete
-Definition" (for a definition without a reference) repair them. The checks
-cover the standard footnotes; the notes have their own warnings.
+**Checks of the footnotes.** The text editor of a Markdown file and the
+Problems view show a warning for each form of a standard footnote that
+GitHub and the Markdown preview show differently from what the author
+meant:
+
+- a reference without a definition, which shows as text;
+- a definition that no reference outside of it names, which no viewer shows;
+- a second definition of a label, whose references name the first one.
+
+The quick fix "Add Definition" at a reference without a definition opens the
+editor of a new definition for its label in the side view; "Save" writes the
+definition at the place of the definition of a new footnote
+([R-FOOT-003](#r-foot-003)), and selects the footnote. The quick fix "Delete
+Definition" at a definition without a reference removes it with the blank
+lines after it, as "Delete" of the side view does. A second definition has
+no quick fix: only the author knows whether it needs a label of its own. The
+checks cover the standard footnotes; the notes have their own warnings
+([R-TEXT-008](#r-text-008)). For a file in the clean editing view, the
+warnings show in the Problems view only ([R-TEXT-009](#r-text-009)).
 
 ### R-FOOT-005
 
 **Renumber the footnotes.** The command "Renumber Footnotes" gives the
 standard footnotes whose labels are numbers the labels 1, 2, 3 … in the
 order of their first reference, in the references and the definitions, in
-one edit that Undo takes back. A label that is a word, for example
-`[^smith-2020]`, stays, and so do the labels of the notes
+one edit that Undo takes back. The footnotes of such labels without a
+reference follow, in the order of their definitions. A label that is a word,
+for example `[^smith-2020]`, stays, and so do the labels of the notes
 ([R-NOTE-003](#r-note-003)). The numbers that a reader sees do not depend on
 the labels; the command makes the labels of the file match them.
+
+- The command is in the Command Palette for a Markdown file and in the menu
+  "…" of the side view, and works on the active Markdown file, also on the
+  file of a clean editing view.
+- It changes nothing and names the line when a reference of a number has no
+  definition or a number has a second definition, because a new label could
+  then name another footnote. It says so when the labels are in order
+  already.
 
 ### R-FOOT-006
 

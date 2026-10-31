@@ -274,9 +274,14 @@ form of the notes in a file for programs and AI agents, and
   [R-FOOT-002](requirements.md#r-foot-002)).
 - "Add Footnote" at the cursor: Shift+Alt+B, Cmd+K B on a Mac, and
   `/footnote` ([R-FOOT-003](requirements.md#r-foot-003)).
-- **Planned:** the checks of the footnotes, "Renumber Footnotes" and "Make
-  Footnote" ([R-FOOT-004](requirements.md#r-foot-004) to
-  [R-FOOT-006](requirements.md#r-foot-006)).
+- Warnings at a reference without a definition, a definition without a
+  reference and a second definition of a label, with the quick fixes "Add
+  Definition" and "Delete Definition"
+  ([R-FOOT-004](requirements.md#r-foot-004)).
+- "Renumber Footnotes": the footnotes whose labels are numbers get 1, 2, 3 …
+  in the order of their first reference, in one edit; labels that are words
+  stay ([R-FOOT-005](requirements.md#r-foot-005)).
+- **Planned:** "Make Footnote" ([R-FOOT-006](requirements.md#r-foot-006)).
 
 ## 11. Figures, tables, sections and listings
 

@@ -264,6 +264,31 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(fs.readFileSync(file.fsPath, 'utf8'), marked(`${note}\nEnd.[^1]\n\n[^1]: A footnote.\n`));
   });
 
+  it('warns about a reference of a footnote without a definition, with the quick fix "Add Definition", and renumbers the footnotes in one change (R-FOOT-004, R-FOOT-005)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, 'B[^2] and A[^1] and[^gone].\n\n[^1]: One.\n\n[^2]: Two.\n');
+    const editor = await vscode.window.showTextDocument(file);
+    const warnings = await waitFor(() => {
+      const found = vscode.languages.getDiagnostics(file).filter((diagnostic) => diagnostic.source === 'Markdown Notes');
+      return found.length > 0 ? found : undefined;
+    }, 'the warning of the footnote');
+    assert.deepEqual(
+      warnings.map((diagnostic) => [diagnostic.code, diagnostic.range.start.line, diagnostic.range.start.character, diagnostic.range.end.character]),
+      [['footnote-undefined', 0, 19, 26]],
+    );
+    const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', file, warnings[0].range, vscode.CodeActionKind.QuickFix.value);
+    assert.ok(
+      actions.some((action) => action.title === 'Add Definition of [^gone]' && action.command?.command === commandOf('addFootnoteDefinition')),
+      actions.map((action) => action.title).join(', '),
+    );
+    const version = editor.document.version;
+    await vscode.commands.executeCommand(commandOf('renumberFootnotes'));
+    await waitFor(() => (editor.document.getText() === 'B[^1] and A[^2] and[^gone].\n\n[^2]: One.\n\n[^1]: Two.\n' ? true : undefined), 'the renumbered footnotes');
+    // One edit changes all labels, so one Undo takes it back.
+    assert.equal(editor.document.version, version + 1);
+    assert.ok(await editor.document.save(), 'the save of the file');
+  });
+
   it('links a table with /ref in the clean editing view, and writes its anchor into the file, which the view hides (R-XREF-001)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     // Without the heading, the table is the first entry of the list of /ref.

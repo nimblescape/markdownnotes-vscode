@@ -39,7 +39,8 @@ export interface Edit {
  * definition of the same note. The kinds that start with `footnote` are the problems of a standard footnote
  * ([R-FOOT-002](../../docs/requirements.md#r-foot-002), [R-FOOT-003](../../docs/requirements.md#r-foot-003)): an empty
  * text, a cursor where no reference can stand, a text that Markdown would not read back as the footnote, a footnote
- * that the document no longer holds, and a footnote that changed after the editor opened.
+ * that the document no longer holds, a footnote that changed after the editor opened, and a definition for a label that
+ * has one already ([R-FOOT-004](../../docs/requirements.md#r-foot-004)).
  */
 export type Problem =
   | { kind: 'empty' }
@@ -55,7 +56,8 @@ export type Problem =
   | { kind: 'footnotePlace' }
   | { kind: 'footnoteStructure' }
   | { kind: 'footnoteMissing' }
-  | { kind: 'footnoteChanged' };
+  | { kind: 'footnoteChanged' }
+  | { kind: 'footnoteExists' };
 
 /** Result is an edit, or the problem that prevents it. */
 export type Result = { edit: Edit } | { problem: Problem };

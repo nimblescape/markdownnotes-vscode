@@ -77,6 +77,14 @@ The first version.
   footnotes, the clean editing view of a file with notes hides the
   definitions of the footnotes that have a reference, as the definitions of
   the notes. A change of a footnote adds no comment of the format.
+- Checks of the standard footnotes: the text editor and the Problems view
+  warn at a reference without a definition, at a definition without a
+  reference and at a second definition of a label. The quick fix "Add
+  Definition" opens the editor of a new definition for the label in the side
+  view, and "Delete Definition" removes a definition without a reference.
+  "Renumber Footnotes" (Command Palette, menu "…" of the side view) gives the
+  footnotes whose labels are numbers the labels 1, 2, 3 … in the order of
+  their first reference, in one change; labels that are words stay.
 - Todo notes: the header of the first answer of a note ends with ` · todo`
   for an open task and ` · done` for a completed one; a check box in the side
   view changes it.

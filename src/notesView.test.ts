@@ -931,6 +931,23 @@ test('"Add Footnote" opens the editor of a new footnote, whose title follows the
   expect(view.messages.filter((message) => message.type === 'line').at(-1)).toEqual({ type: 'line', line: 0, highlight: undefined });
 });
 
+test('the quick fix "Add Definition" opens the editor of a new definition of its label, and Save writes the definition and selects its footnote (R-FOOT-004)', async () => {
+  const text = 'The agents change[^gone] the work[^1].\n\n[^1]: One.\n';
+  const { document, view } = await start(text, 0);
+  await fake.run(viewCommands.addDefinition, document.uri, 'gone');
+  expect(view.messages.at(-1)).toEqual({ type: 'newFootnote', label: 'gone' });
+  await send(view, { type: 'addFootnote', request: 1, text: '', label: 'gone' });
+  await send(view, { type: 'addFootnote', request: 2, text: 'A source.', label: 'gone' });
+  await send(view, { type: 'addFootnote', request: 3, text: 'Again.', label: 'gone' });
+  expect(results(view).map((result) => result.message)).toEqual([
+    'The footnote was not saved: a footnote needs a text. To remove a footnote, use "Delete".',
+    undefined,
+    'The definition was not added: the file has a definition of this footnote already.',
+  ]);
+  expect(document.text).toBe('The agents change[^gone] the work[^1].\n\n[^1]: One.\n\n[^gone]: A source.\n');
+  expect(view.state().selected).toBe('footnote-gone');
+});
+
 test('a citation as a footnote in the highlight of a note selects its footnote, and the text around it the note (R-FOOT-001)', async () => {
   const text = 'The <wbr><!--[note-aaaa-->work of teams (Hong et al., 2024)[^hong2024] changes[^note-aaaa].\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    Which teams?\n\n[^hong2024]: Hong, S. (2024). A title.\n';
   const { editor, view } = await start(text, 4);

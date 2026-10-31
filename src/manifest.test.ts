@@ -19,6 +19,7 @@ import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
 import { cleanCommands } from './cleanView';
 import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath } from './extension';
+import { renumberCommand } from './footnoteActions';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { formContext, notesViewId, viewCommands } from './notesView';
 import { publishCommands } from './publish';
@@ -156,6 +157,7 @@ test('the manifest contributes the commands of the side view, of the highlights,
       usedSnippetCommands.remove,
       usedSnippetCommands.keep,
       ...Object.values(publishCommands),
+      renumberCommand,
     ].sort(),
   );
 });
@@ -348,6 +350,7 @@ test('the title of the side view has the button "Hide Notes" where VS Code shows
     viewCommands.eyeHidden,
     footnoteCommands.show,
     footnoteCommands.hide,
+    renumberCommand,
     publishCommands.copy,
     publishCommands.save,
     viewCommands.hide,
@@ -410,6 +413,22 @@ test('"Copy without Notes" and "Save Copy without Notes" are commands of the Com
       { command: publishCommands.save, group: '2_publish@2', when: `view == ${notesViewId}` },
     ]),
   );
+});
+
+test('"Renumber Footnotes" is a command of the Command Palette for a Markdown file and an entry of the menu "…" of the side view, and "Add Definition" of a quick fix is not in the Command Palette (R-FOOT-004, R-FOOT-005)', () => {
+  const markdown =
+    "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'";
+  const commands = manifest.contributes.commands as { command: string; title: string; category: string }[];
+  expect(commands.find((command) => command.command === renumberCommand)).toEqual({ command: renumberCommand, title: 'Renumber Footnotes', category: 'Markdown Notes' });
+  expect(commands.find((command) => command.command === viewCommands.addDefinition)).toEqual({ command: viewCommands.addDefinition, title: 'Add Definition', category: 'Markdown Notes' });
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: renumberCommand, when: markdown },
+      // The quick fix names the file and the label of the footnote, which the Command Palette does not know.
+      { command: viewCommands.addDefinition, when: 'false' },
+    ]),
+  );
+  expect(manifest.contributes.menus['view/title']).toEqual(expect.arrayContaining([{ command: renumberCommand, group: '1_footnotes@2', when: `view == ${notesViewId}` }]));
 });
 
 test('the extension is the default formatter of Markdown files, without format on save of VS Code for every Markdown file, and a Markdown editor scrolls smoothly; the user can change both (R-FMT-001, R-SIDE-007)', () => {

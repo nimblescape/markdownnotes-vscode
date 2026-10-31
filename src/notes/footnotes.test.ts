@@ -8,13 +8,28 @@
  * in the Markdown preview; the changes when the side view saves or deletes a
  * footnote (R-FOOT-002) or adds one at the cursor (R-FOOT-003); and the label,
  * the definition and the place of the reference of a new footnote, also for
- * `/footnote` (R-EDIT-008).
+ * `/footnote` (R-EDIT-008); the forms that the checks warn about and the
+ * definition of the quick fix "Add Definition" (R-FOOT-004); and the new labels
+ * of "Renumber Footnotes" (R-FOOT-005).
  */
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { applyEdit, type Edit, referenceAllowed } from './edits';
-import { deleteFootnote, footnoteAt, footnoteDefinition, insertFootnote, nextFootnoteLabel, placeText, readFootnotes, referencePlace, replaceFootnote } from './footnotes';
+import {
+  addDefinition,
+  deleteFootnote,
+  footnoteAt,
+  footnoteDefinition,
+  footnoteProblemsOf,
+  insertFootnote,
+  nextFootnoteLabel,
+  placeText,
+  readFootnotes,
+  referencePlace,
+  renumberFootnotes,
+  replaceFootnote,
+} from './footnotes';
 
 /**
  * lines returns the lines of a text.
@@ -201,5 +216,107 @@ describe('a new footnote', () => {
     expect('edits' in end && applied(last, end.edits)).toBe('Text.[^1]\n\n[^1]: Note.');
     expect(insertFootnote(['`code`'], { line: 0, character: 3 }, 'x')).toEqual({ problem: 'place' });
     expect(insertFootnote(['Text.'], { line: 0, character: 5 }, '  ')).toEqual({ problem: 'empty' });
+  });
+});
+
+describe('the checks of the footnotes (R-FOOT-004)', () => {
+  test('a reference without a definition, a definition without a reference and a second definition of a label are problems; the notes are not', () => {
+    const text = [
+      'Text[^1] and[^gone] and `[^code]`[^1].',
+      '',
+      'A note <wbr><!--[note-7k2q-->here[^note-7k2q] and[^note-zzzz].',
+      '',
+      '[^1]: One.',
+      '',
+      '[^own]: Only[^own] itself.',
+      '',
+      '[^1]: Again.',
+      '',
+      '  [^spare]: Nobody.',
+      '',
+      '[^note-7k2q]: **a** · 2026-10-28 10:15Z',
+      '',
+      '    x',
+    ];
+    expect(footnoteProblemsOf(text)).toEqual({
+      undefinedReferences: [{ label: 'gone', range: { start: { line: 0, character: 12 }, end: { line: 0, character: 19 } } }],
+      // A reference in the definition of its own footnote does not show the footnote.
+      unreferenced: [
+        { label: 'own', line: 6 },
+        { label: 'spare', line: 10 },
+      ],
+      duplicates: [{ label: '1', line: 8 }],
+    });
+    expect(footnoteProblemsOf(['Text[^1].', '', '[^1]: One.'])).toEqual({ undefinedReferences: [], unreferenced: [], duplicates: [] });
+  });
+
+  test('"Add Definition" writes the definition of a label at the place of a new definition, and nothing for a label that has one', () => {
+    const text = ['Text[^gone].', '', '[^1]: One.', '', 'End[^1].'];
+    const result = addDefinition(text, 'gone', 'The source.\n\nSecond.');
+    expect('edits' in result && applied(text, result.edits)).toBe(['Text[^gone].', '', '[^1]: One.', '', '[^gone]: The source.', '', '    Second.', '', 'End[^1].'].join('\n'));
+    expect(addDefinition(text, '1', 'Again.')).toEqual({ problem: 'exists' });
+    expect(addDefinition(text, 'gone', ' \n ')).toEqual({ problem: 'empty' });
+  });
+});
+
+describe('"Renumber Footnotes" (R-FOOT-005)', () => {
+  test('the footnotes with numbers get 1, 2, 3 … in the order of their first reference, in the references and the definitions', () => {
+    const text = [
+      'First[^3], then[^1] and[^word], again[^3].',
+      '',
+      '> Quoted[^7].',
+      '',
+      '[^1]: One, see[^3].',
+      '',
+      ' [^3]: Three.',
+      '',
+      '[^7]: Seven.',
+      '',
+      '[^word]: A word.',
+      '',
+      '[^5]: Nobody names it.',
+      '',
+      '[^4]: Nor this one.',
+    ];
+    const result = renumberFootnotes(text);
+    expect('edits' in result && applied(text, result.edits)).toBe(
+      [
+        'First[^1], then[^2] and[^word], again[^1].',
+        '',
+        '> Quoted[^3].',
+        '',
+        '[^2]: One, see[^1].',
+        '',
+        ' [^1]: Three.',
+        '',
+        '[^3]: Seven.',
+        '',
+        '[^word]: A word.',
+        '',
+        // The footnotes without a reference follow in the order of their definitions.
+        '[^4]: Nobody names it.',
+        '',
+        '[^5]: Nor this one.',
+      ].join('\n'),
+    );
+  });
+
+  test('the notes, the labels that are words, and the references in code stay as they are', () => {
+    const text = ['A <wbr><!--[note-7k2q-->note[^note-7k2q] and[^2] `[^2]`.', '', '[^2]: Two.', '', '[^note-7k2q]: **a** · 2026-10-28 10:15Z', '', '    x'];
+    const result = renumberFootnotes(text);
+    expect('edits' in result && applied(text, result.edits)).toBe(
+      ['A <wbr><!--[note-7k2q-->note[^note-7k2q] and[^1] `[^2]`.', '', '[^1]: Two.', '', '[^note-7k2q]: **a** · 2026-10-28 10:15Z', '', '    x'].join('\n'),
+    );
+  });
+
+  test('it changes nothing when the labels are in order, and names a reference of a number without a definition or a second definition of a number', () => {
+    expect(renumberFootnotes(['A[^1] b[^2] c[^word].', '', '[^1]: x', '', '[^2]: y', '', '[^word]: z'])).toEqual({ problem: 'numbered' });
+    expect(renumberFootnotes(['No footnote.'])).toEqual({ problem: 'numbered' });
+    expect(renumberFootnotes(['A[^2] b[^9].', '', '[^2]: x'])).toEqual({ problem: 'undefined', label: '9', line: 0 });
+    expect(renumberFootnotes(['A[^2].', '', '[^2]: x', '', '[^2]: y'])).toEqual({ problem: 'duplicate', label: '2', line: 4 });
+    // A word without a definition takes no number, so it does not stop the renumbering.
+    const text = ['A[^2] b[^gone].', '', '[^2]: x'];
+    const result = renumberFootnotes(text);
+    expect('edits' in result && applied(text, result.edits)).toBe(['A[^1] b[^gone].', '', '[^1]: x'].join('\n'));
   });
 });

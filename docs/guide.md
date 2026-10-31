@@ -52,7 +52,8 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Values of the front matter](#values-of-the-front-matter) | text editor, formatter | available | [R-XREF-004](requirements.md#r-xref-004) |
 | [Listings of code](#listings-of-code) | text editor, formatter, command line | available | [R-CODE-001](requirements.md#r-code-001) to [R-CODE-003](requirements.md#r-code-003) |
 | [Footnotes in the side view](#footnotes-in-the-side-view): show, edit, delete, add | side view, text editor | available | [R-FOOT-001](requirements.md#r-foot-001) to [R-FOOT-003](requirements.md#r-foot-003) |
-| Checks of the footnotes, "Renumber Footnotes", "Make Footnote" | text editor, side view | planned | [R-FOOT-004](requirements.md#r-foot-004) to [R-FOOT-006](requirements.md#r-foot-006) |
+| [Checks of the footnotes](#checks-of-the-footnotes), [Renumber Footnotes](#renumber-the-footnotes) | text editor, Problems view, Command Palette, side view | available | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) |
+| "Make Footnote" | side view | planned | [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
@@ -464,6 +465,9 @@ a rule of the notes:
 | The note has no start marker | Every note has a start marker; "Format Document" adds it at the start of the text of the block. |
 | The note highlights no text | The start marker stands directly before the reference; move it to the start of the text that the note is about. |
 | A start marker at the start of a line ends the paragraph | GitHub reads a comment at the start of a line as a block of HTML; "Format Document" puts `<wbr>` before it. |
+
+The standard footnotes have warnings of their own
+([Checks of the footnotes](#checks-of-the-footnotes)).
 
 ## Side view "Notes"
 
@@ -1125,7 +1129,8 @@ Agents change the work of teams.[^1]
   it back; in the clean editing view, choose "Open File with Markup" first
   ([Limits](#limits)).
 - "Hide Footnotes" in the menu "…" of the title of the side view hides the
-  footnotes, and "Show Footnotes" shows them again; the notes stay. Both change the setting
+  footnotes, and "Show Footnotes" shows them again; the notes stay. The same
+  menu has "Renumber Footnotes" ([Renumber the footnotes](#renumber-the-footnotes)). Both change the setting
   `nimblescape.markdownNotes.showFootnotes` ([Settings](#settings)).
 - In the [clean editing view](#clean-editing-view) of a file with notes, the
   definitions of the footnotes that have a reference are hidden while the
@@ -1163,6 +1168,57 @@ one change:
 No reference goes into a code span, a code block, the text of a link or a
 marker of a note; the editor then asks you to put the cursor into the text,
 and the extension writes nothing.
+
+### Checks of the footnotes
+
+The text editor and the Problems view warn at each form of a standard
+footnote that GitHub and the Markdown preview show differently from what you
+meant. Click the light bulb, or press Ctrl+. (Cmd+. on a Mac), for the quick
+fix:
+
+| Warning | Why | Quick fix |
+| --- | --- | --- |
+| The file has no footnote … | The reference shows as text. | "Add Definition" opens the editor of a new definition for the label in the side view. Write the text and click "Add Definition"; the extension writes the definition after the last definition of a standard footnote and selects the footnote. |
+| No reference … names this footnote | GitHub and the preview do not show a footnote without a reference. A reference in its own definition does not count. | "Delete Definition" removes the definition with the blank line after it. Undo takes it back. |
+| An earlier footnote of the file has the label … | The references name the first definition of the label. | None: give the second footnote a label of its own, or delete it. |
+
+For a file in the [clean editing view](#clean-editing-view), the warnings
+show in the Problems view only.
+
+### Renumber the footnotes
+
+"Renumber Footnotes" gives the footnotes whose labels are numbers the labels
+1, 2, 3 … in the order of their first reference, after you added, moved or
+deleted footnotes. It changes the references and the definitions in one
+change, which Undo takes back. Before and after:
+
+```markdown
+First[^3], then[^1].
+
+[^1]: One.
+
+[^3]: Three.
+```
+
+```markdown
+First[^1], then[^2].
+
+[^2]: One.
+
+[^1]: Three.
+```
+
+- Choose it in the Command Palette for the active Markdown file, also in the
+  clean editing view, or in the menu "…" of the title of the side view.
+- The footnotes with a number but without a reference follow, in the order
+  of their definitions. A label that is a word, for example `[^hong2024]`,
+  stays, and so do the labels of the notes.
+- When a reference of a number has no definition, or a number has a second
+  definition, the command changes nothing and names the line: a new label
+  could name another footnote. Repair it first
+  ([Checks of the footnotes](#checks-of-the-footnotes)).
+- The numbers that GitHub and the preview show do not depend on the labels;
+  the command makes the labels of the file match the order of the text.
 
 ## Highlights in the Markdown preview
 

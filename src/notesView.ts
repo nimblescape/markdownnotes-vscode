@@ -96,11 +96,14 @@ export const notesViewId = 'nimblescape.markdownNotes.notes';
  * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)), and the eye in its title with the commands
  * "Hide Notes from Other Viewers" and "Show Notes in Other Viewers" of the Command Palette
  * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): the eye has a command for each state, whose title is the tooltip
- * that says the state and what a click does.
+ * that says the state and what a click does. "Add Definition" opens the editor of a new definition for the label of a
+ * reference without a definition, for its quick fix ([R-FOOT-004](../docs/requirements.md#r-foot-004)); it takes the URI
+ * of the file and the label, so the Command Palette does not show it.
  */
 export const viewCommands = {
   newNote: 'nimblescape.markdownNotes.newNote',
   newFootnote: 'nimblescape.markdownNotes.addFootnote',
+  addDefinition: 'nimblescape.markdownNotes.addFootnoteDefinition',
   hide: 'nimblescape.markdownNotes.hideNotes',
   toggle: 'nimblescape.markdownNotes.toggleNotes',
   hideFromViewers: 'nimblescape.markdownNotes.hideNotesFromViewers',
@@ -134,7 +137,7 @@ export type Message =
   | { type: 'openLink'; href: string }
   | { type: 'saveFootnote'; request: number; id: string; text: string; original: string }
   | { type: 'deleteFootnote'; id: string }
-  | { type: 'addFootnote'; request: number; text: string }
+  | { type: 'addFootnote'; request: number; text: string; label?: string }
   | { type: 'footnoteClosed' };
 
 /** AnswerState is an answer as the view shows it. */
@@ -330,7 +333,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /** ready tells whether the script of the view started and receives messages. */
   private ready = false;
   /** newPending is the message of "Add Note" or "Add Footnote" that waits for a script that did not start yet. */
-  private newPending: { type: 'new'; todo?: boolean } | { type: 'newFootnote' } | undefined;
+  private newPending: { type: 'new'; todo?: boolean } | { type: 'newFootnote'; label?: string } | undefined;
   /** footnoteEditor tells whether the editor of a new footnote is open, whose title names the place of its reference. */
   private footnoteEditor = false;
   /** form is the form of the notes that the menus know, the value of the context key formContext. */
@@ -378,6 +381,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       }),
       vscode.commands.registerCommand(viewCommands.newNote, () => this.newNote()),
       vscode.commands.registerCommand(viewCommands.newFootnote, () => this.newFootnote()),
+      vscode.commands.registerCommand(viewCommands.addDefinition, (uri: vscode.Uri, label: string) => this.newDefinition(uri, label)),
       vscode.commands.registerCommand(viewCommands.hide, () => this.hide()),
       vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
       vscode.commands.registerCommand(viewCommands.hideFromViewers, () => this.changeForm(true)),
@@ -622,6 +626,24 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     // The title of the editor names the place of the reference at once.
     await this.refresh();
     await this.post({ type: 'newFootnote' });
+  }
+
+  /**
+   * newDefinition opens the editor of a new definition for the label of a reference without a definition, for the quick
+   * fix "Add Definition" ([R-FOOT-004](../docs/requirements.md#r-foot-004)). The definition needs no place of a
+   * reference, so the title of the editor names the label.
+   * @param uri - The URI of the file whose reference has no definition.
+   * @param label - The label of the reference.
+   */
+  private async newDefinition(uri: vscode.Uri, label: string): Promise<void> {
+    if (this.document?.toString() !== uri.toString()) {
+      await vscode.window.showTextDocument(uri);
+    }
+    this.footnoteEditor = false;
+    if (!this.view?.visible) {
+      await vscode.commands.executeCommand(`${notesViewId}.focus`);
+    }
+    await this.post({ type: 'newFootnote', label });
   }
 
   /**
@@ -1151,6 +1173,16 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       }
       case 'addFootnote': {
+        if (message.label !== undefined) {
+          // The editor of a new definition, for the quick fix "Add Definition".
+          const problem = await this.threads.addDefinition(document, message.label, message.text);
+          if (!problem) {
+            this.select(document, footnoteId(message.label));
+            await this.refresh();
+          }
+          await this.reply(message.request, problem);
+          return;
+        }
         // The reference goes at the cursor of the text editor at the time of the save.
         const selection = this.selections.get(document.toString());
         const result = selection ? await this.threads.addFootnote(document, selection.end, message.text) : { problem: { kind: 'footnotePlace' as const } };

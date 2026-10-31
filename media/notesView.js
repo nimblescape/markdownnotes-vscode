@@ -154,6 +154,13 @@
   let newTodo = false;
 
   /**
+   * newFootnoteLabel is the label of a reference without a definition while the editor of a new footnote writes its
+   * definition, for the quick fix "Add Definition" (R-FOOT-004), and undefined for "Add Footnote".
+   * @type {string | undefined}
+   */
+  let newFootnoteLabel;
+
+  /**
    * icons are the paths of the codicons of VS Code that the buttons show (https://github.com/microsoft/vscode-codicons,
    * CC BY 4.0, version 0.0.46-24, which VS Code 1.144 shows), each drawn in a square of 16 units: "reply", "edit",
    * "trash", "comment", "check", "close", "preview" (the button of the mode "Markdown Preview" of VS Code),
@@ -333,6 +340,7 @@
       newColor = undefined;
       newTodo = false;
     } else if (key === 'newFootnote') {
+      newFootnoteLabel = undefined;
       // The extension stops following the place of the reference for the title of the editor.
       vscode.postMessage({ type: 'footnoteClosed' });
     }
@@ -768,6 +776,9 @@
    * reference at the cursor of the text editor, or what to do where no reference can stand (R-FOOT-003).
    */
   const newFootnoteTitle = () => {
+    if (newFootnoteLabel !== undefined) {
+      return `New definition of the footnote [^${newFootnoteLabel}]`;
+    }
     if (state.footnotePlace === undefined) {
       return 'Put the cursor into the text where the footnote goes';
     }
@@ -778,7 +789,12 @@
   const newFootnoteOf = () => {
     const section = element('section', 'new-note new-footnote', undefined, { 'data-id': 'newFootnote' });
     section.append(element('h2', 'new-title', newFootnoteTitle()));
-    section.append(editorOf('newFootnote', 'Text of the new footnote, in Markdown', 'Add Footnote', (request, text) => ({ type: 'addFootnote', request, text })));
+    const label = newFootnoteLabel;
+    section.append(
+      label === undefined
+        ? editorOf('newFootnote', 'Text of the new footnote, in Markdown', 'Add Footnote', (request, text) => ({ type: 'addFootnote', request, text }))
+        : editorOf('newFootnote', 'Text of the footnote, in Markdown', 'Add Definition', (request, text) => ({ type: 'addFootnote', request, text, label })),
+    );
     return section;
   };
 
@@ -1173,7 +1189,8 @@
       newTodo = message.todo === true;
       open('new', editors.get('new')?.text ?? '');
     } else if (message.type === 'newFootnote') {
-      // An open editor of a new footnote keeps its text.
+      // An open editor of a new footnote keeps its text; the label of "Add Definition" makes it the editor of a definition.
+      newFootnoteLabel = message.label;
       open('newFootnote', editors.get('newFootnote')?.text ?? '');
     } else if (message.type === 'line') {
       state.line = message.line;

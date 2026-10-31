@@ -141,6 +141,11 @@
         "icon": "$(nimblescape-footnote-add)"
       },
       {
+        "command": "nimblescape.markdownNotes.addFootnoteDefinition",
+        "title": "Add Definition",
+        "category": "Markdown Notes"
+      },
+      {
         "command": "nimblescape.markdownNotes.showHighlights",
         "title": "Show Highlights",
         "category": "Markdown Notes",
@@ -175,6 +180,11 @@
         "title": "Hide Footnotes",
         "category": "Markdown Notes",
         "icon": "$(nimblescape-footnotes-hide)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.renumberFootnotes",
+        "title": "Renumber Footnotes",
+        "category": "Markdown Notes"
       },
       {
         "command": "nimblescape.markdownNotes.hideNotesFromViewers",
@@ -374,6 +384,11 @@
           "when": "view == nimblescape.markdownNotes.notes && nimblescape.markdownNotes.footnotesShown"
         },
         {
+          "command": "nimblescape.markdownNotes.renumberFootnotes",
+          "group": "1_footnotes@2",
+          "when": "view == nimblescape.markdownNotes.notes"
+        },
+        {
           "command": "nimblescape.markdownNotes.copyWithoutNotes",
           "group": "2_publish@1",
           "when": "view == nimblescape.markdownNotes.notes"
@@ -397,6 +412,10 @@
         {
           "command": "nimblescape.markdownNotes.addFootnote",
           "when": "editorLangId == markdown && !editorReadonly"
+        },
+        {
+          "command": "nimblescape.markdownNotes.addFootnoteDefinition",
+          "when": "false"
         },
         {
           "command": "nimblescape.markdownNotes.addSnippet",
@@ -484,6 +503,10 @@
         },
         {
           "command": "nimblescape.markdownNotes.saveCopyWithoutNotes",
+          "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.renumberFootnotes",
           "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'"
         }
       ],

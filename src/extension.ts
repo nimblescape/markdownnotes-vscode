@@ -38,6 +38,7 @@ import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
 import { CleanView, fileOf } from './cleanView';
+import { FootnoteActions, registerRenumber } from './footnoteActions';
 import { type FormatStep, FormatSteps, registerFormatter, type SaveChanges } from './formatter';
 import { keptCurrent } from './format/format';
 import { githubLogin } from './github';
@@ -396,6 +397,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     ...new Snippets(clean).register(),
     ...new UsedSnippets().register(),
     ...registerPublishCommands(() => view.activeFile),
+    new FootnoteActions(threads).register(),
+    registerRenumber(threads, () => view.activeFile),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);

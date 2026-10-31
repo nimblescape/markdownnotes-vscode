@@ -165,6 +165,9 @@ export class FakeCodeActionKind {
 /** FakeCodeAction stands for a vscode.CodeAction. */
 export class FakeCodeAction {
   command: { command: string; title: string; arguments?: unknown[] } | undefined;
+  edit: FakeWorkspaceEdit | undefined;
+  diagnostics: FakeDiagnostic[] | undefined;
+  isPreferred: boolean | undefined;
 
   constructor(
     readonly title: string,
@@ -194,7 +197,7 @@ interface FakeCompletionProvider {
 
 /** FakeCodeActionProvider stands for a vscode.CodeActionProvider. */
 interface FakeCodeActionProvider {
-  provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: [] }): FakeCodeAction[];
+  provideCodeActions(document: FakeDocument, range: FakeRange, context: { only?: FakeCodeActionKind; triggerKind: number; diagnostics: FakeDiagnostic[] }): FakeCodeAction[];
 }
 
 /** FakeDocumentLink stands for a vscode.DocumentLink. */
@@ -271,6 +274,7 @@ export class FakeTextEdit {
 /** FakeDiagnostic stands for a vscode.Diagnostic. */
 export class FakeDiagnostic {
   source: string | undefined;
+  code: string | number | undefined;
 
   constructor(
     readonly range: FakeRange,
@@ -581,6 +585,8 @@ export class Fake {
   /** warnings records the questions of the extension; the answer is the item that the user picks, or undefined. */
   warnings: string[] = [];
   answer: string | undefined;
+  /** statusMessages records the messages of the extension in the status bar. */
+  statusMessages: string[] = [];
   /** inputs records the options of each input box; input is its answer, or undefined when the user cancels it. */
   inputs: { value?: string; validateInput?: (value: string) => string | undefined }[] = [];
   input: string | undefined;
@@ -785,6 +791,10 @@ export class Fake {
         showWarningMessage: async (message: string) => {
           this.warnings.push(message);
           return this.answer;
+        },
+        setStatusBarMessage: (message: string) => {
+          this.statusMessages.push(message);
+          return this.registration();
         },
         createTextEditorDecorationType: (options: unknown) => Object.assign(this.registration(), { options }),
         createOutputChannel: () => Object.assign(this.registration(), { appendLine: () => undefined }),
@@ -1077,8 +1087,22 @@ export class Fake {
    * @param only - The kind that VS Code asks for, or undefined for every kind.
    */
   codeActionsAt(document: FakeDocument, range: FakeRange, only?: FakeCodeActionKind): { title: string; kind: string | undefined; command: string | undefined }[] {
+    return this.actionsAt(document, range, only).map((action) => ({ title: action.title, kind: action.kind?.value, command: action.command?.command }));
+  }
+
+  /**
+   * actionsAt asks the providers of the Code Actions of a document for a range, with the diagnostics of the document
+   * that touch the range, as VS Code does, and returns their actions.
+   * @param document - The document.
+   * @param range - The range, the selection of the text editor or the place of the pointer.
+   * @param only - The kind that VS Code asks for, or undefined for every kind.
+   */
+  actionsAt(document: FakeDocument, range: FakeRange, only?: FakeCodeActionKind): FakeCodeAction[] {
+    const diagnostics = (this.diagnostics.get(document.uri.toString()) ?? []).filter(
+      (diagnostic) => diagnostic.range.contains(range.start) || diagnostic.range.contains(range.end) || range.contains(diagnostic.range.start),
+    );
     return [...(this.codeActions.get(document.languageId) ?? []), ...(this.codeActions.get(`scheme:${document.uri.scheme}`) ?? [])].flatMap(({ provider }) =>
-      provider.provideCodeActions(document, range, { only, triggerKind: 2, diagnostics: [] }).map((action) => ({ title: action.title, kind: action.kind?.value, command: action.command?.command })),
+      provider.provideCodeActions(document, range, { only, triggerKind: 2, diagnostics }),
     );
   }
 

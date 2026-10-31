@@ -117,7 +117,10 @@ describes each step and where its protection ends.
   definition. In the clean editing view of a file with notes, the
   definitions of the footnotes are hidden, as the notes. "Hide Footnotes" in
   the menu "…" of the title of the side view shows the notes only, and the
-  definitions in the text.
+  definitions in the text. The text editor warns at a reference without a
+  definition and at a definition without a reference, with a quick fix for
+  each, and "Renumber Footnotes" gives the numbered footnotes the labels
+  1, 2, 3 … in the order of their first reference.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
   sentence before it), `/footnote` (the editor of a new footnote in the side
