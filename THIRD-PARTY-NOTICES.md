@@ -53,6 +53,7 @@ package `@nimblescape/markdownnotes` holds none of them.
 | [prosemirror-keymap](#prosemirror-keymap) | 1.2.3 | MIT |
 | [rope-sequence](#rope-sequence) | 1.3.4 | MIT |
 | [prosemirror-history](#prosemirror-history) | 1.5.1 | MIT |
+| [prosemirror-inputrules](#prosemirror-inputrules) | 1.5.1 | MIT |
 | [@tiptap/extension-bold](#tiptapextension-bold) | 3.32.2 | MIT |
 | [@tiptap/extension-code](#tiptapextension-code) | 3.32.2 | MIT |
 | [@tiptap/extension-code-block](#tiptapextension-code-block) | 3.32.2 | MIT |
@@ -458,6 +459,10 @@ THE SOFTWARE.
 ## prosemirror-history
 
 Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-history>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## prosemirror-inputrules
+
+Source code: <https://github.com/prosemirror/prosemirror-inputrules>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
 
 ## @tiptap/extension-bold
 

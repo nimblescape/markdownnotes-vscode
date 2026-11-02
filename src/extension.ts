@@ -34,6 +34,7 @@
  * else "Show Highlights", which turns the setting on.
  */
 
+import type { PluginPanelChannel } from '@nimblescape/markdownvscode';
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
@@ -157,6 +158,17 @@ export interface ApiV1 {
    * @param command - The command.
    */
   registerSlashCommand(command: SlashCommand): vscode.Disposable;
+  /**
+   * registerEditorPlugin connects the part in the other extension of a plugin of the editor of a whole file
+   * ([R-TEXT-010](../docs/requirements.md#r-text-010)), whose script the package.json of the other extension names in
+   * `contributes["nimblescape.markdown.extensions"].editorScripts`. The function gets the channel of the plugin in the
+   * panel of each editor, also of the editors that are open already, and may return what to dispose when the panel
+   * closes; the messages that the page sent before wait for it. The name is the name of the plugin on the page, which
+   * no plugin of this extension has, or the call throws.
+   * @param name - The name of the plugin.
+   * @param connect - The function that connects the plugin in a panel.
+   */
+  registerEditorPlugin(name: string, connect: (channel: PluginPanelChannel) => void | vscode.Disposable): vscode.Disposable;
 }
 
 /** Api is the export of the extension. */
@@ -356,6 +368,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
     registerHiddenMarkers: (markers) => clean.registerHiddenMarkers((lines) => markers.find(lines)),
     registerSlashCommand: (command) => slash.add(command),
+    registerEditorPlugin: (name, connect) => rendered.addPlugin(name, connect),
   };
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the

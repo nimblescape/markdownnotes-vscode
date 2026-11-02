@@ -15,9 +15,14 @@
  * editor, as places in the text of the file, goes to the side view, which selects the thread at the cursor and adds a
  * new note to the selected text, as for a text editor. The selected note of the side view shows strong in the editor,
  * which scrolls to it on a click on its thread, and the setting `showHighlights` shows or hides the highlights.
+ *
+ * Other extensions add plugins to the editor ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example Markdown
+ * Paper: the package.json of such an extension names the scripts of its plugins in the contribution point
+ * `nimblescape.markdown.extensions`, and the page loads them with its own plugins. The part of such a plugin in the
+ * other extension connects through `registerEditorPlugin` of the API of the extension, also after editors opened.
  */
 
-import { registerMarkdownEditor, type PluginPanelChannel } from '@nimblescape/markdownvscode';
+import { registerMarkdownEditor, type MarkdownEditorHandle, type PluginConnect, type PluginPanelChannel } from '@nimblescape/markdownvscode';
 import * as vscode from 'vscode';
 import { isPaperDocument } from './notes/clean';
 import { findDoctype } from './notes/doctype';
@@ -30,6 +35,12 @@ export const renderedEditor = {
   viewType: 'nimblescape.markdownNotes.editor',
   openText: 'nimblescape.markdownNotes.openTextEditor',
 };
+
+/**
+ * ownPlugins are the names of the plugins of the page of the extension: the plugin of the notes and the plugin of the
+ * figures (src/webview/figuresPlugin.ts). A plugin of another extension has another name.
+ */
+export const ownPlugins: readonly string[] = [pluginName, 'figures'];
 
 /** noteMarkup matches a reference, a start marker or an end marker of a note. */
 const noteMarkup = /\[\^note-[a-z0-9]{4}\]|<!--\[?note-[a-z0-9]{4}/;
@@ -69,6 +80,8 @@ export class RenderedEditors implements vscode.Disposable {
   private readonly selections = new vscode.EventEmitter<EditorSelection>();
   /** onDidChangeSelection tells the side view each selection of an editor. */
   readonly onDidChangeSelection = this.selections.event;
+  /** handle is the registration of the editor, which connects the plugins of other extensions. */
+  private handle: MarkdownEditorHandle | undefined;
 
   /**
    * @param extensionUri - The folder of the extension, which holds the script and the styles of the page.
@@ -86,18 +99,36 @@ export class RenderedEditors implements vscode.Disposable {
   /** register registers the editor and the listeners of the selected notes. */
   register(): vscode.Disposable[] {
     const dist = vscode.Uri.joinPath(this.extensionUri, 'dist');
-    return [
-      registerMarkdownEditor(vscode, {
-        viewType: renderedEditor.viewType,
-        script: vscode.Uri.joinPath(dist, 'editor.js'),
-        // The styles of the editor of rendered Markdown and of its adapter, which the visual editor of the side view uses too.
-        styles: [vscode.Uri.joinPath(dist, 'visualEditor.css')],
-        opens: (document) => this.opens(document),
-        openTextCommand: renderedEditor.openText,
-        plugins: { [pluginName]: (channel) => this.connect(channel) },
-      }),
-      this.selected.onDidChange((document) => this.postSelected(document)),
-    ];
+    this.handle = registerMarkdownEditor(vscode, {
+      viewType: renderedEditor.viewType,
+      script: vscode.Uri.joinPath(dist, 'editor.js'),
+      // The styles of the editor of rendered Markdown and of its adapter, which the visual editor of the side view uses too.
+      styles: [vscode.Uri.joinPath(dist, 'visualEditor.css')],
+      opens: (document) => this.opens(document),
+      openTextCommand: renderedEditor.openText,
+      plugins: { [pluginName]: (channel) => this.connect(channel) },
+      // The plugins of other extensions, for example of Markdown Paper.
+      contributedPlugins: true,
+    });
+    return [this.handle, this.selected.onDidChange((document) => this.postSelected(document))];
+  }
+
+  /**
+   * addPlugin connects the part in another extension of a plugin of the editor that this extension contributes
+   * ([R-GEN-012](../docs/requirements.md#r-gen-012)), in each open editor and in each editor that opens later.
+   * @param name - The name of the plugin, which no plugin of this extension has.
+   * @param connect - Gets the channel of the plugin in the panel of each editor, and may return what to dispose when
+   * the panel closes.
+   * @returns The disposable that disconnects the plugin.
+   */
+  addPlugin(name: string, connect: PluginConnect): vscode.Disposable {
+    if (ownPlugins.includes(name)) {
+      throw new Error(`The plugin ${name} is a plugin of nimblescape Markdown Notes.`);
+    }
+    if (!this.handle) {
+      throw new Error('The editor is not registered.');
+    }
+    return this.handle.addPlugin(name, connect);
   }
 
   /**

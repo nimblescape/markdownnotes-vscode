@@ -384,8 +384,12 @@ form of the notes in a file for programs and AI agents, and
 ## 12. API for other extensions
 
 The export has `getAPI(version)`; `getAPI(1)` gives `fileOf(uri)`,
-`registerFormatStep`, `registerHiddenBlocks`, `registerHiddenMarkers` and
-`registerSlashCommand`, each register call with a disposable. The clean
+`registerFormatStep`, `registerHiddenBlocks`, `registerHiddenMarkers`,
+`registerSlashCommand` and `registerEditorPlugin`, each register call with
+a disposable. `registerEditorPlugin` connects the part in the other
+extension of a plugin of the editor of a whole file, whose script the
+package.json of the other extension names
+([R-GEN-012](requirements.md#r-gen-012)). The clean
 editing view hides the blocks and the markers of other extensions, such as
 the start marker `<wbr><!--[research-->` of Markdown Paper; a slash command
 with `selection: true` shows only after a slash that replaced selected text,

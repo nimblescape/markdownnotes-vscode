@@ -655,8 +655,11 @@ export class Fake {
   symbols = new Map<string, unknown[]>();
   /** codeLenses holds the providers of the code lenses. */
   codeLenses: { provideCodeLenses(document: FakeDocument): Promise<FakeCodeLens[]> | FakeCodeLens[] }[] = [];
-  /** extensions are the other installed extensions, by their identifiers, each with its manifest. */
-  extensions = new Map<string, { packageJSON: unknown }>();
+  /**
+   * extensions are the other installed extensions, by their identifiers, each with its manifest and its folder, by
+   * default /extensions/<identifier>.
+   */
+  extensions = new Map<string, { packageJSON: unknown; extensionUri?: FakeUri }>();
   /** watched holds the listeners of the watchers of files, by the kind of the change. */
   watched: { kind: 'create' | 'change' | 'delete'; listener: (uri: FakeUri) => void }[] = [];
   /**
@@ -987,6 +990,9 @@ export class Fake {
       },
       extensions: {
         getExtension: (id: string) => (id === 'vscode.markdown-language-features' ? { isActive: true } : this.extensions.get(id)),
+        get all() {
+          return [...fake.extensions].map(([id, extension]) => ({ id, packageJSON: extension.packageJSON, extensionUri: extension.extensionUri ?? new FakeUri('file', `/extensions/${id}`) }));
+        },
         onDidChange: on('extensions'),
       },
       authentication: {

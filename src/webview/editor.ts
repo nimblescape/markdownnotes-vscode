@@ -10,20 +10,14 @@
  * the plugin of the figures, the tables, the listings, the references and the values of the front matter
  * ([src/webview/figuresPlugin.ts](figuresPlugin.ts)). The side view of the extension shows the threads of the notes, so
  * the editor shows no icons of threads beside the text.
+ *
+ * Before the editor starts, the page loads the plugins that other extensions contribute
+ * ([R-GEN-012](../../docs/requirements.md#r-gen-012)), for example the plugins of Markdown Paper; they use the modules
+ * of this page (`loadPlugins` of `@nimblescape/markdowneditor`). src/webview/editorStart.ts creates the editor.
  */
 
-import { MarkdownEditor } from '@nimblescape/markdowneditor';
+import { loadPlugins } from '@nimblescape/markdowneditor';
 import { connectVsCode } from '@nimblescape/markdownvscode/webview';
-import { figuresPlugin } from './figuresPlugin';
-import { createNotesPlugin } from './notesPlugin';
+import { start } from './editorStart';
 
-void connectVsCode().then((connection) => {
-  new MarkdownEditor(connection.element, {
-    source: connection.source,
-    editable: connection.editable,
-    id: 'webview',
-    host: connection.host,
-    plugins: [createNotesPlugin({ comment: true }), figuresPlugin],
-    threadIcons: false,
-  });
-});
+void connectVsCode().then(async (connection) => start(connection, await loadPlugins(connection.pluginScripts, { nonce: connection.nonce })));

@@ -188,7 +188,10 @@ The first version.
   of the listings, and keeps read-only the parts that the formatter writes:
   the numbers of the captions, the references, with Ctrl+click to their
   targets, the code and the cite of the listings, and the values of the
-  front matter.
+  front matter. Other extensions, for example nimblescape Markdown Paper,
+  add plugins to the editor: their package.json names the scripts of the
+  plugins, and `registerEditorPlugin` of version 1 of the API connects
+  their part in the extension.
 - The clean editing view: a Markdown file with notes that does not open in
   the editor of rendered Markdown opens in a text editor of its text without
   the notes markup, which behaves as in a file without

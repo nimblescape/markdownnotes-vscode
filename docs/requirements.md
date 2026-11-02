@@ -115,6 +115,7 @@ requirement, the plan and the decisions of Hannes.
 | 86 | The editor of rendered Markdown of nimblescape Markdown in the tab "Visual" of the side view, in place of the editor of the mode "Markdown Editor" of VS Code; the packages of nimblescape Markdown built from a clone at a fixed commit ([decision 63](#decisions)) | [R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017) | done |
 | 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-010](#r-text-010), [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | done |
 | 88 | The plugin of the figures for the editor of a whole file: the anchors, the markers of the values of the front matter and the comments of the listings hidden; the numbers of the captions, the references, the code and the cite of the listings and the values of the front matter read-only, with Ctrl+click on a reference to its target; a generated part of the editor that holds a whole block, from nimblescape Markdown | [R-TEXT-010](#r-text-010), [R-XREF-001](#r-xref-001), [R-XREF-004](#r-xref-004), [R-CODE-001](#r-code-001) | done |
+| 89 | The plugins of other extensions in the editor of a whole file, for example of Markdown Paper: the page loads the scripts that their package.json contributes, and `registerEditorPlugin` of version 1 of the API connects their part in the extension | [R-GEN-012](#r-gen-012), [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 with a test extension |
 
 ## General
 
@@ -377,6 +378,22 @@ Markdown file with notes without this extension knowing anything of papers:
     replaced selected text, VS Code puts the text back as for `/note`, and
     `run` gets the range of that text. A command without it shows only when
     the slash replaced no text. A command that fails shows a message.
+  - *(proposal)* `registerEditorPlugin(name, connect)`: the part in the
+    other extension of a plugin of the editor of a whole file
+    ([R-TEXT-010](#r-text-010)). The package.json of the other extension
+    names the scripts of its plugins in
+    `contributes["nimblescape.markdown.extensions"].editorScripts`, and the
+    page of the editor loads them before the editor starts (the plugins of
+    other extensions of the specification of nimblescape Markdown,
+    [R-PLUGIN-002](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-plugin-002)
+    and
+    [R-VSC-008](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-vsc-008)).
+    `connect` gets the channel of the plugin in the panel of each editor,
+    also of the editors that are open already, and may return what to
+    dispose when the panel closes; the messages of the page that came before
+    wait for it. The name is the name of the plugin on the page; the plugins
+    `notes` and `figures` of this extension keep their names, or the call
+    throws.
 - Checks of other extensions need no call: an extension sets its diagnostics
   on the file that `fileOf` names, as the notes do. Markdown Paper writes no
   lines into the comment of the format: a paper names its layout in its
@@ -1063,6 +1080,12 @@ extensions work as for the text editor.
   in the editor area ([R-SIDE-007](#r-side-007)).
 - The editor shows no icons of threads beside the text, because the side
   view shows the threads.
+- *(proposal)* The editor also has the plugins of other extensions, for
+  example of Markdown Paper, after the plugins of this extension
+  ([R-GEN-012](#r-gen-012)). A plugin with the name of another plugin of the
+  editor is left out, and when the plugins of other extensions stop the
+  start of the editor, the editor starts with the plugins of this extension
+  only.
 - The plugin of the figures of the editor hides the markup that the
   formatter needs, as the clean editing view does: the anchors at the end of
   captions and headings ([R-XREF-001](#r-xref-001)), the markers of the

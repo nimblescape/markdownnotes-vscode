@@ -199,3 +199,33 @@ test('a file that the setting does not choose opens in the text editor in the sa
   await settle();
   expect(panel.pluginMessages(pluginName)).toHaveLength(2);
 });
+
+test('the page gets the scripts of the plugins that other extensions contribute, and other extensions connect their part through the API (R-GEN-012, R-TEXT-010)', async () => {
+  const paper = 'nimblescape.nimblescape-markdownpaper';
+  fake.extensions.set(paper, { packageJSON: { contributes: { 'nimblescape.markdown.extensions': { editorScripts: ['dist/editorPlugins.js'] } } } });
+  const document = fake.open(text);
+  const { api } = await fake.activate();
+  const panel = await fake.resolveCustomEditor(renderedEditor.viewType, document);
+  await panel.send({ type: 'ready' });
+  const init = panel.messages.find((message) => message.type === 'init');
+  expect(init?.plugins).toEqual([`file:/extensions/${paper}/dist/editorPlugins.js`]);
+  // The part on the page speaks first; its part in the other extension connects later and gets the message.
+  await panel.send({ type: 'plugin', plugin: 'citations', message: { type: 'ready' } });
+  const received: unknown[] = [];
+  const registration = api.getAPI(1)!.registerEditorPlugin('citations', (channel) => {
+    channel.onMessage((message) => {
+      received.push(message);
+      void channel.post({ type: 'sources', count: 2 });
+    });
+  });
+  await settle();
+  expect(received).toEqual([{ type: 'ready' }]);
+  expect(panel.pluginMessages('citations')).toEqual([{ type: 'sources', count: 2 }]);
+  registration.dispose();
+  await panel.send({ type: 'plugin', plugin: 'citations', message: { type: 'again' } });
+  await settle();
+  expect(received).toEqual([{ type: 'ready' }]);
+  // The plugins of this extension keep their names.
+  expect(() => api.getAPI(1)!.registerEditorPlugin(pluginName, () => undefined)).toThrow();
+  expect(() => api.getAPI(1)!.registerEditorPlugin('figures', () => undefined)).toThrow();
+});
