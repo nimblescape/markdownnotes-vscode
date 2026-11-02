@@ -113,6 +113,7 @@ requirement, the plan and the decisions of Hannes.
 | 84 | Every paper document, a file whose front matter has the key `layout`, opens in the clean editing view, also without notes, so that its front matter is read-only ([decision 61](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 | 85 | The files of a clone stay editable, and a clone opens in a new window; the user guide tells how a Codespace gets access to the private repositories of the references ([decision 62](#decisions)) | [R-CODE-006](#r-code-006) | done; no change of the code |
 | 86 | The editor of rendered Markdown of nimblescape Markdown in the tab "Visual" of the side view, in place of the editor of the mode "Markdown Editor" of VS Code; the packages of nimblescape Markdown built from a clone at a fixed commit ([decision 63](#decisions)) | [R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017) | done |
+| 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | in progress: the plugin of the notes built (src/webview/notesPlugin.ts) |
 
 ## General
 
