@@ -81,7 +81,7 @@ describes each step and where its protection ends.
   thread to the top, and each thread that is not selected is dimmed. The buttons are icons with tooltips, as in the title of
   an editor:
   "Reply", "Edit" and "Delete" at each answer, the color, "Show as Text",
-  "Answer" and "Delete Thread" at each thread. "Show as Text" shows the whole
+  "Answer", "Make Footnote" and "Delete Thread" at each thread. "Show as Text" shows the whole
   note as the file holds it, and you can change it there. Each editor of a
   text has the tabs "Visual", where you edit the rendered text with the
   editor of the VS Code Markdown Editor, a toolbar and Ctrl+B, Ctrl+I,
@@ -94,6 +94,18 @@ describes each step and where its protection ends.
   file, the todo filter (the open or the completed todos), the colors as
   dots, "Clear Filter", and a search field for the text and the authors of
   the notes. The filters that are on combine.
+- **Hide the notes from other viewers.** GitHub shows the notes as
+  footnotes. The eye in the title of the side view writes the notes of the
+  file in the hidden form, where the text of each note and the end of its
+  highlight are HTML comments, so that GitHub and other viewers show no part
+  of a note; a second click shows them again. VS Code with the extension
+  shows the notes of both forms in the same way. The setting
+  `hideNotesInNewFiles` hides the notes of new files.
+- **Publish the text without notes.** "Copy without Notes" and "Save Copy
+  without Notes", in the menu "…" of the title of the side view, write the
+  text of the file without its notes to the clipboard or to a new file, for
+  a website or a PDF. The standard footnotes and the rest of the text stay.
+  On the command line, `markdownnotes strip paper.md` does the same.
 - **Todo notes.** A note can be a task: ` · todo` at the end of the header of
   its first answer, ` · done` when it is completed. A check box in the side
   view marks it completed.
@@ -104,8 +116,11 @@ describes each step and where its protection ends.
   cursor and writes its reference with the next free number and its
   definition. In the clean editing view of a file with notes, the
   definitions of the footnotes are hidden, as the notes. "Hide Footnotes" in
-  the title of the side view shows the notes only, and the definitions in
-  the text.
+  the menu "…" of the title of the side view shows the notes only, and the
+  definitions in the text. The text editor warns at a reference without a
+  definition and at a definition without a reference, with a quick fix for
+  each, and "Renumber Footnotes" gives the numbered footnotes the labels
+  1, 2, 3 … in the order of their first reference.
 - **Slash commands.** In the text editor, a `/` at the start of a line or
   after a space offers `/note` (over selected text), `/todo` (for the
   sentence before it), `/footnote` (the editor of a new footnote in the side
@@ -120,7 +135,11 @@ describes each step and where its protection ends.
   it, `(fields.ts, L12-L30)`. The formatter writes the current code, lines
   and cite into it on each format, also on the command line.
   `/snippet` in a source file marks a function, a class or a few lines as a
-  snippet that a listing can show.
+  snippet that a listing can show. A paper can also show code of other
+  repositories: its front matter names them under `repos`, the command `mp`
+  of nimblescape Markdown Paper clones them, and a listing such as
+  `<!-- listing: server:src/api.ts#read -->` links to the file on GitHub at
+  the commit of the clone.
 - **New notes.** Select the text that the note is about, then choose "Add
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
@@ -206,8 +225,11 @@ you add or answer a note. In the side view "Notes":
 | Change the color | Click the color at the left of the thread, then a new color. |
 | See the whole note | Click "Show as Text" at the thread. |
 | Delete an answer or a note | Click "Delete" (trash can) at the answer, or "Delete Thread" (trash can) at the thread. Undo in the text editor of the file itself ("Open File with Markup") brings it back. |
+| Make a note a footnote | Click "Make Footnote" (numbered list) at the thread. The text of the first answer becomes a standard footnote with the next free number, at the end of the highlight; the replies go. A note with replies asks first. Undo in the text editor of the file itself brings the note back. |
 | Add a footnote | Put the cursor where the reference goes, then press Shift+Alt+B (Cmd+K B on a Mac), click "Add Footnote" (`+¹`) in the title of the side view, or type `/footnote` after the word. Write the text, then click "Add Footnote". |
 | Edit or delete a footnote | Click "Edit" (pencil) or "Delete" (trash can) at the footnote. |
+| Hide the notes from other viewers | Click the eye in the title of the side view. Click it again to show them. |
+| Copy the text without notes | Click "…" in the title of the side view, then "Copy without Notes" or "Save Copy without Notes". |
 
 In the text editor or in the Markdown preview (Ctrl+K V opens it to the
 side), click a highlight to select its note, and double-click it to open the
@@ -225,10 +247,11 @@ extension to everyone who opens it.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
-| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. The buttons "Hide Footnotes" and "Show Footnotes" in the title of the side view change it. |
+| `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it. Other Markdown files stay as they are on a save. |
+| `nimblescape.markdownNotes.hideNotesInNewFiles` | `false` | The value `true` hides the notes of a file that gets its first note from other viewers, also from GitHub. A file that has notes keeps its form; the eye in the title of the side view changes it. |
 
 For Zen Mode, turn on the setting
 `"workbench.editor.centeredLayoutFixedWidth": true` of VS Code in your user
@@ -264,7 +287,8 @@ on a save; "Save without Formatting" saves a file without the formatter.
   the light bulb, the shortcut and the context menu work in the text editor
   only. "Add Footnote" works in the text editor only.
 - GitHub shows the notes as footnotes at the end of the page, numbered
-  together with the other footnotes. GitHub shows no footnote in a block
+  together with the other footnotes, unless the notes of the file are
+  hidden. GitHub shows no footnote in a block
   quote, so the extension writes each note after the outermost block.
 - The notes of the older form `<!-- note … -->` are not converted; the
   extension no longer reads them.

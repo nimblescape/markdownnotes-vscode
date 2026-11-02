@@ -32,6 +32,8 @@ export interface Settings {
   formatOnSave: boolean;
   /** showFootnotes shows the standard footnotes of a file in the side view ([R-FOOT-001](../docs/requirements.md#r-foot-001)). */
   showFootnotes: boolean;
+  /** hideNotesInNewFiles writes the first note of a file in the hidden form ([R-HIDE-002](../docs/requirements.md#r-hide-002)). */
+  hideNotesInNewFiles: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
@@ -41,6 +43,7 @@ export const defaultSettings: Readonly<Settings> = {
   addFormatComment: true,
   formatOnSave: true,
   showFootnotes: true,
+  hideNotesInNewFiles: false,
 };
 
 /**
@@ -48,7 +51,7 @@ export const defaultSettings: Readonly<Settings> = {
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave' | 'showFootnotes'): boolean => {
+  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave' | 'showFootnotes' | 'hideNotesInNewFiles'): boolean => {
     const raw = read(key);
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
@@ -59,5 +62,6 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     addFormatComment: flag('addFormatComment'),
     formatOnSave: flag('formatOnSave'),
     showFootnotes: flag('showFootnotes'),
+    hideNotesInNewFiles: flag('hideNotesInNewFiles'),
   };
 }

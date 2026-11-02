@@ -20,8 +20,11 @@ import MarkdownIt from 'markdown-it';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanCommands } from './cleanView';
 import { footnoteCommands, footnotesContext, highlightCommands, highlightsContext } from './extension';
+import { renumberCommand } from './footnoteActions';
+import { footnoteCodes } from './notes/checks';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
+import { publishCommands } from './publish';
 import { settingsSection } from './settings';
 import { slashCommandIds } from './slashCommands';
 import { snippetCommands } from './snippets';
@@ -88,14 +91,16 @@ test('the activation registers the commands, the side view and the handler of li
       ...Object.values(slashCommandIds),
       ...Object.values(snippetCommands),
       ...Object.values(usedSnippetCommands),
+      ...Object.values(publishCommands),
+      renumberCommand,
     ].sort(),
   );
   expect([...fake.views.keys()]).toEqual([notesViewId]);
   expect(fake.uriHandler).toBeDefined();
-  // The overlay of the text editor learns the place of the pointer from a hover provider, and the selected text has the
-  // light bulb action "Add Note".
+  // The overlay of the text editor learns the place of the pointer from a hover provider, the selected text has the
+  // light bulb action "Add Note", and the warnings of the standard footnotes have their quick fixes.
   expect(fake.hovers.get('markdown')).toHaveLength(1);
-  expect(fake.codeActions.get('markdown')).toHaveLength(1);
+  expect(fake.codeActions.get('markdown')).toHaveLength(2);
   // A slash in the text editor offers the slash commands (R-EDIT-008).
   expect(fake.completions.get('markdown')?.map(({ triggers }) => triggers)).toEqual([['/']]);
   // The comments of the listings are links (R-CODE-003).
@@ -504,6 +509,46 @@ test('the warnings of the notes show as diagnostics, warnings and hints (R-TEXT-
   ]);
 });
 
+test('the warnings of the standard footnotes have the quick fixes "Add Definition" and "Delete Definition" (R-FOOT-004)', async () => {
+  const document = fake.open('Text[^1] and[^gone].\n\n[^1]: One.\n\n[^spare]: Nobody.\n\nEnd.\n');
+  await fake.activate();
+  expect(fake.diagnostics.get(document.uri.toString())).toMatchObject([
+    { range: new FakeRange(0, 12, 0, 19), severity: 1, source: 'Markdown Notes', code: footnoteCodes.undefined },
+    { range: new FakeRange(4, 0, 4, 17), severity: 1, source: 'Markdown Notes', code: footnoteCodes.unreferenced },
+  ]);
+  // "Add Definition" opens the editor of a new definition of the label in the side view.
+  const [add] = fake.actionsAt(document, new FakeRange(0, 14, 0, 14));
+  expect(add).toMatchObject({ title: 'Add Definition of [^gone]', isPreferred: true, command: { command: viewCommands.addDefinition, arguments: [document.uri, 'gone'] } });
+  // "Delete Definition" removes the definition with the blank line after it, as "Delete" of the side view does.
+  const [remove] = fake.actionsAt(document, new FakeRange(4, 3, 4, 3));
+  expect(remove.title).toBe('Delete Definition of [^spare]');
+  await fake.applyEdit(remove.edit!);
+  expect(document.getText()).toBe('Text[^1] and[^gone].\n\n[^1]: One.\n\nEnd.\n');
+  // A place without a warning has no quick fix of a footnote.
+  expect(fake.actionsAt(document, new FakeRange(2, 3, 2, 3))).toEqual([]);
+});
+
+test('"Renumber Footnotes" gives the footnotes with numbers 1, 2, 3 … in the order of their first reference, or says why it changes nothing (R-FOOT-005)', async () => {
+  const document = fake.open('B[^2] and A[^1].\n\n[^1]: One.\n\n[^2]: Two.\n');
+  const editor = new FakeEditor(document, 0);
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  await fake.activate();
+  await settle();
+  await fake.run(renumberCommand);
+  expect(document.getText()).toBe('B[^1] and A[^2].\n\n[^2]: One.\n\n[^1]: Two.\n');
+  expect(fake.statusMessages).toEqual(['Renumbered the footnotes: 1, 2, 3 … in the order of their first reference.']);
+  await fake.run(renumberCommand);
+  expect(fake.infos).toEqual(['The footnotes are numbered already: 1, 2, 3 … in the order of their first reference.']);
+  document.text = 'B[^2] and A[^9].\n\n[^2]: Two.\n';
+  document.version++;
+  await fake.run(renumberCommand);
+  expect(fake.warnings).toEqual([
+    'The footnotes were not renumbered: the reference [^9] in line 1 has no definition, and a new label could name it. Add its definition or delete the reference first.',
+  ]);
+  expect(document.getText()).toBe('B[^2] and A[^9].\n\n[^2]: Two.\n');
+});
+
 test('the editor folds each note into the line of text before it (R-TEXT-005)', async () => {
   const document = fake.open(note);
   await fake.activate();
@@ -536,7 +581,8 @@ test('the selected text of a paragraph gets the light bulb action "Add Note", wh
   // VS Code asks the providers of the Code Actions with the selection, for the light bulb and for Ctrl+.
   const addNote = { title: 'Add Note', kind: 'quickfix.markdownNotes.addNote', command: viewCommands.newNote };
   expect(fake.codeActionsAt(editor.document, editor.selection)).toEqual([addNote]);
-  expect(fake.codeActions.get('markdown')?.map(({ kinds }) => kinds.map((kind) => kind.value))).toEqual([['quickfix.markdownNotes.addNote']]);
+  // The second provider gives the quick fixes of the warnings of the standard footnotes (R-FOOT-004).
+  expect(fake.codeActions.get('markdown')?.map(({ kinds }) => kinds.map((kind) => kind.value))).toEqual([['quickfix.markdownNotes.addNote'], ['quickfix']]);
   // A request for the quick fixes gets it, so it stands at the top of the list; a request for the refactorings gets
   // nothing.
   expect(fake.codeActionsAt(editor.document, editor.selection, FakeCodeActionKind.QuickFix)).toEqual([addNote]);

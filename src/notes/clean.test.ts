@@ -17,7 +17,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, labelsOf, type MarkerFinder, project, rebuild } from './clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, keepsFrontMatter, labelsOf, type MarkerFinder, project, rebuild } from './clean';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
 const example = fs.readFileSync(path.resolve(__dirname, '../../docs/example.md'), 'utf8');
@@ -469,6 +469,34 @@ describe('the values of the front matter', () => {
     const rebuilt = rebuild(projection, start, start, '\n\n')!;
     expect(project(rebuilt).clean).toBe(`${projection.clean.slice(0, start)}\n\n${projection.clean.slice(start)}`);
     expect(rebuilt).toContain('the paper <wbr><!--{title}-->A paper<!--{/title}-->[^note-7k2q]');
+  });
+  test('stay as they are with an edit after the front matter, and go back with an edit of the front matter (R-TEXT-009)', () => {
+    const after = edit(titled, 'A paper starts', 0, 'Now ');
+    expect(keepsFrontMatter(titled, after.text)).toBe(true);
+    // An edit that starts in the line after the closing fence keeps the front matter, but one that joins the two lines does not.
+    const first = edit(titled, '\nThis is', 0, 'New line\n');
+    expect(keepsFrontMatter(titled, first.text)).toBe(true);
+    const joined = edit(titled, '\n\nThis is', 1, '');
+    expect(keepsFrontMatter(titled, joined.text)).toBe(true);
+    expect(keepsFrontMatter(titled, titled.replace('---\n\nThis', '---This'))).toBe(false);
+    expect(keepsFrontMatter(titled, edit(titled, 'A paper\n---', 0, 'The ').text)).toBe(false);
+    expect(keepsFrontMatter(titled, edit(titled, 'title: A paper\n', 'title: A paper\n'.length, '').text)).toBe(false);
+    // Removed, added, or with Windows line breaks.
+    expect(keepsFrontMatter(titled, titled.slice(titled.indexOf('\nThis')))).toBe(false);
+    expect(keepsFrontMatter('# A\n\n---\n', '---\n# A\n\n---\n')).toBe(false);
+    expect(keepsFrontMatter('# A\n', '# B\n')).toBe(true);
+    expect(keepsFrontMatter(titled, titled.replace(/\n/g, '\r\n'))).toBe(true);
+  });
+  test('make a paper document with the key layout in a YAML front matter (R-TEXT-009, decision 61)', () => {
+    expect(isPaperDocument('---\nlayout: pht/thesis\ntitle: A paper\n---\n\nText.\n')).toBe(true);
+    expect(isPaperDocument('---\r\ntitle: A paper\r\n"layout" : plain\r\n---\r\n')).toBe(true);
+    // No front matter, no key layout, a key that only starts with layout, a nested key, a front matter that does not close, TOML.
+    expect(isPaperDocument('layout: plain\n\nText.\n')).toBe(false);
+    expect(isPaperDocument('---\ntitle: A paper\n---\n\nlayout: plain\n')).toBe(false);
+    expect(isPaperDocument('---\nlayouts: plain\n---\n')).toBe(false);
+    expect(isPaperDocument('---\nmeta:\n  layout: plain\n---\n')).toBe(false);
+    expect(isPaperDocument('---\nlayout: plain\n\nText.\n')).toBe(false);
+    expect(isPaperDocument('+++\nlayout = "plain"\n+++\n')).toBe(false);
   });
 });
 

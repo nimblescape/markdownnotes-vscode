@@ -59,6 +59,8 @@
 // then finds the highlights and the address of "Add Note" in the pages, which
 // are copies without the listeners of the content.
 
+// @ts-check
+
 (() => {
   'use strict';
 
@@ -453,6 +455,7 @@
     before.setStart(lined, 0);
     before.setEnd(range.startContainer, range.startOffset);
     // The pages of nimblescape Markdown Paper have soft hyphens of their hyphenation, which the Markdown text has not.
+    /** @param {string} value */
     const shown = (value) => value.replace(/\u00AD/g, '');
     const query = new URLSearchParams({ line, before: shown(before.toString()), text: shown(text) }).toString();
     return { href: `${base}&${query}`, rects: [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0) };

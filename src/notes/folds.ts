@@ -32,7 +32,7 @@
  */
 
 import { findDoctype } from './doctype';
-import type { Note } from './notes';
+import { firstLineOf, type Note } from './notes';
 import { displayDate } from './syntax';
 
 /** Fold is the lines that one or more collapsed notes fold into the first of them. */
@@ -184,7 +184,7 @@ export const headerText = (answer: { author: string; date: string; todo?: string
 export function headersOf(lines: readonly string[], notes: readonly Note[]): Header[] {
   return notes.flatMap((note) =>
     note.answers.map((answer) => {
-      const line = note.start.line + answer.start;
+      const line = firstLineOf(note) + answer.start;
       const text = lines[line] ?? '';
       const quote = /^[ \t>]*?>[ \t]?/.exec(text.slice(note.start.character));
       const start = answer.start === 0 || !quote ? note.start.character : note.start.character + quote[0].length;

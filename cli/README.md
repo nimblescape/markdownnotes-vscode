@@ -24,6 +24,8 @@ macOS.
 markdownnotes format paper.md notes/*.md
 markdownnotes format --check paper.md
 cat paper.md | markdownnotes format -
+markdownnotes strip paper.md > public/paper.md
+markdownnotes strip --out public paper.md notes/*.md
 ```
 
 | Command | Effect |
@@ -31,6 +33,9 @@ cat paper.md | markdownnotes format -
 | `format <file>...` | Formats the files and writes only those that change. |
 | `format --check <file>...` | Changes no file; names each file that is not formatted on the standard error. |
 | `format -` | Formats the standard input to the standard output. |
+| `strip <file>` | Writes the text of the file without its notes to the standard output. |
+| `strip --out <folder> <file>...` | Writes a copy of each file without its notes into the folder, under the name of the file. |
+| `strip -` | Writes the standard input without its notes to the standard output. |
 | `--help` | Shows the help. |
 | `--version` | Shows the version of the command and of the format of the notes. |
 
@@ -38,6 +43,14 @@ The exit code is 0 when all files are formatted, 1 when `--check` found a
 file to format, and 2 for a wrong command or option, no file, or a file that
 cannot be read or written. With `--check`, the command fits a check of a pull
 request.
+
+`strip` writes the text for a website, a PDF or another place where a text
+is published: without the notes of the extension, their markers and the
+comment of the format, in both forms of the notes. The standard footnotes,
+all other comments and the rest of the text stay as they are, with the line
+breaks and the byte order mark of the file. It never changes a file itself:
+it refuses a copy that would replace one of its files, or the copy of
+another file of the same name, and exits with 2.
 
 ## What it changes
 
@@ -93,10 +106,15 @@ Programs format Markdown text with the same formatter through the library of
 the package, with `require` or `import`. Loading it runs nothing.
 
 ```js
-import { formatMarkdown } from '@nimblescape/markdownnotes';
+import { formatMarkdown, stripNotes } from '@nimblescape/markdownnotes';
 
 const lines = formatMarkdown(text.split(/\r?\n/));
+const published = stripNotes(lines);
 ```
+
+`stripNotes(lines)` returns the lines of the text without its notes, as
+`markdownnotes strip` writes them, or `undefined` for a text whose comment
+of the format names a higher major version than the package knows.
 
 `formatMarkdown(lines)` takes the lines of a text without their line breaks
 and returns the formatted lines. The package has the types of TypeScript.

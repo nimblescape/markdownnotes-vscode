@@ -36,6 +36,7 @@ import {
   type NoteText,
   readNote,
   referenceType,
+  unescapeHidden,
 } from './syntax';
 
 /** Position is a place in the lines of a text: the index of the line and the index of the character in the line. */
@@ -75,12 +76,18 @@ export interface NoteSelection {
   markers: Marker[];
 }
 
-/** Note is the definition of a note in a Markdown text, with its place and its content. */
+/**
+ * Note is the definition of a note in a Markdown text, with its place and its content. The lines of the answers count
+ * from the first line of the definition, which in the hidden form is the line after `<!--`
+ * ([R-HIDE-001](../../docs/requirements.md#r-hide-001)).
+ */
 export interface Note extends NoteText {
-  /** start is the position of the `[` of the definition. */
+  /** start is the position of the `[` of the definition, or in the hidden form of the `<!--` of its comment. */
   start: Position;
-  /** end is the position after the last character of the last line of the definition. */
+  /** end is the position after the last character of the last line of the definition, or of the line `-->` of its comment. */
   end: Position;
+  /** hidden tells whether the definition is in the hidden form, an HTML comment of its own. */
+  hidden: boolean;
   /** prefix is the prefix of each further line of the definition: the markers of its block quotes and the indentation of its list items. */
   prefix: string;
   /** reference is the place of the reference of the note in the text, without which the note belongs to no text. */
@@ -292,15 +299,45 @@ export interface Reading {
   blocks: TextBlock[];
   /** markersInHtml are the start markers at the start of a line, which make the line an HTML block. */
   markersInHtml: Position[];
+  /** endMarkersInHtml are the end markers of the hidden form at the start of a line, which make the line an HTML block. */
+  endMarkersInHtml: Position[];
   /** inNotes are the references of the form of a note in the text of a note, which names no note. */
   inNotes: Range[];
 }
 
 /** emptyReading is the reading of a text without notes. */
-const emptyReading = (): Reading => ({ notes: [], references: [], markers: [], blocks: [], markersInHtml: [], inNotes: [] });
+const emptyReading = (): Reading => ({ notes: [], references: [], markers: [], blocks: [], markersInHtml: [], endMarkersInHtml: [], inNotes: [] });
 
 /** markerSearch matches the start markers in a text. */
 const markerSearch = /<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->/g;
+
+/** endMarkerStart matches the end marker of the hidden form at the start of the text of a line. */
+const endMarkerStart = /^\s*(<!--note-[a-z0-9]{4}\]-->)/;
+
+/**
+ * firstLineOf returns the index of the first line of the definition of a note: the line of its label, after the line
+ * `<!--` in the hidden form. The lines of its answers count from it.
+ * @param note - The note.
+ */
+export const firstLineOf = (note: Pick<Note, 'start' | 'hidden'>): number => note.start.line + (note.hidden ? 1 : 0);
+
+/**
+ * ownLines returns the lines of the definition of a note without the prefix of its block quotes and list items on
+ * its further lines. In the hidden form they are the lines between `<!--` and `-->`, without the escape, so that they
+ * are the lines of the definition in the visible form.
+ * @param lines - The lines of the note, from its first to its last line, with the text of the first line from the start of the note.
+ * @param prefix - The prefix of the further lines.
+ * @param hidden - Whether the note is in the hidden form.
+ */
+export function ownLines(lines: readonly string[], prefix: string, hidden: boolean): string[] {
+  const own = lines.map((line, index) => {
+    if (index === 0) {
+      return line;
+    }
+    return line.startsWith(prefix) ? line.slice(prefix.length) : line.startsWith(prefix.trimEnd()) ? line.slice(prefix.trimEnd().length) : line;
+  });
+  return hidden ? own.slice(1, -1).map(unescapeHidden) : own;
+}
 
 /**
  * read returns the notes of a Markdown text, with their places, their contents and their selections, and the
@@ -314,6 +351,7 @@ export function read(lines: readonly string[]): Reading {
   const markers: Found[] = [];
   const blocks: TextBlock[] = [];
   const markersInHtml: Position[] = [];
+  const endMarkersInHtml: Position[] = [];
   const inNotes: Range[] = [];
   const containers: Token[] = [];
   /** depth is the depth of the definitions of notes around a token: the text of a note holds no text block. */
@@ -334,19 +372,16 @@ export function read(lines: readonly string[]): Reading {
       if (depth === 1 && token.map) {
         const [first, end] = token.map;
         const prefix = containerPrefix(lines[first], first, containers);
-        const own = lines.slice(first, end).map((line, offset) => {
-          if (offset === 0) {
-            return line.slice(prefix.length);
-          }
-          return line.startsWith(prefix) ? line.slice(prefix.length) : line.startsWith(prefix.trimEnd()) ? line.slice(prefix.trimEnd().length) : line;
-        });
-        const text = readNote(own);
         const meta = token.meta as NoteMeta;
+        const hidden = meta.hidden === true;
+        const own = ownLines([lines[first].slice(prefix.length), ...lines.slice(first + 1, end)], prefix, hidden);
+        const text = readNote(own);
         if (text) {
           notes.push({
             ...text,
             start: { line: first, character: prefix.length },
             end: { line: end - 1, character: lines[end - 1].length },
+            hidden,
             prefix,
             inHeading: false,
             inLink: false,
@@ -385,6 +420,10 @@ export function read(lines: readonly string[]): Reading {
         const line = lines[token.map![0] + offset] ?? '';
         for (const match of text.matchAll(markerSearch)) {
           markersInHtml.push({ line: token.map![0] + offset, character: line.indexOf(match[0]) });
+        }
+        const end = offset === 0 ? endMarkerStart.exec(text) : undefined;
+        if (end) {
+          endMarkersInHtml.push({ line: token.map![0], character: line.indexOf(end[1]) });
         }
       });
     } else if (token.type === 'inline' && (token.map ?? row) && textParents.has(tokens[index - 1]?.type)) {
@@ -450,7 +489,7 @@ export function read(lines: readonly string[]): Reading {
       };
     }
   }
-  return { notes, references, markers, blocks, markersInHtml, inNotes };
+  return { notes, references, markers, blocks, markersInHtml, endMarkersInHtml, inNotes };
 }
 
 /** noteSearch matches a text that can hold a note, so that a text without one needs no parsing. */

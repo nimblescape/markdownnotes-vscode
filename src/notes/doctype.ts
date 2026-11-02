@@ -56,9 +56,12 @@ export const specUrl = 'https://github.com/nimblescape/markdownnotes-vscode/blob
 /** doctypeName is the name of the format in the first line of the comment. */
 export const doctypeName = 'nimblescape-markdownnotes';
 
+/** hiddenWord is the word of the first line of the comment of a file whose notes are hidden from other viewers. */
+export const hiddenWord = 'hidden';
+
 /**
- * doctypeLines are the lines of the comment. No line holds `-->` before the last line, which would end the comment,
- * so the hint describes the start marker in words.
+ * doctypeLines are the lines of the comment of a file in the visible form. No line holds `-->` before the last line,
+ * which would end the comment, so the hint describes the start marker in words.
  */
 export const doctypeLines: readonly string[] = [
   `<!-- ${doctypeName} v${versionText(formatVersion)} spec=${specUrl}`,
@@ -68,9 +71,19 @@ export const doctypeLines: readonly string[] = [
   'Its reference ends the highlight of the note. Its start marker starts the highlight: <wbr> and an HTML',
   'comment with "[", the label and an optional color name. Every note has one. The definition follows the',
   'block of the highlight: "[^note-7k2q]: **login** · date", a blank line, and the body indented by four',
-  'spaces. Each reply is a block quote with its own header.',
+  'spaces. Each reply is a block quote with its own header. With the word "hidden" in the first line, each',
+  'definition is in an HTML comment of its own, the reference is the comment with the label and "]", and the',
+  'text of a note escapes each end of a comment with one more backslash before its ">".',
   '-->',
 ];
+
+/**
+ * doctypeLinesOf returns the lines of the comment of a file in a form: in the hidden form, its first line holds the
+ * word `hidden` after the version ([R-HIDE-001](../../docs/requirements.md#r-hide-001)).
+ * @param hidden - Whether the notes of the file are in the hidden form.
+ */
+export const doctypeLinesOf = (hidden: boolean): readonly string[] =>
+  hidden ? [`<!-- ${doctypeName} v${versionText(formatVersion)} ${hiddenWord} spec=${specUrl}`, ...doctypeLines.slice(1)] : doctypeLines;
 
 /** Doctype is the place of the comment in the lines of a text, and the version of the format that it names. */
 export interface Doctype {
@@ -80,6 +93,8 @@ export interface Doctype {
   end: number;
   /** version is the version of the format, or undefined when the first line names none. */
   version: Version | undefined;
+  /** hidden tells whether the first line holds the word `hidden`: the notes of the file are in the hidden form. */
+  hidden: boolean;
 }
 
 /**
@@ -87,6 +102,9 @@ export interface Doctype {
  * name `nimblescape-markdown-notes` of the versions before 2026-10-30, whose comment counts as older.
  */
 const doctypeStart = /^<!--\s*(nimblescape-markdown-?notes)(?:\s+v(\d+)\.(\d+)\.(\d+))?(?:\s|$)/;
+
+/** hiddenIn matches the word `hidden` in the rest of the first line of the comment, before the address of the specification. */
+const hiddenIn = /^(?:\s+(?!spec=)\S+)*?\s+hidden(?:\s|$)/;
 
 /** fence matches the line that opens or closes a fenced code block, with its fence. */
 const fence = /^ {0,3}(`{3,}|~{3,})/;
@@ -114,8 +132,13 @@ export function findDoctype(lines: readonly string[]): Doctype | undefined {
   while (end < lines.length - 1 && !lines[end].includes('-->', end === start ? 4 : 0)) {
     end++;
   }
-  const [, name, major, minor, patch] = doctypeStart.exec(lines[start]) ?? [];
-  return { start, end, version: major === undefined || name !== doctypeName ? undefined : { major: Number(major), minor: Number(minor), patch: Number(patch) } };
+  const [matched = '', name, major, minor, patch] = doctypeStart.exec(lines[start]) ?? [];
+  return {
+    start,
+    end,
+    version: major === undefined || name !== doctypeName ? undefined : { major: Number(major), minor: Number(minor), patch: Number(patch) },
+    hidden: hiddenIn.test(lines[start].slice(matched.trimEnd().length)),
+  };
 }
 
 /**
@@ -160,11 +183,13 @@ export interface DoctypeEdit {
  * doctypeEdit returns the change of a text for the comment, or undefined when the text needs none. A text with notes
  * gets the comment at its top, after its front matter, with a blank line after it. A comment of a lower version, or
  * without a version, is written anew; a comment of the same or a higher version stays as it is, also with another
- * text. A text without notes loses the comment and the blank line after it.
+ * text, apart from the word `hidden` of its first line, which it gets or loses with the form of the notes. A text
+ * without notes loses the comment and the blank line after it.
  * @param lines - The lines of the text.
  * @param hasNotes - Whether the text has notes after the change of the extension.
+ * @param hidden - Whether the notes are in the hidden form after the change ([R-HIDE-001](../../docs/requirements.md#r-hide-001)).
  */
-export function doctypeEdit(lines: readonly string[], hasNotes: boolean): DoctypeEdit | undefined {
+export function doctypeEdit(lines: readonly string[], hasNotes: boolean, hidden = false): DoctypeEdit | undefined {
   const found = findDoctype(lines);
   if (found && !hasNotes) {
     const end = lines[found.end + 1] === '' ? found.end + 2 : found.end + 1;
@@ -178,18 +203,25 @@ export function doctypeEdit(lines: readonly string[], hasNotes: boolean): Doctyp
   if (!hasNotes) {
     return undefined;
   }
-  const text = doctypeLines.join('\n');
+  const written = doctypeLinesOf(hidden);
+  const text = written.join('\n');
   if (found) {
-    return found.version !== undefined && compareVersions(formatVersion, found.version) <= 0
-      ? undefined
-      : { start: { line: found.start, character: 0 }, end: { line: found.end, character: lines[found.end].length }, text, lines: doctypeLines.length - 1 - (found.end - found.start) };
+    if (found.version === undefined || compareVersions(formatVersion, found.version) > 0) {
+      return { start: { line: found.start, character: 0 }, end: { line: found.end, character: lines[found.end].length }, text, lines: written.length - 1 - (found.end - found.start) };
+    }
+    if (found.hidden === hidden || found.version.major > formatVersion.major) {
+      return undefined;
+    }
+    const first = lines[found.start];
+    const changed = hidden ? first.replace(/(\sv\d+\.\d+\.\d+)/, `$1 ${hiddenWord}`) : first.replace(/\s+hidden(?=\s|$)/, '');
+    return { start: { line: found.start, character: 0 }, end: { line: found.start, character: first.length }, text: changed, lines: 0 };
   }
   const at = frontMatterEnd(lines);
   if (at >= lines.length) {
     // The text is only its front matter.
     const last = lines.length - 1;
-    return { start: { line: last, character: lines[last].length }, end: { line: last, character: lines[last].length }, text: `\n${text}`, lines: doctypeLines.length };
+    return { start: { line: last, character: lines[last].length }, end: { line: last, character: lines[last].length }, text: `\n${text}`, lines: written.length };
   }
   const blank = lines[at].trim() === '' ? '' : '\n';
-  return { start: { line: at, character: 0 }, end: { line: at, character: 0 }, text: `${text}\n${blank}`, lines: doctypeLines.length + (blank ? 1 : 0) };
+  return { start: { line: at, character: 0 }, end: { line: at, character: 0 }, text: `${text}\n${blank}`, lines: written.length + (blank ? 1 : 0) };
 }

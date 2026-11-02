@@ -34,6 +34,13 @@
  *     All teams?
  * ```
  *
+ * In a file whose notes are hidden from other viewers, each note is in the
+ * hidden form ([R-HIDE-001](../../docs/requirements.md#r-hide-001)), which every
+ * Markdown viewer hides: the definition is an HTML comment of its own, between
+ * a line `<!--` and a line `-->`, and its text is escaped, so that it never
+ * ends the comment; the end marker `<!--note-7k2q]-->` takes the place of the
+ * reference.
+ *
  * Every other footnote is no note and stays as it is, for the footnotes of
  * the Markdown preview of other extensions. The module reads and writes the
  * lines of one note, and has the markdown-it rules that find the notes, their
@@ -182,6 +189,48 @@ export function readMarker(text: string): MarkerText | undefined {
   const match = markerPattern.exec(text);
   return match ? { label: match[1], color: match[2], length: match[0].length } : undefined;
 }
+
+/**
+ * endMarkerText returns the end marker of the highlight of a note in the hidden form
+ * ([R-HIDE-001](../../docs/requirements.md#r-hide-001)): a comment in place of the reference, for example
+ * `<!--note-7k2q]-->`.
+ * @param label - The label of the note.
+ */
+export const endMarkerText = (label: string): string => `<!--${label}]-->`;
+
+/**
+ * referenceOf returns the end of the highlight of a note in a form: the reference `[^note-7k2q]` in the visible form,
+ * and the end marker `<!--note-7k2q]-->` in the hidden form.
+ * @param label - The label of the note.
+ * @param hidden - Whether the note is in the hidden form.
+ */
+export const referenceOf = (label: string, hidden: boolean): string => (hidden ? endMarkerText(label) : referenceText(label));
+
+/** hiddenOpen and hiddenClose are the lines around the definition of a note in the hidden form. */
+export const hiddenOpen = '<!--';
+export const hiddenClose = '-->';
+
+/**
+ * escapeHidden escapes the text of a note in the hidden form, so that it never ends the comment around it: each `--`
+ * or `--!`, followed by any number of backslashes and `>`, gets one more backslash before the `>`. `-->` becomes
+ * `--\>`, and `--\>` becomes `--\\>`.
+ * @param text - The text.
+ */
+export const escapeHidden = (text: string): string => text.replace(/--(!?)(\\*)>/g, '--$1$2\\>');
+
+/**
+ * unescapeHidden removes the escape of the text of a note in the hidden form: one backslash from each place where
+ * `--` or `--!` is followed by at least one backslash and `>`.
+ * @param text - The escaped text.
+ */
+export const unescapeHidden = (text: string): string => text.replace(/--(!?)(\\*)\\>/g, '--$1$2>');
+
+/**
+ * hiddenLines returns the lines of a definition in the hidden form: the line `<!--`, the escaped lines of the
+ * definition, and the line `-->`.
+ * @param lines - The lines of the definition in the visible form, without the prefix of its block quotes and list items.
+ */
+export const hiddenLines = (lines: readonly string[]): string[] => [hiddenOpen, ...lines.map(escapeHidden), hiddenClose];
 
 /** indent is the indentation of the further lines of a note. */
 export const indent = '    ';
@@ -465,17 +514,20 @@ export interface NoteMeta extends Definition {
   number: number;
   /** duplicate tells whether an earlier note of the document has the same label, which the references name. */
   duplicate: boolean;
+  /** hidden tells whether the definition is in the hidden form, an HTML comment of its own. */
+  hidden?: boolean;
 }
 
 /**
  * InlineMeta is the meta of the token of a reference or a start marker: its label and its span in the text of its
- * inline token, and of a start marker the name of its color.
+ * inline token, of a start marker the name of its color, and of an end marker of the hidden form `hidden`.
  */
 export interface InlineMeta {
   label: string;
   start: number;
   end: number;
   color?: string;
+  hidden?: boolean;
 }
 
 /** Registry is what a parsing knows of the notes of its document: the meta of the first note of each label. */
@@ -598,6 +650,62 @@ export function noteRule(state: StateBlock, startLine: number, endLine: number, 
   return true;
 }
 
+/**
+ * hiddenNoteRule is the markdown-it block rule of the definition of a note in the hidden form
+ * ([R-HIDE-001](../../docs/requirements.md#r-hide-001)): a line `<!--`, the definition, and a line `-->`. It runs
+ * before the rule of the blocks of HTML, which would read the comment as one, and ends the comment where that rule
+ * ends it: at the first line that holds `-->`. A comment whose second line is not the first line of the definition of
+ * a note, or whose last line holds more than `-->`, stays for that rule. The tokens of the note are a token of the type
+ * noteOpenType, whose meta is a NoteMeta with `hidden`, and whose lines are the lines of the comment, and a token of the
+ * type noteCloseType, without tokens between them: the text of the note stays escaped in the comment, and the readers
+ * read it from the lines.
+ * @param state - The state of the block parser.
+ * @param startLine - The index of the line where the rule starts.
+ * @param endLine - The index of the line after the text.
+ * @param silent - Whether the rule only tells whether it matches.
+ */
+export function hiddenNoteRule(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
+  const textOf = (line: number): string => state.src.slice(state.bMarks[line] + state.tShift[line], state.eMarks[line]);
+  if (state.sCount[startLine] - state.blkIndent >= 4 || textOf(startLine).trimEnd() !== hiddenOpen) {
+    return false;
+  }
+  const registry = registryOf(state.env);
+  const first = startLine + 1;
+  if (registry.depth > 0 || first >= endLine || state.sCount[first] < state.blkIndent) {
+    return false;
+  }
+  const definition = readDefinition(textOf(first));
+  if (!definition) {
+    return false;
+  }
+  let close = first + 1;
+  while (close < endLine && !textOf(close).includes(hiddenClose)) {
+    if (!state.isEmpty(close) && state.sCount[close] < state.blkIndent) {
+      return false;
+    }
+    close++;
+  }
+  if (close >= endLine || textOf(close).trimEnd() !== hiddenClose || state.sCount[close] < state.blkIndent) {
+    return false;
+  }
+  if (silent) {
+    return true;
+  }
+  const duplicate = registry.notes.has(definition.label);
+  const meta: NoteMeta = { ...definition, number: ++registry.count, duplicate, hidden: true };
+  if (!duplicate) {
+    registry.notes.set(definition.label, meta);
+  }
+  const open = state.push(noteOpenType, 'div', 1);
+  open.block = true;
+  open.meta = meta;
+  open.map = [startLine, close + 1];
+  const end = state.push(noteCloseType, 'div', -1);
+  end.block = true;
+  state.line = close + 1;
+  return true;
+}
+
 /** referencePattern matches the reference of a note at the start of a text. */
 const referencePattern = /^\[\^(note-[a-z0-9]{4})\]/;
 
@@ -654,6 +762,37 @@ export function markerRule(state: StateInline, silent: boolean): boolean {
   return true;
 }
 
+/** endMarkerPattern matches the end marker of a note in the hidden form at the start of a text. */
+const endMarkerPattern = /^<!--(note-[a-z0-9]{4})\]-->/;
+
+/**
+ * endMarkerRule is the markdown-it inline rule of the end marker of a note in the hidden form, `<!--note-7k2q]-->`
+ * ([R-HIDE-001](../../docs/requirements.md#r-hide-001)): it takes the place of the reference, so its token is a token
+ * of a reference, with `hidden` in its meta. It runs before the rule `html_inline`, with the conditions of that rule,
+ * and takes only the end marker of a note of the document, as the rule of the references does.
+ * @param state - The state of the inline parser.
+ * @param silent - Whether the rule only tells whether it matches.
+ */
+export function endMarkerRule(state: StateInline, silent: boolean): boolean {
+  const start = state.pos;
+  const skipped = (state as StateInline & { skipHtmlSpecial?: boolean }).skipHtmlSpecial;
+  if (!state.md.options.html || skipped || state.src.charCodeAt(start) !== 0x3c) {
+    return false;
+  }
+  const match = endMarkerPattern.exec(state.src.slice(start, state.posMax));
+  const env = state.env as Record<string, unknown> | undefined;
+  if (!match || (!notesOfParsing(state.env).has(match[1]) && env?.[allReferences] !== true)) {
+    return false;
+  }
+  if (!silent) {
+    const token = state.push(referenceType, '', 0);
+    token.content = match[0];
+    token.meta = { label: match[1], start, end: start + match[0].length, hidden: true } satisfies InlineMeta;
+  }
+  state.pos = start + match[0].length;
+  return true;
+}
+
 /**
  * ruleNames returns the names of the rules of a ruler.
  * @param ruler - The ruler.
@@ -672,7 +811,9 @@ export function addNoteRules(md: MarkdownIt): void {
   md.core.ruler.after('normalize', 'nimblescape_notes_reset', resetRule);
   const block = ruleNames(md.block.ruler).includes('footnote_def') ? 'footnote_def' : 'reference';
   md.block.ruler.before(block, 'nimblescape_note', noteRule, { alt: ['paragraph', 'reference'] });
+  md.block.ruler.before('html_block', 'nimblescape_hidden_note', hiddenNoteRule, { alt: ['paragraph', 'reference', 'blockquote'] });
   const inline = ruleNames(md.inline.ruler).includes('footnote_ref') ? 'footnote_ref' : 'link';
   md.inline.ruler.before(inline, 'nimblescape_note_reference', referenceRule);
   md.inline.ruler.before('html_inline', 'nimblescape_note_marker', markerRule);
+  md.inline.ruler.before('html_inline', 'nimblescape_note_end_marker', endMarkerRule);
 }

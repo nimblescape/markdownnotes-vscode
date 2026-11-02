@@ -35,8 +35,9 @@ import * as vscode from 'vscode';
 import { cleanScheme } from './cleanView';
 import { formatMarkdown } from './format/format';
 import { doctypeEdit, newerFormat } from './notes/doctype';
-import { applyEdit, editBetween } from './notes/edits';
+import { applyEdit, editBetween, hiddenForm } from './notes/edits';
 import type { Source } from './notes/listings';
+import { isMissing, sourceFilesOf } from './notes/repos';
 
 /** FormatStep is a step of the formatter that another extension adds, after the steps of the notes (R-GEN-012). */
 export interface FormatStep {
@@ -164,6 +165,33 @@ export function sourceOf(file: vscode.Uri): Source | undefined {
 }
 
 /**
+ * listingFilesOf returns the reader of the files of the listings of a Markdown file: the URI of the file and its path
+ * relative to the Markdown file, which `sourceOf` reads; the file of a path in the repository of the paper, or the
+ * file in the clone of a reference of the front matter for a path of another repository
+ * ([R-CODE-006](../docs/requirements.md#r-code-006)), with the folder of its clone. It returns undefined for a missing
+ * reference or clone.
+ * @param file - The URI of the Markdown file.
+ * @param lines - The lines of the Markdown file.
+ */
+export function listingFilesOf(file: vscode.Uri, lines: readonly string[]): (path: string) => { uri: vscode.Uri; path: string; clone?: vscode.Uri } | undefined {
+  const source = sourceOf(file);
+  const files = source && sourceFilesOf(lines, source);
+  return (path) => {
+    const found = files?.(path);
+    if (found && isMissing(found)) {
+      return undefined;
+    }
+    const relative = found ? found.path : path;
+    try {
+      const uri = vscode.Uri.joinPath(file, '..', decodeURIComponent(relative));
+      return found?.clone ? { uri, path: relative, clone: vscode.Uri.joinPath(file, '..', found.clone) } : { uri, path: relative };
+    } catch {
+      return undefined;
+    }
+  };
+}
+
+/**
  * saveEdits returns the edits of a Markdown document before its save, or none: the format, and the comment of the
  * format of the notes at the top of the file when it has none or one of an older text
  * ([R-NOTE-007](../docs/requirements.md#r-note-007)), in one edit. A document whose comment names a newer version of
@@ -189,7 +217,7 @@ export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, s
       break;
     }
   }
-  const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true) : undefined;
+  const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true, hiddenForm(changed) === true) : undefined;
   if (comment) {
     changed = applyEdit(changed, comment);
   }

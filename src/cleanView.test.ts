@@ -242,6 +242,40 @@ test('hides the definitions of the standard footnotes while the side view shows 
   expect(real.text).toContain('[^2]: Typed.\n');
 });
 
+test('keeps the front matter read-only: an edit of it goes back with a message, and the link above it opens the file itself or the form of Markdown Paper (R-TEXT-009)', async () => {
+  const { cleanCommands, frontMatterInForm, frontMatterReadOnly, paper } = await import('./cleanView');
+  const titled = `---\ntitle: A paper\n---\n\n${text}`;
+  const { real, document } = await opened(titled);
+  // VS Code reads the clean text anew from the file system of the view when it has no tab and no changes.
+  document.isDirty = true;
+  const start = document.text.indexOf('A paper');
+  typeIn(document, start, start, 'The ');
+  await settle();
+  expect(document.getText()).toBe(`---\ntitle: A paper\n---\n\n${clean}`);
+  expect(real.text).toBe(titled);
+  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
+  // An edit after the closing line goes into the file.
+  const next = document.text.indexOf('The next');
+  typeIn(document, next, next, 'Now ');
+  await settle();
+  expect(real.text).toContain('\nNow The next paragraph.\n');
+  expect(real.text.startsWith('---\ntitle: A paper\n---\n')).toBe(true);
+  // The link above the front matter: without Markdown Paper "Open File with Markup", with its form "Edit Front Matter".
+  const lenses = async () =>
+    (await Promise.all(fake.codeLenses.map((provider) => provider.provideCodeLenses(document)))).flat().map((lens) => [lens.range.start.line, lens.command?.title, lens.command?.command, lens.command?.arguments?.map(String)]);
+  expect(await lenses()).toEqual([[0, 'Open File with Markup', cleanCommands.openWithMarkup, undefined]]);
+  fake.extensions.set(paper.extension, { packageJSON: { contributes: { commands: [{ command: paper.editFrontMatter }] } } });
+  expect(await lenses()).toEqual([[0, 'Edit Front Matter', paper.editFrontMatter, [real.uri.toString()]]]);
+  // An edit that removes the front matter goes back too, and the message names the form.
+  typeIn(document, 0, document.text.indexOf('The agents'), '');
+  await settle();
+  expect(document.getText().startsWith('---\ntitle: A paper\n---\n\nThe agents')).toBe(true);
+  expect(fake.statusMessages.at(-1)).toBe(frontMatterInForm);
+  // A clean text without a front matter has no link.
+  const plain = new FakeDocument(document.uri, clean);
+  expect((await Promise.all(fake.codeLenses.map((provider) => provider.provideCodeLenses(plain)))).flat()).toEqual([]);
+});
+
 test('saves the file for a save of the view, with each note', async () => {
   const { view, real, document } = await opened();
   typeIn(document, 0, 0, 'Now ');
@@ -272,8 +306,31 @@ test('shows a text editor of a file with notes as the view, in its group and at 
   expect(real.text).toBe(text);
 });
 
+test('shows a paper document without notes as the view too, with its front matter read-only (R-TEXT-009, decision 61)', async () => {
+  const { frontMatterReadOnly } = await import('./cleanView');
+  const paperText = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text without notes.\n';
+  const { real, tab } = await inEditor({ content: paperText });
+  const [editor] = fake.editors;
+  expect(editor.document.uri.scheme).toBe('markdownnotes');
+  expect(editor.document.getText()).toBe(paperText);
+  expect(fake.closedTabs).toEqual([tab]);
+  const document = editor.document as unknown as FakeDocument;
+  document.isDirty = true;
+  const start = document.text.indexOf('A paper');
+  typeIn(document, start, start, 'The ');
+  await settle();
+  expect(document.getText()).toBe(paperText);
+  expect(real.text).toBe(paperText);
+  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
+  const next = document.text.indexOf('A text');
+  typeIn(document, next, next, 'Now ');
+  await settle();
+  expect(real.text).toBe(paperText.replace('A text', 'Now A text'));
+});
+
 test.each([
   ['a file without notes', { content: 'A text without notes.\n' }],
+  ['a file without notes whose front matter has no layout', { content: '---\ntitle: A text\n---\n\nA text without notes.\n' }],
   ['the file of a view of the changes of git', { input: (uri: unknown) => ({ original: uri, modified: uri }) }],
 ])('leaves the text editor of %s as it is', async (_name, options) => {
   const { real } = await inEditor(options);

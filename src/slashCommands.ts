@@ -51,11 +51,13 @@
  */
 
 import * as vscode from 'vscode';
+import { sourceOf } from './formatter';
 import { githubLogin, githubProvider } from './github';
 import { highlightFor, referenceAllowed } from './notes/edits';
 import { fieldMarkers, readFields } from './notes/fields';
 import { anchorColumn, anchorName, anchorText, captionWord, codeLines, defaultWord, findItems, type ItemKind, labelOf, numberOf, wordOf } from './notes/figures';
 import { listingBlock, listingCite, listingTarget, snippetsOf, sourceFiles } from './notes/listings';
+import { cloneFolder, isMissing, referencesOf, sourceFilesOf } from './notes/repos';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
 import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
@@ -513,7 +515,10 @@ export class SlashCommands implements vscode.CompletionItemProvider {
    * ([R-CODE-001](../docs/requirements.md#r-code-001)), after VS Code removed the typed command: the user chooses the
    * file, then the whole file or one of its snippets, and the caption is selected for typing. A file without snippets
    * gives its whole text. The caption is a link to the lines of the source; in the clean editing view, which hides the
-   * link and the comment of the listing, they go into the file after the view wrote the caption and the code there.
+   * link and the comment of the listing, they go into the file after the view wrote the caption and the code there. The
+   * files of the clones of the references of the front matter are in the list as paths of their references, such as
+   * `server:src/api.ts`, and their captions link to GitHub at the commit of the clone; the files of other clones of
+   * `mp get` are not ([R-CODE-006](../docs/requirements.md#r-code-006)).
    * @param uri - The URI of the document.
    */
   private async listing(uri: vscode.Uri): Promise<void> {
@@ -527,9 +532,22 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const folder = found.file.uri.path.replace(/\/[^/]*$/, '');
     const files = await vscode.workspace.findFiles(sourceFiles, '{**/node_modules/**,**/.git/**}', 2000);
+    const fileLines = linesOf(found.file);
+    const references = referencesOf(fileLines);
+    const clone = new RegExp(`/${cloneFolder.replace(/\./g, '\\.')}/([^/]+)/(.+)$`);
     const chosen = await vscode.window.showQuickPick(
       files
-        .map((file) => ({ file, relative: relativePath(folder, file.path) }))
+        .flatMap((file) => {
+          const cloned = clone.exec(file.path);
+          if (!cloned) {
+            return [{ file, relative: relativePath(folder, file.path) }];
+          }
+          const path = cloned[2]
+            .split('/')
+            .map((part) => encodeURIComponent(part).replace(/\(/g, '%28').replace(/\)/g, '%29'))
+            .join('/');
+          return references.has(cloned[1]) ? [{ file, relative: `${cloned[1]}:${path}` }] : [];
+        })
         .sort((a, b) => a.relative.localeCompare(b.relative))
         .map(({ file, relative }) => ({ label: decodeURIComponent(relative.split('/').at(-1)!), description: decodeURIComponent(relative), relative, file })),
       { placeHolder: 'The file of the source code of the new listing', matchOnDescription: true },
@@ -551,8 +569,11 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       }
       name = part.name;
     }
-    const [, , comment, , ...code] = listingBlock('Caption', chosen.relative, name, text);
-    const target = listingTarget(chosen.relative, text, name);
+    const read = sourceOf(found.file.uri);
+    const listed = read && sourceFilesOf(fileLines, read)(chosen.relative);
+    const address = listed && !isMissing(listed) ? listed.address : chosen.relative;
+    const [, , comment, , ...code] = listingBlock('Caption', chosen.relative, name, text, address);
+    const target = listingTarget(address, text, name);
     const file = this.mirror?.realOf(editor.document.uri);
     // The clean editing view hides the link of the caption and the comment: the view gets the caption and the code block.
     const at = editor.selection.active;

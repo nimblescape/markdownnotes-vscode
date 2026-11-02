@@ -26,6 +26,7 @@
  */
 
 import * as vscode from 'vscode';
+import { listingFilesOf } from './formatter';
 import { locksLine, offLines } from './notes/cursor';
 import { findItems, labelOf, wordOf } from './notes/figures';
 import { captionsOf, findListings, isSnippetName, snippetsOf } from './notes/listings';
@@ -96,14 +97,11 @@ export function usesOfText(lines: readonly string[], file: vscode.Uri, where: st
   const items = findItems(lines);
   const captions = captionsOf(lines, items, listings);
   const word = wordOf(lines, 'listing') ?? 'Listing';
+  // The file of a listing of another repository is in its clone (R-CODE-006).
+  const files = listingFilesOf(file, lines);
   listings.forEach((listing, index) => {
-    if (!listing.snippet) {
-      return;
-    }
-    let source: vscode.Uri;
-    try {
-      source = vscode.Uri.joinPath(file, '..', decodeURIComponent(listing.path));
-    } catch {
+    const source = listing.snippet ? files(listing.path)?.uri : undefined;
+    if (!source) {
       return;
     }
     const caption = captions[index];

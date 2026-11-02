@@ -92,15 +92,32 @@ export const notesViewId = 'nimblescape.markdownNotes.notes';
 /**
  * viewCommands are the commands of the side view: the buttons "Add Note", "Add Footnote"
  * ([R-FOOT-003](../docs/requirements.md#r-foot-003)) and "Hide Notes" in its title
- * ([R-SIDE-003](../docs/requirements.md#r-side-003)), and "Show or Hide Notes" of the title of the Markdown editors and
- * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)).
+ * ([R-SIDE-003](../docs/requirements.md#r-side-003)), "Show or Hide Notes" of the title of the Markdown editors and
+ * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)), and the eye in its title with the commands
+ * "Hide Notes from Other Viewers" and "Show Notes in Other Viewers" of the Command Palette
+ * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): the eye has a command for each state, whose title is the tooltip
+ * that says the state and what a click does. "Add Definition" opens the editor of a new definition for the label of a
+ * reference without a definition, for its quick fix ([R-FOOT-004](../docs/requirements.md#r-foot-004)); it takes the URI
+ * of the file and the label, so the Command Palette does not show it.
  */
 export const viewCommands = {
   newNote: 'nimblescape.markdownNotes.newNote',
   newFootnote: 'nimblescape.markdownNotes.addFootnote',
+  addDefinition: 'nimblescape.markdownNotes.addFootnoteDefinition',
   hide: 'nimblescape.markdownNotes.hideNotes',
   toggle: 'nimblescape.markdownNotes.toggleNotes',
+  hideFromViewers: 'nimblescape.markdownNotes.hideNotesFromViewers',
+  showInViewers: 'nimblescape.markdownNotes.showNotesInViewers',
+  eyeShown: 'nimblescape.markdownNotes.notesShownToViewers',
+  eyeHidden: 'nimblescape.markdownNotes.notesHiddenFromViewers',
 };
+
+/**
+ * formContext is the context key that tells the menus the form of the notes of the document of the side view
+ * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): `visible`, `hidden`, or empty for a document without notes, for
+ * which the eye does not show.
+ */
+export const formContext = 'nimblescape.markdownNotes.notesForm';
 
 /** Message is a message of the script of the view. */
 export type Message =
@@ -114,13 +131,14 @@ export type Message =
   | { type: 'todo'; id: string; done: boolean }
   | { type: 'deleteAnswer'; id: string; answer: AnswerRef }
   | { type: 'deleteNote'; id: string }
+  | { type: 'makeFootnote'; id: string }
   | { type: 'color'; id: string; color: string | undefined }
   | { type: 'saveText'; request: number; id: string; text: string; original: string }
   | { type: 'render'; request: number; text: string }
   | { type: 'openLink'; href: string }
   | { type: 'saveFootnote'; request: number; id: string; text: string; original: string }
   | { type: 'deleteFootnote'; id: string }
-  | { type: 'addFootnote'; request: number; text: string }
+  | { type: 'addFootnote'; request: number; text: string; label?: string }
   | { type: 'footnoteClosed' };
 
 /** AnswerState is an answer as the view shows it. */
@@ -316,9 +334,11 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /** ready tells whether the script of the view started and receives messages. */
   private ready = false;
   /** newPending is the message of "Add Note" or "Add Footnote" that waits for a script that did not start yet. */
-  private newPending: { type: 'new'; todo?: boolean } | { type: 'newFootnote' } | undefined;
+  private newPending: { type: 'new'; todo?: boolean } | { type: 'newFootnote'; label?: string } | undefined;
   /** footnoteEditor tells whether the editor of a new footnote is open, whose title names the place of its reference. */
   private footnoteEditor = false;
+  /** form is the form of the notes that the menus know, the value of the context key formContext. */
+  private form: string | undefined;
   /**
    * account is the GitHub login of the user that the view shows, read once for each change of the sessions: VS Code can
    * take seconds for a session, and the view shows each selected note at once.
@@ -362,8 +382,13 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       }),
       vscode.commands.registerCommand(viewCommands.newNote, () => this.newNote()),
       vscode.commands.registerCommand(viewCommands.newFootnote, () => this.newFootnote()),
+      vscode.commands.registerCommand(viewCommands.addDefinition, (uri: vscode.Uri, label: string) => this.newDefinition(uri, label)),
       vscode.commands.registerCommand(viewCommands.hide, () => this.hide()),
       vscode.commands.registerCommand(viewCommands.toggle, () => (this.view?.visible ? this.hide() : vscode.commands.executeCommand(`${notesViewId}.focus`))),
+      vscode.commands.registerCommand(viewCommands.hideFromViewers, () => this.changeForm(true)),
+      vscode.commands.registerCommand(viewCommands.eyeShown, () => this.changeForm(true)),
+      vscode.commands.registerCommand(viewCommands.showInViewers, () => this.changeForm(false)),
+      vscode.commands.registerCommand(viewCommands.eyeHidden, () => this.changeForm(false)),
     ];
     this.follow(vscode.window.activeTextEditor);
     this.followTab();
@@ -401,6 +426,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         this.footnoteEditor = false;
       }
     });
+  }
+
+  /**
+   * activeFile is the URI of the Markdown file whose notes the view shows: the file of the text editor, of the preview
+   * or of the mode "Markdown Editor", and the file behind a clean editing view.
+   */
+  get activeFile(): vscode.Uri | undefined {
+    return this.document;
   }
 
   /** visible tells whether the view is open and shows its content. */
@@ -594,6 +627,24 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     // The title of the editor names the place of the reference at once.
     await this.refresh();
     await this.post({ type: 'newFootnote' });
+  }
+
+  /**
+   * newDefinition opens the editor of a new definition for the label of a reference without a definition, for the quick
+   * fix "Add Definition" ([R-FOOT-004](../docs/requirements.md#r-foot-004)). The definition needs no place of a
+   * reference, so the title of the editor names the label.
+   * @param uri - The URI of the file whose reference has no definition.
+   * @param label - The label of the reference.
+   */
+  private async newDefinition(uri: vscode.Uri, label: string): Promise<void> {
+    if (this.document?.toString() !== uri.toString()) {
+      await vscode.window.showTextDocument(uri);
+    }
+    this.footnoteEditor = false;
+    if (!this.view?.visible) {
+      await vscode.commands.executeCommand(`${notesViewId}.focus`);
+    }
+    await this.post({ type: 'newFootnote', label });
   }
 
   /**
@@ -922,8 +973,36 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     };
   }
 
-  /** refresh sends the content of the view to its script, when the view is open. */
+  /**
+   * changeForm writes all notes of the document of the view in a form, for the eye and its commands
+   * ([R-HIDE-002](../docs/requirements.md#r-hide-002)), and says why when it cannot.
+   * @param hidden - Whether the notes go into the hidden form.
+   */
+  private async changeForm(hidden: boolean): Promise<void> {
+    const document = this.document;
+    if (!document) {
+      return;
+    }
+    const problem = await this.threads.changeForm(document, hidden);
+    if (problem) {
+      void vscode.window.showWarningMessage(problemMessage(problem));
+    }
+    await this.refresh();
+  }
+
+  /** showForm tells the menus the form of the notes of the document of the view, for the eye in its title. */
+  private showForm(): void {
+    const hidden = this.document && this.threads.formOf(this.document);
+    const form = hidden === undefined ? '' : hidden ? 'hidden' : 'visible';
+    if (form !== this.form) {
+      this.form = form;
+      void vscode.commands.executeCommand('setContext', formContext, form);
+    }
+  }
+
+  /** refresh sends the content of the view to its script, when the view is open, and the form of the notes to the menus. */
   private async refresh(): Promise<void> {
+    this.showForm();
     if (!this.view) {
       return;
     }
@@ -1071,7 +1150,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;
         const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
-        const result = await this.threads.addNote(document, range, message.text, colorNames.find((name) => name === message.color), message.todo === true);
+        const result = await this.threads.addNote(
+          document,
+          range,
+          message.text,
+          colorNames.find((name) => name === message.color),
+          message.todo === true,
+          this.settingsOf(document).hideNotesInNewFiles,
+        );
         if ('id' in result) {
           this.select(document, result.id);
           await this.refresh();
@@ -1088,6 +1174,16 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       }
       case 'addFootnote': {
+        if (message.label !== undefined) {
+          // The editor of a new definition, for the quick fix "Add Definition".
+          const problem = await this.threads.addDefinition(document, message.label, message.text);
+          if (!problem) {
+            this.select(document, footnoteId(message.label));
+            await this.refresh();
+          }
+          await this.reply(message.request, problem);
+          return;
+        }
         // The reference goes at the cursor of the text editor at the time of the save.
         const selection = this.selections.get(document.toString());
         const result = selection ? await this.threads.addFootnote(document, selection.end, message.text) : { problem: { kind: 'footnotePlace' as const } };
@@ -1117,6 +1213,28 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         if (problem) {
           void vscode.window.showErrorMessage(problemMessage(problem));
         }
+        return;
+      }
+      case 'makeFootnote': {
+        const replies = (this.threads.entriesOf(document).find((entry) => entry.id === message.id)?.note.answers.length ?? 1) - 1;
+        if (replies > 0) {
+          // The replies go with the note: the user confirms it first.
+          const choice = await vscode.window.showWarningMessage(
+            `Make the note a footnote? The text of its first answer becomes the text of the footnote, and ${replies === 1 ? 'its reply goes' : `its ${replies} replies go`} with the note. Undo in the text editor of the file brings the note back; in the clean editing view, choose "Open File with Markup" first.`,
+            { modal: true },
+            'Make Footnote',
+          );
+          if (choice !== 'Make Footnote') {
+            return;
+          }
+        }
+        const result = await this.threads.makeFootnote(document, message.id);
+        if ('problem' in result) {
+          void vscode.window.showErrorMessage(problemMessage(result.problem));
+          return;
+        }
+        this.select(document, footnoteId(result.label));
+        await this.refresh();
         return;
       }
       case 'color':

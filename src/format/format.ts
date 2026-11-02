@@ -13,7 +13,9 @@
  * around the ATX headings, and ends the file with one line break. It changes no
  * code block, no block of HTML (so no comment, also not the comment of the
  * format of the notes), no front matter, no block of math (`$$`), no container
- * (`:::`) and no note.
+ * (`:::`) and no note, apart from its form: each note goes into the form of
+ * its file, visible or hidden
+ * ([R-HIDE-003](../../docs/requirements.md#r-hide-003)).
  *
  * The formatter reads the text with markdown-it, as the Markdown preview and
  * the notes do ([src/notes/notes.ts](../notes/notes.ts)), so it knows each
@@ -34,11 +36,15 @@ import { frontMatterEnd, newerFormat } from '../notes/doctype';
 import { fillFields, findFields } from '../notes/fields';
 import { anchorCaptions, captionFigures, findItems, hasNumberedLinks, numberCaptions, numberLinks } from '../notes/figures';
 import { findListings, refreshListings, type Source } from '../notes/listings';
+import { notesInForm } from '../notes/edits';
 import { before, parse, read } from '../notes/notes';
 import { breakText, markerText, noteCloseType, noteOpenType } from '../notes/syntax';
 
-/** hiddenText matches the start markers, with `<wbr>` before them, and the references of the notes, which the text editor hides. */
-export const hiddenText = /(?:<wbr>)?<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->|\[\^note-[a-z0-9]{4}\]/g;
+/**
+ * hiddenText matches the start markers, with `<wbr>` before them, the references and the end markers of the notes,
+ * which the text editor hides.
+ */
+export const hiddenText = /(?:<wbr>)?<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->|\[\^note-[a-z0-9]{4}\]|<!--note-[a-z0-9]{4}\]-->/g;
 
 /** wideRanges are the ranges of the code points that a text editor shows two columns wide: East Asian wide and full-width characters. */
 const wideRanges: readonly (readonly [number, number])[] = [
@@ -108,8 +114,11 @@ interface Unit {
   pieces: Piece[] | undefined;
 }
 
-/** markerLine matches the text of a line that starts with the start marker of a note. */
-const markerLine = /^<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->/;
+/**
+ * markerLine matches the text of a line that starts with the start marker of a note, or with the end marker of a note
+ * in the hidden form ([R-HIDE-001](../../docs/requirements.md#r-hide-001)).
+ */
+const markerLine = /^(?:<!--\[note-[a-z0-9]{4}(?: [a-z]+)?-->|<!--note-[a-z0-9]{4}\]-->)/;
 
 /** keptLine matches the text of a line that the formatter never joins: a block of math or a container. */
 const keptLine = /^(\$\$|:::)/;
@@ -540,8 +549,9 @@ export interface FormatOptions {
 }
 
 /**
- * formatMarkdown returns the formatted lines of a Markdown text: a start marker for each note without one, `<wbr>`
- * before each start marker, the start markers at the start of a line joined to their paragraphs, a caption for each
+ * formatMarkdown returns the formatted lines of a Markdown text: each note in the form of the text
+ * ([R-HIDE-003](../../docs/requirements.md#r-hide-003)), a start marker for each note without one, `<wbr>`
+ * before each start marker, the start markers and the end markers at the start of a line joined to their paragraphs, a caption for each
  * figure of the older form, the number of each caption and of each link to a figure, a table, a listing or a section
  * from their order, an anchor for each caption of a kind whose generated list the text holds
  * ([R-GEN-016](../../docs/requirements.md#r-gen-016)), the current value of the front matter in each field
@@ -561,7 +571,7 @@ export function formatMarkdown(lines: readonly string[], options: FormatOptions 
   if (newerFormat(lines) !== undefined) {
     return [...lines];
   }
-  const filled = fillFields(numberLinks(anchorCaptions(numberCaptions(captionFigures(addMarkers(repairMarkers(lines)))))));
+  const filled = fillFields(numberLinks(anchorCaptions(numberCaptions(captionFigures(addMarkers(repairMarkers(notesInForm(lines))))))));
   const repaired = options.source ? refreshListings(filled, options.source) : filled;
   const formatted = formatLines(repaired);
   return signature(formatted) === signature(repaired) ? formatted : repaired;

@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: MIT
+// © 2026 Hannes Stauss (scalarion@nimblescape.com)
+// Licensed under the MIT License. See LICENSE in the repository root for details.
+
+// The type check of the scripts of the side view and of the Markdown preview
+// with the types of the browser (npm run typecheck, R-GEN-018).
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": ["notesView.js", "markdownPreview.js", "globals.d.ts"]
+}

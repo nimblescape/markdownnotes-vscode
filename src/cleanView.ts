@@ -15,18 +15,23 @@
  * the notes at their text; a change of the file, for example a new note of the
  * side view, comes back into the clean text. A save of the view saves the file.
  * The highlights of the notes show in the view as in the text editor of the
- * file.
+ * file. The front matter is read-only in the view (decision 58): an edit of it
+ * goes back, and Undo goes over such an edit. The link above it opens the form
+ * of the front matter of nimblescape Markdown Paper (decision 59).
  *
- * A Markdown file with notes always opens in the view: each text editor of such
- * a file that shows becomes the view, in its group and at its place of the
- * cursor. The command "Open File with Markup" opens the file itself, for
+ * A Markdown file with notes always opens in the view, and so does a paper
+ * document of nimblescape Markdown Paper (a front matter with the key
+ * `layout`), also without notes, so that its front matter is read-only
+ * (decision 61): each text editor of such a file that shows becomes the view,
+ * in its group and at its place of the cursor. The command "Open File with Markup" opens the file itself, for
  * example for a conflict of git in a note; that file stays as it is until its
  * tab closes.
  */
 
 import * as vscode from 'vscode';
 import { highlightStyles } from './noteEditor';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, keepsFrontMatter, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { frontMatterEnd } from './notes/doctype';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
@@ -35,6 +40,27 @@ export const cleanScheme = 'markdownnotes';
 
 /** cleanCommands are the commands of the clean editing view. */
 export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWithMarkup' };
+
+/** frontMatterReadOnly is the message of the status bar after an edit of the front matter in the clean editing view. */
+export const frontMatterReadOnly = 'The front matter is read-only in the clean editing view. Change it with "Open File with Markup".';
+
+/** frontMatterInForm is the message of the status bar after an edit of the front matter, while the form of nimblescape Markdown Paper exists. */
+export const frontMatterInForm = 'The front matter is read-only in the clean editing view. Change it with "Edit Front Matter" above it.';
+
+/**
+ * paper names nimblescape Markdown Paper and its command that opens and focuses its view "Front Matter", the form of the
+ * front matter of a file, with the URI of the file as its argument.
+ */
+export const paper = { extension: 'nimblescape.nimblescape-markdownpaper', editFrontMatter: 'nimblescape.markdownPaper.editFrontMatter' };
+
+/**
+ * hasFrontMatterForm tells whether the installed nimblescape Markdown Paper has the command of its form of the front
+ * matter. VS Code starts the extension when the command runs.
+ */
+function hasFrontMatterForm(): boolean {
+  const commands: unknown = vscode.extensions.getExtension(paper.extension)?.packageJSON?.contributes?.commands;
+  return Array.isArray(commands) && commands.some((command: { command?: unknown }) => command?.command === paper.editFrontMatter);
+}
 
 /**
  * resourceFolder is the name of the folder beside a clean document that holds the files of the folder of the workspace
@@ -132,6 +158,12 @@ interface Mirror {
    * the moves of the cursor of an edit late, also after the next edit, so a move inside this text keeps it.
    */
   typing?: { from: number; to: number };
+  /**
+   * refused holds the clean texts after the edits of the front matter that went back, each with the clean text before
+   * it. VS Code keeps the write of the front matter back as an undo step of its own, so Undo brings such an edit back;
+   * the view then undoes one more step, the edit itself, and comes back to the clean text before it.
+   */
+  refused?: Array<{ text: string; clean: string }>;
 }
 
 /** Entry is a clean text of the history of a view, with the text of its file and the options of its projection. */
@@ -210,6 +242,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly changes = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this.changes.event;
   private readonly fileChanges = new vscode.EventEmitter<vscode.Uri>();
+  /** lensChanges fires when the link above the front matter changes, after an extension was installed or removed. */
+  private readonly lensChanges = new vscode.EventEmitter<void>();
   /**
    * onDidChangeMarkup tells the file of a view whose text changed from elsewhere, for example a new note of the side
    * view: the Markdown preview of the view renders the file again, also when its clean text stays.
@@ -287,12 +321,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * hasMarkup tells whether a text has the markup of notes: a start marker, a reference or a definition of a note, or the
-   * comment of the format; an anchor of a figure or a table; or a block or a marker that another extension hides.
+   * belongsInView tells whether the file of a text opens in the view: a text with the markup of notes (a start marker, a
+   * reference or a definition of a note, or the comment of the format; an anchor of a figure or a table; or a block or a
+   * marker that another extension hides), or a paper document, also without notes, so that its front matter is
+   * read-only (decision 61).
    * @param text - The text.
    */
-  private hasMarkup(text: string): boolean {
-    return project(text, { blocks: this.blocks, markers: this.markers }).hidden.length > 0;
+  private belongsInView(text: string): boolean {
+    return isPaperDocument(text) || project(text, { blocks: this.blocks, markers: this.markers }).hidden.length > 0;
   }
 
   /**
@@ -355,6 +391,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const registrations = [
       vscode.workspace.registerFileSystemProvider(cleanScheme, this, { isCaseSensitive: true }),
       vscode.commands.registerCommand(cleanCommands.openWithMarkup, () => this.openWithMarkup()),
+      vscode.languages.registerCodeLensProvider({ scheme: cleanScheme }, { onDidChangeCodeLenses: this.lensChanges.event, provideCodeLenses: (document) => this.frontMatterLenses(document) }),
+      vscode.extensions.onDidChange(() => this.lensChanges.fire()),
       vscode.workspace.onDidOpenTextDocument((document) => this.opened(document)),
       vscode.workspace.onDidChangeTextDocument((event) => {
         void this.changed(event);
@@ -393,6 +431,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   dispose(): void {
     this.changes.dispose();
     this.fileChanges.dispose();
+    this.lensChanges.dispose();
     this.log.dispose();
     for (const type of this.highlights.flat()) {
       type.dispose();
@@ -588,7 +627,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // A file of a link of a view that is no Markdown file, which the file system of the view gives as it is.
       return document.uri.scheme === cleanScheme ? this.resourceOf(document.uri) : undefined;
     }
-    return document.languageId !== 'markdown' || !this.hasMarkup(mirror.model) ? mirror.file : undefined;
+    return document.languageId !== 'markdown' || !this.belongsInView(mirror.model) ? mirror.file : undefined;
   }
 
   /**
@@ -612,8 +651,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, or with the
-   * comment of the format, that the extension can change.
+   * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, with the
+   * comment of the format, or a paper document, that the extension can change.
    * @param document - The document.
    */
   private switchable(document: vscode.TextDocument): boolean {
@@ -621,7 +660,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       document.uri.scheme !== cleanScheme &&
       document.languageId === 'markdown' &&
       vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) === true &&
-      this.hasMarkup(document.getText())
+      this.belongsInView(document.getText())
     );
   }
 
@@ -666,7 +705,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     for (const mirror of this.ready.values()) {
       const key = mirror.file.toString();
       const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === key);
-      if (!this.markup.has(key) && !this.switching.has(key) && !document?.isDirty && this.hasMarkup(mirror.model) && hasTab(cleanUriOf(mirror.file))) {
+      if (!this.markup.has(key) && !this.switching.has(key) && !document?.isDirty && this.belongsInView(mirror.model) && hasTab(cleanUriOf(mirror.file))) {
         await this.closeTabsOf(mirror.file, false);
       }
     }
@@ -871,23 +910,31 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       this.decorateAll();
       return;
     }
+    let { model, projection, typing } = mirror;
     for (const change of event.contentChanges) {
-      const clean = mirror.projection.clean;
+      const clean = projection.clean;
       const start = offsetIn(clean, change.range.start);
       const end = offsetIn(clean, change.range.end);
-      const continues = event.contentChanges.length === 1 && mirror.typing?.to === end;
-      const result = applyClean(mirror.projection, start, end, change.text, continues);
+      const continues = event.contentChanges.length === 1 && typing?.to === end;
+      const result = applyClean(projection, start, end, change.text, continues);
       if (result.way !== 'direct') {
         this.log.appendLine(`${new Date().toISOString()} ${result.way}: ${JSON.stringify(clean.slice(start, end))} → ${JSON.stringify(change.text)} at ${start}`);
       }
-      mirror.model = result.text;
-      mirror.projection = project(result.text, editOptions(mirror.projection));
+      model = result.text;
+      projection = project(result.text, editOptions(projection));
       // Text typed into the end of a highlight, also over its last word, or deleted there while typing: the next
       // letters stay in it.
       const after = start + change.text.length;
-      const from = continues ? Math.min(mirror.typing!.from, start) : start;
-      mirror.typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(mirror.projection, after) ? { from, to: after } : undefined;
+      const from = continues ? Math.min(typing!.from, start) : start;
+      typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(projection, after) ? { from, to: after } : undefined;
     }
+    if (!keepsFrontMatter(mirror.model, model)) {
+      this.refuse(mirror, event);
+      return;
+    }
+    mirror.model = model;
+    mirror.projection = projection;
+    mirror.typing = typing;
     mirror.history = [...mirror.history, entryOf(mirror.projection)].slice(-historySize);
     this.writeReal(mirror);
     if (document.getText() !== mirror.projection.clean) {
@@ -919,6 +966,53 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         mirror.writing--;
       }
     });
+  }
+
+  /**
+   * refuse takes back an edit of a clean document that changes its front matter, which is read-only in the view: the
+   * edit goes back as a whole, the file stays as it is, and the status bar says why. An Undo that brings back such an
+   * edit undoes the edit too, so that Undo goes on with the edits before it.
+   * @param mirror - The link of the clean document.
+   * @param event - The change.
+   */
+  private refuse(mirror: Mirror, event: vscode.TextDocumentChangeEvent): void {
+    const document = event.document;
+    const text = document.getText();
+    const clean = mirror.projection.clean;
+    const refused = mirror.refused ?? [];
+    const index = refused.findIndex((entry) => entry.text === text && entry.clean === clean);
+    mirror.typing = undefined;
+    if (event.reason === vscode.TextDocumentChangeReason.Undo && index >= 0 && vscode.window.activeTextEditor?.document === document) {
+      // The Undo of the write back: one more step undoes the edit, and the view shows the clean text before it.
+      mirror.refused = refused.filter((_, other) => other !== index);
+      void vscode.commands.executeCommand('undo');
+      return;
+    }
+    if (event.reason !== vscode.TextDocumentChangeReason.Undo) {
+      // A typed edit, or its Redo: its undo step comes back to the clean text before it.
+      mirror.refused = [...refused, { text, clean }].slice(-historySize);
+    }
+    vscode.window.setStatusBarMessage(hasFrontMatterForm() ? frontMatterInForm : frontMatterReadOnly, 5000);
+    void this.writeClean(document.uri, mirror);
+  }
+
+  /**
+   * frontMatterLenses returns the link above the front matter of a clean document, which is read-only in the view: "Edit
+   * Front Matter", which opens the form of the front matter of nimblescape Markdown Paper for the file, or without it
+   * "Open File with Markup", which opens the file itself.
+   * @param document - The clean document.
+   */
+  private frontMatterLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    const file = fileOf(document.uri);
+    if (!file || frontMatterEnd(document.getText().split(/\r\n|\r|\n/)) === 0) {
+      return [];
+    }
+    const range = new vscode.Range(0, 0, 0, 0);
+    return [
+      hasFrontMatterForm()
+        ? new vscode.CodeLens(range, { title: 'Edit Front Matter', command: paper.editFrontMatter, arguments: [file], tooltip: 'Open the form of the front matter of nimblescape Markdown Paper' })
+        : new vscode.CodeLens(range, { title: 'Open File with Markup', command: cleanCommands.openWithMarkup, tooltip: 'The front matter is read-only here: open the file itself to change it' }),
+    ];
   }
 
   /**
