@@ -110,6 +110,8 @@ requirement, the plan and the decisions of Hannes.
 | 81 | The front matter is read-only in the clean editing view: an edit of it goes back, and Undo goes over it ([decision 58](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 | 82 | The link above the front matter in the clean editing view: "Edit Front Matter" opens the view "Front Matter" of nimblescape Markdown Paper, else "Open File with Markup" ([decision 59](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 | 83 | Snippets in a clone: "Add Snippet" and `/snippet` write nothing in a clone of a reference to a tag or a commit, and work in a clone on a branch ([decision 60](#decisions)) | [R-CODE-006](#r-code-006), [R-CODE-003](#r-code-003) | done |
+| 84 | Every paper document, a file whose front matter has the key `layout`, opens in the clean editing view, also without notes, so that its front matter is read-only ([decision 61](#decisions)) | [R-TEXT-009](#r-text-009) | done |
+| 85 | The files of a clone stay editable, and a clone opens in a new window; the user guide tells how a Codespace gets access to the private repositories of the references ([decision 62](#decisions)) | [R-CODE-006](#r-code-006) | done; no change of the code |
 
 ## General
 
@@ -885,8 +887,9 @@ the form of its file ([R-FMT-002](#r-fmt-002)).
 
 ### R-TEXT-009
 
-**Clean editing view.** The text editor of a Markdown file with notes edits
-the text of the file without the notes markup ([decision 27](#decisions)):
+**Clean editing view.** The text editor of a Markdown file with notes, and
+of a paper document ([decision 61](#decisions)), edits the text of the file
+without the notes markup ([decision 27](#decisions)):
 without the start markers, the references, the definitions of the notes and
 the comment of the format. The line breaks, the cursor, the word moves, the
 search, the copy and Undo count only the characters of the text, as in a
@@ -937,7 +940,9 @@ file at once, and keeps each note at its text:
   the front matter stays. Undo never brings such an edit back: one Undo goes
   over it to the edit before it. A change of the front matter from
   elsewhere, for example by `mp get` of nimblescape Markdown Paper, shows in
-  the view.
+  the view. A new front matter goes back too: a file without one gets it
+  with `mp create` of nimblescape Markdown Paper, or in the text editor of
+  "Open File with Markup".
 - A link above the front matter shows how to change it
   ([decision 59](#decisions)): "Edit Front Matter" runs the command
   `nimblescape.markdownPaper.editFrontMatter` of nimblescape Markdown Paper
@@ -967,7 +972,10 @@ file at once, and keeps each note at its text:
   editor.
 
 A Markdown file with notes, or with the comment of the format, always opens
-in the view: from the Explorer, a search, a link, the tabs of the last
+in the view, and so does a paper document of nimblescape Markdown Paper, a
+Markdown file whose YAML front matter has the key `layout`, also without
+notes, so that the front matter of every paper is read-only
+([decision 61](#decisions)). The view opens from the Explorer, a search, a link, the tabs of the last
 session, and when a file gets its first note. The view takes the place of
 the text editor of the file in its group, with the same selection and the
 same first visible line, and the tab of the file closes. VS Code keeps a tab
@@ -2296,7 +2304,15 @@ repos:
   VS Code: Ctrl+Click on the name of the reference in the comment of a
   listing, `server` in `server:src/api.ts`, opens it, and Ctrl+Click on the
   path opens the file in the clone. Markdown Paper has the command "Open
-  Repository in New Window" for the references of a paper.
+  Repository in New Window" for the references of a paper, in the Command
+  Palette, and Ctrl+Click on a reference in the front matter opens its clone
+  too. The files of a clone stay editable in the window of the paper, and a
+  clone opens in a new window, not as a second folder of the workspace
+  ([decision 62](#decisions)).
+- In a Codespace, `mp get` clones with the token of the Codespace, which can
+  read only the repository of the Codespace by default. The user guide tells
+  how `.devcontainer/devcontainer.json` gives the Codespace access to a
+  private repository of a reference ([decision 62](#decisions)).
 - The rev says what the author does with the other repository
   ([decision 60](#decisions)). A reference to a branch, such as `@main`, is
   for changes: `mp get` checks out the branch itself, and the author adds
@@ -2921,8 +2937,9 @@ requirements above follow them.
     editing view, the whole front matter is read-only: an edit of it goes
     back, and Undo goes over such an edit. The front matter changes with the
     commands of nimblescape Markdown Paper and in the text editor of "Open
-    File with Markup". The other choices were only the keys `layout` and
-    `repos` read-only, and a front matter that the view edits as text.
+    File with Markup". A new front matter in the view goes back too
+    (confirmed on 2026-11-02). The other choices were only the keys `layout`
+    and `repos` read-only, and a front matter that the view edits as text.
 59. **The form of the front matter is a view of Markdown Paper in the side
     bar** ([R-TEXT-009](#r-text-009)): nimblescape Markdown Paper builds the
     form, because it reads the fields of the layout from `layout.json`. Its
@@ -2941,6 +2958,25 @@ requirements above follow them.
     clone stays detached, and "Add Snippet" and `/snippet` write nothing
     there. The other choice was a detached clone for every reference, which
     needs a switch to the branch before each commit.
+61. **Every paper document opens in the clean editing view**
+    ([R-TEXT-009](#r-text-009)): a Markdown file whose YAML front matter has
+    the key `layout`, the mark of a paper document of nimblescape Markdown
+    Paper, opens in the clean editing view also without notes, so that the
+    front matter of every paper is read-only. The other choice was the view
+    only for files with notes, where a paper without notes kept an editable
+    front matter in its own text editor.
+62. **The files of a clone stay editable, and a clone opens in a new
+    window** ([R-CODE-006](#r-code-006)): the author changes another
+    repository in the window of its clone, and a default of the VS Code
+    setting `files.readonlyInclude` would be lost as soon as the author sets
+    that setting. A second folder of the workspace would change the
+    workspace of the paper. The command "Open Repository in New Window" of
+    nimblescape Markdown Paper stays in the Command Palette only, because
+    Ctrl+Click on a reference in the front matter opens the clone. The user
+    guide tells how a Codespace gets access to the private repositories of
+    the references. The other choices were read-only files of a clone, a
+    clone as a second folder of the workspace, and the command also in the
+    context menu and the title bar of the editor.
 
 ---
 

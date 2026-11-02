@@ -19,16 +19,18 @@
  * goes back, and Undo goes over such an edit. The link above it opens the form
  * of the front matter of nimblescape Markdown Paper (decision 59).
  *
- * A Markdown file with notes always opens in the view: each text editor of such
- * a file that shows becomes the view, in its group and at its place of the
- * cursor. The command "Open File with Markup" opens the file itself, for
+ * A Markdown file with notes always opens in the view, and so does a paper
+ * document of nimblescape Markdown Paper (a front matter with the key
+ * `layout`), also without notes, so that its front matter is read-only
+ * (decision 61): each text editor of such a file that shows becomes the view,
+ * in its group and at its place of the cursor. The command "Open File with Markup" opens the file itself, for
  * example for a conflict of git in a note; that file stays as it is until its
  * tab closes.
  */
 
 import * as vscode from 'vscode';
 import { highlightStyles } from './noteEditor';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, keepsFrontMatter, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, keepsFrontMatter, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
 import { frontMatterEnd } from './notes/doctype';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
@@ -319,12 +321,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * hasMarkup tells whether a text has the markup of notes: a start marker, a reference or a definition of a note, or the
-   * comment of the format; an anchor of a figure or a table; or a block or a marker that another extension hides.
+   * belongsInView tells whether the file of a text opens in the view: a text with the markup of notes (a start marker, a
+   * reference or a definition of a note, or the comment of the format; an anchor of a figure or a table; or a block or a
+   * marker that another extension hides), or a paper document, also without notes, so that its front matter is
+   * read-only (decision 61).
    * @param text - The text.
    */
-  private hasMarkup(text: string): boolean {
-    return project(text, { blocks: this.blocks, markers: this.markers }).hidden.length > 0;
+  private belongsInView(text: string): boolean {
+    return isPaperDocument(text) || project(text, { blocks: this.blocks, markers: this.markers }).hidden.length > 0;
   }
 
   /**
@@ -623,7 +627,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // A file of a link of a view that is no Markdown file, which the file system of the view gives as it is.
       return document.uri.scheme === cleanScheme ? this.resourceOf(document.uri) : undefined;
     }
-    return document.languageId !== 'markdown' || !this.hasMarkup(mirror.model) ? mirror.file : undefined;
+    return document.languageId !== 'markdown' || !this.belongsInView(mirror.model) ? mirror.file : undefined;
   }
 
   /**
@@ -647,8 +651,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, or with the
-   * comment of the format, that the extension can change.
+   * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, with the
+   * comment of the format, or a paper document, that the extension can change.
    * @param document - The document.
    */
   private switchable(document: vscode.TextDocument): boolean {
@@ -656,7 +660,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       document.uri.scheme !== cleanScheme &&
       document.languageId === 'markdown' &&
       vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) === true &&
-      this.hasMarkup(document.getText())
+      this.belongsInView(document.getText())
     );
   }
 
@@ -701,7 +705,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     for (const mirror of this.ready.values()) {
       const key = mirror.file.toString();
       const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === key);
-      if (!this.markup.has(key) && !this.switching.has(key) && !document?.isDirty && this.hasMarkup(mirror.model) && hasTab(cleanUriOf(mirror.file))) {
+      if (!this.markup.has(key) && !this.switching.has(key) && !document?.isDirty && this.belongsInView(mirror.model) && hasTab(cleanUriOf(mirror.file))) {
         await this.closeTabsOf(mirror.file, false);
       }
     }

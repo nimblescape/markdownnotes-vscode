@@ -265,6 +265,20 @@ describe('nimblescape Markdown Notes', () => {
     assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n'));
   });
 
+  it('opens a paper document without notes in the clean editing view, where its front matter is read-only (R-TEXT-009, decision 61)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    const paper = '---\nlayout: plain\ntitle: A paper\n---\n\n# Title\n\nA text without notes.\n';
+    fs.writeFileSync(file.fsPath, paper);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    assert.equal(view.document.getText(), paper);
+    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+    assert.ok(await view.edit((edit) => edit.insert(view.document.positionAt(paper.indexOf('A paper')), 'The ')));
+    await waitFor(() => (view.document.getText() === paper ? true : undefined), 'the front matter as it was');
+    await view.edit((edit) => edit.insert(view.document.positionAt(paper.indexOf('A text')), 'Now '));
+    await waitFor(() => (real()?.getText() === paper.replace('A text', 'Now A text') ? true : undefined), 'the change in the file');
+  });
+
   it('hides the notes of a file from other viewers and shows them again with the commands of the eye, while the clean editing view keeps its text (R-HIDE-001 to R-HIDE-003)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, note);

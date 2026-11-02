@@ -719,3 +719,14 @@ export const keepsFrontMatter = (before: string, after: string): boolean => {
   const changed = frontMatterOf(after);
   return kept.length === changed.length && kept.every((line, index) => line === changed[index]);
 };
+
+/**
+ * isPaperDocument tells whether a text is a paper document of nimblescape Markdown Paper: its YAML front matter has the
+ * key `layout`. A paper document opens in the clean editing view also without notes, so that its front matter is
+ * read-only there ([R-TEXT-009](../../docs/requirements.md#r-text-009), decision 61).
+ * @param text - The text of a file.
+ */
+export const isPaperDocument = (text: string): boolean => {
+  const lines = frontMatterOf(text);
+  return lines[0]?.trimEnd() === '---' && lines.slice(1, -1).some((line) => /^(layout|"layout"|'layout')\s*:/.test(line));
+};

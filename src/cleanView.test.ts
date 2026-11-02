@@ -306,8 +306,31 @@ test('shows a text editor of a file with notes as the view, in its group and at 
   expect(real.text).toBe(text);
 });
 
+test('shows a paper document without notes as the view too, with its front matter read-only (R-TEXT-009, decision 61)', async () => {
+  const { frontMatterReadOnly } = await import('./cleanView');
+  const paperText = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text without notes.\n';
+  const { real, tab } = await inEditor({ content: paperText });
+  const [editor] = fake.editors;
+  expect(editor.document.uri.scheme).toBe('markdownnotes');
+  expect(editor.document.getText()).toBe(paperText);
+  expect(fake.closedTabs).toEqual([tab]);
+  const document = editor.document as unknown as FakeDocument;
+  document.isDirty = true;
+  const start = document.text.indexOf('A paper');
+  typeIn(document, start, start, 'The ');
+  await settle();
+  expect(document.getText()).toBe(paperText);
+  expect(real.text).toBe(paperText);
+  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
+  const next = document.text.indexOf('A text');
+  typeIn(document, next, next, 'Now ');
+  await settle();
+  expect(real.text).toBe(paperText.replace('A text', 'Now A text'));
+});
+
 test.each([
   ['a file without notes', { content: 'A text without notes.\n' }],
+  ['a file without notes whose front matter has no layout', { content: '---\ntitle: A text\n---\n\nA text without notes.\n' }],
   ['the file of a view of the changes of git', { input: (uri: unknown) => ({ original: uri, modified: uri }) }],
 ])('leaves the text editor of %s as it is', async (_name, options) => {
   const { real } = await inEditor(options);

@@ -17,7 +17,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, keepsFrontMatter, labelsOf, type MarkerFinder, project, rebuild } from './clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, keepsFrontMatter, labelsOf, type MarkerFinder, project, rebuild } from './clean';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
 const example = fs.readFileSync(path.resolve(__dirname, '../../docs/example.md'), 'utf8');
@@ -486,6 +486,17 @@ describe('the values of the front matter', () => {
     expect(keepsFrontMatter('# A\n\n---\n', '---\n# A\n\n---\n')).toBe(false);
     expect(keepsFrontMatter('# A\n', '# B\n')).toBe(true);
     expect(keepsFrontMatter(titled, titled.replace(/\n/g, '\r\n'))).toBe(true);
+  });
+  test('make a paper document with the key layout in a YAML front matter (R-TEXT-009, decision 61)', () => {
+    expect(isPaperDocument('---\nlayout: pht/thesis\ntitle: A paper\n---\n\nText.\n')).toBe(true);
+    expect(isPaperDocument('---\r\ntitle: A paper\r\n"layout" : plain\r\n---\r\n')).toBe(true);
+    // No front matter, no key layout, a key that only starts with layout, a nested key, a front matter that does not close, TOML.
+    expect(isPaperDocument('layout: plain\n\nText.\n')).toBe(false);
+    expect(isPaperDocument('---\ntitle: A paper\n---\n\nlayout: plain\n')).toBe(false);
+    expect(isPaperDocument('---\nlayouts: plain\n---\n')).toBe(false);
+    expect(isPaperDocument('---\nmeta:\n  layout: plain\n---\n')).toBe(false);
+    expect(isPaperDocument('---\nlayout: plain\n\nText.\n')).toBe(false);
+    expect(isPaperDocument('+++\nlayout = "plain"\n+++\n')).toBe(false);
   });
 });
 

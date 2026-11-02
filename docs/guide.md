@@ -349,7 +349,9 @@ still read, edit and delete the notes of a file without a sign-in.
 ## Notes in the text editor
 
 A Markdown file with notes, or with the comment of the format, opens in the
-clean editing view: the text editor shows the text of the file without the
+clean editing view, and so does a paper of nimblescape Markdown Paper, a file
+whose front matter has the key `layout`, also without notes. The text editor
+shows the text of the file without the
 notes markup, and behaves as in a file without notes. The side view shows
 the text of the notes. The view shows the highlights, and the light bulb at
 the selected text adds a note ([Add a note](#add-a-note)).
@@ -949,6 +951,30 @@ repos:
   the snippet in the window of the clone, then commit and push it there. A
   clone of a tag or a commit stays at that version, and "Add Snippet" shows
   a message instead of writing.
+- The files of a clone can be edited in the window of the paper too, but
+  Source Control does not show the changes there. Work in the window of the
+  clone.
+- In a GitHub Codespace, `mp get` clones the other repositories with the
+  token of the Codespace, which can read only the repository of the
+  Codespace by default. A public repository needs nothing. For a private
+  repository, give the Codespace access in `.devcontainer/devcontainer.json`
+  of the paper repository, with `write` instead of `read` to push snippets:
+
+  ```json
+  {
+    "customizations": {
+      "codespaces": {
+        "repositories": {
+          "org/server": { "permissions": { "contents": "read" } }
+        }
+      }
+    }
+  }
+  ```
+
+  GitHub asks for these permissions when the Codespace is created. Ctrl+Click
+  on a reference opens the clone in a new window of the same Codespace; this
+  is not tested yet.
 
 ### Snippets
 

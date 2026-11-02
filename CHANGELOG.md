@@ -101,6 +101,8 @@ The first version.
   Ctrl+Click on the name of the reference of a listing opens the clone in a
   new window of VS Code. "Add Snippet" and `/snippet` write nothing in a
   clone of a reference to a tag or a commit, which stays at that version.
+  The user guide tells how a GitHub Codespace gets access to a private
+  repository of a reference.
 - Two changes of the notes of one file run one after the other. A change
   that VS Code does not write into the file, and a new note or footnote
   whose place an earlier change moved while it waited, are not saved, and
@@ -182,7 +184,9 @@ The first version.
   the Command Palette opens the file itself. The front matter is read-only in
   the view: an edit of it goes back, and Undo goes over it. The link "Edit
   Front Matter" above it opens the form of nimblescape Markdown Paper, or
-  "Open File with Markup" without it.
+  "Open File with Markup" without it. A paper of nimblescape Markdown Paper,
+  a file whose front matter has the key `layout`, opens in the view also
+  without notes.
 - The text editor of the file itself, for example in the view of the changes
   of git, never shows the text of a note and its markers: it collapses the
   notes, and collapses again a note that VS Code opens; the cursor steps over
