@@ -49,10 +49,11 @@ The first version.
   Thread" at each thread; "Add Note" in its title. "Show as Text" shows the
   whole note as the file holds it, for a change of the whole text. The editor
   of a text has the tabs "Visual" and "Markdown". "Visual" edits the
-  rendered text with the editor of the mode "Markdown Editor" of VS Code:
-  the block with the cursor shows its Markdown marks, the rest of the text
-  stays as it was, and a toolbar and Ctrl+B, Ctrl+I, Ctrl+E and Ctrl+K put
-  bold, italic, code and a link around the selected text. "Markdown"
+  rendered text with the editor of rendered Markdown of nimblescape
+  Markdown: only the blocks that you change get a new Markdown text, the rest
+  of the text stays as it was, and its toolbar, its format bar over the
+  selected text and Ctrl+B, Ctrl+I and Ctrl+K put bold, italic and a link
+  around the selected text. "Markdown"
   switches between "Write" and "Preview". The links of the notes open: web and mail links with the system, files in VS Code at a line or a
   heading. The view is in the secondary side bar, and the button "Show or
   Hide Notes" in the title of the Markdown editors opens and closes it, also

@@ -823,9 +823,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * html returns the page of the view: its styles and its script, and the visual editor of the answers with its styles
-   * and its icon font ([R-SIDE-004](../docs/requirements.md#r-side-004)), with a policy that allows no other script
-   * and no other style, also no style attribute; the scripts set their styles through the CSS object model, which the
-   * policy allows.
+   * ([R-SIDE-004](../docs/requirements.md#r-side-004)), with a policy that allows no other script and no other style,
+   * also no style attribute: the scripts set their styles through the CSS object model, which the policy allows, and
+   * the style elements of the editor carry the nonce of the page.
    * @param webview - The webview of the view.
    * @param media - The folder of the script and the styles.
    * @param dist - The folder of the bundle of the visual editor and its styles.
@@ -836,7 +836,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const styles = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.css'));
     const editor = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.js'));
     const editorStyles = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.css'));
-    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
+    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'nonce-${nonce}'; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
     return [
       '<!DOCTYPE html>',
       '<html lang="en">',

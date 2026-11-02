@@ -58,7 +58,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
 | [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007), [R-FOOT-001](requirements.md#r-foot-001), [R-HIDE-002](requirements.md#r-hide-002) |
-| Visual editing of an answer | side view | planned | [R-SIDE-004](requirements.md#r-side-004) |
+| [Visual editing of an answer](#editors-of-the-side-view) | side view | available | [R-SIDE-004](requirements.md#r-side-004) |
 
 Earlier versions also showed the notes in boxes of the text editor, in the
 Comments view of VS Code and as icons with callouts in the Markdown preview,
@@ -621,17 +621,16 @@ notes.md   [ ] [x]  (blue) (green) (orange) (purple) (red) (teal)   ×
 
 The editor of a text in the side view has two tabs:
 
-- **Visual:** you edit the rendered text, with the editor of the mode
-  "Markdown Editor" of VS Code. The text shows as the preview shows it, and
-  the paragraph, list or quote with the cursor shows its Markdown marks, for
-  example `**` around bold text, so that you see and change them. The rest
-  of the text stays exactly as you wrote it. The toolbar above the text, or
-  the keys Ctrl+B (bold), Ctrl+I (italic), Ctrl+E (code) and Ctrl+K (link),
-  put the marks around the selected text, or take them away; the buttons
-  "List", "Numbered List" and "Quote" put their marks in front of the
-  selected lines. Ctrl+Z takes a change back. A click on a link of a
-  rendered paragraph opens the link; in the paragraph with the cursor,
-  Ctrl+Click opens it.
+- **Visual:** you edit the rendered text, with the editor of rendered
+  Markdown of nimblescape Markdown. The text shows rendered, and only the
+  paragraphs, lists and other blocks that you change get a new Markdown
+  text; the rest of the text stays exactly as you wrote it. The toolbar above
+  the text has Undo, Redo, the text style and the list of the block with the
+  cursor, the insert menu "+" and find and replace. Select text to get the
+  format bar with bold, italic, code and a link, or use the keys Ctrl+B,
+  Ctrl+I and Ctrl+K (Cmd on macOS); type `/` at the start of a line for the
+  slash commands. Ctrl+Z takes a change back. Ctrl+Click (Cmd+Click on
+  macOS) on a link opens it.
 - **Markdown:** you edit the Markdown text in a plain text field. The button
   "Preview", with the icon of the mode "Markdown Preview" of VS Code, shows
   the text rendered as the side view renders it, and "Write" switches back.

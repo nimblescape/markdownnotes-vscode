@@ -88,7 +88,7 @@ evening of 2026-10-29.
 | Answers of different authors as a tree, as on Reddit | 10-28 13:27 | [R-NOTE-004](requirements.md#r-note-004) | Built | |
 | Icons for all buttons, with tooltips | 10-28 20:06, 10-29 09:00 | [R-SIDE-002](requirements.md#r-side-002) | Built | The tooltips of the browser did not show on macOS; the view now draws its own |
 | The text view of the whole note, which the user can change | 10-28 20:06 | [R-SIDE-002](requirements.md#r-side-002) | Built | |
-| Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28, 10-30 18:29 | [R-SIDE-004](requirements.md#r-side-004) | Built | Step 14: the tab "Visual" with the editor of the mode "Markdown Editor" of VS Code, a toolbar and Ctrl+B, Ctrl+I, Ctrl+E, Ctrl+K ([decision 52](requirements.md#decisions)) |
+| Visual editing of the rendered Markdown in the side view, as in the Markdown Editor of VS Code | 10-28, 10-30 18:29 | [R-SIDE-004](requirements.md#r-side-004) | Built | Step 14: the tab "Visual" with the editor of the mode "Markdown Editor" of VS Code ([decision 52](requirements.md#decisions)); step 86: the editor of rendered Markdown of nimblescape Markdown in its place ([decision 63](requirements.md#decisions)) |
 | A color for each note, chosen in the view | 10-28 20:03 | [R-TEXT-006](requirements.md#r-text-006) | Built | |
 | Links in the notes open, files in a new window | 10-28 14:38 | [R-SIDE-005](requirements.md#r-side-005) | Built | Setting `openLinksIn` |
 | "Add Note" (+) in the title of the view | 10-28 19:58 | [R-SIDE-003](requirements.md#r-side-003) | Built | |

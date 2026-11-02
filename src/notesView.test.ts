@@ -118,6 +118,9 @@ test('the view is a page whose policy runs only its own scripts, from the folder
   const nonce = /script-src 'nonce-(\w+)'/.exec(html)?.[1];
   expect(nonce).toMatch(/^\w{32}$/);
   expect(html).toContain("default-src 'none';");
+  // The style elements of the visual editor carry the nonce of the page; no style attribute applies.
+  expect(html).toContain(`style-src vscode-resource: 'nonce-${nonce}';`);
+  expect(html).not.toContain('unsafe-inline');
   expect(html).toContain(`<script nonce="${nonce}" src="file:/extension/dist/visualEditor.js"></script>\n<script nonce="${nonce}" src="file:/extension/media/notesView.js"></script>`);
   expect(html).toContain('<link rel="stylesheet" href="file:/extension/dist/visualEditor.css">\n<link rel="stylesheet" href="file:/extension/media/notesView.css">');
   expect(html.match(/<script/g)).toHaveLength(2);

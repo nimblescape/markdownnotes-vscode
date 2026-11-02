@@ -19,10 +19,11 @@ The Markdown preview renders the callouts of the notes with its own copy of
 markdown-it, which is part of VS Code, not of this package.
 
 The visual editor of the side view, `dist/visualEditor.js` with its styles
-`dist/visualEditor.css` and the icon font `dist/codicon.ttf`, contains the
-editor of the mode "Markdown Editor" of VS Code, the package
-`@vscode/markdown-editor`, with the packages that it uses. The npm package
-`@nimblescape/markdownnotes` holds none of them.
+`dist/visualEditor.css`, contains the editor of rendered Markdown of
+nimblescape Markdown, the packages `@nimblescape/markdowneditor`,
+`@nimblescape/markdownrender`, `@nimblescape/markdowntext` and
+`@nimblescape/markdownvscode`, with the packages that they use. The npm
+package `@nimblescape/markdownnotes` holds none of them.
 
 | Package in `dist/extension.js` | Version | License |
 | --- | --- | --- |
@@ -33,43 +34,66 @@ editor of the mode "Markdown Editor" of VS Code, the package
 | [punycode.js](#punycodejs) | 2.3.1 | MIT |
 | [uc.micro](#ucmicro) | 2.1.0 | MIT |
 
-| Package in `dist/visualEditor.js`, `dist/visualEditor.css` and `dist/codicon.ttf` | Version | License |
+| Package in `dist/visualEditor.js` and `dist/visualEditor.css` | Version | License |
 | --- | --- | --- |
-| [@vscode/markdown-editor](#vscodemarkdown-editor) | 0.0.2-162 | MIT |
-| [@vscode/observables](#vscodeobservables) | 0.1.1-0 | MIT |
-| [@vscode/diff](#vscodediff) | 0.0.2-0 | MIT |
-| [@vscode/codicons](#vscodecodicons) | 0.0.46-36 | CC-BY-4.0 |
-| [katex](#katex) | 0.16.47 | MIT |
-| [entities](#entities) | 6.0.1 | BSD-2-Clause |
-| [micromark](#micromark) | 4.0.3 | MIT |
-| [micromark-core-commonmark](#micromark-core-commonmark) | 2.0.4 | MIT |
-| [micromark-extension-frontmatter](#micromark-extension-frontmatter) | 2.0.0 | MIT |
-| [micromark-extension-gfm-autolink-literal](#micromark-extension-gfm-autolink-literal) | 2.1.0 | MIT |
-| [micromark-extension-gfm-strikethrough](#micromark-extension-gfm-strikethrough) | 2.1.0 | MIT |
-| [micromark-extension-gfm-table](#micromark-extension-gfm-table) | 2.1.2 | MIT |
-| [micromark-extension-gfm-task-list-item](#micromark-extension-gfm-task-list-item) | 2.1.0 | MIT |
-| [micromark-extension-math](#micromark-extension-math) | 3.1.0 | MIT |
-| [micromark-factory-destination](#micromark-factory-destination) | 2.0.1 | MIT |
-| [micromark-factory-label](#micromark-factory-label) | 2.0.1 | MIT |
-| [micromark-factory-space](#micromark-factory-space) | 2.1.0 | MIT |
-| [micromark-factory-title](#micromark-factory-title) | 2.0.1 | MIT |
-| [micromark-factory-whitespace](#micromark-factory-whitespace) | 2.0.1 | MIT |
-| [micromark-util-character](#micromark-util-character) | 2.1.1 | MIT |
-| [micromark-util-chunked](#micromark-util-chunked) | 2.0.1 | MIT |
-| [micromark-util-classify-character](#micromark-util-classify-character) | 2.0.1 | MIT |
-| [micromark-util-combine-extensions](#micromark-util-combine-extensions) | 2.0.1 | MIT |
-| [micromark-util-decode-numeric-character-reference](#micromark-util-decode-numeric-character-reference) | 2.0.2 | MIT |
-| [micromark-util-decode-string](#micromark-util-decode-string) | 2.0.1 | MIT |
-| [micromark-util-edit-map](#micromark-util-edit-map) | 1.0.0 | MIT |
-| [micromark-util-encode](#micromark-util-encode) | 2.0.1 | MIT |
-| [micromark-util-html-tag-name](#micromark-util-html-tag-name) | 2.0.1 | MIT |
-| [micromark-util-normalize-identifier](#micromark-util-normalize-identifier) | 2.0.1 | MIT |
-| [micromark-util-resolve-all](#micromark-util-resolve-all) | 2.0.1 | MIT |
-| [micromark-util-sanitize-uri](#micromark-util-sanitize-uri) | 2.0.1 | MIT |
-| [micromark-util-subtokenize](#micromark-util-subtokenize) | 2.1.0 | MIT |
-| [decode-named-character-reference](#decode-named-character-reference) | 1.3.0 | MIT |
-| [fault](#fault) | 2.0.1 | MIT |
-| [format](#format) | 0.2.2 | MIT |
+| [@nimblescape/markdowntext](#nimblescapemarkdowntext) | 0.1.0 | MIT |
+| [@nimblescape/markdownrender](#nimblescapemarkdownrender) | 0.1.0 | MIT |
+| [@nimblescape/markdowneditor](#nimblescapemarkdowneditor) | 0.1.0 | MIT |
+| [@nimblescape/markdownvscode](#nimblescapemarkdownvscode) | 0.1.0 | MIT |
+| [@tiptap/core](#tiptapcore) | 3.32.2 | MIT |
+| [orderedmap](#orderedmap) | 2.1.1 | MIT |
+| [prosemirror-model](#prosemirror-model) | 1.25.12 | MIT |
+| [prosemirror-transform](#prosemirror-transform) | 1.12.4 | MIT |
+| [@tiptap/pm](#tiptappm) | 3.32.2 | MIT |
+| [prosemirror-state](#prosemirror-state) | 1.4.4 | MIT |
+| [prosemirror-commands](#prosemirror-commands) | 1.7.2 | MIT |
+| [prosemirror-schema-list](#prosemirror-schema-list) | 1.6.0 | MIT |
+| [prosemirror-view](#prosemirror-view) | 1.42.9 | MIT |
+| [w3c-keyname](#w3c-keyname) | 2.2.8 | MIT |
+| [prosemirror-keymap](#prosemirror-keymap) | 1.2.3 | MIT |
+| [rope-sequence](#rope-sequence) | 1.3.4 | MIT |
+| [prosemirror-history](#prosemirror-history) | 1.5.1 | MIT |
+| [@tiptap/extension-bold](#tiptapextension-bold) | 3.32.2 | MIT |
+| [@tiptap/extension-code](#tiptapextension-code) | 3.32.2 | MIT |
+| [@tiptap/extension-code-block](#tiptapextension-code-block) | 3.32.2 | MIT |
+| [@tiptap/extension-horizontal-rule](#tiptapextension-horizontal-rule) | 3.32.2 | MIT |
+| [@tiptap/extension-image](#tiptapextension-image) | 3.32.2 | MIT |
+| [@tiptap/extension-italic](#tiptapextension-italic) | 3.32.2 | MIT |
+| [linkifyjs](#linkifyjs) | 4.4.0 | MIT |
+| [@tiptap/extension-link](#tiptapextension-link) | 3.32.2 | MIT |
+| [@tiptap/extension-strike](#tiptapextension-strike) | 3.32.2 | MIT |
+| [@tiptap/extension-underline](#tiptapextension-underline) | 3.32.2 | MIT |
+| [@tiptap/extension-list](#tiptapextension-list) | 3.32.2 | MIT |
+| [prosemirror-tables](#prosemirror-tables) | 1.8.5 | MIT |
+| [@tiptap/extension-table](#tiptapextension-table) | 3.32.2 | MIT |
+| [@tiptap/extension-blockquote](#tiptapextension-blockquote) | 3.32.2 | MIT |
+| [@tiptap/extension-document](#tiptapextension-document) | 3.32.2 | MIT |
+| [@tiptap/extension-hard-break](#tiptapextension-hard-break) | 3.32.2 | MIT |
+| [@tiptap/extension-heading](#tiptapextension-heading) | 3.32.2 | MIT |
+| [@tiptap/extension-paragraph](#tiptapextension-paragraph) | 3.32.2 | MIT |
+| [@tiptap/extension-text](#tiptapextension-text) | 3.32.2 | MIT |
+| [prosemirror-dropcursor](#prosemirror-dropcursor) | 1.8.4 | MIT |
+| [prosemirror-gapcursor](#prosemirror-gapcursor) | 1.4.1 | MIT |
+| [@tiptap/extensions](#tiptapextensions) | 3.32.2 | MIT |
+| [@tiptap/starter-kit](#tiptapstarter-kit) | 3.32.2 | MIT |
+| [mdurl](#mdurl) | 2.1.0 | MIT |
+| [uc.micro](#ucmicro) | 2.1.0 | MIT |
+| [entities](#entities) | 4.5.0 | BSD-2-Clause |
+| [markdown-it](#markdown-it) | 14.3.3 | MIT |
+| [linkify-it](#linkify-it) | 5.0.2 | MIT |
+| [punycode.js](#punycodejs) | 2.3.1 | MIT |
+| [markdown-it-footnote](#markdown-it-footnote) | 4.0.0 | MIT |
+| [markdown-it-task-lists](#markdown-it-task-lists) | 2.1.1 | ISC |
+| [@decimalturn/toml-patch](#decimalturntoml-patch) | 3.3.2 | MIT |
+| [jsonc-parser](#jsonc-parser) | 3.3.1 | MIT |
+| [yaml](#yaml) | 2.9.1 | ISC |
+| [@cfworker/json-schema](#cfworkerjson-schema) | 4.1.4 | MIT |
+| [diff](#diff) | 9.0.0 | BSD-3-Clause |
+| [prosemirror-markdown](#prosemirror-markdown) | 1.13.9 | MIT |
+| [ansi-regex](#ansi-regex) | 6.4.0 | MIT |
+| [strip-ansi](#strip-ansi) | 7.2.0 | MIT |
+| [get-east-asian-width](#get-east-asian-width) | 1.7.0 | MIT |
+| [string-width](#string-width) | 8.3.0 | MIT |
 
 ## markdown-it
 
@@ -102,9 +126,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 ## entities
 
-Source code: <https://github.com/fb55/entities>. Version 4.5.0 of
-`dist/extension.js` and version 6.0.1 of `dist/visualEditor.js` have the same
-license:
+Source code: <https://github.com/fb55/entities>. Its license:
 
 ```text
 Copyright (c) Felix Böhm
@@ -255,18 +277,14 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## @vscode/markdown-editor
+## @nimblescape/markdowntext
 
-Source code: <https://github.com/microsoft/vscode-packages/tree/main/vscode-team-tools/packages/markdown-editor>. Its package names the MIT License, and its repository holds the license, the same text as the license of [@vscode/observables](#vscodeobservables).
-
-## @vscode/observables
-
-Source code: <https://github.com/microsoft/vscode-packages/tree/main/vscode-observables/observables>. Its license:
+Source code: <https://github.com/nimblescape/markdown>. Its license:
 
 ```text
 MIT License
 
-Copyright (c) Microsoft Corporation.
+© 2026 Hannes Stauss (scalarion@nimblescape.com)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -287,14 +305,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## @vscode/diff
+## @nimblescape/markdownrender
 
-Source code: <https://github.com/microsoft/vscode-packages/tree/main/vscode-diff>. Its license:
+Source code: <https://github.com/nimblescape/markdown>. Its license is the same text as the license of [@nimblescape/markdowntext](#nimblescapemarkdowntext).
+
+## @nimblescape/markdowneditor
+
+Source code: <https://github.com/nimblescape/markdown>. Its license is the same text as the license of [@nimblescape/markdowntext](#nimblescapemarkdowntext).
+
+## @nimblescape/markdownvscode
+
+Source code: <https://github.com/nimblescape/markdown>. Its license is the same text as the license of [@nimblescape/markdowntext](#nimblescapemarkdowntext).
+
+## @tiptap/core
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license:
 
 ```text
 MIT License
 
-Copyright (c) Microsoft Corporation.
+Copyright (c) 2025, Tiptap GmbH
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -312,20 +342,317 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE
+SOFTWARE.
 ```
 
-## @vscode/codicons
+## orderedmap
 
-Source code: <https://github.com/microsoft/vscode-codicons>. The icon font `dist/codicon.ttf` and the icons are under the
-[Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode)
-(CC BY 4.0), © Microsoft Corporation, and the styles of the package
-under its MIT License:
+Source code: <https://github.com/marijnh/orderedmap>. Its license:
+
+```text
+Copyright (C) 2016 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## prosemirror-model
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-model>. Its license:
+
+```text
+Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## prosemirror-transform
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-transform>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## @tiptap/pm
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## prosemirror-state
+
+Source code: <https://github.com/prosemirror/prosemirror-state>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## prosemirror-commands
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-commands>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## prosemirror-schema-list
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-schema-list>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## prosemirror-view
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-view>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## w3c-keyname
+
+Source code: <https://github.com/marijnh/w3c-keyname>. Its license is the same text as the license of [orderedmap](#orderedmap).
+
+## prosemirror-keymap
+
+Source code: <https://github.com/prosemirror/prosemirror-keymap>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## rope-sequence
+
+Source code: <https://github.com/marijnh/rope-sequence>. Its license:
+
+```text
+Copyright (C) 2016 by Marijn Haverbeke <marijn@haverbeke.berlin>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## prosemirror-history
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-history>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## @tiptap/extension-bold
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-code
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-code-block
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-horizontal-rule
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-image
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-italic
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## linkifyjs
+
+Source code: <https://github.com/nfrasser/linkifyjs>. Its license:
+
+```text
+Copyright (c) 2024 Nick Frasser
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## @tiptap/extension-link
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-strike
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-underline
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-list
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## prosemirror-tables
+
+Source code: <https://github.com/ProseMirror/prosemirror-tables>. Its license:
+
+```text
+Copyright (C) 2015-2016 by Marijn Haverbeke <marijnh@gmail.com> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## @tiptap/extension-table
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-blockquote
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-document
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-hard-break
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-heading
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-paragraph
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/extension-text
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## prosemirror-dropcursor
+
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-dropcursor>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## prosemirror-gapcursor
+
+Source code: <https://github.com/prosemirror/prosemirror-gapcursor>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## @tiptap/extensions
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## @tiptap/starter-kit
+
+Source code: <https://github.com/ueberdosis/tiptap>. Its license is the same text as the license of [@tiptap/core](#tiptapcore).
+
+## markdown-it-footnote
+
+Source code: <https://github.com/markdown-it/markdown-it-footnote>. Its license:
+
+```text
+Copyright (c) 2014-2015 Vitaly Puzrin, Alex Kocharin.
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+```
+
+## markdown-it-task-lists
+
+Source code: <https://github.com/revin/markdown-it-task-lists>. Its license:
+
+```text
+Copyright (c) 2016, Revin Guillen
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+```
+
+## @decimalturn/toml-patch
+
+Source code: <https://github.com/DecimalTurn/toml-patch>. Its license:
 
 ```text
 MIT License
 
-Copyright (c) Microsoft Corporation.
+Copyright (c) 2019–2025 Tim Hall
+Copyright (c) 2025 Martin Leduc
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -343,17 +670,17 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE
+SOFTWARE.
 ```
 
-## katex
+## jsonc-parser
 
-Source code: <https://github.com/KaTeX/KaTeX>. Its license:
+Source code: <https://github.com/microsoft/node-jsonc-parser>. Its license:
 
 ```text
 The MIT License (MIT)
 
-Copyright (c) 2013-2020 Khan Academy and other contributors
+Copyright (c) Microsoft
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -374,221 +701,94 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## micromark
+## yaml
 
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark>. Its license:
-
-```text
-(The MIT License)
-
-Copyright (c) Titus Wormer <tituswormer@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-'Software'), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
-
-## micromark-core-commonmark
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-core-commonmark>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-extension-frontmatter
-
-Source code: <https://github.com/micromark/micromark-extension-frontmatter>. Its license:
+Source code: <https://github.com/eemeli/yaml>. Its license:
 
 ```text
-(The MIT License)
+Copyright Eemeli Aro <eemeli@gmail.com>
 
-Copyright (c) 2020 Titus Wormer <tituswormer@gmail.com>
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-'Software'), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
 ```
 
-## micromark-extension-gfm-autolink-literal
+## @cfworker/json-schema
 
-Source code: <https://github.com/micromark/micromark-extension-gfm-autolink-literal>. Its license is the same text as the license of
-[micromark-extension-frontmatter](#micromark-extension-frontmatter).
+Source code: <https://github.com/cfworker/cfworker>. Its package names the MIT License, and the package holds no text of the license.
 
-## micromark-extension-gfm-strikethrough
+## diff
 
-Source code: <https://github.com/micromark/micromark-extension-gfm-strikethrough>. Its license is the same text as the license of
-[micromark-extension-frontmatter](#micromark-extension-frontmatter).
-
-## micromark-extension-gfm-table
-
-Source code: <https://github.com/micromark/micromark-extension-gfm-table>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-extension-gfm-task-list-item
-
-Source code: <https://github.com/micromark/micromark-extension-gfm-task-list-item>. Its license is the same text as the license of
-[micromark-extension-frontmatter](#micromark-extension-frontmatter).
-
-## micromark-extension-math
-
-Source code: <https://github.com/micromark/micromark-extension-math>. Its license is the same text as the license of
-[micromark-extension-frontmatter](#micromark-extension-frontmatter).
-
-## micromark-factory-destination
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-factory-destination>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-factory-label
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-factory-label>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-factory-space
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-factory-space>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-factory-title
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-factory-title>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-factory-whitespace
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-factory-whitespace>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-character
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-character>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-chunked
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-chunked>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-classify-character
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-classify-character>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-combine-extensions
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-combine-extensions>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-decode-numeric-character-reference
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-decode-numeric-character-reference>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-decode-string
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-decode-string>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-edit-map
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-edit-map>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-encode
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-encode>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-html-tag-name
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-html-tag-name>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-normalize-identifier
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-normalize-identifier>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-resolve-all
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-resolve-all>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-sanitize-uri
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-sanitize-uri>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## micromark-util-subtokenize
-
-Source code: <https://github.com/micromark/micromark/tree/main/packages/micromark-util-subtokenize>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## decode-named-character-reference
-
-Source code: <https://github.com/wooorm/decode-named-character-reference>. Its license is the same text as the license of
-[micromark](#micromark).
-
-## fault
-
-Source code: <https://github.com/wooorm/fault>. Its license:
+Source code: <https://github.com/kpdecker/jsdiff>. Its license:
 
 ```text
-(The MIT License)
+BSD 3-Clause License
 
-Copyright (c) 2015 Titus Wormer <tituswormer@gmail.com>
+Copyright (c) 2009-2015, Kevin Decker <kpdecker@gmail.com>
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-'Software'), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
-THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## format
+## prosemirror-markdown
 
-Source code: <https://github.com/samsonjs/format>. Its package and its README name the MIT License
-(<http://sjs.mit-license.org>) with this notice: "Copyright 2010 - 2014
-Sami Samhuri sami@samhuri.net". The text of the MIT License is the text of
-[markdown-it](#markdown-it) with this notice.
+Source code: <https://code.haverbeke.berlin/prosemirror/prosemirror-markdown>. Its license is the same text as the license of [prosemirror-model](#prosemirror-model).
+
+## ansi-regex
+
+Source code: <https://github.com/chalk/ansi-regex>. Its license:
+
+```text
+MIT License
+
+Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+## strip-ansi
+
+Source code: <https://github.com/chalk/strip-ansi>. Its license is the same text as the license of [ansi-regex](#ansi-regex).
+
+## get-east-asian-width
+
+Source code: <https://github.com/sindresorhus/get-east-asian-width>. Its license is the same text as the license of [ansi-regex](#ansi-regex).
+
+## string-width
+
+Source code: <https://github.com/sindresorhus/string-width>. Its license is the same text as the license of [ansi-regex](#ansi-regex).

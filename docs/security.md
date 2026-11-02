@@ -144,10 +144,11 @@ connection of VS Code, as the text of an open file does.
 
 - The page of the side view has a content security policy:
   `default-src 'none'`, scripts only with a nonce that the extension creates
-  for each page (`script-src 'nonce-…'`), styles only from the style sheet
-  of the extension (`style-src` without `'unsafe-inline'`), and images of the
-  extension, of `https:` and of `data:`. So no script of a note runs, also not
-  an event attribute such as `onerror`, and no style element or style
+  for each page (`script-src 'nonce-…'`), styles only from the style sheets
+  of the extension and from the style elements with the same nonce, which the
+  visual editor adds (`style-src` without `'unsafe-inline'`), and images of
+  the extension, of `https:` and of `data:`. So no script of a note runs, also
+  not an event attribute such as `onerror`, and no style element or style
   attribute of a note applies. The script of the view sets its own styles
   through the CSS object model, which the policy allows.
 - The webview loads files only from the folder `media` of the extension
