@@ -5,13 +5,16 @@
 /**
  * The script of the page of the editor of a whole file ([R-TEXT-010](../../docs/requirements.md#r-text-010)), the
  * bundle `dist/editor.js`: it connects to the document of VS Code through the adapter of nimblescape Markdown,
- * `@nimblescape/markdownvscode`, and creates the editor of rendered Markdown with the source of the connection and the
- * plugin of the notes ([src/webview/notesPlugin.ts](notesPlugin.ts)), with the button "Comment" in the format bar. The
- * side view of the extension shows the threads of the notes, so the editor shows no icons of threads beside the text.
+ * `@nimblescape/markdownvscode`, and creates the editor of rendered Markdown with the source of the connection, the
+ * plugin of the notes ([src/webview/notesPlugin.ts](notesPlugin.ts)), with the button "Comment" in the format bar, and
+ * the plugin of the figures, the tables, the listings, the references and the values of the front matter
+ * ([src/webview/figuresPlugin.ts](figuresPlugin.ts)). The side view of the extension shows the threads of the notes, so
+ * the editor shows no icons of threads beside the text.
  */
 
 import { MarkdownEditor } from '@nimblescape/markdowneditor';
 import { connectVsCode } from '@nimblescape/markdownvscode/webview';
+import { figuresPlugin } from './figuresPlugin';
 import { createNotesPlugin } from './notesPlugin';
 
 void connectVsCode().then((connection) => {
@@ -20,7 +23,7 @@ void connectVsCode().then((connection) => {
     editable: connection.editable,
     id: 'webview',
     host: connection.host,
-    plugins: [createNotesPlugin({ comment: true })],
+    plugins: [createNotesPlugin({ comment: true }), figuresPlugin],
     threadIcons: false,
   });
 });

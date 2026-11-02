@@ -114,6 +114,7 @@ requirement, the plan and the decisions of Hannes.
 | 85 | The files of a clone stay editable, and a clone opens in a new window; the user guide tells how a Codespace gets access to the private repositories of the references ([decision 62](#decisions)) | [R-CODE-006](#r-code-006) | done; no change of the code |
 | 86 | The editor of rendered Markdown of nimblescape Markdown in the tab "Visual" of the side view, in place of the editor of the mode "Markdown Editor" of VS Code; the packages of nimblescape Markdown built from a clone at a fixed commit ([decision 63](#decisions)) | [R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017) | done |
 | 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-010](#r-text-010), [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | done |
+| 88 | The plugin of the figures for the editor of a whole file: the anchors, the markers of the values of the front matter and the comments of the listings hidden; the numbers of the captions, the references, the code and the cite of the listings and the values of the front matter read-only, with Ctrl+click on a reference to its target; a generated part of the editor that holds a whole block, from nimblescape Markdown | [R-TEXT-010](#r-text-010), [R-XREF-001](#r-xref-001), [R-XREF-004](#r-xref-004), [R-CODE-001](#r-code-001) | done |
 
 ## General
 
@@ -1062,12 +1063,36 @@ extensions work as for the text editor.
   in the editor area ([R-SIDE-007](#r-side-007)).
 - The editor shows no icons of threads beside the text, because the side
   view shows the threads.
+- The plugin of the figures of the editor hides the markup that the
+  formatter needs, as the clean editing view does: the anchors at the end of
+  captions and headings ([R-XREF-001](#r-xref-001)), the markers of the
+  values of the front matter ([R-XREF-004](#r-xref-004)) and the comments of
+  the listings ([R-CODE-001](#r-code-001)). The parts that the formatter
+  writes are read-only (the generated parts of the specification of
+  nimblescape Markdown,
+  [R-EDIT-011](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-011)):
+  the number of a caption, the text of a reference to a figure, a table, a
+  listing or a section, the code block of a listing and the cite of its
+  source after its caption, and a value of the front matter with its
+  markers, when the front matter has its key. Ctrl+click (Cmd+click on
+  macOS) on a reference goes to its target. The user changes a part through
+  what it comes from, and the formatter writes it again on save. Text typed
+  after the anchor at the end of a caption or a heading goes before the
+  anchor, an anchor stays at the end of its caption or heading when an edit
+  replaces the text before it, and the comment of a listing goes with its
+  code block.
 
 *(proposal)* The page of the editor and the extension exchange the
 selection, the selected note, the highlights and the button "Comment"
 through the channel of the plugin of the notes; each side checks each
 message before it uses it. Limits: a click on the thread of a standard
-footnote does not scroll the editor to its reference.
+footnote does not scroll the editor to its reference. A changed paragraph
+is written as one line, as the formatter writes it (the specification of
+nimblescape Markdown,
+[R-EDIT-005](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-005)).
+Ctrl+click on text that is no reference selects its block, as in other
+editors of rendered text; the next typed text replaces the block, and Undo
+brings it back.
 
 ### R-VIEW-001
 

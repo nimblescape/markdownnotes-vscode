@@ -182,7 +182,13 @@ The first version.
   the side view at its cursor, "Comment" in the format bar over the selected
   text, which adds a note, and "Open Text Editor to the Side" in the title.
   The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
-  that open in it: `all` (the default), `notesAndPapers` or `none`.
+  that open in it: `all` (the default), `notesAndPapers` or `none`. The
+  editor hides the anchors of the figures, the tables, the listings and the
+  sections, the markers of the values of the front matter and the comments
+  of the listings, and keeps read-only the parts that the formatter writes:
+  the numbers of the captions, the references, with Ctrl+click to their
+  targets, the code and the cite of the listings, and the values of the
+  front matter.
 - The clean editing view: a Markdown file with notes that does not open in
   the editor of rendered Markdown opens in a text editor of its text without
   the notes markup, which behaves as in a file without

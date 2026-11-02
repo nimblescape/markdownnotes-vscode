@@ -133,7 +133,9 @@ form of the notes in a file for programs and AI agents, and
   `notesAndPapers` or `none`. It hides the notes markup, keeps each note
   byte for byte at its text with the rules of the clean editing view, shows
   the highlights, and the side view follows its selection; "Open Text Editor
-  to the Side" opens the text editor of the file
+  to the Side" opens the text editor of the file. It hides the anchors, the
+  markers of the values of the front matter and the comments of the
+  listings, and the parts that the formatter writes are read-only
   ([R-TEXT-010](requirements.md#r-text-010)).
 - **Clean editing view:** a Markdown file with notes, or with the comment of
   the format, that does not open in the editor of a whole file always opens

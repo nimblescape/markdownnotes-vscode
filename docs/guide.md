@@ -374,6 +374,19 @@ note at its place.
   same place.
 - A save of the editor saves the file, with the format on save
   ([Formatter](#formatter)).
+- The editor hides the anchors of the [figures, tables and links to
+  them](#figures-tables-and-links-to-them), the markers of the [values of
+  the front matter](#values-of-the-front-matter) and the comments of the
+  [listings of code](#listings-of-code). The parts that the formatter writes
+  are read-only: the number of a caption, the text of a reference, the code
+  of a listing and the cite of its source, and a value of the front matter.
+  You change them through what they come from, for example the caption, the
+  heading, the source file or the front matter, and the formatter writes
+  them again when you save. Ctrl+click (Cmd+click on macOS) on a reference
+  goes to its target. Backspace after a part, or Delete before it, deletes
+  the whole part.
+- A paragraph that you change is written as one line, as the formatter
+  writes it.
 
 The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
 that open in the editor ([Settings](#settings)): `all`, the default, every
