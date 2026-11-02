@@ -33,9 +33,21 @@ import { Mapping } from '@tiptap/pm/transform';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type MarkdownIt from 'markdown-it';
 import type { StateCore, Token } from 'markdown-it';
-import { outsideChange, type MarkdownPlugin, type PluginEditor, type ThreadMarker } from '@nimblescape/markdowneditor';
+import {
+  type FormatButton,
+  outsideChange,
+  type MarkdownPlugin,
+  type PluginChannel,
+  type PluginEditor,
+  type PluginHost,
+  type ThreadMarker,
+} from '@nimblescape/markdowneditor';
 import { colorIndexOf, colorNames, noteColors } from '../notes/colors';
 import { findDoctype } from '../notes/doctype';
+import { extensionMessage, type PageMessage, pluginName } from '../notes/editorMessages';
+
+/** pluginName is the name of the plugin, the first part of the full names of its commands, for example `notes.select`. */
+export { pluginName };
 import {
   addNoteRules,
   displayDate,
@@ -58,9 +70,6 @@ import {
   unescapeHidden,
   usedLabels,
 } from '../notes/syntax';
-
-/** pluginName is the name of the plugin, the first part of the full names of its commands, for example `notes.select`. */
-export const pluginName = 'notes';
 
 /** definitionType is the type of the token of the whole definition of a note, which the plugin makes of its tokens. */
 export const definitionType = 'nimblescape_note_definition';
@@ -849,10 +858,96 @@ export function showHighlights(editor: PluginEditor, show: boolean): void {
 }
 
 /**
- * notesPlugin is the plugin of Notes for the editor. Its commands are `notes.select` with the label of a note or
- * nothing, `notes.showHighlights` with true or false, and `notes.addNote` with the fields of a new note (AddNote).
+ * revealNote scrolls the editor to the highlight of a note.
+ * @param editor - The editor.
+ * @param label - The label of the note.
  */
-export const notesPlugin: MarkdownPlugin = {
+export function revealNote(editor: PluginEditor, label: string): void {
+  const range = noteRanges(editor.tiptap.state.doc).find((each) => each.label === label);
+  if (!range) {
+    return;
+  }
+  const { node } = editor.tiptap.view.domAtPos(range.marker + 1);
+  const element = node instanceof Element ? node : node.parentElement;
+  element?.scrollIntoView?.({ block: 'center' });
+}
+
+/** channels holds the channel of the plugin to its part in the extension, for each editor that has one. */
+const channels = new WeakMap<Editor, PluginChannel>();
+
+/**
+ * activate connects the plugin in an editor to its part in the extension, when the platform has a channel for it: it
+ * reports the selection of the editor as places in the text of the file, and takes the selected note and whether the
+ * highlights show (src/notes/editorMessages.ts).
+ * @param editor - The editor.
+ * @param host - The API of the platform.
+ * @returns What to dispose.
+ */
+function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefined {
+  const channel = host.channel?.(pluginName);
+  if (!channel) {
+    return undefined;
+  }
+  const tiptap = editor.tiptap;
+  channels.set(tiptap, channel);
+  let last: string | undefined;
+  const report = (mouse: boolean) => {
+    const { anchor, head } = tiptap.state.selection;
+    const message: PageMessage = { type: 'selection', anchor: editor.textOffset(anchor), head: editor.textOffset(head), mouse };
+    const key = `${message.anchor}:${message.head}`;
+    if (key !== last || mouse) {
+      last = key;
+      channel.post(message);
+    }
+  };
+  const onSelection = ({ transaction }: { transaction: Transaction }) => report(transaction.getMeta('pointer') === true);
+  const onFocus = () => report(false);
+  tiptap.on('selectionUpdate', onSelection);
+  tiptap.on('focus', onFocus);
+  const stop = channel.onMessage((value) => {
+    const message = extensionMessage(value);
+    if (message?.type === 'select') {
+      selectNote(editor, message.label);
+      if (message.reveal && message.label) {
+        revealNote(editor, message.label);
+      }
+    } else if (message?.type === 'highlights') {
+      showHighlights(editor, message.show);
+    }
+  });
+  channel.post({ type: 'ready' } satisfies PageMessage);
+  return () => {
+    tiptap.off('selectionUpdate', onSelection);
+    tiptap.off('focus', onFocus);
+    stop();
+    channels.delete(tiptap);
+  };
+}
+
+/** commentButton is the button "Comment" of the format bar, which asks the extension to add a note to the selected text. */
+const commentButton: FormatButton = {
+  id: 'notes-comment',
+  label: 'Comment: add a note to the selected text',
+  icon: 'note',
+  run: (tiptap) => channels.get(tiptap)?.post({ type: 'comment' } satisfies PageMessage),
+};
+
+/** NotesPluginOptions configure the plugin of Notes. */
+export interface NotesPluginOptions {
+  /**
+   * comment adds the button "Comment" to the format bar over selected text
+   * ([the format bar](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-007)), which asks the
+   * part of the plugin in the extension to add a note to the selected text.
+   */
+  readonly comment?: boolean;
+}
+
+/**
+ * createNotesPlugin returns the plugin of Notes for the editor. Its commands are `notes.select` with the label of a note
+ * or nothing, `notes.showHighlights` with true or false, and `notes.addNote` with the fields of a new note (AddNote).
+ * @param options - The options.
+ */
+export const createNotesPlugin = (options: NotesPluginOptions = {}): MarkdownPlugin => ({
   name: pluginName,
   apiVersion: 1,
   extendMarkdownIt,
@@ -903,4 +998,9 @@ export const notesPlugin: MarkdownPlugin = {
     addNote: (editor, fields) => addNote(editor, fields as AddNote) !== undefined,
   },
   threads: { find: threadsOf, open: openThread },
-};
+  ...(options.comment ? { menus: { format: [commentButton] } } : {}),
+  activate,
+});
+
+/** notesPlugin is the plugin of Notes for the editor, without the button "Comment". */
+export const notesPlugin: MarkdownPlugin = createNotesPlugin();

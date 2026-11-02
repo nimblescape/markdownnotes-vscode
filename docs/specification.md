@@ -127,9 +127,17 @@ form of the notes in a file for programs and AI agents, and
 
 ## 4. Text editor
 
+- **Editor of a whole file:** the editor of rendered Markdown of
+  nimblescape Markdown is the custom text editor of the Markdown files that
+  the setting `renderedEditor` chooses: `all` (*(proposal)* the default),
+  `notesAndPapers` or `none`. It hides the notes markup, keeps each note
+  byte for byte at its text with the rules of the clean editing view, shows
+  the highlights, and the side view follows its selection; "Open Text Editor
+  to the Side" opens the text editor of the file
+  ([R-TEXT-010](requirements.md#r-text-010)).
 - **Clean editing view:** a Markdown file with notes, or with the comment of
-  the format, always opens in a text editor of its text without the notes
-  markup: no start markers, references, definitions of notes, comment of
+  the format, that does not open in the editor of a whole file always opens
+  in a text editor of its text without the notes markup: no start markers, references, definitions of notes, comment of
   the format or anchors of figures and tables, and no blocks that other
   extensions hide. Line breaks, cursor,
   word moves, search, copy and Undo count only the text. Each change goes

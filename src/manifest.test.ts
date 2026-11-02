@@ -23,7 +23,8 @@ import { renumberCommand } from './footnoteActions';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { formContext, notesViewId, viewCommands } from './notesView';
 import { publishCommands } from './publish';
-import { defaultSettings, linkTargets, settingsSection } from './settings';
+import { renderedEditor } from './renderedEditor';
+import { defaultSettings, editorFiles, linkTargets, settingsSection } from './settings';
 import { snippetCommands } from './snippets';
 import { usedSnippetCommands, usedSnippetContexts } from './usedSnippets';
 
@@ -158,8 +159,22 @@ test('the manifest contributes the commands of the side view, of the highlights,
       usedSnippetCommands.keep,
       ...Object.values(publishCommands),
       renumberCommand,
+      renderedEditor.openText,
     ].sort(),
   );
+});
+
+test('the editor of a whole file is the default editor of the Markdown files, which the setting renderedEditor chooses, and its title has the button "Open Text Editor to the Side" (R-TEXT-010)', () => {
+  expect(manifest.contributes.customEditors).toEqual([
+    { viewType: renderedEditor.viewType, displayName: 'nimblescape Markdown Notes', selector: [{ filenamePattern: '*.md' }, { filenamePattern: '*.markdown' }], priority: 'default' },
+  ]);
+  const setting = manifest.contributes.configuration.properties[`${settingsSection}.renderedEditor`];
+  expect(setting).toMatchObject({ type: 'string', enum: ['all', 'notesAndPapers', 'none'], default: defaultSettings.renderedEditor, scope: 'resource' });
+  const own = `activeCustomEditorId == '${renderedEditor.viewType}'`;
+  expect(manifest.contributes.menus['editor/title']).toEqual(expect.arrayContaining([{ command: renderedEditor.openText, group: 'navigation', when: own }]));
+  expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining([{ command: renderedEditor.openText, when: own }]));
+  const command = manifest.contributes.commands.find((item: { command: string }) => item.command === renderedEditor.openText);
+  expect(command).toMatchObject({ title: 'Open Text Editor to the Side', icon: '$(go-to-file)' });
 });
 
 test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
@@ -243,9 +258,9 @@ test('the menu "…" of the title of the side view has "Show Footnotes" or "Hide
 
 test('the title of the text editor and of the preview of a Markdown file has the button "Show Highlights" or "Hide Highlights" after the context key of the shown highlights (R-GEN-011)', () => {
   // VS Code shows a Markdown file in the preview to the side, or in the modes "Markdown Preview" and "Markdown Editor"
-  // of its editor, which are custom editors.
+  // of its editor, which are custom editors, and the extension in the editor of a whole file (R-TEXT-010).
   const markdown =
-    "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'";
+    "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor' || activeCustomEditorId == 'nimblescape.markdownNotes.editor'";
   // The highlights show while the setting showHighlights is on in the settings of the workspace or of the user, so the
   // buttons follow a context key of the extension that reads both, not the setting.
   expect(manifest.contributes.menus['editor/title']).toEqual([
@@ -255,6 +270,7 @@ test('the title of the text editor and of the preview of a Markdown file has the
     // The text editor of a source file with snippets has the buttons of the used snippets (R-CODE-004).
     { command: usedSnippetCommands.show, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && !${usedSnippetContexts.shown}` },
     { command: usedSnippetCommands.hide, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && ${usedSnippetContexts.shown}` },
+    { command: renderedEditor.openText, group: 'navigation', when: `activeCustomEditorId == '${renderedEditor.viewType}'` },
   ]);
   expect(manifest.contributes.menus.commandPalette).toEqual(
     expect.arrayContaining([
@@ -457,7 +473,7 @@ test('the manifest contributes the settings of src/settings.ts with their defaul
   const expected = Object.fromEntries(Object.entries(defaultSettings).map(([key, value]) => [`${settingsSection}.${key}`, value]));
   expect(contributed).toEqual(expected);
   // A setting of a choice offers the values that src/settings.ts takes, each with a description.
-  for (const [key, values] of [['openLinksIn', linkTargets]] as const) {
+  for (const [key, values] of [['openLinksIn', linkTargets], ['renderedEditor', editorFiles]] as const) {
     const property = properties[`${settingsSection}.${key}`];
     expect(property.enum, key).toEqual([...values]);
     expect(property.enumDescriptions, key).toHaveLength(values.length);
@@ -479,6 +495,7 @@ test('the package holds the bundle, the styles and the scripts of the preview an
     '**',
     '!dist/extension.js',
     '!dist/visualEditor.js',
+    '!dist/editor.js',
     '!dist/visualEditor.css',
     '!media/markdownPreview.css',
     '!media/markdownPreview.js',
@@ -568,15 +585,18 @@ test('the third-party notices name every package that the build bundles, with it
     entryPoints: [path.join(repository, 'src/extension.ts'), path.join(repository, 'src/cli/main.ts')],
     bundle: true,
     platform: 'node',
+    // As esbuild.mjs: the ES module of a package before its CommonJS file.
+    mainFields: ['module', 'main'],
     external: ['vscode'],
     write: false,
     outdir: path.join(repository, 'out/manifest-test'),
     metafile: true,
     logLevel: 'silent',
   });
-  // The visual editor of the side view bundles its packages into a script and styles of the page of the view (R-SIDE-004).
+  // The visual editor of the side view bundles its packages into a script and styles of the page of the view (R-SIDE-004),
+  // and the editor of a whole file into the script of its page (R-TEXT-010).
   const visual = await esbuild.build({
-    entryPoints: [path.join(repository, 'src/webview/visualEditor.ts'), path.join(repository, 'src/webview/visualEditor.css')],
+    entryPoints: [path.join(repository, 'src/webview/visualEditor.ts'), path.join(repository, 'src/webview/visualEditor.css'), path.join(repository, 'src/webview/editor.ts')],
     bundle: true,
     platform: 'browser',
     write: false,
@@ -584,6 +604,10 @@ test('the third-party notices name every package that the build bundles, with it
     metafile: true,
     logLevel: 'silent',
   });
+  // A UMD file loads its parts with a require that the bundle cannot resolve, as the UMD file of jsonc-parser does, so
+  // that the extension would not start.
+  expect(read('esbuild.mjs')).toContain("mainFields: ['module', 'main']");
+  expect(Object.keys(result.metafile.inputs).filter((input) => input.includes('/umd/'))).toEqual([]);
   const packages = new Set<string>();
   for (const input of [...Object.keys(result.metafile.inputs), ...Object.keys(visual.metafile.inputs)]) {
     // The folder of the package is the part of the path up to the name after the last node_modules.

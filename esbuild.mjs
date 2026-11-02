@@ -46,6 +46,9 @@ for (const bundle of bundles) {
     bundle: true,
     platform: 'node',
     format: 'cjs',
+    // The ES module of a package before its CommonJS file: the UMD file of jsonc-parser, which the adapter of
+    // nimblescape Markdown brings in, loads its parts with a require that the bundle cannot resolve.
+    mainFields: ['module', 'main'],
     external: ['vscode'],
     sourcemap: !production,
     minify: false,
@@ -58,20 +61,24 @@ for (const bundle of bundles) {
 // dist/visualEditor.css. The icons of the editor are part of its script. The build removes the icon font of the
 // editor of an earlier version, dist/codicon.ttf, so that no file of an earlier build stays in the package.
 fs.rmSync('dist/codicon.ttf', { force: true });
-if (production) {
-  fs.rmSync('dist/visualEditor.js.map', { force: true });
+// The editor of a whole file (R-TEXT-010) runs in the page of its custom editor: a bundle for the browser in
+// dist/editor.js with the same editor and the plugin of the notes; it uses the styles of the visual editor.
+for (const name of ['visualEditor', 'editor']) {
+  if (production) {
+    fs.rmSync(`dist/${name}.js.map`, { force: true });
+  }
+  await esbuild.build({
+    entryPoints: [`src/webview/${name}.ts`],
+    outfile: `dist/${name}.js`,
+    bundle: true,
+    platform: 'browser',
+    format: 'iife',
+    target: 'chrome120',
+    sourcemap: !production,
+    minify: false,
+    logLevel: 'info',
+  });
 }
-await esbuild.build({
-  entryPoints: ['src/webview/visualEditor.ts'],
-  outfile: 'dist/visualEditor.js',
-  bundle: true,
-  platform: 'browser',
-  format: 'iife',
-  target: 'chrome120',
-  sourcemap: !production,
-  minify: false,
-  logLevel: 'info',
-});
 await esbuild.build({
   entryPoints: ['src/webview/visualEditor.css'],
   outfile: 'dist/visualEditor.css',

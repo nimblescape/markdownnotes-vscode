@@ -20,6 +20,15 @@ export const linkTargets = ['newWindow', 'editor', 'system'] as const;
 /** LinkTarget is a place where a link of a note to a file opens. */
 export type LinkTarget = (typeof linkTargets)[number];
 
+/**
+ * editorFiles are the values of the setting that chooses the Markdown files that open in the editor of a whole file
+ * ([R-TEXT-010](../docs/requirements.md#r-text-010)): every file, the files with notes and the paper documents, or none.
+ */
+export const editorFiles = ['all', 'notesAndPapers', 'none'] as const;
+
+/** EditorFiles is a value of the setting `renderedEditor`. */
+export type EditorFiles = (typeof editorFiles)[number];
+
 /** Settings are the values of the settings of the extension. */
 export interface Settings {
   /** showHighlights shows the highlight of each note in the text editor and the preview ([R-GEN-011](../docs/requirements.md#r-gen-011)). */
@@ -34,6 +43,8 @@ export interface Settings {
   showFootnotes: boolean;
   /** hideNotesInNewFiles writes the first note of a file in the hidden form ([R-HIDE-002](../docs/requirements.md#r-hide-002)). */
   hideNotesInNewFiles: boolean;
+  /** renderedEditor chooses the Markdown files that open in the editor of a whole file ([R-TEXT-010](../docs/requirements.md#r-text-010)). */
+  renderedEditor: EditorFiles;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
@@ -44,6 +55,7 @@ export const defaultSettings: Readonly<Settings> = {
   formatOnSave: true,
   showFootnotes: true,
   hideNotesInNewFiles: false,
+  renderedEditor: 'all',
 };
 
 /**
@@ -56,6 +68,7 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
   const raw = read('openLinksIn');
+  const files = read('renderedEditor');
   return {
     showHighlights: flag('showHighlights'),
     openLinksIn: linkTargets.find((value) => value === raw) ?? defaultSettings.openLinksIn,
@@ -63,5 +76,6 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     formatOnSave: flag('formatOnSave'),
     showFootnotes: flag('showFootnotes'),
     hideNotesInNewFiles: flag('hideNotesInNewFiles'),
+    renderedEditor: editorFiles.find((value) => value === files) ?? defaultSettings.renderedEditor,
   };
 }

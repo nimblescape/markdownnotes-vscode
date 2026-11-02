@@ -480,6 +480,8 @@ const twoNotes = `The <wbr><!--[note-aaaa-->agents[^note-aaaa] change <wbr><!--[
  * @param text - The text of the file.
  */
 const inCleanView = async (text: string) => {
+  // The clean editing view shows the files that do not open in the editor of a whole file (R-TEXT-010).
+  fake.settings.set('', { ...fake.settings.get(''), renderedEditor: 'none' });
   fake.files.set('/folder/a.md', text);
   const document = fake.open(text);
   const tab = { input: new FakeTabInputText(document.uri), isPreview: true };

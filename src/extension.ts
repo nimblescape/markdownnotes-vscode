@@ -49,6 +49,7 @@ import type { BlockFinder, MarkerFinder } from './notes/clean';
 import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { registerPublishCommands } from './publish';
+import { RenderedEditors } from './renderedEditor';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
 import { type SlashCommand, SlashCommands } from './slashCommands';
@@ -342,7 +343,8 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const editor = new NoteEditor(threads, showsHighlights, selected);
-  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
+  const rendered = new RenderedEditors(context.extensionUri, readSettings, selected, () => vscode.commands.executeCommand(viewCommands.newNote));
+  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes, (document) => rendered.opens(document));
   const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
   const slash = new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);
@@ -381,6 +383,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     contextsChanged();
     editor.showsChanged();
     clean.showsChanged();
+    rendered.showsChanged();
     refreshMarkdownPreviews();
   };
   context.subscriptions.push(
@@ -388,6 +391,9 @@ export function activate(context: vscode.ExtensionContext): Api {
     ...editor.register(),
     clean,
     ...clean.register(),
+    rendered,
+    ...rendered.register(),
+    rendered.onDidChangeSelection(({ document, selection, mouse }) => view.followEditor({ document, selection }, mouse)),
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),

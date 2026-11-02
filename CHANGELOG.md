@@ -176,8 +176,16 @@ The first version.
   login of the user as their author. VS Code shows each date in the local
   time of the reader, and its tooltip or hover the local time of the author.
   A saved change of an answer gets the date of the save.
-- The clean editing view: a Markdown file with notes opens in a text editor
-  of its text without the notes markup, which behaves as in a file without
+- The editor of rendered Markdown of nimblescape Markdown edits a whole
+  Markdown file: the text as it reads, without the markup of the notes,
+  which stay in the file byte for byte, with the highlights in their colors,
+  the side view at its cursor, "Comment" in the format bar over the selected
+  text, which adds a note, and "Open Text Editor to the Side" in the title.
+  The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
+  that open in it: `all` (the default), `notesAndPapers` or `none`.
+- The clean editing view: a Markdown file with notes that does not open in
+  the editor of rendered Markdown opens in a text editor of its text without
+  the notes markup, which behaves as in a file without
   notes; the extension writes each change into the file and keeps each note
   at its text, also for Undo, and the save of the view saves the file. Its
   Markdown preview shows the highlights, and the images and the style sheets

@@ -113,7 +113,7 @@ requirement, the plan and the decisions of Hannes.
 | 84 | Every paper document, a file whose front matter has the key `layout`, opens in the clean editing view, also without notes, so that its front matter is read-only ([decision 61](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 | 85 | The files of a clone stay editable, and a clone opens in a new window; the user guide tells how a Codespace gets access to the private repositories of the references ([decision 62](#decisions)) | [R-CODE-006](#r-code-006) | done; no change of the code |
 | 86 | The editor of rendered Markdown of nimblescape Markdown in the tab "Visual" of the side view, in place of the editor of the mode "Markdown Editor" of VS Code; the packages of nimblescape Markdown built from a clone at a fixed commit ([decision 63](#decisions)) | [R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017) | done |
-| 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | in progress: the plugin of the notes built (src/webview/notesPlugin.ts) |
+| 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-010](#r-text-010), [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | done |
 
 ## General
 
@@ -900,8 +900,9 @@ the form of its file ([R-FMT-002](#r-fmt-002)).
 ### R-TEXT-009
 
 **Clean editing view.** The text editor of a Markdown file with notes, and
-of a paper document ([decision 61](#decisions)), edits the text of the file
-without the notes markup ([decision 27](#decisions)):
+of a paper document ([decision 61](#decisions)), that does not open in the
+editor of a whole file ([R-TEXT-010](#r-text-010)), edits the text of the
+file without the notes markup ([decision 27](#decisions)):
 without the start markers, the references, the definitions of the notes and
 the comment of the format. The line breaks, the cursor, the word moves, the
 search, the copy and Undo count only the characters of the text, as in a
@@ -983,8 +984,9 @@ file at once, and keeps each note at its text:
   the file of the link: in its view when it has notes, else in its own text
   editor.
 
-A Markdown file with notes, or with the comment of the format, always opens
-in the view, and so does a paper document of nimblescape Markdown Paper, a
+A Markdown file with notes, or with the comment of the format, that does not
+open in the editor of a whole file always opens in the view, and so does
+such a paper document of nimblescape Markdown Paper, a
 Markdown file whose YAML front matter has the key `layout`, also without
 notes, so that the front matter of every paper is read-only
 ([decision 61](#decisions)). The view opens from the Explorer, a search, a link, the tabs of the last
@@ -1015,6 +1017,57 @@ and the view then shows the markup that is no longer a note, until Undo; the
 preview of the view does not show an image of HTML (`<img>`) from outside the
 folder of the file, nor a style sheet of `markdown.styles` with an absolute
 path.
+
+### R-TEXT-010
+
+**Editor of a whole file.** The editor of rendered Markdown of nimblescape
+Markdown ([R-GEN-017](#r-gen-017), [decision 63](#decisions)) edits a whole
+Markdown file in the editor area, in place of the clean editing view
+([R-TEXT-009](#r-text-009); the specification of nimblescape Markdown,
+[R-GEN-004](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-gen-004)).
+The extension registers it as the custom text editor of the Markdown files
+with the adapter `@nimblescape/markdownvscode`, so that the file stays a
+text document of VS Code: the save with the format on save
+([R-FMT-001](#r-fmt-001)), the dirty mark, the Git diffs and the other
+extensions work as for the text editor.
+
+- The setting `renderedEditor` chooses the files that open in the editor:
+  `all`, every Markdown file; `notesAndPapers`, a file with notes or with the
+  comment of the format, and a paper document of nimblescape Markdown Paper;
+  `none`, no file. *(proposal)* The default is `all`. Every other file opens
+  in the text editor, a file with notes in the clean editing view. "Reopen
+  Editor With" of VS Code always offers the text editor.
+- The button "Open Text Editor to the Side" in the title of the editor opens
+  the text editor of the file to the side, with the selection of the editor.
+  The buttons of the side view and of the highlights
+  ([R-GEN-011](#r-gen-011)) are in the title of the editor too.
+- The plugin of the notes of the editor keeps each note of the file byte for
+  byte and hides its markup: the start markers, the references, the
+  definitions of the notes and the comment of the format. The edits at a
+  note follow the rules of the clean editing view: text typed at the start
+  or the end of a highlight stays outside of it, text typed inside it stays
+  in it, a deleted text never deletes a note, a paragraph break inside a
+  highlight ends the highlight before the break and the definition of the
+  note moves after the block of its reference, and Undo and Redo bring back
+  the file with each note at its place.
+- The editor shows the highlights of the notes in their colors, as the text
+  editor does ([R-GEN-011](#r-gen-011)), and the selected note strong
+  ([R-SIDE-007](#r-side-007)).
+- The side view follows the selection of the editor as of a text editor
+  ([R-SIDE-002](#r-side-002)): the cursor in a highlight selects its thread,
+  and "Add Note" adds a note to the selected text
+  ([R-EDIT-006](#r-edit-006)). The button "Comment" of the format bar over
+  the selected text adds a note too. A click on a thread in the side view
+  selects its note in the editor, which scrolls to it, and keeps its place
+  in the editor area ([R-SIDE-007](#r-side-007)).
+- The editor shows no icons of threads beside the text, because the side
+  view shows the threads.
+
+*(proposal)* The page of the editor and the extension exchange the
+selection, the selected note, the highlights and the button "Comment"
+through the channel of the plugin of the notes; each side checks each
+message before it uses it. Limits: a click on the thread of a standard
+footnote does not scroll the editor to its reference.
 
 ### R-VIEW-001
 

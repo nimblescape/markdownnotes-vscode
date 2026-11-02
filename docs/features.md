@@ -16,7 +16,8 @@ tables, the folders of a paper project and the citations, belong to
 nimblescape Markdown Paper and its specification. The [user guide](guide.md) describes how to use the features that
 are built; the [format](format.md) describes the notes in the file.
 
-Of 140 requested features, 118 are built, among them the clean editing view
+Of 141 requested features, 119 are built, among them the editor of rendered
+Markdown for a whole file ([R-TEXT-010](requirements.md#r-text-010)), the clean editing view
 ([decision 27](requirements.md#decisions)), which fixes the bug of the line
 breaks and the cursor next to the hidden markers in the text editor, the
 standard footnotes in the side view, the API for nimblescape Markdown
@@ -115,10 +116,13 @@ evening of 2026-10-29.
 
 The text editor has what Hannes asked for. Since 2026-10-29, a Markdown file
 with notes opens in the clean editing view, which fixes the bug of the line
-breaks and the cursor next to the hidden markers.
+breaks and the cursor next to the hidden markers. Since 2026-11-02, a
+Markdown file opens in the editor of rendered Markdown of nimblescape
+Markdown, which the setting `renderedEditor` chooses.
 
 | Request | Asked | Spec | State | Detail |
 | --- | --- | --- | --- | --- |
+| The editor of nimblescape Markdown edits a whole file in the editor area | 11-01 | [R-TEXT-010](requirements.md#r-text-010) | Built | Step 87 of the plan, from the specification of nimblescape Markdown: the custom text editor of the Markdown files with the plugin of the notes, which hides the markup of the notes and keeps each note byte for byte, the highlights, the side view at its selection, "Comment" in the format bar, and "Open Text Editor to the Side"; the setting `renderedEditor` with the values `all` (the default, a proposal), `notesAndPapers` and `none` |
 | Line breaks and editing next to the hidden markers | 10-29 09:09 | [R-TEXT-005](requirements.md#r-text-005) | Built | VS Code wraps a line by all its characters, also the hidden ones, so a row ended early. Fixed by the clean editing view of [decision 27](requirements.md#decisions) (10-29 09:37), which shows no hidden characters |
 | The notes markup has no effect on the editing | 10-29 09:17 | [R-TEXT-009](requirements.md#r-text-009) | Built | [Decision 27](requirements.md#decisions): the clean editing view, step 38 of the plan; a prototype shown at 10:20, the full build checked in VS Code 1.144. Its limits are in [R-TEXT-009](requirements.md#r-text-009) |
 | A form for the front matter | 10-31 08:04, 11:33 | [R-TEXT-009](requirements.md#r-text-009) | Built | Step 82, [decision 59](requirements.md#decisions): the view "Front Matter" of nimblescape Markdown Paper in the side bar holds the form; Markdown Notes shows the link "Edit Front Matter" above the read-only front matter of the clean editing view, which opens it, and "Open File with Markup" without Markdown Paper |

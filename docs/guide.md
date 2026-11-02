@@ -32,6 +32,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Show and hide the highlights](#show-and-hide-the-highlights) | text editor, preview | available | [R-GEN-011](requirements.md#r-gen-011), [R-PREV-005](requirements.md#r-prev-005) |
 | [GitHub sign-in](#github-sign-in) | VS Code | available | [R-GEN-006](requirements.md#r-gen-006) |
 | [Footnotes in the preview](#footnotes-in-the-preview) | Markdown preview | available | [R-GEN-008](requirements.md#r-gen-008) |
+| [Editor of rendered Markdown](#editor-of-rendered-markdown) | editor of a whole file, side view | available | [R-TEXT-010](requirements.md#r-text-010) |
 | [Clean editing view](#clean-editing-view) | text editor | available | [R-TEXT-009](requirements.md#r-text-009) |
 | [Collapsed notes](#collapsed-notes) | text editor of the file itself | available | [R-GEN-009](requirements.md#r-gen-009), [R-TEXT-005](requirements.md#r-text-005) |
 | [Rendered header lines](#rendered-header-lines) | text editor of the file itself | available | [R-TEXT-007](requirements.md#r-text-007) |
@@ -346,11 +347,46 @@ account. You cannot type another author. Without a sign-in, the extension
 writes no new note and no answer, and keeps your text in the editor. You can
 still read, edit and delete the notes of a file without a sign-in.
 
+## Editor of rendered Markdown
+
+A Markdown file opens in the editor of rendered Markdown of nimblescape
+Markdown, the editor of a whole file: you edit the text as it reads, with
+its headings, lists, tables and images, and the markup of the notes is
+hidden. The notes stay in the file as they are, and each note stays at its
+text, with the rules of the [clean editing view](#clean-editing-view): text
+typed at the start or the end of a highlight stays outside of it, deleting
+text never deletes a note, and Undo and Redo bring back the file with each
+note at its place.
+
+- The editor shows the highlights of the notes in their colors, and the
+  highlight of the selected note strong. The buttons "Hide Highlights" and
+  "Show Highlights" and "Show or Hide Notes" are in the title of the editor
+  ([Show and hide the highlights](#show-and-hide-the-highlights)).
+- The side view follows the cursor of the editor: the cursor in a highlight
+  selects its thread. A click on a thread selects its note in the editor,
+  which scrolls to it.
+- To add a note, select the text, then click "Comment" in the format bar
+  above it, or "Add Note" in the title of the side view
+  ([Add a note](#add-a-note)).
+- The button "Open Text Editor to the Side" in the title of the editor opens
+  the text of the file to the side, with the selection of the editor.
+  "Reopen Editor With" of VS Code opens the file in the text editor in the
+  same place.
+- A save of the editor saves the file, with the format on save
+  ([Formatter](#formatter)).
+
+The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
+that open in the editor ([Settings](#settings)): `all`, the default, every
+Markdown file; `notesAndPapers` the files with notes or with the comment of
+the format and the papers of nimblescape Markdown Paper; `none` no file.
+Every other file opens in the text editor, as the next section describes.
+
 ## Notes in the text editor
 
-A Markdown file with notes, or with the comment of the format, opens in the
-clean editing view, and so does a paper of nimblescape Markdown Paper, a file
-whose front matter has the key `layout`, also without notes. The text editor
+A Markdown file with notes, or with the comment of the format, that does not
+open in the editor of rendered Markdown opens in the clean editing view, and
+so does such a paper of nimblescape Markdown Paper, a file whose front
+matter has the key `layout`, also without notes. The text editor
 shows the text of the file without the
 notes markup, and behaves as in a file without notes. The side view shows
 the text of the notes. The view shows the highlights, and the light bulb at
@@ -1490,7 +1526,8 @@ code as `stripNotes(lines)` of the library of the npm package.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
+| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown ([Editor of rendered Markdown](#editor-of-rendered-markdown)): `all` every Markdown file; `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper; `none` no file. Every other file opens in the text editor, a file with notes in the clean editing view. "Reopen Editor With" of VS Code always offers the text editor. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.formatOnSave` | `true` | Formats a Markdown file with notes, or with the comment of the format, when you save it ([Formatter](#formatter)). The value `false` formats a file only with "Format Document". |
@@ -1509,6 +1546,9 @@ you can remove them from your settings.
 
 ## Limits
 
+- In the [editor of rendered Markdown](#editor-of-rendered-markdown), a
+  click on a standard footnote in the side view does not scroll the editor
+  to its reference.
 - In the [clean editing view](#clean-editing-view), Undo takes back the
   changes of the view only, not a change of the side view, such as a new,
   changed or deleted note or footnote. "Open File with Markup" and Undo there take it back. The warnings of
