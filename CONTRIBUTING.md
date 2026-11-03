@@ -83,7 +83,7 @@ describes its security model.
 | `package-lock.json` | The locked development tools. npm writes this file, and nobody edits it by hand. |
 | `.node-version` | The Node release of the development tools. `actions/setup-node` in the workflows and local Node version managers read it. |
 | `.vscodeignore` | Lists the files of the package: `dist/extension.js`, `dist/visualEditor.js`, `dist/editor.js`, `dist/visualEditor.css`, `media/markdownPreview.css`, `media/markdownPreview.js`, `media/notesView.css`, `media/notesView.js`, `resources/icon.png`, `resources/notes-icons.ttf`, `resources/notes-view.svg`, `package.json`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`. |
-| `.github/workflows/ci.yml` | Checks the types, checks the sources with ESLint, runs all tests, packages the VSIX and the npm package for every push to `main`, every pull request and the commit of every release, and runs the tests of `markdownnotes` on Ubuntu and macOS with Node.js 22 and 26. The release publishes the packages of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
+| `.github/workflows/ci.yml` | Installs the packages of nimblescape Markdown after `npm ci --ignore-scripts`, checks the types, checks the sources with ESLint, runs all tests, packages the VSIX and the npm package for every push to `main`, every pull request and the commit of every release, and runs the tests of `markdownnotes` on Ubuntu and macOS with Node.js 22 and 26. The release publishes the packages of this workflow, so a change of it needs a dry run (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/vscode-versions.yml` | Runs `ci.yml` once per week with VS Code Insiders and with the lowest supported VS Code version. |
 | `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace and to npmjs.com. A dry run tests without a change. The section [Release](#release) explains it. |
 | `.github/workflows/release-dry-run.yml` | Fails on a pull request that changes the release process (`release.yml`, `ci.yml` or `scripts/release-checks.mjs`) until a dry run on its branch tested the change (rule 4 of the [release rules](#release-rules)). |
@@ -143,11 +143,10 @@ libraries that they use and changes neither `package.json` nor
 the commit, so a second run does nothing. A later `npm install` without
 `--ignore-scripts` removes the packages and runs the script again.
 
-The repository of nimblescape Markdown is private before its release. Where
-git cannot read it, for example in CI, the environment variable
-`NIMBLESCAPE_MARKDOWN_TOKEN` gives a token that may read its contents; the
-script gives git the token through the environment, so that no message shows
-it.
+The repository of nimblescape Markdown is public, so git reads it without a
+token, also in CI. CI installs the locked development tools with
+`npm ci --ignore-scripts`, which skips the script `postinstall`, and then runs
+`node scripts/install-markdown.mjs`.
 
 A new commit of nimblescape Markdown comes with a check of the tab "Visual"
 of the side view in VS Code (typing, the toolbar, Ctrl+B, Undo, Ctrl+Enter,

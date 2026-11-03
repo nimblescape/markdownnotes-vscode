@@ -116,6 +116,7 @@ requirement, the plan and the decisions of Hannes.
 | 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-010](#r-text-010), [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | done |
 | 88 | The plugin of the figures for the editor of a whole file: the anchors, the markers of the values of the front matter and the comments of the listings hidden; the numbers of the captions, the references, the code and the cite of the listings and the values of the front matter read-only, with Ctrl+click on a reference to its target; a generated part of the editor that holds a whole block, from nimblescape Markdown | [R-TEXT-010](#r-text-010), [R-XREF-001](#r-xref-001), [R-XREF-004](#r-xref-004), [R-CODE-001](#r-code-001) | done |
 | 89 | The plugins of other extensions in the editor of a whole file, for example of Markdown Paper: the page loads the scripts that their package.json contributes, and `registerEditorPlugin` of version 1 of the API connects their part in the extension | [R-GEN-012](#r-gen-012), [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 with a test extension |
+| 90 | CI installs the packages of nimblescape Markdown, whose repository is public, after `npm ci --ignore-scripts` ([decision 64](#decisions)) | [R-GEN-017](#r-gen-017) | done |
 
 ## General
 
@@ -502,9 +503,9 @@ published before their release either. Until then, the script
 from a clone of the repository of nimblescape Markdown at a fixed commit and
 installs them with the libraries that they use, without a change of
 `package.json` and `package-lock.json` ([decision 63](#decisions)). The
-repository of nimblescape Markdown is private before its release: where git
-cannot read it, for example in CI, the environment variable
-`NIMBLESCAPE_MARKDOWN_TOKEN` gives a token that may read it.
+repository of nimblescape Markdown is public, so git reads it without a
+token, also in CI, which runs the script after `npm ci --ignore-scripts`
+([decision 64](#decisions)).
 
 ### R-GEN-018
 
@@ -2575,7 +2576,7 @@ notes:
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-11-01. The
+Hannes decided these questions from 2026-10-28 to 2026-11-03. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -3105,6 +3106,12 @@ requirements above follow them.
     extension builds its packages from a clone at a fixed commit, as
     nimblescape Markdown Paper does for the package of nimblescape PlantUML.
     This decision replaces decision 52.
+64. **nimblescape Markdown is public** ([R-GEN-017](#r-gen-017)): the
+    repository of nimblescape Markdown is public before its release, so that
+    CI reads it without a token. CI installs the packages of nimblescape
+    Markdown with `node scripts/install-markdown.mjs` after
+    `npm ci --ignore-scripts`. The other choices were a token of CI as a
+    secret of the repository, and no CI of the editor before the release.
 
 ---
 
