@@ -139,7 +139,10 @@
             "filenamePattern": "*.markdown"
           }
         ],
-        "priority": "default"
+        "priority": {
+          "textEditor": "default",
+          "diffEditor": "default"
+        }
       }
     ],
     "commands": [
@@ -297,6 +300,18 @@
         "title": "Open Text Editor to the Side",
         "category": "Markdown Notes",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.previousChange",
+        "title": "Previous Change",
+        "category": "Markdown Notes",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.nextChange",
+        "title": "Next Change",
+        "category": "Markdown Notes",
+        "icon": "$(arrow-down)"
       }
     ],
     "icons": {
@@ -381,6 +396,16 @@
           "command": "nimblescape.markdownNotes.openTextEditor",
           "group": "navigation",
           "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.previousChange",
+          "group": "navigation@1",
+          "when": "nimblescape.markdownNotes.editor.diff"
+        },
+        {
+          "command": "nimblescape.markdownNotes.nextChange",
+          "group": "navigation@2",
+          "when": "nimblescape.markdownNotes.editor.diff"
         }
       ],
       "view/title": [
@@ -543,6 +568,14 @@
         {
           "command": "nimblescape.markdownNotes.openTextEditor",
           "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.previousChange",
+          "when": "nimblescape.markdownNotes.editor.diff"
+        },
+        {
+          "command": "nimblescape.markdownNotes.nextChange",
+          "when": "nimblescape.markdownNotes.editor.diff"
         }
       ],
       "editor/context": [

@@ -66,8 +66,9 @@ describes each step and where its protection ends.
   editor shows the highlights of the notes, the side view follows its
   cursor, and "Comment" in the format bar over the selected text adds a
   note. The button "Open Text Editor to the Side" in the title of the editor
-  opens the text of the file. The setting `renderedEditor` chooses the files
-  that open in it.
+  opens the text of the file. A diff, for example of the changes in Git,
+  shows the editor on both sides, with the removed and the new text marked.
+  The setting `renderedEditor` chooses the files that open in it.
 - **Threads.** Each note is a thread: its first answer and a tree of replies,
   as in a discussion on Reddit. Each answer has a header with the GitHub login
   of its author and the date.

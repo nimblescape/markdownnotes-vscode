@@ -95,6 +95,8 @@ test('the activation registers the commands, the side view and the handler of li
       ...Object.values(publishCommands),
       renumberCommand,
       renderedEditor.openText,
+      renderedEditor.previousChange,
+      renderedEditor.nextChange,
     ].sort(),
   );
   expect([...fake.views.keys()]).toEqual([notesViewId]);
