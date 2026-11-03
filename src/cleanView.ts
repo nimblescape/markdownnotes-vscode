@@ -304,11 +304,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    * @param selected - The selected note of each file, whose highlight is strong.
    * @param showsFootnotes - Tells whether the side view shows the standard footnotes of a file, whose definitions the
    * view then hides.
+   * @param opensRendered - Tells whether a file opens in the editor of a whole file
+   * ([R-TEXT-010](../docs/requirements.md#r-text-010)): its text editor then shows the file with its markup.
    */
   constructor(
     private readonly showsHighlights: (document: vscode.Uri) => boolean,
     private readonly selected: SelectedNotes,
     private readonly showsFootnotes: (document: vscode.Uri) => boolean = () => false,
+    private readonly opensRendered: (document: vscode.TextDocument) => boolean = () => false,
   ) {}
 
   /**
@@ -652,12 +655,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, with the
-   * comment of the format, or a paper document, that the extension can change.
+   * comment of the format, or a paper document, that the extension can change, and that does not open in the editor of
+   * a whole file.
    * @param document - The document.
    */
   private switchable(document: vscode.TextDocument): boolean {
     return (
       document.uri.scheme !== cleanScheme &&
+      !this.opensRendered(document) &&
       document.languageId === 'markdown' &&
       vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) === true &&
       this.belongsInView(document.getText())

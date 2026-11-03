@@ -36,7 +36,7 @@ export interface Field {
 }
 
 /** keyPattern is the source of the pattern of a key: letters, digits, `_` and `-`, with `.` between the keys of a path. */
-const keyPattern = String.raw`[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*`;
+export const keyPattern = String.raw`[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*`;
 
 /**
  * fieldSearch matches a field of a line: the start marker with or without `<wbr>`, the value without a marker, and

@@ -40,7 +40,7 @@ requirement, the plan and the decisions of Hannes.
 | 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-PREV-005](#r-prev-005) | done |
 | 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered header lines | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | done: collapsed notes and rendered header lines; the dimming, the markers in the left margin and the highlighting of Markdown inside the notes dropped in step 24 |
 | 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; the numbers and the funnels replaced in step 24 |
-| 14 | Visual editing of the rendered Markdown in the side view, with the editor of the mode "Markdown Editor" of VS Code ([decision 52](#decisions)) | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | done |
+| 14 | Visual editing of the rendered Markdown in the side view, with the editor of the mode "Markdown Editor" of VS Code ([decision 52](#decisions)) | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | done; the editor replaced in step 86 |
 | 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | done |
 | 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done |
 | 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
@@ -112,6 +112,11 @@ requirement, the plan and the decisions of Hannes.
 | 83 | Snippets in a clone: "Add Snippet" and `/snippet` write nothing in a clone of a reference to a tag or a commit, and work in a clone on a branch ([decision 60](#decisions)) | [R-CODE-006](#r-code-006), [R-CODE-003](#r-code-003) | done |
 | 84 | Every paper document, a file whose front matter has the key `layout`, opens in the clean editing view, also without notes, so that its front matter is read-only ([decision 61](#decisions)) | [R-TEXT-009](#r-text-009) | done |
 | 85 | The files of a clone stay editable, and a clone opens in a new window; the user guide tells how a Codespace gets access to the private repositories of the references ([decision 62](#decisions)) | [R-CODE-006](#r-code-006) | done; no change of the code |
+| 86 | The editor of rendered Markdown of nimblescape Markdown in the tab "Visual" of the side view, in place of the editor of the mode "Markdown Editor" of VS Code; the packages of nimblescape Markdown built from a clone at a fixed commit ([decision 63](#decisions)) | [R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017) | done |
+| 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-010](#r-text-010), [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | done |
+| 88 | The plugin of the figures for the editor of a whole file: the anchors, the markers of the values of the front matter and the comments of the listings hidden; the numbers of the captions, the references, the code and the cite of the listings and the values of the front matter read-only, with Ctrl+click on a reference to its target; a generated part of the editor that holds a whole block, from nimblescape Markdown | [R-TEXT-010](#r-text-010), [R-XREF-001](#r-xref-001), [R-XREF-004](#r-xref-004), [R-CODE-001](#r-code-001) | done |
+| 89 | The plugins of other extensions in the editor of a whole file, for example of Markdown Paper: the page loads the scripts that their package.json contributes, and `registerEditorPlugin` of version 1 of the API connects their part in the extension | [R-GEN-012](#r-gen-012), [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 with a test extension |
+| 90 | CI installs the packages of nimblescape Markdown, whose repository is public, after `npm ci --ignore-scripts` ([decision 64](#decisions)) | [R-GEN-017](#r-gen-017) | done |
 
 ## General
 
@@ -374,6 +379,22 @@ Markdown file with notes without this extension knowing anything of papers:
     replaced selected text, VS Code puts the text back as for `/note`, and
     `run` gets the range of that text. A command without it shows only when
     the slash replaced no text. A command that fails shows a message.
+  - *(proposal)* `registerEditorPlugin(name, connect)`: the part in the
+    other extension of a plugin of the editor of a whole file
+    ([R-TEXT-010](#r-text-010)). The package.json of the other extension
+    names the scripts of its plugins in
+    `contributes["nimblescape.markdown.extensions"].editorScripts`, and the
+    page of the editor loads them before the editor starts (the plugins of
+    other extensions of the specification of nimblescape Markdown,
+    [R-PLUGIN-002](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-plugin-002)
+    and
+    [R-VSC-008](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-vsc-008)).
+    `connect` gets the channel of the plugin in the panel of each editor,
+    also of the editors that are open already, and may return what to
+    dispose when the panel closes; the messages of the page that came before
+    wait for it. The name is the name of the plugin on the page; the plugins
+    `notes` and `figures` of this extension keep their names, or the call
+    throws.
 - Checks of other extensions need no call: an extension sets its diagnostics
   on the file that `fileOf` names, as the notes do. Markdown Paper writes no
   lines into the comment of the format: a paper names its layout in its
@@ -475,6 +496,16 @@ and installs the file `nimblescape-markdownnotes-<version>.tgz` that
 `npm install github:nimblescape/markdownnotes-vscode` does not give the
 package, because it installs the extension at the root of the repository,
 and the bundles of `cli/dist/` are not in Git.
+
+The extension uses the npm packages of nimblescape Markdown, which are not
+published before their release either. Until then, the script
+`scripts/install-markdown.mjs` (also the script `postinstall`) builds them
+from a clone of the repository of nimblescape Markdown at a fixed commit and
+installs them with the libraries that they use, without a change of
+`package.json` and `package-lock.json` ([decision 63](#decisions)). The
+repository of nimblescape Markdown is public, so git reads it without a
+token, also in CI, which runs the script after `npm ci --ignore-scripts`
+([decision 64](#decisions)).
 
 ### R-GEN-018
 
@@ -888,8 +919,9 @@ the form of its file ([R-FMT-002](#r-fmt-002)).
 ### R-TEXT-009
 
 **Clean editing view.** The text editor of a Markdown file with notes, and
-of a paper document ([decision 61](#decisions)), edits the text of the file
-without the notes markup ([decision 27](#decisions)):
+of a paper document ([decision 61](#decisions)), that does not open in the
+editor of a whole file ([R-TEXT-010](#r-text-010)), edits the text of the
+file without the notes markup ([decision 27](#decisions)):
 without the start markers, the references, the definitions of the notes and
 the comment of the format. The line breaks, the cursor, the word moves, the
 search, the copy and Undo count only the characters of the text, as in a
@@ -971,8 +1003,9 @@ file at once, and keeps each note at its text:
   the file of the link: in its view when it has notes, else in its own text
   editor.
 
-A Markdown file with notes, or with the comment of the format, always opens
-in the view, and so does a paper document of nimblescape Markdown Paper, a
+A Markdown file with notes, or with the comment of the format, that does not
+open in the editor of a whole file always opens in the view, and so does
+such a paper document of nimblescape Markdown Paper, a
 Markdown file whose YAML front matter has the key `layout`, also without
 notes, so that the front matter of every paper is read-only
 ([decision 61](#decisions)). The view opens from the Explorer, a search, a link, the tabs of the last
@@ -1003,6 +1036,87 @@ and the view then shows the markup that is no longer a note, until Undo; the
 preview of the view does not show an image of HTML (`<img>`) from outside the
 folder of the file, nor a style sheet of `markdown.styles` with an absolute
 path.
+
+### R-TEXT-010
+
+**Editor of a whole file.** The editor of rendered Markdown of nimblescape
+Markdown ([R-GEN-017](#r-gen-017), [decision 63](#decisions)) edits a whole
+Markdown file in the editor area, in place of the clean editing view
+([R-TEXT-009](#r-text-009); the specification of nimblescape Markdown,
+[R-GEN-004](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-gen-004)).
+The extension registers it as the custom text editor of the Markdown files
+with the adapter `@nimblescape/markdownvscode`, so that the file stays a
+text document of VS Code: the save with the format on save
+([R-FMT-001](#r-fmt-001)), the dirty mark, the Git diffs and the other
+extensions work as for the text editor.
+
+- The setting `renderedEditor` chooses the files that open in the editor:
+  `all`, every Markdown file; `notesAndPapers`, a file with notes or with the
+  comment of the format, and a paper document of nimblescape Markdown Paper;
+  `none`, no file. *(proposal)* The default is `all`. Every other file opens
+  in the text editor, a file with notes in the clean editing view. "Reopen
+  Editor With" of VS Code always offers the text editor.
+- The button "Open Text Editor to the Side" in the title of the editor opens
+  the text editor of the file to the side, with the selection of the editor.
+  The buttons of the side view and of the highlights
+  ([R-GEN-011](#r-gen-011)) are in the title of the editor too.
+- The plugin of the notes of the editor keeps each note of the file byte for
+  byte and hides its markup: the start markers, the references, the
+  definitions of the notes and the comment of the format. The edits at a
+  note follow the rules of the clean editing view: text typed at the start
+  or the end of a highlight stays outside of it, text typed inside it stays
+  in it, a deleted text never deletes a note, a paragraph break inside a
+  highlight ends the highlight before the break and the definition of the
+  note moves after the block of its reference, and Undo and Redo bring back
+  the file with each note at its place.
+- The editor shows the highlights of the notes in their colors, as the text
+  editor does ([R-GEN-011](#r-gen-011)), and the selected note strong
+  ([R-SIDE-007](#r-side-007)).
+- The side view follows the selection of the editor as of a text editor
+  ([R-SIDE-002](#r-side-002)): the cursor in a highlight selects its thread,
+  and "Add Note" adds a note to the selected text
+  ([R-EDIT-006](#r-edit-006)). The button "Comment" of the format bar over
+  the selected text adds a note too. A click on a thread in the side view
+  selects its note in the editor, which scrolls to it, and keeps its place
+  in the editor area ([R-SIDE-007](#r-side-007)).
+- The editor shows no icons of threads beside the text, because the side
+  view shows the threads.
+- *(proposal)* The editor also has the plugins of other extensions, for
+  example of Markdown Paper, after the plugins of this extension
+  ([R-GEN-012](#r-gen-012)). A plugin with the name of another plugin of the
+  editor is left out, and when the plugins of other extensions stop the
+  start of the editor, the editor starts with the plugins of this extension
+  only.
+- The plugin of the figures of the editor hides the markup that the
+  formatter needs, as the clean editing view does: the anchors at the end of
+  captions and headings ([R-XREF-001](#r-xref-001)), the markers of the
+  values of the front matter ([R-XREF-004](#r-xref-004)) and the comments of
+  the listings ([R-CODE-001](#r-code-001)). The parts that the formatter
+  writes are read-only (the generated parts of the specification of
+  nimblescape Markdown,
+  [R-EDIT-011](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-011)):
+  the number of a caption, the text of a reference to a figure, a table, a
+  listing or a section, the code block of a listing and the cite of its
+  source after its caption, and a value of the front matter with its
+  markers, when the front matter has its key. Ctrl+click (Cmd+click on
+  macOS) on a reference goes to its target. The user changes a part through
+  what it comes from, and the formatter writes it again on save. Text typed
+  after the anchor at the end of a caption or a heading goes before the
+  anchor, an anchor stays at the end of its caption or heading when an edit
+  replaces the text before it, and the comment of a listing goes with its
+  code block.
+
+*(proposal)* The page of the editor and the extension exchange the
+selection, the selected note, the highlights and the button "Comment"
+through the channel of the plugin of the notes; each side checks each
+message before it uses it. Limits: a click on the thread of a standard
+footnote does not scroll the editor to its reference. A changed paragraph
+is written as one line, as the formatter writes it (the specification of
+nimblescape Markdown,
+[R-EDIT-005](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-005)).
+Ctrl+click on text that is no reference selects its block, as in other
+editors of rendered text; the next typed text replaces the block, and Undo
+brings it back.
 
 ### R-VIEW-001
 
@@ -1097,34 +1211,34 @@ selected text open the same editor ([R-EDIT-006](#r-edit-006)).
 ### R-SIDE-004
 
 **Visual editing.** In the tab "Visual", the user edits the rendered text of
-an answer, a new note or a footnote with the editor of the mode "Markdown
-Editor" of VS Code, the npm package `@vscode/markdown-editor`
-([decision 52](#decisions)):
+an answer, a new note or a footnote with the editor of rendered Markdown of
+nimblescape Markdown, the npm package `@nimblescape/markdowneditor`
+([decision 63](#decisions)):
 
 - The text shows rendered: headings, paragraphs, emphasis, links, lists,
-  block quotes, code, tables and task lists. The block with the cursor shows
-  its Markdown marks, so that the user sees and changes them.
-- The editor keeps the Markdown text as its document and changes it only
-  where the user types or uses the toolbar: the rest of the text stays as it
-  was, also a form that the editor cannot show rendered, such as HTML.
-- The toolbar above the text has "Bold", "Italic", "Code", "Link", "List",
-  "Numbered List" and "Quote", with the codicons of VS Code. The keys Ctrl+B,
-  Ctrl+I, Ctrl+E and Ctrl+K (Cmd on macOS) do the first four, and do not
-  reach VS Code, where Ctrl+B would show or hide the side bar. A mark goes
-  around the selected text or in front of the selected lines, and a second
-  use takes it away. Each change is one step of Undo.
-- A click on a link of a rendered block, or Ctrl+Click in the block with
-  the cursor, opens the link as a link of a rendered text of the side view
-  does ([R-SIDE-005](#r-side-005)).
+  block quotes, code, tables, task lists and GitHub alerts.
+- The editor changes only the text of the blocks that the user changes: the
+  rest of the text stays as it was, also a form that the editor cannot show
+  rendered, such as HTML.
+- The toolbar above the text has Undo, Redo, the text style and the list of
+  the block of the cursor, the insert menu and find and replace. The format
+  bar over the selected text, the slash commands and the keys of the editor,
+  for example Ctrl+B, Ctrl+I and Ctrl+K (Cmd on macOS), are those of the
+  editor. A key that the editor handles does not reach VS Code, where Ctrl+B
+  would show or hide the side bar.
+- Ctrl+Click (Cmd+Click on macOS) on a link opens the link as a link of a
+  rendered text of the side view does ([R-SIDE-005](#r-side-005)); a click
+  puts the cursor into the link.
 - "Save" (or Ctrl+Enter) writes the text, and "Cancel" (or Escape) closes
-  the editor, as in the tab "Markdown". A change of the tab keeps the text,
-  and a new editor opens in the tab that the user chose last, "Visual" at
-  first.
+  the editor, as in the tab "Markdown"; Escape in an open menu or field of
+  the editor closes only the menu or the field. A change of the tab keeps the
+  text, and a new editor opens in the tab that the user chose last, "Visual"
+  at first.
 - The page of the side view loads the editor as the bundle
-  `dist/visualEditor.js` with its styles and its icon font, under the same
-  policy as its own script: no other script, and no style attribute. The
-  version of the package is fixed, because the package is experimental; a
-  new version comes with a check in VS Code.
+  `dist/visualEditor.js` with its styles `dist/visualEditor.css`, under the
+  same policy as its own script: no other script, and no style attribute.
+  The style elements that the editor adds, the base styles of its engine,
+  carry the nonce of the page.
 
 ### R-SIDE-005
 
@@ -2462,7 +2576,7 @@ notes:
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-10-31. The
+Hannes decided these questions from 2026-10-28 to 2026-11-03. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -2872,7 +2986,7 @@ requirements above follow them.
     date. A listing shows a whole file or a snippet, as
     [decision 38](#decisions) says.
 52. **The visual editor is the editor of the VS Code Markdown Editor**
-    ([R-SIDE-004](#r-side-004)): the tab "Visual" of the side view uses the
+    (replaced by decision 63) ([R-SIDE-004](#r-side-004)): the tab "Visual" of the side view uses the
     npm package `@vscode/markdown-editor` of Microsoft (MIT), which VS Code
     uses for its mode "Markdown Editor", at a fixed version. It shows the
     block with the cursor with its Markdown marks and keeps the Markdown
@@ -2977,6 +3091,27 @@ requirements above follow them.
     the references. The other choices were read-only files of a clone, a
     clone as a second folder of the workspace, and the command also in the
     context menu and the title bar of the editor.
+63. **The visual editor is the editor of nimblescape Markdown**
+    ([R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017)): the libraries of
+    nimblescape Markdown replace the visual editor of Notes, and Notes uses
+    their editor for each answer of a note in its side view (the
+    specification of nimblescape Markdown,
+    [R-GEN-002](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-gen-002)
+    and
+    [R-GEN-004](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-gen-004)).
+    So the
+    tab "Visual" uses the editor of rendered Markdown of the npm package
+    `@nimblescape/markdowneditor`, which changes only the text of the blocks
+    that the user changes. Before the release of nimblescape Markdown, the
+    extension builds its packages from a clone at a fixed commit, as
+    nimblescape Markdown Paper does for the package of nimblescape PlantUML.
+    This decision replaces decision 52.
+64. **nimblescape Markdown is public** ([R-GEN-017](#r-gen-017)): the
+    repository of nimblescape Markdown is public before its release, so that
+    CI reads it without a token. CI installs the packages of nimblescape
+    Markdown with `node scripts/install-markdown.mjs` after
+    `npm ci --ignore-scripts`. The other choices were a token of CI as a
+    secret of the repository, and no CI of the editor before the release.
 
 ---
 

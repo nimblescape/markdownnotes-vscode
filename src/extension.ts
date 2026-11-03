@@ -34,6 +34,7 @@
  * else "Show Highlights", which turns the setting on.
  */
 
+import type { PluginPanelChannel } from '@nimblescape/markdownvscode';
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
@@ -49,6 +50,7 @@ import type { BlockFinder, MarkerFinder } from './notes/clean';
 import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
 import { registerPublishCommands } from './publish';
+import { RenderedEditors } from './renderedEditor';
 import { notesViewId, NotesView, viewCommands } from './notesView';
 import { SelectedNotes } from './selectedNotes';
 import { type SlashCommand, SlashCommands } from './slashCommands';
@@ -156,6 +158,17 @@ export interface ApiV1 {
    * @param command - The command.
    */
   registerSlashCommand(command: SlashCommand): vscode.Disposable;
+  /**
+   * registerEditorPlugin connects the part in the other extension of a plugin of the editor of a whole file
+   * ([R-TEXT-010](../docs/requirements.md#r-text-010)), whose script the package.json of the other extension names in
+   * `contributes["nimblescape.markdown.extensions"].editorScripts`. The function gets the channel of the plugin in the
+   * panel of each editor, also of the editors that are open already, and may return what to dispose when the panel
+   * closes; the messages that the page sent before wait for it. The name is the name of the plugin on the page, which
+   * no plugin of this extension has, or the call throws.
+   * @param name - The name of the plugin.
+   * @param connect - The function that connects the plugin in a panel.
+   */
+  registerEditorPlugin(name: string, connect: (channel: PluginPanelChannel) => void | vscode.Disposable): vscode.Disposable;
 }
 
 /** Api is the export of the extension. */
@@ -342,7 +355,8 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const editor = new NoteEditor(threads, showsHighlights, selected);
-  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
+  const rendered = new RenderedEditors(context.extensionUri, readSettings, selected, () => vscode.commands.executeCommand(viewCommands.newNote));
+  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes, (document) => rendered.opens(document));
   const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
   const slash = new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);
@@ -354,6 +368,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
     registerHiddenMarkers: (markers) => clean.registerHiddenMarkers((lines) => markers.find(lines)),
     registerSlashCommand: (command) => slash.add(command),
+    registerEditorPlugin: (name, connect) => rendered.addPlugin(name, connect),
   };
   /**
    * saveChangesOf returns the changes of a document before its save that its settings and its notes ask for: the
@@ -381,6 +396,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     contextsChanged();
     editor.showsChanged();
     clean.showsChanged();
+    rendered.showsChanged();
     refreshMarkdownPreviews();
   };
   context.subscriptions.push(
@@ -388,6 +404,9 @@ export function activate(context: vscode.ExtensionContext): Api {
     ...editor.register(),
     clean,
     ...clean.register(),
+    rendered,
+    ...rendered.register(),
+    rendered.onDidChangeSelection(({ document, selection, mouse }) => view.followEditor({ document, selection }, mouse)),
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),

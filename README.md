@@ -48,7 +48,7 @@ the file, with the GitHub login of the author.
   keep working.
 - **Side view.** The side view "Notes" is a webview of the extension. Its
   page runs only the scripts of the extension: its own script and the
-  visual editor, the editor of the mode "Markdown Editor" of VS Code.
+  visual editor, the editor of rendered Markdown of nimblescape Markdown.
 - **Network.** The extension's own code connects to no address, runs no
   program and collects no telemetry.
 - **Restricted Mode and virtual workspaces.** The extension works with all
@@ -60,6 +60,14 @@ describes each step and where its protection ends.
 
 ## Features
 
+- **Editor of rendered Markdown.** A Markdown file opens in the editor of
+  rendered Markdown of nimblescape Markdown: you edit the text as it reads,
+  without the markup of the notes, which stay in the file as they are. The
+  editor shows the highlights of the notes, the side view follows its
+  cursor, and "Comment" in the format bar over the selected text adds a
+  note. The button "Open Text Editor to the Side" in the title of the editor
+  opens the text of the file. The setting `renderedEditor` chooses the files
+  that open in it.
 - **Threads.** Each note is a thread: its first answer and a tree of replies,
   as in a discussion on Reddit. Each answer has a header with the GitHub login
   of its author and the date.
@@ -84,8 +92,9 @@ describes each step and where its protection ends.
   "Answer", "Make Footnote" and "Delete Thread" at each thread. "Show as Text" shows the whole
   note as the file holds it, and you can change it there. Each editor of a
   text has the tabs "Visual", where you edit the rendered text with the
-  editor of the VS Code Markdown Editor, a toolbar and Ctrl+B, Ctrl+I,
-  Ctrl+E and Ctrl+K, and "Markdown", where you edit the Markdown text. The
+  editor of rendered Markdown of nimblescape Markdown, its toolbar, its
+  format bar and Ctrl+B, Ctrl+I and Ctrl+K, and "Markdown", where you edit
+  the Markdown text. The
   links of the notes open. The view is in the secondary side bar, beside the chat, so the
   Explorer stays usable; the button "Show or Hide Notes" in the title of the
   Markdown editors opens and closes it with one click, also in Zen Mode and
@@ -218,7 +227,7 @@ you add or answer a note. In the side view "Notes":
 
 | Action | How |
 | --- | --- |
-| Add a note | Select the text in the text editor, then choose "Add Note" in the light bulb at the selected text (Ctrl+.), press Shift+Alt+N (Cmd+K N on a Mac), or click "Add Note" (`+`) in the title of the side view. In the Markdown preview, select the text, then click the button "Add Note" above it. Choose a color, write the text, then click "Add Note" (check mark) or press Ctrl+Enter. |
+| Add a note | Select the text in the text editor, then choose "Add Note" in the light bulb at the selected text (Ctrl+.), press Shift+Alt+N (Cmd+K N on a Mac), or click "Add Note" (`+`) in the title of the side view. In the editor of rendered Markdown, select the text, then click "Comment" in the format bar above it, or "Add Note" in the title of the side view. In the Markdown preview, select the text, then click the button "Add Note" above it. Choose a color, write the text, then click "Add Note" (check mark) or press Ctrl+Enter. |
 | Edit an answer | Click "Edit" (pencil) at the answer, change the text, then click "Save" (check mark) or press Ctrl+Enter. "Cancel" keeps the answer as it is. |
 | Answer a note | Click "Answer" (speech bubble) at the thread, write the text, then click "Answer". |
 | Reply to an answer | Click "Reply" (arrow) at the answer, write the text, then click "Reply". |
@@ -246,7 +255,8 @@ extension to everyone who opens it.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the text editor and in the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
+| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown: `all` every Markdown file, `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper, `none` no file. Every other file opens in the text editor. "Reopen Editor With" of VS Code always offers the text editor. |
+| `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |
 | `nimblescape.markdownNotes.openLinksIn` | `newWindow` | Where a link in a note to a file opens: `newWindow` in a new window of VS Code, `editor` in a tab of the editor of VS Code, `system` with the program of your system. |
@@ -265,6 +275,8 @@ on a save; "Save without Formatting" saves a file without the formatter.
 
 ## Limits
 
+- In the editor of rendered Markdown, a click on a standard footnote in the
+  side view does not scroll the editor to its reference.
 - Undo in the clean editing view takes back the changes of the view, not a
   change of the side view; "Open File with Markup" and Undo there take it
   back. The view shows the warnings of the notes in the Problems view only,

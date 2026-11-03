@@ -118,6 +118,9 @@ test('the view is a page whose policy runs only its own scripts, from the folder
   const nonce = /script-src 'nonce-(\w+)'/.exec(html)?.[1];
   expect(nonce).toMatch(/^\w{32}$/);
   expect(html).toContain("default-src 'none';");
+  // The style elements of the visual editor carry the nonce of the page; no style attribute applies.
+  expect(html).toContain(`style-src vscode-resource: 'nonce-${nonce}';`);
+  expect(html).not.toContain('unsafe-inline');
   expect(html).toContain(`<script nonce="${nonce}" src="file:/extension/dist/visualEditor.js"></script>\n<script nonce="${nonce}" src="file:/extension/media/notesView.js"></script>`);
   expect(html).toContain('<link rel="stylesheet" href="file:/extension/dist/visualEditor.css">\n<link rel="stylesheet" href="file:/extension/media/notesView.css">');
   expect(html.match(/<script/g)).toHaveLength(2);
@@ -477,6 +480,8 @@ const twoNotes = `The <wbr><!--[note-aaaa-->agents[^note-aaaa] change <wbr><!--[
  * @param text - The text of the file.
  */
 const inCleanView = async (text: string) => {
+  // The clean editing view shows the files that do not open in the editor of a whole file (R-TEXT-010).
+  fake.settings.set('', { ...fake.settings.get(''), renderedEditor: 'none' });
   fake.files.set('/folder/a.md', text);
   const document = fake.open(text);
   const tab = { input: new FakeTabInputText(document.uri), isPreview: true };

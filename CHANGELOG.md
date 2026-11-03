@@ -49,10 +49,11 @@ The first version.
   Thread" at each thread; "Add Note" in its title. "Show as Text" shows the
   whole note as the file holds it, for a change of the whole text. The editor
   of a text has the tabs "Visual" and "Markdown". "Visual" edits the
-  rendered text with the editor of the mode "Markdown Editor" of VS Code:
-  the block with the cursor shows its Markdown marks, the rest of the text
-  stays as it was, and a toolbar and Ctrl+B, Ctrl+I, Ctrl+E and Ctrl+K put
-  bold, italic, code and a link around the selected text. "Markdown"
+  rendered text with the editor of rendered Markdown of nimblescape
+  Markdown: only the blocks that you change get a new Markdown text, the rest
+  of the text stays as it was, and its toolbar, its format bar over the
+  selected text and Ctrl+B, Ctrl+I and Ctrl+K put bold, italic and a link
+  around the selected text. "Markdown"
   switches between "Write" and "Preview". The links of the notes open: web and mail links with the system, files in VS Code at a line or a
   heading. The view is in the secondary side bar, and the button "Show or
   Hide Notes" in the title of the Markdown editors opens and closes it, also
@@ -175,8 +176,25 @@ The first version.
   login of the user as their author. VS Code shows each date in the local
   time of the reader, and its tooltip or hover the local time of the author.
   A saved change of an answer gets the date of the save.
-- The clean editing view: a Markdown file with notes opens in a text editor
-  of its text without the notes markup, which behaves as in a file without
+- The editor of rendered Markdown of nimblescape Markdown edits a whole
+  Markdown file: the text as it reads, without the markup of the notes,
+  which stay in the file byte for byte, with the highlights in their colors,
+  the side view at its cursor, "Comment" in the format bar over the selected
+  text, which adds a note, and "Open Text Editor to the Side" in the title.
+  The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
+  that open in it: `all` (the default), `notesAndPapers` or `none`. The
+  editor hides the anchors of the figures, the tables, the listings and the
+  sections, the markers of the values of the front matter and the comments
+  of the listings, and keeps read-only the parts that the formatter writes:
+  the numbers of the captions, the references, with Ctrl+click to their
+  targets, the code and the cite of the listings, and the values of the
+  front matter. Other extensions, for example nimblescape Markdown Paper,
+  add plugins to the editor: their package.json names the scripts of the
+  plugins, and `registerEditorPlugin` of version 1 of the API connects
+  their part in the extension.
+- The clean editing view: a Markdown file with notes that does not open in
+  the editor of rendered Markdown opens in a text editor of its text without
+  the notes markup, which behaves as in a file without
   notes; the extension writes each change into the file and keeps each note
   at its text, also for Undo, and the save of the view saves the file. Its
   Markdown preview shows the highlights, and the images and the style sheets

@@ -82,6 +82,7 @@ import { type Footnote, footnoteAt, placeText, referenceAt, referencePlace } fro
 import { renderedRange } from './notes/rendered';
 import { authorDate, displayDate, type TodoState } from './notes/syntax';
 import { type AnswerRef, isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
+import { renderedEditor } from './renderedEditor';
 import { showAt } from './scrolling';
 import type { SelectedNotes } from './selectedNotes';
 import type { Settings } from './settings';
@@ -250,13 +251,17 @@ const wordCharacter = /[\p{L}\p{N}_]/u;
  */
 const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
 
+/** FollowedEditor is the part of a text editor that the view follows: its document and its selection. */
+export type FollowedEditor = Pick<vscode.TextEditor, 'document' | 'selection'>;
+
 /** markdownModes are the types of the custom editors of VS Code for a Markdown file: its modes "Markdown Preview" and "Markdown Editor". */
 export const markdownModes = { preview: 'vscode.markdown.preview.editor', editor: 'vscode.markdown.editor' } as const;
 
 /**
  * modeOf returns how the active tab of a group shows a document without a text editor, with the column of the group:
- * in the Markdown preview, which is the preview to the side (`toSide`) or the mode "Markdown Preview" of VS Code, or in
- * the mode "Markdown Editor" of VS Code; undefined for no such tab. VS Code tells an extension the URI of the document
+ * in the Markdown preview, which is the preview to the side (`toSide`) or the mode "Markdown Preview" of VS Code, in
+ * the mode "Markdown Editor" of VS Code, or in the editor of a whole file
+ * ([R-TEXT-010](../docs/requirements.md#r-text-010)); undefined for no such tab. VS Code tells an extension the URI of the document
  * of a custom editor, and of the preview to the side the type of its webview and its label, "Preview paper.md", only.
  * @param document - The URI of the document.
  * @param realOf - Returns the file of a clean document, or undefined for another document.
@@ -264,7 +269,7 @@ export const markdownModes = { preview: 'vscode.markdown.preview.editor', editor
 function modeOf(
   document: vscode.Uri,
   realOf: (uri: vscode.Uri) => vscode.Uri | undefined = () => undefined,
-): { mode: 'preview' | 'editor'; column: vscode.ViewColumn; toSide: boolean; uri?: vscode.Uri } | undefined {
+): { mode: 'preview' | 'editor' | 'rendered'; column: vscode.ViewColumn; toSide: boolean; uri?: vscode.Uri } | undefined {
   const name = document.path.split('/').pop() ?? '';
   for (const group of vscode.window.tabGroups.all) {
     const tab = group.activeTab;
@@ -280,6 +285,9 @@ function modeOf(
     }
     if (own && viewType === markdownModes.editor) {
       return { mode: 'editor', column: group.viewColumn, toSide: false, uri: input.uri };
+    }
+    if (own && viewType === renderedEditor.viewType) {
+      return { mode: 'rendered', column: group.viewColumn, toSide: false, uri: input.uri };
     }
   }
   return undefined;
@@ -701,13 +709,24 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
+   * followEditor follows the selection of the editor of a whole file ([R-TEXT-010](../docs/requirements.md#r-text-010)),
+   * as of a text editor: the editor gives it as a selection of the document.
+   * @param editor - The document and the selection of the editor.
+   * @param click - Whether the mouse changed the selection.
+   */
+  followEditor(editor: FollowedEditor, click: boolean): void {
+    this.follow(editor, click);
+  }
+
+  /**
    * followTab makes the document of the active tab the document of the view, when the tab shows it in the mode
    * "Markdown Preview" or "Markdown Editor" of VS Code, which are no text editors. The selected note of the document
    * stays selected.
    */
   private followTab(): void {
     const input = vscode.window.tabGroups.activeTabGroup?.activeTab?.input as { viewType?: unknown; uri?: vscode.Uri } | undefined;
-    const modes: readonly unknown[] = Object.values(markdownModes);
+    // The editor of a whole file (R-TEXT-010) shows the notes of its document too.
+    const modes: readonly unknown[] = [...Object.values(markdownModes), renderedEditor.viewType];
     // A mode of the clean editing view shows the notes of its file (R-TEXT-009).
     const real = input?.uri && this.mirror?.realOf(input.uri);
     const document = real ?? input?.uri;
@@ -731,7 +750,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param editor - The text editor.
    * @param click - Whether the mouse changed the selection.
    */
-  private doubleClicked(editor: vscode.TextEditor, click: boolean): vscode.Position | undefined {
+  private doubleClicked(editor: FollowedEditor, click: boolean): vscode.Position | undefined {
     const last = this.cursor;
     const key = editor.document.uri.toString();
     const { selection } = editor;
@@ -759,7 +778,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * @param editor - The text editor, or undefined.
    * @param click - Whether a click with the mouse moved the cursor.
    */
-  private follow(editor: vscode.TextEditor | undefined, click = false): void {
+  private follow(editor: FollowedEditor | undefined, click = false): void {
     // A text editor of the clean editing view shows the notes of its file, at the places in the file.
     const real = editor && this.mirror?.realOf(editor.document.uri);
     if (!editor || (!real && !isNoteDocument(editor.document))) {
@@ -823,9 +842,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * html returns the page of the view: its styles and its script, and the visual editor of the answers with its styles
-   * and its icon font ([R-SIDE-004](../docs/requirements.md#r-side-004)), with a policy that allows no other script
-   * and no other style, also no style attribute; the scripts set their styles through the CSS object model, which the
-   * policy allows.
+   * ([R-SIDE-004](../docs/requirements.md#r-side-004)), with a policy that allows no other script and no other style,
+   * also no style attribute: the scripts set their styles through the CSS object model, which the policy allows, and
+   * the style elements of the editor carry the nonce of the page.
    * @param webview - The webview of the view.
    * @param media - The folder of the script and the styles.
    * @param dist - The folder of the bundle of the visual editor and its styles.
@@ -836,7 +855,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const styles = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.css'));
     const editor = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.js'));
     const editorStyles = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.css'));
-    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
+    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'nonce-${nonce}'; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
     return [
       '<!DOCTYPE html>',
       '<html lang="en">',
@@ -1062,8 +1081,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     }
     const visible = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString());
     const shown = visible === undefined ? modeOf(uri, (tab) => this.mirror?.realOf(tab)) : undefined;
-    if (shown?.mode === 'preview') {
-      // The preview keeps its place in the editor area and scrolls to the note.
+    if (shown?.mode === 'preview' || shown?.mode === 'rendered') {
+      // The preview and the editor of a whole file keep their place in the editor area and scroll to the note.
       this.select(uri, id, true);
       await this.refresh();
       return;

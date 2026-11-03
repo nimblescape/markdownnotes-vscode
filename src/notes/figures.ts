@@ -95,13 +95,22 @@ const anchorPattern = String.raw`<a id="((?:fig|tab|lst|sec)-[a-z0-9]+(?:-[a-z0-
 export const hasAnchor = (text: string): boolean => /<a id="(?:fig|tab|lst|sec)-/.test(text);
 
 /** captionKinds are the words of the captions, by the kind of item that each one names. */
-const captionKinds: Readonly<Record<string, ItemKind>> = { Figure: 'figure', Abbildung: 'figure', Table: 'table', Tabelle: 'table', Listing: 'listing' };
+export const captionKinds: Readonly<Record<string, ItemKind>> = { Figure: 'figure', Abbildung: 'figure', Table: 'table', Tabelle: 'table', Listing: 'listing' };
+
+/** captionWords is the source of the pattern of the words of the captions. */
+const captionWords = Object.keys(captionKinds).join('|');
 
 /** captionPattern matches the text of a caption: its word, its number when it has one, and its text. */
-const captionPattern = /^(Figure|Abbildung|Table|Tabelle|Listing)(?:[ \t]+\d+)?:\s*([^]*)$/;
+const captionPattern = new RegExp(String.raw`^(${captionWords})(?:[ \t]+\d+)?:\s*([^]*)$`);
+
+/**
+ * captionStart matches the start of the text of a caption as captionPattern does: its word, and the white space and
+ * the number before the colon when it has a number.
+ */
+export const captionStart = new RegExp(String.raw`^(${captionWords})(?:([ \t]+)(\d+))?:`);
 
 /** captionHead matches the word and the number of a caption at the start of its first line, after the marks of quotes. */
-const captionHead = /^((?:[ \t]*>)*[ \t]*)(Figure|Abbildung|Table|Tabelle|Listing)(?:[ \t]+\d+)?[ \t]*:/;
+const captionHead = new RegExp(String.raw`^((?:[ \t]*>)*[ \t]*)(${captionWords})(?:[ \t]+\d+)?[ \t]*:`);
 
 /** prefixes are the prefixes of the names of the anchors of each kind. */
 const prefixes: Record<ItemKind, string> = { figure: 'fig', table: 'tab', listing: 'lst', section: 'sec' };
@@ -128,17 +137,12 @@ function imageOf(inline: Token): string | undefined {
 }
 
 /**
- * findItems returns the figures, the tables, the listings and the sections of a Markdown text in the order of the text.
- * Code blocks, HTML, the front matter and the texts of the notes hold none. A heading above the top level of the
- * sections, such as the title of a document with sections of the level `##`, starts no section ([topLevel](#toplevel)).
- * @param lines - The lines of the text.
+ * headingIds returns the function that gives each heading of a text, in the order of the text, the ID that GitHub gives
+ * it: a second heading of an ID gets the ID with `-1`, a third one `-2`.
  */
-export function findItems(lines: readonly string[]): Item[] {
-  const tokens = parse(lines);
-  const items: Item[] = [];
-  /** ids counts the IDs of the headings: GitHub gives a second heading of an ID the ID with `-1`, a third one `-2`. */
+export function headingIds(): (text: string) => string {
   const ids = new Map<string, number>();
-  const idOf = (text: string): string => {
+  return (text: string): string => {
     const slug = slugOf(text);
     let id = slug;
     for (let count = ids.get(slug) ?? 0; ids.has(id); count++) {
@@ -148,6 +152,18 @@ export function findItems(lines: readonly string[]): Item[] {
     ids.set(id, ids.get(id) ?? 0);
     return id;
   };
+}
+
+/**
+ * findItems returns the figures, the tables, the listings and the sections of a Markdown text in the order of the text.
+ * Code blocks, HTML, the front matter and the texts of the notes hold none. A heading above the top level of the
+ * sections, such as the title of a document with sections of the level `##`, starts no section ([topLevel](#toplevel)).
+ * @param lines - The lines of the text.
+ */
+export function findItems(lines: readonly string[]): Item[] {
+  const tokens = parse(lines);
+  const items: Item[] = [];
+  const idOf = headingIds();
   let depth = 0;
   /** pictures are the indexes of the tokens of the paragraphs of the images of figures with a caption. */
   const pictures = new Set<number>();
@@ -213,7 +229,7 @@ export function findItems(lines: readonly string[]): Item[] {
  * document, starts no section.
  * @param items - The items of the text.
  */
-function topLevel(items: readonly Item[]): number {
+export function topLevel(items: readonly Pick<Item, 'kind' | 'level'>[]): number {
   const levels = items.filter((item) => item.kind === 'section').map((item) => item.level!);
   const repeated = levels.filter((level, index) => levels.indexOf(level) !== index);
   return Math.min(...(repeated.length > 0 ? repeated : levels));
@@ -282,14 +298,20 @@ export function anchorName(item: Item, items: readonly Item[]): string {
   return name;
 }
 
+/** numberedText is the source of the pattern of the text of a link with a word and a number, such as `Table 1`. */
+const numberedText = String.raw`([^[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)`;
+
 /** linkSearch matches a link to a place of the file with a word and a number as its text, such as `[Table 1](#tab-x)`. */
-const linkSearch = /\[([^[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)\]\(#([^()\s]+)\)/g;
+const linkSearch = new RegExp(String.raw`\[${numberedText}\]\(#([^()\s]+)\)`, 'g');
+
+/** numberedLinkText matches the whole text of a link with a word and a number, such as `Table 1`, with the word. */
+export const numberedLinkText = new RegExp(`^${numberedText}$`);
 
 /**
  * sectionWords are the words of a link to the ID of a heading whose number the formatter writes, so that a link such as
  * `[Step 2](#install)` keeps its text.
  */
-const sectionWords = new Set(['Chapter', 'Kapitel', 'Section', 'Abschnitt']);
+export const sectionWords: ReadonlySet<string> = new Set(['Chapter', 'Kapitel', 'Section', 'Abschnitt']);
 
 /**
  * targetsOf returns the items of a text that a link names, by the name after `#`: the anchors of the figures, the

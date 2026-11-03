@@ -544,6 +544,60 @@ export class FakeView {
   }
 }
 
+/** FakePanel stands for the vscode.WebviewPanel of a custom editor. */
+export class FakePanel {
+  active = true;
+  visible = true;
+  viewColumn = 1;
+  /** messages are the messages that the extension sent to the page. */
+  readonly messages: { type: string; [key: string]: unknown }[] = [];
+  private readonly listeners: ((message: unknown) => unknown)[] = [];
+  private readonly disposals: (() => void)[] = [];
+  private readonly states: (() => void)[] = [];
+  readonly webview = {
+    options: {} as Record<string, unknown>,
+    html: '',
+    cspSource: 'vscode-resource:',
+    asWebviewUri: (uri: FakeUri) => uri,
+    postMessage: async (message: { type: string }) => {
+      this.messages.push(message);
+      return true;
+    },
+    onDidReceiveMessage: (listener: (message: unknown) => unknown) => {
+      this.listeners.push(listener);
+      return { dispose() {} };
+    },
+  };
+
+  onDidDispose(listener: () => void) {
+    this.disposals.push(listener);
+    return { dispose() {} };
+  }
+
+  onDidChangeViewState(listener: () => void) {
+    this.states.push(listener);
+    return { dispose() {} };
+  }
+
+  /** dispose closes the panel, as VS Code does when the user closes its tab. */
+  dispose(): void {
+    this.disposals.splice(0).forEach((listener) => listener());
+  }
+
+  /** send sends a message of the page to the extension and waits for its handling. */
+  async send(message: unknown): Promise<void> {
+    await Promise.all(this.listeners.map((listener) => listener(message)));
+  }
+
+  /**
+   * pluginMessages returns the messages that the extension sent to a plugin of the page.
+   * @param plugin - The name of the plugin.
+   */
+  pluginMessages(plugin: string): unknown[] {
+    return this.messages.filter((message) => message.type === 'plugin' && message.plugin === plugin).map((message) => message.message);
+  }
+}
+
 /** Registration is a registration of the fake API, which records its disposal. */
 export interface Registration {
   dispose(): void;
@@ -601,8 +655,11 @@ export class Fake {
   symbols = new Map<string, unknown[]>();
   /** codeLenses holds the providers of the code lenses. */
   codeLenses: { provideCodeLenses(document: FakeDocument): Promise<FakeCodeLens[]> | FakeCodeLens[] }[] = [];
-  /** extensions are the other installed extensions, by their identifiers, each with its manifest. */
-  extensions = new Map<string, { packageJSON: unknown }>();
+  /**
+   * extensions are the other installed extensions, by their identifiers, each with its manifest and its folder, by
+   * default /extensions/<identifier>.
+   */
+  extensions = new Map<string, { packageJSON: unknown; extensionUri?: FakeUri }>();
   /** watched holds the listeners of the watchers of files, by the kind of the change. */
   watched: { kind: 'create' | 'change' | 'delete'; listener: (uri: FakeUri) => void }[] = [];
   /**
@@ -635,6 +692,8 @@ export class Fake {
   /** sessions records the options of each request of a session. */
   sessions: { provider: string; scopes: readonly string[]; options: unknown }[] = [];
   views = new Map<string, { resolveWebviewView(view: FakeView): void }>();
+  /** customEditors holds the providers of the custom editors, by their types. */
+  customEditors = new Map<string, { resolveCustomTextEditor(document: FakeDocument, panel: FakePanel): unknown }>();
   uriHandler: { handleUri(uri: FakeUri): unknown } | undefined;
   /** held makes each edit of applyEdit wait until it resolves, as VS Code applies an edit some time after the call. */
   held: Promise<void> | undefined;
@@ -696,6 +755,7 @@ export class Fake {
       FoldingRangeKind: { Comment: 1 },
       TextEditorRevealType: { InCenter: 1, InCenterIfOutsideViewport: 2, AtTop: 3 },
       TabInputText: FakeTabInputText,
+      ViewColumn: { Active: -1, Beside: -2, One: 1, Two: 2 },
       TextEditorSelectionChangeKind: { Keyboard: 1, Mouse: 2, Command: 3 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
       EndOfLine: { LF: 1, CRLF: 2 },
@@ -839,6 +899,10 @@ export class Fake {
           this.views.set(id, provider);
           return this.registration();
         },
+        registerCustomEditorProvider: (viewType: string, provider: { resolveCustomTextEditor(document: FakeDocument, panel: FakePanel): unknown }) => {
+          this.customEditors.set(viewType, provider);
+          return this.registration();
+        },
         registerUriHandler: (handler: { handleUri(uri: FakeUri): unknown }) => {
           this.uriHandler = handler;
           return this.registration();
@@ -926,6 +990,9 @@ export class Fake {
       },
       extensions: {
         getExtension: (id: string) => (id === 'vscode.markdown-language-features' ? { isActive: true } : this.extensions.get(id)),
+        get all() {
+          return [...fake.extensions].map(([id, extension]) => ({ id, packageJSON: extension.packageJSON, extensionUri: extension.extensionUri ?? new FakeUri('file', `/extensions/${id}`) }));
+        },
         onDidChange: on('extensions'),
       },
       authentication: {
@@ -1077,6 +1144,27 @@ export class Fake {
     const view = new FakeView();
     this.views.get(id)!.resolveWebviewView(view);
     return view;
+  }
+
+  /**
+   * resolveCustomEditor lets the provider of a custom editor fill a new panel for a document, as VS Code does when the
+   * editor opens, and makes its tab the active tab of the first group.
+   * @param viewType - The type of the custom editor.
+   * @param document - The document.
+   */
+  async resolveCustomEditor(viewType: string, document: FakeDocument): Promise<FakePanel> {
+    const panel = new FakePanel();
+    let group = this.tabGroups.find((candidate) => candidate.viewColumn === panel.viewColumn);
+    if (!group) {
+      group = { viewColumn: panel.viewColumn, tabs: [] };
+      this.tabGroups.push(group);
+    }
+    const tab = { input: { viewType, uri: document.uri }, isPreview: false };
+    group.tabs.push(tab);
+    group.activeTab = tab;
+    await this.customEditors.get(viewType)!.resolveCustomTextEditor(document, panel);
+    this.fire('tabs', {});
+    return panel;
   }
 
   /**

@@ -5,9 +5,11 @@
 # Test the extension and build its packages for every push to main and every
 # pull request, on the pinned Node.js 24 release (.node-version); VS Code 1.125
 # (engines.vscode) and later run extensions on Node.js 24 too. The job "test"
-# installs the locked development tools without install scripts, checks the
-# types, checks the sources with ESLint, runs the unit tests and the tests in a
-# real VS Code (stable), packages the VSIX with vsce, which first bundles the
+# installs the locked development tools without install scripts and the
+# packages of nimblescape Markdown from its public repository at the commit
+# of scripts/install-markdown.mjs, checks the types, checks the sources with
+# ESLint, runs the unit tests and the tests in a real VS Code (stable),
+# packages the VSIX with vsce, which first bundles the
 # extension and the command markdownnotes with esbuild and also validates the
 # manifest and the README, and packs the npm package @nimblescape/markdownnotes
 # of cli/ with npm pack. Both stay workflow artifacts for inspection. The job
@@ -71,6 +73,10 @@ jobs:
       - name: Install the locked development tools without install scripts
         run: npm ci --ignore-scripts
 
+      # npm ci --ignore-scripts skips the script postinstall, which installs the packages of nimblescape Markdown.
+      - name: Install the packages of nimblescape Markdown
+        run: node scripts/install-markdown.mjs
+
       - name: Check the types
         run: npm run typecheck
 
@@ -132,6 +138,10 @@ jobs:
 
       - name: Install the locked development tools without install scripts
         run: npm ci --ignore-scripts
+
+      # npm ci --ignore-scripts skips the script postinstall, which installs the packages of nimblescape Markdown.
+      - name: Install the packages of nimblescape Markdown
+        run: node scripts/install-markdown.mjs
 
       # The tests run the built cli/dist/markdownnotes.js with this Node.js.
       - name: Run the tests of the command markdownnotes

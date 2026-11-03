@@ -49,7 +49,7 @@ export interface Listing {
  * listingComment matches the comment of a listing, with the path and the optional name after `#`. It also takes a name
  * that is no name of a snippet, such as `Reader.open`, so that the formatter reports the listing as not found.
  */
-const listingComment = /^\s*<!--\s*listing:\s*([^\s#]+)(?:#([A-Za-z0-9_$.-]+))?\s*-->\s*$/;
+export const listingComment = /^\s*<!--\s*listing:\s*([^\s#]+)(?:#([A-Za-z0-9_$.-]+))?\s*-->\s*$/;
 
 /** listingText returns the comment of a listing for a path and the name of a snippet. */
 export const listingText = (path: string, snippet?: string): string => `<!-- listing: ${path}${snippet ? `#${snippet}` : ''} -->`;

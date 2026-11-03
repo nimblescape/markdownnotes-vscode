@@ -25,6 +25,7 @@ import { footnoteCodes } from './notes/checks';
 import { deleteCommands } from './noteEditor';
 import { notesViewId, viewCommands } from './notesView';
 import { publishCommands } from './publish';
+import { renderedEditor } from './renderedEditor';
 import { settingsSection } from './settings';
 import { slashCommandIds } from './slashCommands';
 import { snippetCommands } from './snippets';
@@ -93,9 +94,12 @@ test('the activation registers the commands, the side view and the handler of li
       ...Object.values(usedSnippetCommands),
       ...Object.values(publishCommands),
       renumberCommand,
+      renderedEditor.openText,
     ].sort(),
   );
   expect([...fake.views.keys()]).toEqual([notesViewId]);
+  // The editor of a whole file is the custom editor of Markdown files (R-TEXT-010).
+  expect([...fake.customEditors.keys()]).toEqual([renderedEditor.viewType]);
   expect(fake.uriHandler).toBeDefined();
   // The overlay of the text editor learns the place of the pointer from a hover provider, the selected text has the
   // light bulb action "Add Note", and the warnings of the standard footnotes have their quick fixes.

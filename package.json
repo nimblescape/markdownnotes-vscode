@@ -47,6 +47,7 @@
     "test": "vitest run",
     "test:cli": "node esbuild.mjs && vitest run --config vitest.cli.config.mts",
     "test:vscode": "node esbuild.mjs && node scripts/build-vscode-tests.mjs && vscode-test --label vscode",
+    "postinstall": "node scripts/install-markdown.mjs",
     "vscode:prepublish": "node esbuild.mjs --production",
     "package": "vsce package --no-dependencies",
     "install-local": "node scripts/install-local.mjs",
@@ -58,8 +59,6 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.19.2",
     "@types/vscode": "~1.125.0",
-    "@vscode/markdown-editor": "0.0.2-162",
-    "@vscode/observables": "0.1.1-0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
@@ -128,6 +127,21 @@
         }
       ]
     },
+    "customEditors": [
+      {
+        "viewType": "nimblescape.markdownNotes.editor",
+        "displayName": "nimblescape Markdown Notes",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
     "commands": [
       {
         "command": "nimblescape.markdownNotes.newNote",
@@ -277,6 +291,12 @@
         "command": "nimblescape.markdownNotes.saveCopyWithoutNotes",
         "title": "Save Copy without Notes",
         "category": "Markdown Notes"
+      },
+      {
+        "command": "nimblescape.markdownNotes.openTextEditor",
+        "title": "Open Text Editor to the Side",
+        "category": "Markdown Notes",
+        "icon": "$(go-to-file)"
       }
     ],
     "icons": {
@@ -335,17 +355,17 @@
         {
           "command": "nimblescape.markdownNotes.toggleNotes",
           "group": "navigation",
-          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor')"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor' || activeCustomEditorId == 'nimblescape.markdownNotes.editor')"
         },
         {
           "command": "nimblescape.markdownNotes.showHighlights",
           "group": "navigation",
-          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && !nimblescape.markdownNotes.highlightsShown"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor' || activeCustomEditorId == 'nimblescape.markdownNotes.editor') && !nimblescape.markdownNotes.highlightsShown"
         },
         {
           "command": "nimblescape.markdownNotes.hideHighlights",
           "group": "navigation",
-          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor') && nimblescape.markdownNotes.highlightsShown"
+          "when": "(editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor' || activeCustomEditorId == 'nimblescape.markdownNotes.editor') && nimblescape.markdownNotes.highlightsShown"
         },
         {
           "command": "nimblescape.markdownNotes.showUsedSnippets",
@@ -356,6 +376,11 @@
           "command": "nimblescape.markdownNotes.hideUsedSnippets",
           "group": "navigation",
           "when": "editorLangId != markdown && nimblescape.markdownNotes.hasSnippets && nimblescape.markdownNotes.usedSnippetsShown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.openTextEditor",
+          "group": "navigation",
+          "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor'"
         }
       ],
       "view/title": [
@@ -514,6 +539,10 @@
         {
           "command": "nimblescape.markdownNotes.renumberFootnotes",
           "when": "editorLangId == markdown || activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor' || activeCustomEditorId == 'vscode.markdown.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.openTextEditor",
+          "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor'"
         }
       ],
       "editor/context": [
@@ -635,6 +664,22 @@
           "default": "newWindow",
           "scope": "resource",
           "markdownDescription": "Where a link in the text of a note to a file opens from the side view Notes. A link to a web page or an e-mail address opens with the program of your system in each case."
+        },
+        "nimblescape.markdownNotes.renderedEditor": {
+          "type": "string",
+          "enum": [
+            "all",
+            "notesAndPapers",
+            "none"
+          ],
+          "enumDescriptions": [
+            "Open every Markdown file in the editor of rendered Markdown.",
+            "Open a Markdown file with notes or with the comment of the format of the notes, and a paper document of nimblescape Markdown Paper, in the editor of rendered Markdown.",
+            "Open every Markdown file in the text editor."
+          ],
+          "default": "all",
+          "scope": "resource",
+          "markdownDescription": "Which Markdown files open in the editor of rendered Markdown, which shows the text without the markup of the notes and the notes in the side view Notes. Every other file opens in the text editor. \"Reopen Editor With\" of VS Code and the button \"Open Text Editor to the Side\" open the text editor of a file in each case."
         }
       }
     }

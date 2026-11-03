@@ -92,10 +92,14 @@ describe('nimblescape Markdown Notes', () => {
     folder = fs.mkdtempSync(path.join(os.tmpdir(), 'markdownnotes-'));
     // A save of a file of the tests writes no comment of the format; one test turns it on.
     await settings().update('addFormatComment', false, vscode.ConfigurationTarget.Global);
+    // These tests check the text editor and the clean editing view, so no file opens in the editor of a whole file
+    // (R-TEXT-010), which the tests at the end check.
+    await settings().update('renderedEditor', 'none', vscode.ConfigurationTarget.Global);
   });
 
   after(async () => {
     await settings().update('addFormatComment', undefined, vscode.ConfigurationTarget.Global);
+    await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
     fs.rmSync(folder, { recursive: true, force: true });
   });
 
@@ -723,5 +727,71 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(headingLine(html, 'Abstract'), 7, html);
     assert.equal(headingLine(html, 'abstract-1'), 9, html);
     assert.equal(headingLine(html, 'missing'), undefined);
+  });
+});
+
+describe('the editor of a whole file (R-TEXT-010)', () => {
+  let folder: string;
+  let count = 0;
+  const settings = () => vscode.workspace.getConfiguration('nimblescape.markdownNotes');
+  const viewType = 'nimblescape.markdownNotes.editor';
+
+  before(() => {
+    folder = fs.mkdtempSync(path.join(os.tmpdir(), 'markdownnotes-editor-'));
+  });
+
+  after(async () => {
+    await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
+    fs.rmSync(folder, { recursive: true, force: true });
+  });
+
+  afterEach(async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+  });
+
+  /**
+   * opened writes a Markdown file, opens it as the Explorer does, and returns the input of the active tab once it shows
+   * the file: the custom editor or the text editor.
+   * @param text - The text of the file.
+   */
+  async function opened(text: string): Promise<{ file: vscode.Uri; input: unknown }> {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, text);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const input = await waitFor(() => {
+      const tab = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+      return (tab instanceof vscode.TabInputCustom || tab instanceof vscode.TabInputText) && tab.uri.toString() === file.toString() ? tab : undefined;
+    }, 'the tab of the file');
+    return { file, input };
+  }
+
+  it('opens every Markdown file in the editor by default, and "Open Text Editor to the Side" opens the text of the file', async () => {
+    await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
+    const { file, input } = await opened(note);
+    assert.ok(input instanceof vscode.TabInputCustom, 'the custom editor');
+    assert.equal(input.viewType, viewType);
+    await vscode.commands.executeCommand(commandOf('openTextEditor'), file);
+    const editor = await waitFor(() => (vscode.window.activeTextEditor?.document.uri.toString() === file.toString() ? vscode.window.activeTextEditor : undefined), 'the text editor');
+    assert.equal(editor.document.getText(), note);
+    assert.notEqual(editor.viewColumn, vscode.ViewColumn.One);
+    const plain = await opened('# Title\n\nText.\n');
+    assert.ok(plain.input instanceof vscode.TabInputCustom, 'the custom editor of a file without notes');
+  });
+
+  it('opens only the files with notes and the papers in the editor with the value notesAndPapers, and no file with none', async () => {
+    await settings().update('renderedEditor', 'notesAndPapers', vscode.ConfigurationTarget.Global);
+    assert.ok((await opened(note)).input instanceof vscode.TabInputCustom, 'a file with notes');
+    assert.ok((await opened('---\nlayout: pht/thesis\n---\n\n# Title\n')).input instanceof vscode.TabInputCustom, 'a paper');
+    const plain = await opened('# Title\n\nText.\n');
+    await waitFor(() => (vscode.window.activeTextEditor?.document.uri.toString() === plain.file.toString() ? true : undefined), 'the text editor of a file without notes');
+    await settings().update('renderedEditor', 'none', vscode.ConfigurationTarget.Global);
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    fs.writeFileSync(file.fsPath, note);
+    await vscode.commands.executeCommand('vscode.open', file);
+    // A file with notes then opens in the clean editing view (R-TEXT-009).
+    await waitFor(() => {
+      const editor = vscode.window.activeTextEditor;
+      return editor?.document.uri.scheme === 'markdownnotes' && editor.document.uri.path === file.path ? editor : undefined;
+    }, 'the clean editing view');
   });
 });

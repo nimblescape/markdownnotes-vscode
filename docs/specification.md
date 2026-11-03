@@ -127,9 +127,19 @@ form of the notes in a file for programs and AI agents, and
 
 ## 4. Text editor
 
+- **Editor of a whole file:** the editor of rendered Markdown of
+  nimblescape Markdown is the custom text editor of the Markdown files that
+  the setting `renderedEditor` chooses: `all` (*(proposal)* the default),
+  `notesAndPapers` or `none`. It hides the notes markup, keeps each note
+  byte for byte at its text with the rules of the clean editing view, shows
+  the highlights, and the side view follows its selection; "Open Text Editor
+  to the Side" opens the text editor of the file. It hides the anchors, the
+  markers of the values of the front matter and the comments of the
+  listings, and the parts that the formatter writes are read-only
+  ([R-TEXT-010](requirements.md#r-text-010)).
 - **Clean editing view:** a Markdown file with notes, or with the comment of
-  the format, always opens in a text editor of its text without the notes
-  markup: no start markers, references, definitions of notes, comment of
+  the format, that does not open in the editor of a whole file always opens
+  in a text editor of its text without the notes markup: no start markers, references, definitions of notes, comment of
   the format or anchors of figures and tables, and no blocks that other
   extensions hide. Line breaks, cursor,
   word moves, search, copy and Undo count only the text. Each change goes
@@ -374,8 +384,12 @@ form of the notes in a file for programs and AI agents, and
 ## 12. API for other extensions
 
 The export has `getAPI(version)`; `getAPI(1)` gives `fileOf(uri)`,
-`registerFormatStep`, `registerHiddenBlocks`, `registerHiddenMarkers` and
-`registerSlashCommand`, each register call with a disposable. The clean
+`registerFormatStep`, `registerHiddenBlocks`, `registerHiddenMarkers`,
+`registerSlashCommand` and `registerEditorPlugin`, each register call with
+a disposable. `registerEditorPlugin` connects the part in the other
+extension of a plugin of the editor of a whole file, whose script the
+package.json of the other extension names
+([R-GEN-012](requirements.md#r-gen-012)). The clean
 editing view hides the blocks and the markers of other extensions, such as
 the start marker `<wbr><!--[research-->` of Markdown Paper; a slash command
 with `selection: true` shows only after a slash that replaced selected text,

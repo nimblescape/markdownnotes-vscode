@@ -399,9 +399,10 @@ button.tab.chosen {
 }
 
 /*
- * The visual editor (R-SIDE-004): the editor of the mode "Markdown Editor" of
- * VS Code in a box like the text field of the tab "Markdown", with its toolbar
- * above the text.
+ * The visual editor (R-SIDE-004): the editor of rendered Markdown of
+ * nimblescape Markdown in a box like the text field of the tab "Markdown",
+ * with its toolbar above the text. The text has the colors of a text field
+ * and the font of the view, as the rendered answers.
  */
 .visual {
   box-sizing: border-box;
@@ -414,20 +415,21 @@ button.tab.chosen {
   outline-offset: 1px;
 }
 
-.visual-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
+:root .visual.nsmd-editor {
+  --nsmd-background: var(--vscode-input-background);
+  --nsmd-foreground: var(--vscode-input-foreground, var(--vscode-foreground));
+  --nsmd-font-family: var(--vscode-font-family);
+  --nsmd-font-size: var(--vscode-font-size, 13px);
+  --nsmd-line-height: 1.5;
+}
+
+.visual .nsmd-toolbar {
   padding: 2px;
-  border-bottom: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.35));
 }
 
-.visual .md-editor {
+.visual .ProseMirror {
   min-height: 6em;
-}
-
-.visual .md-editor .md-editor-content {
-  padding: 8px 8px 0;
+  padding: 4px 8px 4px 0;
 }
 
 .problem {

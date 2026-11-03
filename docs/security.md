@@ -92,6 +92,7 @@ A note from a stranger can still:
 | The light bulb action "Add Note" (`src/addNoteAction.ts`) | The Code Actions of VS Code, in the VS Code window | A fixed title and the command "Add Note" of the extension, without arguments; it holds no text of the file |
 | The slash commands (`src/slashCommands.ts`) | The suggestions of VS Code, in the VS Code window | Fixed labels, the date and the time, the GitHub login of the user, the text that the typed slash replaced, and commands of the extension with the document, a range and a label as arguments |
 | The side view (`media/notesView.js`) | A webview of VS Code, in the VS Code window | The state that the extension sends: the answers and their HTML, which the Markdown preview renderer made from the text of the file |
+| The editor of rendered Markdown (`dist/editor.js`) | A webview of VS Code for the custom editor of a Markdown file, in the VS Code window | The text of the document that the adapter of nimblescape Markdown sends, and the selected note and the highlights that the extension sends |
 | The markdown-it plugin, the styles and the script of the preview (`media/markdownPreview.css`, `media/markdownPreview.js`) | The Markdown extension of VS Code, which renders the page of the Markdown preview, with the security policy of the Markdown preview | The Markdown text of the document |
 
 In a remote window (SSH, WSL, a container), the extension runs where the
@@ -144,10 +145,11 @@ connection of VS Code, as the text of an open file does.
 
 - The page of the side view has a content security policy:
   `default-src 'none'`, scripts only with a nonce that the extension creates
-  for each page (`script-src 'nonce-…'`), styles only from the style sheet
-  of the extension (`style-src` without `'unsafe-inline'`), and images of the
-  extension, of `https:` and of `data:`. So no script of a note runs, also not
-  an event attribute such as `onerror`, and no style element or style
+  for each page (`script-src 'nonce-…'`), styles only from the style sheets
+  of the extension and from the style elements with the same nonce, which the
+  visual editor adds (`style-src` without `'unsafe-inline'`), and images of
+  the extension, of `https:` and of `data:`. So no script of a note runs, also
+  not an event attribute such as `onerror`, and no style element or style
   attribute of a note applies. The script of the view sets its own styles
   through the CSS object model, which the policy allows.
 - The webview loads files only from the folder `media` of the extension
@@ -172,6 +174,31 @@ connection of VS Code, as the text of an open file does.
 - A click on a link of a rendered text does not load the address in the page
   of the view: the script stops the click and sends the address to the
   extension ([Links of the notes](#links-of-the-notes)).
+
+## Editor of rendered Markdown
+
+- The editor of a whole file is the custom text editor of the Markdown files
+  ([R-TEXT-010](requirements.md#r-text-010)). The adapter of nimblescape
+  Markdown, `@nimblescape/markdownvscode`, writes its page with a content
+  security policy: `default-src 'none'`, scripts only with a nonce that the
+  adapter creates for each page, styles and fonts of the extension and the
+  styles in the page (`'unsafe-inline'`), and images of the extension, of
+  `https:`, of `data:` and of `blob:`. The webview loads files only from the
+  folder `dist` of the extension and from the folder of the workspace of the
+  file, or from the folder of the file outside a workspace, and has no
+  command links.
+- The page changes the file only through the adapter, which applies each
+  change as an edit of the document of VS Code, as a change in the text
+  editor; a file on a file system that cannot write, for example an older
+  version from git, opens read-only.
+- The plugin of the notes on the page and the extension exchange messages
+  through the channel of the plugin (`src/notes/editorMessages.ts`): the
+  page sends the selection as numbers of characters, which the extension
+  limits to the length of the document, and the button "Comment", which
+  runs "Add Note" of the extension without arguments; the extension sends
+  the label of the selected note and whether the highlights show. Each side
+  checks each message and ignores every other value, so a script of the
+  page cannot run another command of the extension.
 
 ## Links of the notes
 
@@ -322,6 +349,10 @@ address.
   that the body of a note names, also from an `https:` address of the
   internet, as the Markdown preview does for the rest of the file. VS Code
   then loads the image from that address.
+- The page of the editor of rendered Markdown allows the styles in the page
+  (`'unsafe-inline'`), which the adapter of nimblescape Markdown needs for
+  now; a style of HTML in the file applies there, as in the Markdown
+  preview.
 - The header of an answer proves nobody's identity: anyone who can change
   the file can write any author and any date.
 - A note that a text from outside VS Code changes, for example a `git pull`,

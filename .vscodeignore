@@ -4,13 +4,14 @@
 
 # The package holds the bundle, the styles and the scripts of the Markdown
 # preview and of the side view, the bundle of the visual editor of the side
-# view with its styles and its icon font, the icons, the icon font and the
-# documents only: ignore everything, then keep the listed files.
+# view with its styles, the bundle of the editor of a whole file, the icons,
+# the icon font and the documents only:
+# ignore everything, then keep the listed files.
 **
 !dist/extension.js
 !dist/visualEditor.js
+!dist/editor.js
 !dist/visualEditor.css
-!dist/codicon.ttf
 !media/markdownPreview.css
 !media/markdownPreview.js
 !media/notesView.css
