@@ -89,7 +89,8 @@ describe('the library of the npm package', () => {
     const tsc = path.join(repository, 'node_modules', 'typescript', 'bin', 'tsc');
     expect(node(folder, [tsc, '-p', 'tsconfig.json'])).toMatchObject({ code: 0, stdout: '' });
     expect(node(folder, [tsc, '-p', 'wrong.json']).code).not.toBe(0);
-  });
+    // Two runs of the TypeScript compiler take more than the 5 seconds of a test on a slow runner.
+  }, 30_000);
 });
 
 describe('the command markdownnotes', () => {

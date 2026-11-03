@@ -333,7 +333,7 @@ describe('nimblescape Markdown Notes', () => {
     // of the next test without its clean editing view.
     assert.ok(await real()?.save(), 'the save of the file');
     } catch (error) {
-      throw new Error(`${String(error)}\n${events.join('\n')}\nfile now: ${JSON.stringify(vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString())?.getText())}`);
+      throw new Error(`${String(error)}\n${events.join('\n')}\nfile now: ${JSON.stringify(vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString())?.getText())}`, { cause: error });
     } finally {
       watchers.forEach((watcher) => watcher.dispose());
       console.log(`DIAGNOSTIC of the eye test:\n${events.join('\n')}`);
