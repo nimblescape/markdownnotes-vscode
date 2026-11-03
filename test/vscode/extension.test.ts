@@ -286,32 +286,11 @@ describe('nimblescape Markdown Notes', () => {
   it('hides the notes of a file from other viewers and shows them again with the commands of the eye, while the clean editing view keeps its text (R-HIDE-001 to R-HIDE-003)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, note);
-    // TEMPORARY diagnostic of the CI failure: the events of the file and of the tabs.
-    const started = Date.now();
-    const events: string[] = [];
-    const mark = (what: string) => events.push(`${Date.now() - started}ms ${what}`);
-    const watchers = [
-      vscode.workspace.onDidChangeTextDocument((event) => {
-        if (event.document.uri.path === file.path) {
-          mark(`change ${event.document.uri.scheme} v${event.document.version} reason=${event.reason} dirty=${event.document.isDirty} changes=${JSON.stringify(event.contentChanges.map((change) => [change.range.start.line, change.range.end.line, change.text.slice(0, 40)]))}`);
-        }
-      }),
-      vscode.workspace.onDidOpenTextDocument((document) => document.uri.path === file.path && mark(`open ${document.uri.scheme} v${document.version}`)),
-      vscode.workspace.onDidCloseTextDocument((document) => document.uri.path === file.path && mark(`close ${document.uri.scheme}`)),
-      vscode.workspace.onDidSaveTextDocument((document) => document.uri.path === file.path && mark(`save ${document.uri.scheme}`)),
-      vscode.window.tabGroups.onDidChangeTabs((event) => {
-        const name = (tab: vscode.Tab) => (tab.input instanceof vscode.TabInputText ? `${tab.input.uri.scheme}:${path.basename(tab.input.uri.path)}${tab.isPreview ? '(preview)' : ''}${tab.isActive ? '(active)' : ''}` : tab.label);
-        mark(`tabs opened=${event.opened.map(name).join(',')} closed=${event.closed.map(name).join(',')} changed=${event.changed.map(name).join(',')}`);
-      }),
-    ];
-    try {
     await vscode.commands.executeCommand('vscode.open', file);
     const view = await viewOf(file);
-    mark('view');
     const clean = view.document.getText();
     const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
     await vscode.commands.executeCommand(commandOf('hideNotesFromViewers'));
-    mark('hidden command done');
     const hidden = await waitFor(() => (real()?.getText().includes('<!--note-bbbb]-->') ? real() : undefined), 'the hidden form in the file');
     const text = hidden.getText();
     assert.match(text.split('\n')[0], /^<!-- nimblescape-markdownnotes v\d+\.\d+\.\d+ hidden spec=/);
@@ -324,20 +303,12 @@ describe('nimblescape Markdown Notes', () => {
     }, 'two hidden notes');
     assert.deepEqual(notes.map((each) => each.answers.map((answer) => answer.author)), [['ann', 'bob'], ['carl']]);
     await waitFor(() => (view.document.getText() === clean ? true : undefined), 'the text of the clean editing view');
-    mark('show command');
     await vscode.commands.executeCommand(commandOf('showNotesInViewers'));
-    mark('show command done');
     await waitFor(() => (real()?.getText() === marked(note) ? true : undefined), 'the visible form in the file');
     assert.equal(view.document.getText(), clean);
     // A changed file that is not saved stays open after the close of the editors, and VS Code 1.125 then opens the file
     // of the next test without its clean editing view.
     assert.ok(await real()?.save(), 'the save of the file');
-    } catch (error) {
-      throw new Error(`${String(error)}\n${events.join('\n')}\nfile now: ${JSON.stringify(vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString())?.getText())}`, { cause: error });
-    } finally {
-      watchers.forEach((watcher) => watcher.dispose());
-      console.log(`DIAGNOSTIC of the eye test:\n${events.join('\n')}`);
-    }
   });
 
   it('copies the text of the file of a clean editing view without its notes to the clipboard, and changes no file (R-HIDE-004)', async () => {

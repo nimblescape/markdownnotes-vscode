@@ -519,7 +519,9 @@ fixes of the code that change no feature. They came after step 35
   A change that VS Code does not write into the file gives a problem of its
   own. A new note or a new footnote whose place an earlier change of the
   extension changed while it waited is not written, and its message asks
-  the user to choose the place again.
+  the user to choose the place again. A write to a file also waits until
+  the clean editing view of the file closed the tab of the file behind it,
+  because VS Code asks to save a file with changes whose tab closes.
 - Tests of the scripts of the side view and of the Markdown preview
   (`media/notesView.js`, `media/markdownPreview.js`) in a page of
   happy-dom, and a type check of the scripts with the types of the browser
