@@ -10,7 +10,7 @@
 import { expect, test } from 'vitest';
 import { checkedSettings, defaultSettings, type Settings } from './settings';
 
-test('the defaults show the highlights, open links in a new window, add the comment of the format, format a file with notes on save, and show the footnotes', () => {
+test('the defaults show the highlights, open links in a new window, add the comment of the format, format a file with notes on save, show the footnotes, and show the syntax of the extensions of the Markdown preview', () => {
   expect(defaultSettings).toEqual({
     showHighlights: true,
     openLinksIn: 'newWindow',
@@ -19,6 +19,7 @@ test('the defaults show the highlights, open links in a new window, add the comm
     showFootnotes: true,
     hideNotesInNewFiles: false,
     renderedEditor: 'all',
+    previewExtensions: true,
   });
 });
 
@@ -31,6 +32,7 @@ test('checkedSettings keeps the values that the settings take', () => {
     showFootnotes: false,
     hideNotesInNewFiles: true,
     renderedEditor: 'notesAndPapers',
+    previewExtensions: false,
   };
   expect(checkedSettings((key) => values[key])).toEqual(values);
   expect(checkedSettings((key) => ({ openLinksIn: 'editor' })[key as string])).toMatchObject({ openLinksIn: 'editor' });
@@ -46,6 +48,7 @@ test('checkedSettings gives a missing value or a value that the setting does not
     showFootnotes: 1,
     hideNotesInNewFiles: 'yes',
     renderedEditor: 'some',
+    previewExtensions: 'no',
   };
   expect(checkedSettings((key) => values[key])).toEqual(defaultSettings);
   expect(checkedSettings((key) => (key === 'openLinksIn' ? 'NewWindow' : undefined)).openLinksIn).toBe('newWindow');

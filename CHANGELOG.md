@@ -199,7 +199,10 @@ The first version.
   in Git, shows the editor on both sides: the older version read-only on the
   left, the removed and the new blocks and words marked, the blocks in line
   and scrolling together, and "Previous Change" and "Next Change" in the
-  title.
+  title. The editor shows what other extensions add to the Markdown preview
+  of VS Code, for example diagrams and math between `$$`, as blocks that
+  switch between their rendering and their source; the setting
+  `nimblescape.markdownNotes.previewExtensions` turns it off.
 - The clean editing view: a Markdown file with notes that does not open in
   the editor of rendered Markdown opens in a text editor of its text without
   the notes markup, which behaves as in a file without

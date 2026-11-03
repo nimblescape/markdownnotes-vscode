@@ -5,7 +5,8 @@
 /**
  * The editor of a whole file ([R-TEXT-010](../docs/requirements.md#r-text-010)): the editor of rendered Markdown of
  * nimblescape Markdown as the custom text editor of Markdown files, with the plugin of the notes
- * ([src/webview/notesPlugin.ts](webview/notesPlugin.ts)). The adapter `@nimblescape/markdownvscode` registers it and
+ * ([src/webview/notesPlugin.ts](webview/notesPlugin.ts)). The adapter of VS Code of the extension
+ * ([src/adapter/editor.ts](adapter/editor.ts), [R-VSC-001](../docs/requirements.md#r-vsc-001)) registers it and
  * connects its page to the document, so that the file stays a text document of VS Code. The setting `renderedEditor`
  * chooses the files that open in it: every Markdown file (`all`), the files with notes or with the comment of the format
  * and the paper documents (`notesAndPapers`), or none; every other file opens in the text editor. The button "Open Text
@@ -22,7 +23,7 @@
  * other extension connects through `registerEditorPlugin` of the API of the extension, also after editors opened.
  */
 
-import { registerMarkdownEditor, type MarkdownEditorHandle, type PluginConnect, type PluginPanelChannel } from '@nimblescape/markdownvscode';
+import { registerMarkdownEditor, type MarkdownEditorHandle, type PluginConnect, type PluginPanelChannel } from './adapter/editor';
 import * as vscode from 'vscode';
 import { isPaperDocument } from './notes/clean';
 import { findDoctype } from './notes/doctype';
@@ -118,6 +119,8 @@ export class RenderedEditors implements vscode.Disposable {
       plugins: { [pluginName]: (channel) => this.connect(channel) },
       // The plugins of other extensions, for example of Markdown Paper.
       contributedPlugins: true,
+      // The syntax of the extensions of the Markdown preview of VS Code, for example diagrams and math.
+      previewExtensions: (document) => this.settingsOf(document.uri).previewExtensions,
     });
     return [this.handle, this.selected.onDidChange((document) => this.postSelected(document))];
   }

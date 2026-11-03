@@ -9,9 +9,13 @@ Licensed under the MIT License. See LICENSE in the repository root for details.
 The script of nimblescape Markdown Notes, `dist/extension.js`, contains the
 Markdown parser markdown-it with the packages that it uses. The extension
 finds the notes of a Markdown file with it, as the Markdown preview of
-VS Code does. The command `markdownnotes` of the npm package
-`@nimblescape/markdownnotes`, `cli/dist/markdownnotes.js`, contains the
-same packages, and the npm package holds this file. This file names each of these packages, its
+VS Code does. For the adapter of VS Code of the editor of rendered
+Markdown, the script also contains the packages `@nimblescape/markdowntext`
+and `@nimblescape/markdownrender` of nimblescape Markdown, with the
+packages that they use. The command `markdownnotes` of the npm package
+`@nimblescape/markdownnotes`, `cli/dist/markdownnotes.js`, contains
+markdown-it with the packages that it uses, and the npm package holds this
+file. This file names each of these packages, its
 license and the place of its source code. The code of the extension itself is under the
 [MIT License](https://github.com/nimblescape/markdownnotes-vscode/blob/main/LICENSE).
 
@@ -21,8 +25,9 @@ markdown-it, which is part of VS Code, not of this package.
 The visual editor of the side view, `dist/visualEditor.js` with its styles
 `dist/visualEditor.css`, contains the editor of rendered Markdown of
 nimblescape Markdown, the packages `@nimblescape/markdowneditor`,
-`@nimblescape/markdownrender`, `@nimblescape/markdowntext` and
-`@nimblescape/markdownvscode`, with the packages that they use. The npm
+`@nimblescape/markdownrender` and `@nimblescape/markdowntext`, with the
+packages that they use; the page of the editor of a whole file,
+`dist/editor.js`, contains the same packages. The npm
 package `@nimblescape/markdownnotes` holds none of them.
 
 | Package in `dist/extension.js` | Version | License |
@@ -33,13 +38,21 @@ package `@nimblescape/markdownnotes` holds none of them.
 | [mdurl](#mdurl) | 2.1.0 | MIT |
 | [punycode.js](#punycodejs) | 2.3.1 | MIT |
 | [uc.micro](#ucmicro) | 2.1.0 | MIT |
+| [@nimblescape/markdowntext](#nimblescapemarkdowntext) | 0.1.0 | MIT |
+| [@nimblescape/markdownrender](#nimblescapemarkdownrender) | 0.1.0 | MIT |
+| [markdown-it-footnote](#markdown-it-footnote) | 4.0.0 | MIT |
+| [markdown-it-task-lists](#markdown-it-task-lists) | 2.1.1 | ISC |
+| [@decimalturn/toml-patch](#decimalturntoml-patch) | 3.3.2 | MIT |
+| [jsonc-parser](#jsonc-parser) | 3.3.1 | MIT |
+| [yaml](#yaml) | 2.9.1 | ISC |
+| [@cfworker/json-schema](#cfworkerjson-schema) | 4.1.4 | MIT |
+| [diff](#diff) | 9.0.0 | BSD-3-Clause |
 
 | Package in `dist/visualEditor.js` and `dist/visualEditor.css` | Version | License |
 | --- | --- | --- |
 | [@nimblescape/markdowntext](#nimblescapemarkdowntext) | 0.1.0 | MIT |
 | [@nimblescape/markdownrender](#nimblescapemarkdownrender) | 0.1.0 | MIT |
 | [@nimblescape/markdowneditor](#nimblescapemarkdowneditor) | 0.1.0 | MIT |
-| [@nimblescape/markdownvscode](#nimblescapemarkdownvscode) | 0.1.0 | MIT |
 | [@tiptap/core](#tiptapcore) | 3.32.2 | MIT |
 | [orderedmap](#orderedmap) | 2.1.1 | MIT |
 | [prosemirror-model](#prosemirror-model) | 1.25.12 | MIT |
@@ -315,10 +328,6 @@ SOFTWARE.
 Source code: <https://github.com/nimblescape/markdown>. Its license is the same text as the license of [@nimblescape/markdowntext](#nimblescapemarkdowntext).
 
 ## @nimblescape/markdowneditor
-
-Source code: <https://github.com/nimblescape/markdown>. Its license is the same text as the license of [@nimblescape/markdowntext](#nimblescapemarkdowntext).
-
-## @nimblescape/markdownvscode
 
 Source code: <https://github.com/nimblescape/markdown>. Its license is the same text as the license of [@nimblescape/markdowntext](#nimblescapemarkdowntext).
 

@@ -45,6 +45,11 @@ export interface Settings {
   hideNotesInNewFiles: boolean;
   /** renderedEditor chooses the Markdown files that open in the editor of a whole file ([R-TEXT-010](../docs/requirements.md#r-text-010)). */
   renderedEditor: EditorFiles;
+  /**
+   * previewExtensions shows the syntax that other extensions add to the Markdown preview of VS Code, for example diagrams
+   * and math, in the editor of a whole file ([R-VSC-010](../docs/requirements.md#r-vsc-010)).
+   */
+  previewExtensions: boolean;
 }
 
 /** defaultSettings are the values of the settings that the user did not set. */
@@ -56,6 +61,7 @@ export const defaultSettings: Readonly<Settings> = {
   showFootnotes: true,
   hideNotesInNewFiles: false,
   renderedEditor: 'all',
+  previewExtensions: true,
 };
 
 /**
@@ -63,7 +69,7 @@ export const defaultSettings: Readonly<Settings> = {
  * @param read - Returns the value of a setting, or undefined.
  */
 export function checkedSettings(read: (key: keyof Settings) => unknown): Settings {
-  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave' | 'showFootnotes' | 'hideNotesInNewFiles'): boolean => {
+  const flag = (key: 'showHighlights' | 'addFormatComment' | 'formatOnSave' | 'showFootnotes' | 'hideNotesInNewFiles' | 'previewExtensions'): boolean => {
     const raw = read(key);
     return typeof raw === 'boolean' ? raw : defaultSettings[key];
   };
@@ -77,5 +83,6 @@ export function checkedSettings(read: (key: keyof Settings) => unknown): Setting
     showFootnotes: flag('showFootnotes'),
     hideNotesInNewFiles: flag('hideNotesInNewFiles'),
     renderedEditor: editorFiles.find((value) => value === files) ?? defaultSettings.renderedEditor,
+    previewExtensions: flag('previewExtensions'),
   };
 }

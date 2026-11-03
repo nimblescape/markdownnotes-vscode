@@ -393,6 +393,14 @@ note at its place.
   The removed blocks and words are red on the left, the new ones green on
   the right, and both sides scroll together. The arrow buttons "Previous
   Change" and "Next Change" in the title of the editor go to the changes.
+- The editor shows what other extensions add to the Markdown preview of
+  VS Code, for example the diagrams of a Mermaid extension and math between
+  `$$`: such a block shows its rendering, and you switch it to its source to
+  change it. The extensions need no change for it. A plugin that changes the
+  text inside a paragraph, for example emoji codes or math between `$`,
+  shows nothing in the editor: the paragraph shows the text as it is
+  written. The setting `nimblescape.markdownNotes.previewExtensions` turns
+  this off ([Settings](#settings)).
 
 The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
 that open in the editor ([Settings](#settings)): `all`, the default, every
@@ -1546,6 +1554,7 @@ code as `stripNotes(lines)` of the library of the npm package.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown ([Editor of rendered Markdown](#editor-of-rendered-markdown)): `all` every Markdown file; `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper; `none` no file. Every other file opens in the text editor, a file with notes in the clean editing view. "Reopen Editor With" of VS Code always offers the text editor. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.previewExtensions` | `true` | Whether the editor of rendered Markdown shows the syntax that other extensions add to the Markdown preview of VS Code, for example diagrams and math ([Editor of rendered Markdown](#editor-of-rendered-markdown)). A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes at the top of a file with notes when you save it ([Comment of the format](#comment-of-the-format)). The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |

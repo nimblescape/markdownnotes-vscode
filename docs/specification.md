@@ -138,8 +138,23 @@ form of the notes in a file for programs and AI agents, and
   listings, and the parts that the formatter writes are read-only. A diff of
   a file shows the editor on both sides, with the removed and the new
   blocks and words marked, the blocks in line and the buttons "Previous
-  Change" and "Next Change"
+  Change" and "Next Change". It shows the syntax that other extensions add
+  to the Markdown preview, for example diagrams and math, unless the setting
+  `previewExtensions` turns it off
   ([R-TEXT-010](requirements.md#r-text-010)).
+- **Adapter of VS Code:** a part of the extension, not a package of
+  nimblescape Markdown. It registers the editor as a custom text editor, so
+  the file stays a text document of VS Code; the page allows only the
+  script of the extension with a nonce; the text editor opens to the side;
+  the page and the document exchange patches against known versions; the
+  keys of the editor stay in the page; other extensions contribute plugins
+  through `nimblescape.markdown.extensions`; the two sides of a diff are
+  connected; the extensions of the Markdown preview render the top-level
+  blocks in the extension host, and a block whose HTML differs is a block of
+  the level "render"; every color comes from the color theme and the fonts
+  from the settings of the Markdown preview; no proposed API, no telemetry
+  ([R-VSC-001](requirements.md#r-vsc-001) to
+  [R-VSC-012](requirements.md#r-vsc-012)).
 - **Clean editing view:** a Markdown file with notes, or with the comment of
   the format, that does not open in the editor of a whole file always opens
   in a text editor of its text without the notes markup: no start markers, references, definitions of notes, comment of

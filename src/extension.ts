@@ -34,7 +34,7 @@
  * else "Show Highlights", which turns the setting on.
  */
 
-import type { PluginPanelChannel } from '@nimblescape/markdownvscode';
+import type { PluginPanelChannel } from './adapter/editor';
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';

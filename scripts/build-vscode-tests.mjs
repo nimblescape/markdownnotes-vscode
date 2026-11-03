@@ -19,6 +19,10 @@ await esbuild.build({
   outdir,
   bundle: true,
   platform: 'node',
+  // As esbuild.mjs: the ES module of a package before its CommonJS file, because the UMD file of jsonc-parser, which
+  // the adapter of VS Code uses through @nimblescape/markdowntext, loads its parts with a require that the bundle
+  // cannot resolve.
+  mainFields: ['module', 'main'],
   format: 'cjs',
   target: 'es2022',
   sourcemap: true,
