@@ -88,7 +88,7 @@ describes its security model.
 | `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace and to npmjs.com. A dry run tests without a change. The section [Release](#release) explains it. |
 | `.github/workflows/release-dry-run.yml` | Fails on a pull request that changes the release process (`release.yml`, `ci.yml` or `scripts/release-checks.mjs`) until a dry run on its branch tested the change (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/marketplace-identity.yml` | Prints the Marketplace member ID of the publishing identity, to check the setup of the repository. |
-| `.github/dependabot.yml` | Proposes weekly updates of the development tools and of the pinned actions. TypeScript stays at 6.0.3, as in every nimblescape extension. |
+| `.github/dependabot.yml` | Proposes weekly updates of the development tools and of the pinned actions. TypeScript stays at 6.0.3, as in every nimblescape extension; markdown-it and the plugins of the compatibility tests stay at their major versions (see [Markdown preview](#markdown-preview)). |
 | `scripts/build-vscode-tests.mjs` | Bundles each test of `test/vscode/` into `out/test/vscode/` for the tests in VS Code. |
 | `scripts/install-markdown.mjs` | Installs the npm packages of nimblescape Markdown from a clone of its repository at a fixed commit; also the script `postinstall`. The section [The editor of nimblescape Markdown](#the-editor-of-nimblescape-markdown) explains it. |
 | `scripts/install-local.mjs`, `scripts/uninstall-local.mjs` | Install the built package into every profile of the VS Code of this computer, and remove it again. |
@@ -806,6 +806,13 @@ the built-in Markdown preview of VS Code uses (the `markdown-it` dependency of
 version 14 on 2026-10-28), so that the extension finds the notes as the
 preview does. Dependabot offers no major versions of them
 (`.github/dependabot.yml`); move to a new major version only when VS Code does.
+
+The same holds for the plugins of the compatibility tests
+(`src/markdown/compatibility.test.ts`, [R-GEN-007](docs/requirements.md#r-gen-007)):
+`markdown-it-emoji` 2, `markdown-it-footnote` 3 and `markdown-it-task-lists` 2
+are the major versions that the extensions Markdown Emoji 0.3.1, Markdown
+Footnotes 0.1.1 and Markdown Checkboxes 0.4.0 of Matt Bierner bundle. Move to a
+new major version only when these extensions do.
 
 The plugin `src/markdown/markdownIt.ts` adds the rules of the notes and the
 core rule `nimblescape_notes` after the rules of markdown-it and of the other

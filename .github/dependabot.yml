@@ -27,6 +27,15 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@types/markdown-it'
         update-types: ['version-update:semver-major']
+      # The markdown-it plugins of the compatibility tests stay at the major versions that the Markdown extensions of
+      # Matt Bierner bundle (R-GEN-007): markdown-it-emoji 2 (Markdown Emoji 0.3.1), markdown-it-footnote 3 (Markdown
+      # Footnotes 0.1.1) and markdown-it-task-lists 2 (Markdown Checkboxes 0.4.0).
+      - dependency-name: 'markdown-it-emoji'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'markdown-it-footnote'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'markdown-it-task-lists'
+        update-types: ['version-update:semver-major']
       # TypeScript stays at 6.0.3 in every nimblescape extension: typescript-eslint supports TypeScript only up to 6.0,
       # and TypeScript 7 has no language service for the plugin of nimblescape TypeScript (R-GEN-018). A move to another
       # version of TypeScript is one decision for all extensions together.
