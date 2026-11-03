@@ -73,9 +73,9 @@ describes its security model.
 | `docs/images/` | The images of the documents. `participants.svg` is the chart of the figure in `docs/example.md`. The image of the README is `notes.png`, a screenshot of VS Code 1.143 in the theme Dark Modern under Xvfb in the zone Europe/Vienna, with the text editor with the highlights of two notes and the list of the light bulb at the selected text (Ctrl+.), and the side view "Notes" beside it in the secondary side bar. The README shows PNG and GIF files only, because the Marketplace shows no SVG image. The README links its images with full addresses on the branch `main`, which the Marketplace requires; they are not part of the package. A test checks that each image of the README is a GIF or PNG file in this folder. |
 | `THIRD-PARTY-NOTICES.md` | The packages that the bundle contains, their licenses and the places of their source code. |
 | `SUPPORT.md` | Where to ask questions and report problems, and what a report contains. |
-| `eslint.config.mjs` | The rules of ESLint for the sources (`npm run lint`), which CI runs ([R-GEN-018](docs/requirements.md#r-gen-018)). |
+| `eslint.config.mjs` | The rules of `npm run lint`, which CI runs ([R-GEN-018](docs/requirements.md#r-gen-018)): the recommended rules of ESLint and of typescript-eslint, and the rules that find promises that nobody waits for, with the types of the `tsconfig.json` files. The file is the same in every nimblescape extension, except its lists of the ignored files and of the scripts of webviews. |
 | `esbuild.mjs` | Bundles `src/extension.ts` with markdown-it into `dist/extension.js` for the Node.js of VS Code, `src/cli/main.ts` with markdown-it into `cli/dist/markdownnotes.js` and `src/cli/index.ts` into `cli/dist/index.js` for Node.js 22 or later, and copies `LICENSE` and `THIRD-PARTY-NOTICES.md` into `cli/`. It bundles `src/webview/visualEditor.ts` with the editor of nimblescape Markdown into `dist/visualEditor.js` for the page of the side view, `src/webview/editor.ts` into `dist/editor.js` for the page of the editor of a whole file, and the styles, `markdown.css` of `@nimblescape/markdowneditor` and `vscode.css` of `@nimblescape/markdownvscode`, into `dist/visualEditor.css`. The editor API stays outside the bundles. The bundle is readable JavaScript, not minified (see [Reviewing the package](#reviewing-the-package)); a production build (`--production`) has no source map. |
-| `tsconfig.json` | The settings of the type check: strict, and no output, because esbuild builds the bundle. It covers `src/` and `test/`. |
+| `tsconfig.json` | The settings of the type check with TypeScript 6.0: strict, and no output, because esbuild builds the bundle. It covers `src/` and `test/`. The settings are the same in every nimblescape extension, except the files they include. |
 | `vitest.config.mts` | The settings of the unit tests: the files `src/**/*.test.ts` and `scripts/**/*.test.mjs` on Node. |
 | `vitest.cli.config.mts` | The settings of the tests of the built command `markdownnotes`: the files `test/cli/**/*.test.ts`. |
 | `.vscode-test.mjs` | The settings of the tests in VS Code: the VS Code version (`VSCODE_TEST_VERSION`, stable by default), the files of `out/test/vscode/`, and mocha. |
@@ -88,7 +88,7 @@ describes its security model.
 | `.github/workflows/release.yml` | Releases a version on a manual start: commits the version to a temporary branch, tests and packages it with `ci.yml`, and only then moves `main` to it, creates its tag and GitHub release and publishes it to the Marketplace and to npmjs.com. A dry run tests without a change. The section [Release](#release) explains it. |
 | `.github/workflows/release-dry-run.yml` | Fails on a pull request that changes the release process (`release.yml`, `ci.yml` or `scripts/release-checks.mjs`) until a dry run on its branch tested the change (rule 4 of the [release rules](#release-rules)). |
 | `.github/workflows/marketplace-identity.yml` | Prints the Marketplace member ID of the publishing identity, to check the setup of the repository. |
-| `.github/dependabot.yml` | Proposes weekly updates of the development tools and of the pinned actions. |
+| `.github/dependabot.yml` | Proposes weekly updates of the development tools and of the pinned actions. TypeScript stays at 6.0.3, as in every nimblescape extension. |
 | `scripts/build-vscode-tests.mjs` | Bundles each test of `test/vscode/` into `out/test/vscode/` for the tests in VS Code. |
 | `scripts/install-markdown.mjs` | Installs the npm packages of nimblescape Markdown from a clone of its repository at a fixed commit; also the script `postinstall`. The section [The editor of nimblescape Markdown](#the-editor-of-nimblescape-markdown) explains it. |
 | `scripts/install-local.mjs`, `scripts/uninstall-local.mjs` | Install the built package into every profile of the VS Code of this computer, and remove it again. |
@@ -99,7 +99,8 @@ describes its security model.
 
 ## Development
 
-The development tools are TypeScript, esbuild, vitest,
+The development tools are TypeScript 6.0, ESLint with typescript-eslint,
+esbuild, vitest,
 [`@vscode/test-cli`](https://github.com/microsoft/vscode-test-cli) for the
 tests in VS Code, and [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce),
 the Microsoft tool that packages and publishes extensions. Everything runs on
@@ -112,7 +113,7 @@ command `markdownnotes` of the npm package runs on the Node.js of the
 | --- | --- |
 | `npm ci --ignore-scripts` | Installs the locked development tools and runs no install script of a dependency. Then `node scripts/install-markdown.mjs` installs the packages of nimblescape Markdown; `npm ci` and `npm install` without `--ignore-scripts` run it as the script `postinstall`. |
 | `npm run typecheck` | Checks the types with `tsc`, also of the scripts of `media/` with the types of the browser (`media/tsconfig.json`). esbuild does not check them. |
-| `npm run lint` | Checks the sources with ESLint, with the recommended rules of ESLint and of typescript-eslint (`eslint.config.mjs`). TypeScript stays at version 6.0, the newest version that typescript-eslint supports. A rule that a line breaks on purpose is switched off for that line only, with `// eslint-disable-next-line <rule>` and the reason. |
+| `npm run lint` | Checks the sources with ESLint (`eslint.config.mjs`). `npm run lint -- --fix` corrects what ESLint can correct itself. TypeScript stays at version 6.0.3, because typescript-eslint supports TypeScript only up to 6.0. A rule that a line breaks on purpose is switched off for that line only, with `// eslint-disable-next-line <rule>` and the reason. |
 | `npm test` | Runs the unit tests with vitest. The tests touch no installed editor; the tests of the scripts of `media/` run them in pages of happy-dom. |
 | `npm run test:cli` | Builds the bundles and runs the tests of the built `markdownnotes` in the temporary folder of the system. |
 | `npm run test:vscode` | Builds the bundle and the tests in VS Code, downloads VS Code to `.vscode-test/` and runs the tests in it. On Linux without a display, run it as `xvfb-run -a npm run test:vscode`. `VSCODE_TEST_VERSION=insiders` or a version such as `1.125.0` selects another VS Code. |

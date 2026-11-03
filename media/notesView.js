@@ -229,7 +229,7 @@
       }
       for (const attribute of [...node.attributes]) {
         const name = attribute.name.toLowerCase();
-        // eslint-disable-next-line no-control-regex -- the control characters are what the check removes.
+        // The control characters are what the check removes.
         const address = attribute.value.replace(/[\s\u0000-\u001f]/g, '').toLowerCase();
         if (name.startsWith('on') || name === 'srcdoc' || name === 'style' || (linkAttributes.has(name) && /(^|,)(javascript|vbscript):/.test(address))) {
           node.removeAttribute(attribute.name);
