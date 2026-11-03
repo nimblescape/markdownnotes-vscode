@@ -10,8 +10,10 @@ This document summarizes every requirement of nimblescape Markdown Notes that
 is still valid on 2026-10-30, from all requests of Hannes since 2026-10-28.
 Requests that later decisions replaced or dropped are not in it. Each point
 links to the full text of its requirement in [requirements.md](requirements.md),
-which also holds the [plan](requirements.md#plan) and the
-[decisions](requirements.md#decisions). [format.md](format.md) specifies the
+which also holds the
+[decisions](requirements.md#decisions). The steps are in the
+[one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md)
+of nimblescape Markdown. [format.md](format.md) specifies the
 form of the notes in a file for programs and AI agents, and
 [features.md](features.md) gives the state of each request. A point marked
 **planned** is specified but not built yet.

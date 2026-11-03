@@ -21,105 +21,19 @@ as the highlights of a marker pen on paper.
 
 [docs/specification.md](specification.md) summarizes every requirement that
 is still valid, in short; this document holds the full text of each
-requirement, the plan and the decisions of Hannes.
+requirement and the decisions of Hannes. The steps of the work are in the
+[one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md) of nimblescape Markdown
+([decision 66](#decisions)).
 
 ## Plan
 
-| Step | Content | Requirements | State |
-| --- | --- | --- | --- |
-| 1 | Setup: manifest, build, CI, release workflows, license notices, the same structure as the other nimblescape extensions | [R-GEN-001](#r-gen-001) to [R-GEN-005](#r-gen-005) | done |
-| 2 | The note, its header, its label | [R-NOTE-001](#r-note-001) to [R-NOTE-003](#r-note-003) | done; as a footnote since step 17 |
-| 3 | The text editor and the Comments view: show, edit, save, add and delete notes | [R-TEXT-001](#r-text-001), [R-VIEW-001](#r-view-001), [R-EDIT-001](#r-edit-001) to [R-EDIT-004](#r-edit-004) | done; the boxes and the Comments view dropped in step 24 |
-| 4 | The Markdown preview: callouts | [R-PREV-001](#r-prev-001) | done; dropped in step 24 |
-| 5 | Name `nimblescape-markdown-notes`, GitHub sign-in for the author | [R-GEN-005](#r-gen-005), [R-GEN-006](#r-gen-006), [R-NOTE-002](#r-note-002) | done |
-| 6 | Notes in the text, threads of answers | [R-NOTE-004](#r-note-004), [R-NOTE-005](#r-note-005), [R-EDIT-005](#r-edit-005) | done; as footnotes and a tree of answers since step 17 |
-| 7 | Text editor: dimmed comment source, collapsible notes as in GitHub pull requests | [R-TEXT-001](#r-text-001) to [R-TEXT-003](#r-text-003) | done; dropped in step 24 |
-| 8 | Preview: icon, callout on hover, click opens the editor, the text without the notes | [R-PREV-001](#r-prev-001) to [R-PREV-005](#r-prev-005) | done; the icons and the callouts dropped in step 24 |
-| 9 | Side view: the note editor | [R-SIDE-001](#r-side-001) to [R-SIDE-003](#r-side-003) | done |
-| 10 | Tests, tests in a real VS Code, README, user guide, screenshot | all | done |
-| 11 | Links in the side view, the side view in the secondary side bar with the buttons that show and hide it, the button of the preview | [R-SIDE-001](#r-side-001), [R-SIDE-005](#r-side-005), [R-SIDE-006](#r-side-006), [R-PREV-005](#r-prev-005) | done |
-| 12 | Text editor: Markdown inside the notes, dimming after the cursor, collapsed notes with a marker, rendered header lines | [R-TEXT-003](#r-text-003) to [R-TEXT-007](#r-text-007) | done: collapsed notes and rendered header lines; the dimming, the markers in the left margin and the highlighting of Markdown inside the notes dropped in step 24 |
-| 13 | Number and color of each note, common selection, funnels | [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; the numbers and the funnels replaced in step 24 |
-| 14 | Visual editing of the rendered Markdown in the side view, with the editor of the mode "Markdown Editor" of VS Code ([decision 52](#decisions)) | [R-SIDE-002](#r-side-002), [R-SIDE-004](#r-side-004) | done; the editor replaced in step 86 |
-| 15 | Tests together with other Markdown extensions | [R-GEN-007](#r-gen-007) | done |
-| 16 | Notes for an exact selection of the text | [R-NOTE-006](#r-note-006), [R-EDIT-003](#r-edit-003) | done |
-| 17 | Notes as Markdown footnotes, without a migration of the old comments; a tree of answers; the time zone of the author; warnings; the extension Markdown Footnotes in the extension pack | [R-NOTE-001](#r-note-001) to [R-NOTE-006](#r-note-006), [R-TEXT-008](#r-text-008), [R-GEN-008](#r-gen-008) | done |
-| 18 | The collapse at the start of VS Code, the buttons "Hide Note Text" and "Show Note Text", the marker beside the comment mark, the settings `showNotesIn` and `openLinksIn`, the funnel of the selected thread | [R-GEN-009](#r-gen-009), [R-GEN-010](#r-gen-010), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-007](#r-side-007) | done; replaced in step 24, apart from `openLinksIn` and the collapse at the start |
-| 19 | The text of the notes in one place, hidden markers and header lines that never open, the setting `keepNotesCollapsed`, a click on a highlight that selects its note, the strong highlight of the selected note, the setting `showCalloutOnHover`, the date of a changed answer, the modes of VS Code 1.143 | [R-GEN-009](#r-gen-009), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-007](#r-text-007), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-EDIT-002](#r-edit-002), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-006](#r-prev-006) | done; the settings `keepNotesCollapsed` and `showCalloutOnHover` dropped in step 24 |
-| 20 | The comment of the format at the top of each file with notes, with the link to the specification for AI agents, written as soon as an editor shows a file with notes, and the setting `addFormatComment` | [R-NOTE-007](#r-note-007) | done; written only with a change of a note or a save since step 27 |
-| 21 | A click on a highlight of the preview that keeps the page, no callout on a click, a click outside a highlight that deselects the note, the selected thread at the top of the view, the other notes dimmed, the faint highlights of the preview, the setting `showIconsInPreview`, the Markdown formatter | [R-NOTE-006](#r-note-006), [R-SIDE-001](#r-side-001), [R-SIDE-007](#r-side-007), [R-PREV-002](#r-prev-002), [R-PREV-003](#r-prev-003), [R-PREV-007](#r-prev-007), [R-FMT-001](#r-fmt-001) to [R-FMT-003](#r-fmt-003) | done; the setting `showIconsInPreview` dropped in step 24 |
-| 22 | The funnel that follows the highlight of the selected note: the band of the preview from the highlight to its right edge, and the start of the funnel at the rows of the highlight in the text editor | [R-SIDE-007](#r-side-007) | done; replaced in step 24 |
-| 23 | The formatter on the command line for programs and AI agents as the npm package `@nimblescape/markdownnotes`, and its call in the specification of the format | [R-FMT-004](#r-fmt-004) | done; on npmjs.com after the first release |
-| 24 | The side view as the only place of the notes, aligned to the text editor, with a line only for the selected thread; the highlights of the notes in colors with good contrast, the buttons "Show Highlights" and "Hide Highlights", the highlight under the pointer, no highlights while the side view is closed; a start marker with `<wbr>` and the color for every note; the hover over the selected text with the colors, which adds a note; the text view and the color of a thread, icon buttons; no boxes, Comments view, callouts, icons of the preview, markers in the left margin and funnels | [R-GEN-009](#r-gen-009), [R-GEN-011](#r-gen-011), [R-NOTE-006](#r-note-006), [R-TEXT-005](#r-text-005), [R-TEXT-006](#r-text-006), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006), [R-PREV-001](#r-prev-001), [R-PREV-005](#r-prev-005), [R-FMT-002](#r-fmt-002) | done; the hover over the selected text replaced in step 28, the view aligned to the text editor in step 36, the highlights only with the side view in step 39 |
-| 25 | The fixes of the code review: no change from an outdated side view, the open editors and the selected note kept after a change of a setting, no inline styles in the side view, links of the preview only to the extension | [R-EDIT-007](#r-edit-007), [R-SIDE-002](#r-side-002), [R-PREV-003](#r-prev-003) | done |
-| 26 | Format on save only for a Markdown file with notes or with the comment of the format, and the setting `formatOnSave` | [R-FMT-001](#r-fmt-001) | done |
-| 27 | The comment of the format only with a change of a note or the save of a file with notes; its version `v1.0.0` as a semantic version, written anew only by a higher version | [R-GEN-003](#r-gen-003), [R-NOTE-007](#r-note-007) | done |
-| 28 | The light bulb action "Add Note" and the shortcut of the selected text in place of the hover over the selected text | [R-SIDE-003](#r-side-003), [R-EDIT-003](#r-edit-003), [R-EDIT-006](#r-edit-006) | done |
-| 29 | The hidden form of the notes of a file: each note an HTML comment, the end marker a comment, the word `hidden` in the comment of the format, the escape of `-->`, both forms in all readers and writers, the specification for programs, a check with the renderer of GitHub | [R-HIDE-001](#r-hide-001), [R-HIDE-003](#r-hide-003), [R-NOTE-007](#r-note-007) | done; checked with GitHub on [example-hidden.md](example-hidden.md) |
-| 30 | The icon at the top of the side view that hides the notes of the file from other viewers or shows them, its commands, and the setting `hideNotesInNewFiles` | [R-HIDE-002](#r-hide-002) | done |
-| 31 | The text without notes for publishing: `markdownnotes strip` on the command line, "Copy without Notes" and "Save Copy without Notes" in VS Code | [R-HIDE-004](#r-hide-004), [R-FMT-004](#r-fmt-004) | done |
-| 32 | The standard footnotes in the side view: show, edit, delete and reveal, the buttons "Show Footnotes" and "Hide Footnotes" and the setting `showFootnotes`; `/footnote` opens the editor of the new footnote in the side view | [R-NOTE-001](#r-note-001), [R-FOOT-001](#r-foot-001), [R-FOOT-002](#r-foot-002), [R-EDIT-008](#r-edit-008) | done |
-| 33 | "Add Footnote" at the cursor, with its shortcut | [R-FOOT-003](#r-foot-003) | done |
-| 34 | The checks of the footnotes and "Renumber Footnotes" | [R-FOOT-004](#r-foot-004), [R-FOOT-005](#r-foot-005) | done |
-| 35 | "Make Footnote": a note becomes a standard footnote | [R-FOOT-006](#r-foot-006) | done |
-| 36 | The side view as a list that scrolls on its own, in place of the view aligned to the text editor; the tooltips that the view draws itself; the lighter dimming of the other threads | [R-SIDE-001](#r-side-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
-| 37 | The highlighter pen as the icon of the buttons "Show Highlights" and "Hide Highlights", in an icon font of the extension | [R-GEN-011](#r-gen-011) | done |
-| 38 | The clean editing view: the text editor edits the text of a file without the notes markup, and the extension writes each change into the file; a file with notes always opens in it (decision 27) | [R-TEXT-009](#r-text-009), [R-TEXT-005](#r-text-005) | done |
-| 39 | The highlights without the side view (decision 28); a click on a thread selects it in the side view also in the clean editing view, and keeps the mode "Markdown Preview" or "Markdown Editor" of its tab; the icon of the Markdown preview on the button "Preview" of the editors of the side view | [R-GEN-011](#r-gen-011), [R-PREV-001](#r-prev-001), [R-SIDE-002](#r-side-002), [R-SIDE-007](#r-side-007) | done |
-| 40 | "Add Note" for selected text in the Markdown preview | [R-PREV-008](#r-prev-008), [R-EDIT-003](#r-edit-003) | done |
-| 41 | A click on a highlight selects its note, a double click opens the side view; the cursor that leaves a highlight deselects its note; each thread that is not selected dimmed ([decision 29](#decisions)) | [R-SIDE-007](#r-side-007), [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006) | done |
-| 42 | Todo notes: the state `todo` or `done` in the header of the first answer, the check box of a todo thread in the side view ([decision 30](#decisions)) | [R-NOTE-008](#r-note-008), [R-EDIT-004](#r-edit-004) | done |
-| 43 | The slash commands `/note`, `/todo`, `/footnote`, `/date`, `/time` and `/user` of the text editor | [R-EDIT-008](#r-edit-008), [R-FOOT-003](#r-foot-003) | done |
-| 44 | The header of the side view that stays at the top, with the todo filter, the color filter, the search field and "Clear Filter" | [R-SIDE-008](#r-side-008), [R-SIDE-001](#r-side-001) | done |
-| 45 | The citations and the metadata of the sources of a document in the style of the PHT (APA 7), the citation style, which the layout of Markdown Paper names and not the comment of the format, the slash commands `/research` and `/source`, and the words for AI agents on `(RESEARCH)` | [R-EDIT-008](#r-edit-008) | moved to nimblescape Markdown Paper ([decision 32](#decisions)); built there on the API of [R-GEN-012](#r-gen-012) |
-| 46 | Smooth scrolling of the text editor and the preview to a note that the side view selects; a double click whose first click VS Code does not report; the start of a highlight in the clean editing view; the view that scrolls to the thread that was selected while it was hidden | [R-SIDE-007](#r-side-007) | done |
-| 47 | The extension ID `nimblescape.nimblescape-markdownnotes`, and version 1 of the API for other extensions with `fileOf` | [R-GEN-005](#r-gen-005), [R-GEN-012](#r-gen-012) | done; the repository has the name `markdownnotes-vscode` since 2026-10-30 (step 70) |
-| 48 | Version 1 of the API with `registerFormatStep`, `registerHiddenBlocks` and `registerSlashCommand` | [R-GEN-012](#r-gen-012), [R-FMT-001](#r-fmt-001), [R-TEXT-009](#r-text-009), [R-EDIT-008](#r-edit-008) | done |
-| 49 | The names without a hyphen: the npm package `@nimblescape/markdownnotes`, the command `markdownnotes`, the format `nimblescape-markdownnotes` and the scheme `markdownnotes` of the clean editing view; the library `formatMarkdown` of the npm package | [R-FMT-004](#r-fmt-004), [R-NOTE-007](#r-note-007), [R-GEN-005](#r-gen-005) | done |
-| 50 | The slash commands `/figure` and `/table`, which add a figure and a table, and `/ref`, which links them; the numbers of the links from the formatter; the anchors hidden in the clean editing view | [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-EDIT-008](#r-edit-008) | done |
-| 51 | `/ref` also links a section with the numbers of its chapter, for example `[Chapter 2.1](#sec-methods)`, with the anchor at the end of its heading; replaced by step 56 | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002) | done |
-| 52 | `/ref` also inserts a value of the front matter between hidden markers, which the formatter fills with the current value | [R-XREF-004](#r-xref-004), [R-FMT-002](#r-fmt-002), [R-TEXT-009](#r-text-009) | done |
-| 53 | `/listing` adds the code of a file or of a symbol of a file as a listing, whose code the formatter keeps current, also on the command line; `/ref` links the listings; the format on save of a file with parts that the formatter keeps current | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-XREF-001](#r-xref-001), [R-FMT-001](#r-fmt-001) | done; the symbols are removed in step 60 |
-| 54 | Snippets between marks in the source code, which a listing names; `/snippet` and "Add Snippet" in a source file; the comment of a listing as a link to its source | [R-CODE-003](#r-code-003) | done ([decision 39](#decisions)) |
-| 55 | The highlights, the selection and "Add Note" in the pages of a paper of nimblescape Markdown Paper in the Markdown preview | [R-PREV-009](#r-prev-009) | done |
-| 56 | `/ref` links a section by the ID that GitHub gives its heading, for example `[Chapter 2.1](#methods)`, without an anchor; the formatter numbers these links; the rules "close to Markdown" and "decisions as requirements" ([decision 36](#decisions)) | [R-XREF-003](#r-xref-003), [R-XREF-002](#r-xref-002), [R-GEN-013](#r-gen-013), [R-GEN-014](#r-gen-014) | done |
-| 57 | Snippets and listings in more file types: the comment forms of more than 80 types, among them JSONC, YAML, TOML, `.env`, CSS, SCSS, HTML, Dockerfile and Makefile; symbols only in the languages with braces and in Python | [R-CODE-003](#r-code-003), [R-CODE-001](#r-code-001) | done; the symbols are removed in step 60 |
-| 58 | Snippets in any language that VS Code knows, through its command "Add Line Comment"; the tag of each snippet as a code lens with the listings that show it (in place of the marks since step 62); the dimmed marks; the buttons "Show Used Snippets" and "Hide Used Snippets" ([decision 37](#decisions)) | [R-CODE-003](#r-code-003), [R-CODE-004](#r-code-004) | done |
-| 59 | The frame of a highlight in the pages of a paper only in the text area of each page; "Add Note" without the soft hyphens of the pages | [R-PREV-009](#r-prev-009) | done |
-| 60 | Listings of whole files and snippets only: no symbols of a language in `/listing`, the formatter and the links of the listings; a warning at a listing whose file or snippet is not found ([decision 38](#decisions)) | [R-CODE-005](#r-code-005), [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-CODE-003](#r-code-003) | done |
-| 61 | Symbols of a listing with tree-sitter parsers for Go, TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC and shell scripts, in VS Code and on the command line | [R-CODE-005](#r-code-005) | postponed: no tree-sitter for now ([decision 51](#decisions)) |
-| 62 | The marks of a snippet as tags in the look of a code lens in place of the mark lines; the cursor jumps over them; a click on an end tag goes to the start; "Rename Snippet" and "Remove Snippet" in the light bulb ([decision 37](#decisions)) | [R-CODE-004](#r-code-004) | done |
-| 63 | The caption of a listing as a link to the lines of its source, which the formatter keeps current; the clean editing view hides the comment of the listing and the link of the caption, and Ctrl+Click on the caption opens the source ([decision 41](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-TEXT-009](#r-text-009) | done |
-| 64 | The principle "document driven" ([decision 42](#decisions)): the numbers of the captions of the figures, the tables and the listings from the formatter; the caption line of a figure before its image, which `/figure` inserts and the formatter writes for a figure of the older form; the anchors of the captions whose generated list the file holds | [R-GEN-016](#r-gen-016), [R-XREF-001](#r-xref-001), [R-XREF-002](#r-xref-002), [R-CODE-001](#r-code-001) | done |
-| 65 | The table of contents, the list of figures, the list of tables and the list of listings, written into the file by the formatter between hidden markers | [R-GEN-016](#r-gen-016) | moved to nimblescape Markdown Paper, as steps of the formatter on the API of [R-GEN-012](#r-gen-012) |
-| 66 | The extension starts with a workspace that holds a Markdown file, so that `/snippet` shows in a source file from the start ([decision 43](#decisions)) | [R-CODE-003](#r-code-003) | done |
-| 67 | The cite of the source after the link of the caption of a listing, `(fields.ts, L12-L30)`, which the formatter writes and keeps current; the clean editing view hides it with the link ([decision 45](#decisions)) | [R-CODE-001](#r-code-001), [R-CODE-002](#r-code-002), [R-GEN-016](#r-gen-016) | done |
-| 68 | Listings of files of other repositories: references with revs in the front matter of the paper, which the command `mp` of nimblescape Markdown Paper clones; the link of the caption to the other repository at the commit of the clone ([decision 55](#decisions), which replaces decision 46); after step 78, while Markdown Paper builds `mp` ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
-| 69 | The steps of the formatter of other extensions run again with the steps of the notes while they change the text, at most three times, so that one format is enough | [R-GEN-012](#r-gen-012), [R-GEN-016](#r-gen-016) | done |
-| 70 | The new name `nimblescape/markdownnotes-vscode` of the repository in the manifests, the documents and the address of the specification in the comment of the format | [R-GEN-005](#r-gen-005), [R-NOTE-007](#r-note-007) | done; the setup of the Marketplace runs again before the first release |
-| 71 | Nothing published before the release: tests and other repositories build the npm package from a clone at a fixed commit ([decision 47](#decisions)) | [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
-| 72 | Slash commands of other extensions on selected text (`selection: true`), such as `/research` of Markdown Paper, and `registerHiddenMarkers` for markers in the lines of a file that the clean editing view hides, such as `<wbr><!--[research-->` | [R-GEN-012](#r-gen-012), [R-EDIT-008](#r-edit-008), [R-TEXT-009](#r-text-009) | done |
-| 73 | No release for now: the npm package is installed from GitHub only, in the documents for people and AI agents ([decision 48](#decisions)) | [R-GEN-005](#r-gen-005), [R-GEN-017](#r-gen-017), [R-FMT-004](#r-fmt-004) | done |
-| 74 | The fixed width of the text editor in Zen Mode: the user guide and the README tell the user to turn on the setting of VS Code ([decision 49](#decisions)) | [R-SIDE-001](#r-side-001) | done |
-| 75 | The comment of the format stays an HTML comment and does not become front matter ([decision 50](#decisions)) | [R-NOTE-007](#r-note-007) | done; no change of the code |
-| 76 | No tree-sitter for now: the symbols of a listing (step 61) are postponed ([decision 51](#decisions)) | [R-CODE-005](#r-code-005) | done; no change of the code |
-| 77 | "Show Footnotes" and "Hide Footnotes" in the menu "…" of the title of the side view, so that the title shows "Add Note", "Add Footnote" and the eye at the default width of the secondary side bar ([decision 53](#decisions)) | [R-FOOT-001](#r-foot-001), [R-HIDE-002](#r-hide-002) | done |
-| 78 | The fixes of the code review: a queue of writes for each file, tests of the scripts of the side view and of the preview, ESLint; after step 35 ([decision 54](#decisions)) | [R-GEN-018](#r-gen-018) | done |
-| 79 | The instructions for AI agents in the specification of the format and the messages of the extension and of the command call the commands of Markdown Paper with npx, `npx -y @nimblescape/markdownpaper get`, as CI does ([decision 56](#decisions)) | [R-CODE-006](#r-code-006) | done |
-| 80 | Full clones, and Ctrl+Click on the name of the reference of a listing opens its clone in a new window of VS Code ([decision 57](#decisions)) | [R-CODE-006](#r-code-006) | done |
-| 81 | The front matter is read-only in the clean editing view: an edit of it goes back, and Undo goes over it ([decision 58](#decisions)) | [R-TEXT-009](#r-text-009) | done |
-| 82 | The link above the front matter in the clean editing view: "Edit Front Matter" opens the view "Front Matter" of nimblescape Markdown Paper, else "Open File with Markup" ([decision 59](#decisions)) | [R-TEXT-009](#r-text-009) | done |
-| 83 | Snippets in a clone: "Add Snippet" and `/snippet` write nothing in a clone of a reference to a tag or a commit, and work in a clone on a branch ([decision 60](#decisions)) | [R-CODE-006](#r-code-006), [R-CODE-003](#r-code-003) | done |
-| 84 | Every paper document, a file whose front matter has the key `layout`, opens in the clean editing view, also without notes, so that its front matter is read-only ([decision 61](#decisions)) | [R-TEXT-009](#r-text-009) | done |
-| 85 | The files of a clone stay editable, and a clone opens in a new window; the user guide tells how a Codespace gets access to the private repositories of the references ([decision 62](#decisions)) | [R-CODE-006](#r-code-006) | done; no change of the code |
-| 86 | The editor of rendered Markdown of nimblescape Markdown in the tab "Visual" of the side view, in place of the editor of the mode "Markdown Editor" of VS Code; the packages of nimblescape Markdown built from a clone at a fixed commit ([decision 63](#decisions)) | [R-SIDE-004](#r-side-004), [R-GEN-017](#r-gen-017) | done |
-| 87 | The editor of nimblescape Markdown for a whole file in place of the clean editing view: the plugin of the notes for the editor (hidden markers, references, definitions and the comment of the format, the highlights in their colors, the rules of the clean editing view, "Add Note", the threads, no notes in the output of the renderer), the custom editor of VS Code, the setting of the files that open in it, the side view at the notes of the editor | [R-TEXT-010](#r-text-010), [R-TEXT-009](#r-text-009), [R-GEN-017](#r-gen-017) | done |
-| 88 | The plugin of the figures for the editor of a whole file: the anchors, the markers of the values of the front matter and the comments of the listings hidden; the numbers of the captions, the references, the code and the cite of the listings and the values of the front matter read-only, with Ctrl+click on a reference to its target; a generated part of the editor that holds a whole block, from nimblescape Markdown | [R-TEXT-010](#r-text-010), [R-XREF-001](#r-xref-001), [R-XREF-004](#r-xref-004), [R-CODE-001](#r-code-001) | done |
-| 89 | The plugins of other extensions in the editor of a whole file, for example of Markdown Paper: the page loads the scripts that their package.json contributes, and `registerEditorPlugin` of version 1 of the API connects their part in the extension | [R-GEN-012](#r-gen-012), [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 with a test extension |
-| 90 | CI installs the packages of nimblescape Markdown, whose repository is public, after `npm ci --ignore-scripts` ([decision 64](#decisions)) | [R-GEN-017](#r-gen-017) | done |
-| 91 | The rendered changes of a Markdown file in a diff: the editor on both sides, with the marks of the changes from nimblescape Markdown, and the buttons "Previous Change" and "Next Change" | [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 and 1.125 |
-| 92 | The adapter of VS Code in the extension, with its tests and the theme of VS Code, in place of a package of nimblescape Markdown ([decision 65](#decisions)) | [R-VSC-001](#r-vsc-001) to [R-VSC-012](#r-vsc-012) | done |
-| 93 | The extensions of the Markdown preview of VS Code in the editor of a whole file, for example Mermaid and math, and the setting `previewExtensions` | [R-VSC-010](#r-vsc-010), [R-TEXT-010](#r-text-010) | done |
+The plan of Markdown Notes is a part of the
+[one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md) of nimblescape Markdown
+([decision 66](#decisions)). It holds the open steps of Markdown Notes in the
+order of all work, in its
+[section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps), and the built steps 1 to 93 with the
+numbers that the code, the tests and the documents name, in its
+[section 7.2](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#72-nimblescape-markdown-notes).
 
 ## General
 
@@ -424,7 +338,8 @@ its heading and adds no anchor ([R-XREF-003](#r-xref-003),
 the extension gets a requirement in this document, in the same change that
 builds it: each decision of Hannes also gets an entry in
 [Decisions](#decisions) with the choice that it replaced, and each built
-part a step of the [plan](#plan). A
+part a step of the [one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md)
+([decision 66](#decisions)). A
 decision that changes an earlier requirement changes its text, so that this
 document describes the extension as it is.
 
@@ -3373,6 +3288,12 @@ requirements above follow them.
     nimblescape Markdown keeps the packages of the parts that are useful
     without VS Code: the source, the renderer, the layout, the editor and
     the AI.
+66. **One plan for all products** ([R-GEN-014](#r-gen-014)): the open steps
+    and the built steps of Markdown Notes are in
+    [docs/plan.md](https://github.com/nimblescape/markdown/blob/main/docs/plan.md) of nimblescape Markdown, the one plan of the
+    libraries and of all products that build on them, and the section
+    [Plan](#plan) of this document links to it. The other choice was a plan
+    in each repository.
 
 ---
 

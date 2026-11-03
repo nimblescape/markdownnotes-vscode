@@ -61,7 +61,7 @@ The columns of the tables:
   request.
 - **Spec**: the requirement or requirements that describe the feature.
 - **State**: Built (in the branch of the pull request), Bug (built, with an
-  open bug), Planned (in the specification and the [plan](requirements.md#plan),
+  open bug), Planned (in the specification and the [plan](https://github.com/nimblescape/markdown/blob/main/docs/plan.md),
   not built), Needs Hannes (an action that only Hannes can take), Decided
   (Hannes decided it, and the code does not change), Postponed (Hannes moved
   it to a later time), Replaced (a
@@ -278,7 +278,9 @@ the same day.
 
 1 feature is in the specification and the plan but not built: the symbols
 of a listing with parsers are postponed
-([decision 51](requirements.md#decisions)).
+([decision 51](requirements.md#decisions)). Its step 61 and all other open
+steps are in [section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps) of the one plan of all
+products of nimblescape Markdown.
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
@@ -316,25 +318,11 @@ after step 35 ([decision 54](requirements.md#decisions)) and are built
 
 ## Open work and its order
 
-The clean editing view (step 38, [decision 27](requirements.md#decisions))
-is built, and
-[pull request #1](https://github.com/nimblescape/markdownnotes-vscode/pull/1)
-is merged. The hidden notes and the text without notes (steps 29 to 31) are
-built in
-[pull request #3](https://github.com/nimblescape/markdownnotes-vscode/pull/3),
-which also takes steps 34 and 35: the checks of the footnotes, "Renumber
-Footnotes" and "Make Footnote" are built there too, the fixes of the code
-review (step 78), the listings of files of other repositories (step 68), the
-clone in a new window (step 80), the read-only front matter (step 81) and its
-link to the form of Markdown Paper (step 82), the snippets only in a
-clone on a branch (step 83), every paper in the clean editing view (step 84),
-and the note on Codespaces in the user guide (step 85),
-while nimblescape Markdown Paper builds the command `mp` that clones them.
-The open work:
-
-1. There is no release for now ([decision 48](requirements.md#decisions));
-   before the first release, the Marketplace setup runs again for the new
-   name of the repository.
+The open work of Markdown Notes, among it the first release and the steps
+that wait for a decision of Hannes, is in
+[section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps) of the one plan of all products of
+nimblescape Markdown, in the order of all work
+([decision 66](requirements.md#decisions)).
 
 ---
 
