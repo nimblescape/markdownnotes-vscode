@@ -387,6 +387,12 @@ note at its place.
   the whole part.
 - A paragraph that you change is written as one line, as the formatter
   writes it.
+- A diff of the file, for example a click on the changed file in the view
+  "Source Control", shows the editor on both sides: the older version on
+  the left, which you cannot change, and the newer version on the right.
+  The removed blocks and words are red on the left, the new ones green on
+  the right, and both sides scroll together. The arrow buttons "Previous
+  Change" and "Next Change" in the title of the editor go to the changes.
 
 The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
 that open in the editor ([Settings](#settings)): `all`, the default, every

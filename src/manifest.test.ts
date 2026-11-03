@@ -160,13 +160,20 @@ test('the manifest contributes the commands of the side view, of the highlights,
       ...Object.values(publishCommands),
       renumberCommand,
       renderedEditor.openText,
+      renderedEditor.previousChange,
+      renderedEditor.nextChange,
     ].sort(),
   );
 });
 
-test('the editor of a whole file is the default editor of the Markdown files, which the setting renderedEditor chooses, and its title has the button "Open Text Editor to the Side" (R-TEXT-010)', () => {
+test('the editor of a whole file is the default editor of the Markdown files, also in a diff, which the setting renderedEditor chooses, and its title has the button "Open Text Editor to the Side" (R-TEXT-010)', () => {
   expect(manifest.contributes.customEditors).toEqual([
-    { viewType: renderedEditor.viewType, displayName: 'nimblescape Markdown Notes', selector: [{ filenamePattern: '*.md' }, { filenamePattern: '*.markdown' }], priority: 'default' },
+    {
+      viewType: renderedEditor.viewType,
+      displayName: 'nimblescape Markdown Notes',
+      selector: [{ filenamePattern: '*.md' }, { filenamePattern: '*.markdown' }],
+      priority: { textEditor: 'default', diffEditor: 'default' },
+    },
   ]);
   const setting = manifest.contributes.configuration.properties[`${settingsSection}.renderedEditor`];
   expect(setting).toMatchObject({ type: 'string', enum: ['all', 'notesAndPapers', 'none'], default: defaultSettings.renderedEditor, scope: 'resource' });
@@ -175,6 +182,26 @@ test('the editor of a whole file is the default editor of the Markdown files, wh
   expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining([{ command: renderedEditor.openText, when: own }]));
   const command = manifest.contributes.commands.find((item: { command: string }) => item.command === renderedEditor.openText);
   expect(command).toMatchObject({ title: 'Open Text Editor to the Side', icon: '$(go-to-file)' });
+});
+
+test('a diff with the editor on both sides has the buttons to the previous and to the next change, while the context key of the adapter is true (R-TEXT-010)', () => {
+  const diff = renderedEditor.diffContext;
+  expect(diff).toBe(`${renderedEditor.viewType}.diff`);
+  expect(manifest.contributes.menus['editor/title']).toEqual(
+    expect.arrayContaining([
+      { command: renderedEditor.previousChange, group: 'navigation@1', when: diff },
+      { command: renderedEditor.nextChange, group: 'navigation@2', when: diff },
+    ]),
+  );
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: renderedEditor.previousChange, when: diff },
+      { command: renderedEditor.nextChange, when: diff },
+    ]),
+  );
+  const command = (id: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === id);
+  expect(command(renderedEditor.previousChange)).toMatchObject({ title: 'Previous Change', icon: '$(arrow-up)' });
+  expect(command(renderedEditor.nextChange)).toMatchObject({ title: 'Next Change', icon: '$(arrow-down)' });
 });
 
 test('Backspace and Delete next to a hidden marker run the commands of the extension, which the Command Palette does not show (R-NOTE-006)', () => {
@@ -271,6 +298,8 @@ test('the title of the text editor and of the preview of a Markdown file has the
     { command: usedSnippetCommands.show, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && !${usedSnippetContexts.shown}` },
     { command: usedSnippetCommands.hide, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && ${usedSnippetContexts.shown}` },
     { command: renderedEditor.openText, group: 'navigation', when: `activeCustomEditorId == '${renderedEditor.viewType}'` },
+    { command: renderedEditor.previousChange, group: 'navigation@1', when: renderedEditor.diffContext },
+    { command: renderedEditor.nextChange, group: 'navigation@2', when: renderedEditor.diffContext },
   ]);
   expect(manifest.contributes.menus.commandPalette).toEqual(
     expect.arrayContaining([

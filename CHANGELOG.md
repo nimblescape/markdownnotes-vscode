@@ -191,7 +191,11 @@ The first version.
   front matter. Other extensions, for example nimblescape Markdown Paper,
   add plugins to the editor: their package.json names the scripts of the
   plugins, and `registerEditorPlugin` of version 1 of the API connects
-  their part in the extension.
+  their part in the extension. A diff of a file, for example of its changes
+  in Git, shows the editor on both sides: the older version read-only on the
+  left, the removed and the new blocks and words marked, the blocks in line
+  and scrolling together, and "Previous Change" and "Next Change" in the
+  title.
 - The clean editing view: a Markdown file with notes that does not open in
   the editor of rendered Markdown opens in a text editor of its text without
   the notes markup, which behaves as in a file without

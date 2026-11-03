@@ -30,10 +30,17 @@ import { type ExtensionMessage, pageMessage, pluginName } from './notes/editorMe
 import type { SelectedNotes } from './selectedNotes';
 import type { EditorFiles, Settings } from './settings';
 
-/** renderedEditor names the editor: the type of the custom editor and the command of the button of its title. */
+/**
+ * renderedEditor names the editor: the type of the custom editor, the command of the button of its title, and the
+ * commands of the buttons to the previous and to the next change in a diff with the editor on both sides
+ * ([R-TEXT-010](../docs/requirements.md#r-text-010)), which show while the context key `diffContext` is true.
+ */
 export const renderedEditor = {
   viewType: 'nimblescape.markdownNotes.editor',
   openText: 'nimblescape.markdownNotes.openTextEditor',
+  previousChange: 'nimblescape.markdownNotes.previousChange',
+  nextChange: 'nimblescape.markdownNotes.nextChange',
+  diffContext: 'nimblescape.markdownNotes.editor.diff',
 };
 
 /**
@@ -106,6 +113,8 @@ export class RenderedEditors implements vscode.Disposable {
       styles: [vscode.Uri.joinPath(dist, 'visualEditor.css')],
       opens: (document) => this.opens(document),
       openTextCommand: renderedEditor.openText,
+      nextChangeCommand: renderedEditor.nextChange,
+      previousChangeCommand: renderedEditor.previousChange,
       plugins: { [pluginName]: (channel) => this.connect(channel) },
       // The plugins of other extensions, for example of Markdown Paper.
       contributedPlugins: true,

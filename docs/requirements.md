@@ -117,6 +117,7 @@ requirement, the plan and the decisions of Hannes.
 | 88 | The plugin of the figures for the editor of a whole file: the anchors, the markers of the values of the front matter and the comments of the listings hidden; the numbers of the captions, the references, the code and the cite of the listings and the values of the front matter read-only, with Ctrl+click on a reference to its target; a generated part of the editor that holds a whole block, from nimblescape Markdown | [R-TEXT-010](#r-text-010), [R-XREF-001](#r-xref-001), [R-XREF-004](#r-xref-004), [R-CODE-001](#r-code-001) | done |
 | 89 | The plugins of other extensions in the editor of a whole file, for example of Markdown Paper: the page loads the scripts that their package.json contributes, and `registerEditorPlugin` of version 1 of the API connects their part in the extension | [R-GEN-012](#r-gen-012), [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 with a test extension |
 | 90 | CI installs the packages of nimblescape Markdown, whose repository is public, after `npm ci --ignore-scripts` ([decision 64](#decisions)) | [R-GEN-017](#r-gen-017) | done |
+| 91 | The rendered changes of a Markdown file in a diff: the editor on both sides, with the marks of the changes from nimblescape Markdown, and the buttons "Previous Change" and "Next Change" | [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 and 1.125 |
 
 ## General
 
@@ -1081,6 +1082,18 @@ extensions work as for the text editor.
   in the editor area ([R-SIDE-007](#r-side-007)).
 - The editor shows no icons of threads beside the text, because the side
   view shows the threads.
+- A diff of a Markdown file that opens in the editor, for example of its
+  changes in the view "Source Control", in the timeline or with "Compare
+  with Saved", shows the editor on both sides (the rendered changes of the
+  specification of nimblescape Markdown,
+  [R-VSC-009](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-vsc-009)): the older version on the left, read-only, the newer
+  version on the right, the removed and the new blocks and words marked in
+  red and green, the notes hidden and their highlights in their colors on
+  both sides, and the blocks of both sides in line, also next to the
+  hidden definitions of the notes. Both sides scroll together, and the
+  buttons "Previous Change" and "Next Change" in the title of the editor go
+  to the changes on both sides. A file that does not open in the editor
+  gets the text diff of VS Code.
 - *(proposal)* The editor also has the plugins of other extensions, for
   example of Markdown Paper, after the plugins of this extension
   ([R-GEN-012](#r-gen-012)). A plugin with the name of another plugin of the

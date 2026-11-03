@@ -17,7 +17,11 @@
  */
 
 import { loadPlugins } from '@nimblescape/markdowneditor';
-import { connectVsCode } from '@nimblescape/markdownvscode/webview';
+import { connectVsCode, followDiff } from '@nimblescape/markdownvscode/webview';
 import { start } from './editorStart';
 
-void connectVsCode().then(async (connection) => start(connection, await loadPlugins(connection.pluginScripts, { nonce: connection.nonce })));
+void connectVsCode().then(async (connection) => {
+  const editor = start(connection, await loadPlugins(connection.pluginScripts, { nonce: connection.nonce }));
+  // While the page is a side of a diff, the editor shows the changes against the other side.
+  followDiff(connection, editor);
+});

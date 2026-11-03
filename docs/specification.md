@@ -135,7 +135,10 @@ form of the notes in a file for programs and AI agents, and
   the highlights, and the side view follows its selection; "Open Text Editor
   to the Side" opens the text editor of the file. It hides the anchors, the
   markers of the values of the front matter and the comments of the
-  listings, and the parts that the formatter writes are read-only
+  listings, and the parts that the formatter writes are read-only. A diff of
+  a file shows the editor on both sides, with the removed and the new
+  blocks and words marked, the blocks in line and the buttons "Previous
+  Change" and "Next Change"
   ([R-TEXT-010](requirements.md#r-text-010)).
 - **Clean editing view:** a Markdown file with notes, or with the comment of
   the format, that does not open in the editor of a whole file always opens
