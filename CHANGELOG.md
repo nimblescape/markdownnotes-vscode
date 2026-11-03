@@ -188,7 +188,11 @@ The first version.
   of the listings, and keeps read-only the parts that the formatter writes:
   the numbers of the captions, the references, with Ctrl+click to their
   targets, the code and the cite of the listings, and the values of the
-  front matter. Other extensions, for example nimblescape Markdown Paper,
+  front matter. A block that the editor shows as a rendering, for example a
+  diagram, switches to its source in its place with a double click or "Edit
+  source", and back to the rendering with "Show rendering", Ctrl+Enter
+  (Cmd+Enter on macOS) or a click outside the source; the two never show at
+  the same time. Other extensions, for example nimblescape Markdown Paper,
   add plugins to the editor: their package.json names the scripts of the
   plugins, and `registerEditorPlugin` of version 1 of the API connects
   their part in the extension. A diff of a file, for example of its changes
