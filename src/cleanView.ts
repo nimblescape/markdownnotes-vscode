@@ -267,6 +267,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private saved = false;
   /** switched is the running pass that makes the text editors of files with notes the view, and again whether one more pass follows it. */
   private switched: { pass: Promise<void>; again: boolean } | undefined;
+  /** closing holds the switches of text editors to their views that did not yet close the tabs of their files, by the URIs of the files. */
+  private readonly closing = new Map<string, Promise<void>>();
   /**
    * highlights holds the decorations of the highlights of each color, as in the text editor of a file: shown, faint
    * while another note is selected, and strong for the selected note.
@@ -654,6 +656,16 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
+   * switchedOf resolves when the text editor of a file that becomes its view closed the tab of the file. A write of the
+   * extension to the file waits for it: VS Code asks to save a file with changes whose tab closes, and in the tests of
+   * extensions it drops the changes instead.
+   * @param file - The URI of the file.
+   */
+  switchedOf(file: vscode.Uri): Promise<void> {
+    return this.closing.get(file.toString()) ?? Promise.resolve();
+  }
+
+  /**
    * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, with the
    * comment of the format, or a paper document, that the extension can change, and that does not open in the editor of
    * a whole file.
@@ -677,6 +689,27 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    * @param tab - The tab of the text editor.
    */
   private async switchTo(editor: vscode.TextEditor, tab: vscode.Tab): Promise<void> {
+    const key = editor.document.uri.toString();
+    let done = (): void => undefined;
+    const closing = new Promise<void>((resolve) => (done = resolve));
+    this.closing.set(key, closing);
+    try {
+      await this.switchToView(editor, tab);
+    } finally {
+      if (this.closing.get(key) === closing) {
+        this.closing.delete(key);
+      }
+      done();
+    }
+  }
+
+  /**
+   * switchToView shows the view of the file of a text editor in place of it and closes the tab of the file, for
+   * switchTo.
+   * @param editor - The text editor of the file.
+   * @param tab - The tab of the text editor.
+   */
+  private async switchToView(editor: vscode.TextEditor, tab: vscode.Tab): Promise<void> {
     const file = editor.document.uri;
     const { selection, viewColumn } = editor;
     const top = editor.visibleRanges[0]?.start;
@@ -956,6 +989,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    */
   private writeReal(mirror: Mirror): void {
     mirror.queue = mirror.queue.then(async () => {
+      await this.switchedOf(mirror.file);
       const real = await vscode.workspace.openTextDocument(mirror.file);
       const current = real.getText();
       if (current === mirror.model) {

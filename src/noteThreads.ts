@@ -234,12 +234,24 @@ export class NoteThreads implements vscode.Disposable {
   private readonly writes = new Map<string, Promise<void>>();
   /** count is the number of threads that the extension created, for their identifiers. */
   private count = 0;
+  /** before returns what a write to a document waits for before it reads the document; see waitBeforeWrites. */
+  private before: (uri: vscode.Uri) => Promise<void> = () => Promise.resolve();
 
   /**
    * @param authorOf - Returns the GitHub login of the user after a sign-in, or undefined without one.
    */
   constructor(private readonly authorOf: () => Promise<string | undefined>) {
     this.diagnostics = vscode.languages.createDiagnosticCollection('nimblescape.markdownNotes');
+  }
+
+  /**
+   * waitBeforeWrites sets what each write of the extension to a document waits for before it reads the document, for
+   * example the close of the tab of a file behind its clean editing view
+   * ([R-GEN-018](../docs/requirements.md#r-gen-018)).
+   * @param before - Returns the promise for the URI of a document.
+   */
+  waitBeforeWrites(before: (uri: vscode.Uri) => Promise<void>): void {
+    this.before = before;
   }
 
   /** register registers the listeners, and reads the notes of the open documents. */
@@ -519,7 +531,7 @@ export class NoteThreads implements vscode.Disposable {
    */
   private queued<T>(uri: vscode.Uri, write: () => Promise<T>): Promise<T> {
     const key = uri.toString();
-    const result = (this.writes.get(key) ?? Promise.resolve()).then(write);
+    const result = (this.writes.get(key) ?? Promise.resolve()).then(() => this.before(uri)).then(write);
     const done = result.then(
       () => undefined,
       () => undefined,

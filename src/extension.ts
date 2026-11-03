@@ -357,6 +357,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const editor = new NoteEditor(threads, showsHighlights, selected);
   const rendered = new RenderedEditors(context.extensionUri, readSettings, selected, () => vscode.commands.executeCommand(viewCommands.newNote));
   const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes, (document) => rendered.opens(document));
+  threads.waitBeforeWrites((uri) => clean.switchedOf(uri));
   const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
   const slash = new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);

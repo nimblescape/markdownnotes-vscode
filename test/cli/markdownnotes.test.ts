@@ -78,7 +78,6 @@ describe('the library of the npm package', () => {
     expect(node(folder, ['a.mjs'])).toEqual({ code: 0, stdout: clean, stderr: '' });
   });
 
-  // Two runs of tsc, each with the time limit of node(): the 5 seconds of vitest are too short on the macOS runners of CI.
   it('has types that a program in TypeScript checks against without other packages', () => {
     const folder = installed({
       'program.ts': `import { formatMarkdown, stripNotes } from '@nimblescape/markdownnotes';\nconst lines: string[] = formatMarkdown(['A', 'b']);\nconst clean: string[] | undefined = stripNotes(lines);\nexport default clean;\n`,
@@ -90,7 +89,8 @@ describe('the library of the npm package', () => {
     const tsc = path.join(repository, 'node_modules', 'typescript', 'bin', 'tsc');
     expect(node(folder, [tsc, '-p', 'tsconfig.json'])).toMatchObject({ code: 0, stdout: '' });
     expect(node(folder, [tsc, '-p', 'wrong.json']).code).not.toBe(0);
-  }, 60_000);
+    // Two runs of the TypeScript compiler take more than the 5 seconds of a test on a slow runner.
+  }, 30_000);
 });
 
 describe('the command markdownnotes', () => {
