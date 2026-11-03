@@ -4,8 +4,8 @@
 
 /**
  * The script of the page of the editor of a whole file ([R-TEXT-010](../../docs/requirements.md#r-text-010)), the
- * bundle `dist/editor.js`: it connects to the document of VS Code through the adapter of nimblescape Markdown,
- * `@nimblescape/markdownvscode`, and creates the editor of rendered Markdown with the source of the connection, the
+ * bundle `dist/editor.js`: it connects to the document of VS Code through the adapter of VS Code of the extension
+ * ([src/webview/connection.ts](connection.ts), [R-VSC-001](../../docs/requirements.md#r-vsc-001)), and creates the editor of rendered Markdown with the source of the connection, the
  * plugin of the notes ([src/webview/notesPlugin.ts](notesPlugin.ts)), with the button "Comment" in the format bar, and
  * the plugin of the figures, the tables, the listings, the references and the values of the front matter
  * ([src/webview/figuresPlugin.ts](figuresPlugin.ts)). The side view of the extension shows the threads of the notes, so
@@ -17,7 +17,7 @@
  */
 
 import { loadPlugins } from '@nimblescape/markdowneditor';
-import { connectVsCode, followDiff } from '@nimblescape/markdownvscode/webview';
+import { connectVsCode, followDiff } from './connection';
 import { start } from './editorStart';
 
 void connectVsCode().then(async (connection) => {

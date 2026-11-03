@@ -60,6 +60,16 @@ links to its details.
   or mail link with the system, a file in VS Code, and a link of another
   scheme only after you agree; it never runs a command. See
   [Side view](#side-view) and [Links of the notes](#links-of-the-notes).
+- **Editor of rendered Markdown.** The editor of a whole file is a webview
+  whose page runs the script of the extension, the plugins of the editor
+  that other extensions contribute, for example nimblescape Markdown Paper,
+  and the scripts that other extensions add to the Markdown preview, for
+  example for diagrams; these scripts have the rights that their extensions
+  already have in VS Code. For the syntax of the Markdown preview, the
+  extension activates these extensions and runs their markdown-it plugins in
+  the extension host, as the Markdown preview does; the setting
+  `nimblescape.markdownNotes.previewExtensions` turns this off. See
+  [Editor of rendered Markdown](#editor-of-rendered-markdown).
 - **Network.** The code of the extension connects to no address, runs no
   program and collects no telemetry. See [Rendering](#rendering).
 - **Restricted Mode and virtual workspaces.** The extension works with all
@@ -178,14 +188,24 @@ connection of VS Code, as the text of an open file does.
 ## Editor of rendered Markdown
 
 - The editor of a whole file is the custom text editor of the Markdown files
-  ([R-TEXT-010](requirements.md#r-text-010)). The adapter of nimblescape
-  Markdown, `@nimblescape/markdownvscode`, writes its page with a content
+  ([R-TEXT-010](requirements.md#r-text-010)). The adapter of VS Code of the
+  extension ([R-VSC-001](requirements.md#r-vsc-001)) writes its page with a content
   security policy: `default-src 'none'`, scripts only with a nonce that the
   adapter creates for each page, styles and fonts of the extension and the
   styles in the page (`'unsafe-inline'`), and images of the extension, of
   `https:`, of `data:` and of `blob:`. The webview loads files only from the
-  folder `dist` of the extension and from the folder of the workspace of the
-  file, or from the folder of the file outside a workspace, and has no
+  folder `dist` of the extension, from the folder of the workspace of the
+  file, or from the folder of the file outside a workspace, and from the
+  folders of the other extensions whose files the page loads: the plugins of
+  the editor of other extensions
+  ([R-VSC-008](requirements.md#r-vsc-008)), and the style sheets and the
+  scripts of the extensions of the Markdown preview
+  ([R-VSC-010](requirements.md#r-vsc-010)). These scripts run in the page
+  with its nonce and with the rights that their extensions already have in
+  VS Code; the setting `previewExtensions` turns the extensions of the
+  Markdown preview off in the editor. The HTML of a block that these
+  extensions render in the extension host shows in the page under the same
+  policy, so a script inside this HTML does not run. The webview has no
   command links.
 - The page changes the file only through the adapter, which applies each
   change as an edit of the document of VS Code, as a change in the text
@@ -350,7 +370,7 @@ address.
   internet, as the Markdown preview does for the rest of the file. VS Code
   then loads the image from that address.
 - The page of the editor of rendered Markdown allows the styles in the page
-  (`'unsafe-inline'`), which the adapter of nimblescape Markdown needs for
+  (`'unsafe-inline'`), which the adapter of VS Code of the extension needs for
   now; a style of HTML in the file applies there, as in the Markdown
   preview.
 - The header of an answer proves nobody's identity: anyone who can change

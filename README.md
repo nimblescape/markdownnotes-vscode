@@ -49,6 +49,14 @@ the file, with the GitHub login of the author.
 - **Side view.** The side view "Notes" is a webview of the extension. Its
   page runs only the scripts of the extension: its own script and the
   visual editor, the editor of rendered Markdown of nimblescape Markdown.
+- **Editor of rendered Markdown.** The editor of a whole file is a webview
+  too. Its page also runs the plugins of the editor that other extensions
+  contribute, for example nimblescape Markdown Paper, and the scripts that
+  other extensions add to the Markdown preview, for example for diagrams,
+  with the rights that these extensions already have in VS Code. For the
+  syntax of the Markdown preview, the extension runs the markdown-it plugins
+  of these extensions, as the Markdown preview does; the setting
+  `nimblescape.markdownNotes.previewExtensions` turns this off.
 - **Network.** The extension's own code connects to no address, runs no
   program and collects no telemetry.
 - **Restricted Mode and virtual workspaces.** The extension works with all
@@ -68,7 +76,9 @@ describes each step and where its protection ends.
   note. The button "Open Text Editor to the Side" in the title of the editor
   opens the text of the file. A diff, for example of the changes in Git,
   shows the editor on both sides, with the removed and the new text marked.
-  The setting `renderedEditor` chooses the files that open in it.
+  The editor shows what other extensions add to the Markdown preview, for
+  example diagrams and math. The setting `renderedEditor` chooses the files
+  that open in it.
 - **Threads.** Each note is a thread: its first answer and a tree of replies,
   as in a discussion on Reddit. Each answer has a header with the GitHub login
   of its author and the date.
@@ -257,6 +267,7 @@ extension to everyone who opens it.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown: `all` every Markdown file, `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper, `none` no file. Every other file opens in the text editor. "Reopen Editor With" of VS Code always offers the text editor. |
+| `nimblescape.markdownNotes.previewExtensions` | `true` | Whether the editor of rendered Markdown shows the syntax that other extensions add to the Markdown preview of VS Code, for example diagrams and math. |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
 | `nimblescape.markdownNotes.addFormatComment` | `true` | Adds the comment of the format of the notes, with the link to their specification for AI agents, at the top of a file with notes when you save it. The value `false` adds it only with a change of a note. An editor that only shows a file never adds it. |

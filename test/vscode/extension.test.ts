@@ -17,6 +17,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { Api } from '../../src/extension';
+import { previewContributions, previewExtensions, PreviewRenderer } from '../../src/adapter/preview';
 import { headingLine } from '../../src/links';
 import { doctypeLines } from '../../src/notes/doctype';
 
@@ -793,5 +794,23 @@ describe('the editor of a whole file (R-TEXT-010)', () => {
       const editor = vscode.window.activeTextEditor;
       return editor?.document.uri.scheme === 'markdownnotes' && editor.document.uri.path === file.path ? editor : undefined;
     }, 'the clean editing view');
+  });
+
+  it('finds the extensions of the Markdown preview without this extension, and renders the blocks that they show, for example math between $$ (R-VSC-010)', async () => {
+    const own = vscode.extensions.getExtension(extensionId);
+    assert.ok(own, 'this extension');
+    const contributions = previewContributions(vscode, vscode.Uri.joinPath(own.extensionUri, 'dist', 'editor.js'));
+    const ids = contributions.map((contribution) => contribution.extension.id);
+    assert.ok(ids.includes('vscode.markdown-math'), ids.join(', '));
+    assert.ok(!ids.includes(own.id), 'this extension is left out');
+    const math = contributions.find((contribution) => contribution.extension.id === 'vscode.markdown-math')!;
+    assert.ok(math.styles.length > 0, 'the style sheets of markdown-math');
+    const renderer = new PreviewRenderer(await previewExtensions(contributions));
+    const { blocks } = renderer.analyze('# Title\n\n$$\nx^2\n$$\n\nA text with $y$.\n\n```ts\nconst a = 1;\n```\n');
+    assert.deepEqual(
+      blocks.map((block) => block.text),
+      ['$$\nx^2\n$$'],
+    );
+    assert.match(blocks[0].html, /katex/);
   });
 });

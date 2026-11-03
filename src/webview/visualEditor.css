@@ -10,4 +10,4 @@
  */
 
 @import '@nimblescape/markdowneditor/markdown.css';
-@import '@nimblescape/markdownvscode/vscode.css';
+@import './vscode.css';

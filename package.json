@@ -713,6 +713,12 @@
           "default": "all",
           "scope": "resource",
           "markdownDescription": "Which Markdown files open in the editor of rendered Markdown, which shows the text without the markup of the notes and the notes in the side view Notes. Every other file opens in the text editor. \"Reopen Editor With\" of VS Code and the button \"Open Text Editor to the Side\" open the text editor of a file in each case."
+        },
+        "nimblescape.markdownNotes.previewExtensions": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Show the syntax that other extensions add to the Markdown preview of VS Code, for example the diagrams of Mermaid and math, in the editor of rendered Markdown: each block that such an extension shows in another way shows its rendering, and a double click shows its source. The value `false` shows these blocks as the editor shows them without these extensions. A change shows in an editor that opens after it."
         }
       }
     }

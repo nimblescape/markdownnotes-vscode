@@ -118,6 +118,8 @@ requirement, the plan and the decisions of Hannes.
 | 89 | The plugins of other extensions in the editor of a whole file, for example of Markdown Paper: the page loads the scripts that their package.json contributes, and `registerEditorPlugin` of version 1 of the API connects their part in the extension | [R-GEN-012](#r-gen-012), [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 with a test extension |
 | 90 | CI installs the packages of nimblescape Markdown, whose repository is public, after `npm ci --ignore-scripts` ([decision 64](#decisions)) | [R-GEN-017](#r-gen-017) | done |
 | 91 | The rendered changes of a Markdown file in a diff: the editor on both sides, with the marks of the changes from nimblescape Markdown, and the buttons "Previous Change" and "Next Change" | [R-TEXT-010](#r-text-010) | done; checked in VS Code 1.144 and 1.125 |
+| 92 | The adapter of VS Code in the extension, with its tests and the theme of VS Code, in place of a package of nimblescape Markdown ([decision 65](#decisions)) | [R-VSC-001](#r-vsc-001) to [R-VSC-012](#r-vsc-012) | done |
+| 93 | The extensions of the Markdown preview of VS Code in the editor of a whole file, for example Mermaid and math, and the setting `previewExtensions` | [R-VSC-010](#r-vsc-010), [R-TEXT-010](#r-text-010) | done |
 
 ## General
 
@@ -387,9 +389,8 @@ Markdown file with notes without this extension knowing anything of papers:
     `contributes["nimblescape.markdown.extensions"].editorScripts`, and the
     page of the editor loads them before the editor starts (the plugins of
     other extensions of the specification of nimblescape Markdown,
-    [R-PLUGIN-002](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-plugin-002)
-    and
-    [R-VSC-008](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-vsc-008)).
+    [R-PLUGIN-002](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-plugin-002),
+    and [R-VSC-008](#r-vsc-008)).
     `connect` gets the channel of the plugin in the panel of each editor,
     also of the editors that are open already, and may return what to
     dispose when the panel closes; the messages of the page that came before
@@ -1048,8 +1049,8 @@ Markdown file in the editor area, in place of the clean editing view
 ([R-TEXT-009](#r-text-009); the specification of nimblescape Markdown,
 [R-GEN-004](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-gen-004)).
 The extension registers it as the custom text editor of the Markdown files
-with the adapter `@nimblescape/markdownvscode`, so that the file stays a
-text document of VS Code: the save with the format on save
+with its adapter of VS Code ([R-VSC-001](#r-vsc-001)), so that the file
+stays a text document of VS Code: the save with the format on save
 ([R-FMT-001](#r-fmt-001)), the dirty mark, the Git diffs and the other
 extensions work as for the text editor.
 
@@ -1087,8 +1088,7 @@ extensions work as for the text editor.
 - A diff of a Markdown file that opens in the editor, for example of its
   changes in the view "Source Control", in the timeline or with "Compare
   with Saved", shows the editor on both sides (the rendered changes of the
-  specification of nimblescape Markdown,
-  [R-VSC-009](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-vsc-009)): the older version on the left, read-only, the newer
+  [R-VSC-009](#r-vsc-009)): the older version on the left, read-only, the newer
   version on the right, the removed and the new blocks and words marked in
   red and green, the notes hidden and their highlights in their colors on
   both sides, and the blocks of both sides in line, also next to the
@@ -1096,6 +1096,10 @@ extensions work as for the text editor.
   buttons "Previous Change" and "Next Change" in the title of the editor go
   to the changes on both sides. A file that does not open in the editor
   gets the text diff of VS Code.
+- The editor shows the syntax that other extensions add to the Markdown
+  preview of VS Code, for example diagrams and math, as blocks that switch
+  between their rendering and their source; the setting `previewExtensions`
+  turns it off ([R-VSC-010](#r-vsc-010)).
 - *(proposal)* The editor also has the plugins of other extensions, for
   example of Markdown Paper, after the plugins of this extension
   ([R-GEN-012](#r-gen-012)). A plugin with the name of another plugin of the
@@ -1139,6 +1143,241 @@ brings it back.
 ([decision 15](#decisions)). The Comments view of VS Code listed the notes
 of the open Markdown files. The side view lists the notes of the active
 Markdown file ([R-SIDE-001](#r-side-001)).
+
+## Adapter of VS Code
+
+The adapter of VS Code connects the editor of rendered Markdown of
+nimblescape Markdown to VS Code. It is a part of this extension
+([decision 65](#decisions)): nimblescape Markdown gives the editor, and each
+VS Code extension that uses it has its own adapter (the specification of
+nimblescape Markdown,
+[R-GEN-004](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-gen-004)).
+The side of the extension is in `src/adapter/`, the side of the page in
+`src/webview/connection.ts`. The ID R-VSC-004 is the history extension of
+VS Code, in the specification of nimblescape Markdown
+([R-VSC-004](https://github.com/nimblescape/markdown/blob/main/docs/history.md#r-vsc-004)).
+
+### R-VSC-001
+
+**A custom text editor.** The extension registers the editor as a custom
+text editor of VS Code, so that the file stays a normal text document:
+save, the dirty mark, hot exit, Git diffs, the timeline and other
+extensions work as for the text editor ([R-TEXT-010](#r-text-010)).
+
+*(proposal)* The function `registerMarkdownEditor` of the adapter registers
+the editor for the view type of the extension, with the script of the page
+that the extension bundles, the style sheets and a function that decides
+which documents open in it (the setting `renderedEditor` of
+[R-TEXT-010](#r-text-010)); a document that does not open in it opens in
+the text editor in the same place. The adapter gets the API of VS Code as a
+parameter and uses no API of Node.js, so that it runs in the extension host
+of the desktop and of the web. The page of the webview allows only the
+script of the extension with a random nonce, the style sheets and fonts of
+the extension, and images from the folder of the file, from https and as
+data; the base of the page is the folder of the file, so that an image with
+a relative path shows. The page keeps its state while its tab is in the
+background. On a file system that cannot write, for example an older
+version of a file from Git, the editor is read-only. On the page, the
+function `connectVsCode` gives the source of the document, and the page
+creates the editor with it (the source of nimblescape Markdown,
+[R-EDIT-002](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-002)).
+The connection also gives the API of the platform for the plugins of the
+editor (the plugin API of nimblescape Markdown,
+[R-PLUGIN-001](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-plugin-001)):
+the adapter carries the messages of each plugin between its part on the
+page and its part in the extension.
+
+### R-VSC-002
+
+**Text editor and save.** A button must open the text editor of the same
+file to the side. Ctrl+S saves the file; the format on save
+([R-FMT-001](#r-fmt-001)) runs, and the editor takes over the changed
+blocks.
+
+*(proposal)* The button is in the title of the editor; the extension
+contributes it with a command, which the adapter registers. The text editor
+opens with the selection of the editor. The page may also open it, for
+example from a button of its own.
+
+### R-VSC-003
+
+**Rules of the adapter.** The adapter uses no proposed API, supports
+Restricted Mode and virtual workspaces, sends no telemetry and has no
+network address of its own. It may require a newer VS Code version than
+1.125 when that makes the work simpler.
+
+### R-VSC-005
+
+*(proposal)* **The page and the document.** The document of VS Code holds
+the text of the file; the page of the webview holds a source with the same
+text. Each message that changes the text gives only the patches against a
+version that the other side knows. The page sends one change of the user at
+a time; a change that the user makes before the answer waits for it. A
+change of the document since the version of a change of the page merges
+with it (the changes of nimblescape Markdown,
+[R-SRC-002](https://github.com/nimblescape/markdown/blob/main/docs/source.md#r-src-002)).
+Each change of the document that the page did not make reaches the editor
+with the origin `program` and the name `vscode`, because VS Code does not
+say who made a change. When the page misses a message, for example while VS
+Code cannot give it, the page starts again from the whole text of the
+document.
+
+### R-VSC-006
+
+*(proposal)* **Undo and the keys of the editor.** Undo and Redo with the
+keys in the editor undo and redo the steps of the editor, as the user made
+them. Undo from the menu of VS Code undoes the changes of the document. A
+key that the editor handles, for example Ctrl+K for a link or Ctrl+F for
+find, starts no key binding of VS Code; every other key, for example Ctrl+S,
+reaches VS Code.
+
+### R-VSC-007
+
+*(proposal)* **The views "Edit" and "Pages".** The adapter can show the
+pages of the file in its layout in place of the editor (the pages of
+nimblescape Markdown,
+[R-LAYOUT-003](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-layout-003)).
+A button in the title of the editor switches between "Edit" and "Pages":
+the extension contributes two commands, one for each view, and the adapter
+registers them; the context key `<view type>.pages` is true while the
+active editor shows the pages, so that the title shows the button of the
+other view. The page of the webview holds the editor and a frame for the
+pages, and shows one of them. The page reads the files of the layout through
+the extension, which reads only files in the folders from which the page
+may load files, that is the workspace folder of the file and the folders of
+the extension, and sends their bytes as Base64. The extension names the
+scripts of the pages, for example Paged.js, which it bundles. So that the
+page in the frame gets these files as `blob:` URLs, the page of the webview
+may also load its own files with `fetch` (`connect-src`), and images and
+fonts may be `blob:` URLs. The extension contributes no commands of the
+views yet, so the title of the editor shows no button of them.
+
+### R-VSC-008
+
+**The plugins of other extensions.** Another extension contributes plugins
+of the editor (the plugin API of nimblescape Markdown,
+[R-PLUGIN-002](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-plugin-002))
+in its package.json, through the contribution point
+`nimblescape.markdown.extensions`, for example Paper:
+`"contributes": { "nimblescape.markdown.extensions": { "editorScripts":
+["dist/editorPlugins.js"] } }` ([R-GEN-012](#r-gen-012)).
+
+*(proposal)* The extension registers the editor with the option
+`contributedPlugins`, so that the adapter gives the page these scripts of
+all enabled extensions, in the order of the IDs of the extensions; a script
+must be a file `.js` in the folder of its extension. The page may load
+these scripts, with the nonce of its policy, and reads no other file of
+these folders through the extension. The scripts of an extension run with
+the rights that the extension already has in VS Code. The other part of
+such a plugin runs in its own extension: the handle of the registration
+connects it with `addPlugin(name, connect)` in each open panel and in each
+panel that opens later, through `registerEditorPlugin` of the API of this
+extension. Until then, the panel keeps at most 100 messages of the page for
+the plugins without a listener, and gives them to the first listener of the
+plugin.
+
+### R-VSC-009
+
+**Rendered changes.** The changes of a file that opens in the editor, for
+example its changes in Git, must show rendered in the editor, in a split
+window: the older version on the left, the newer version on the right
+([R-TEXT-010](#r-text-010)).
+
+The diff of VS Code shows the editor on both sides, for example for a
+changed file in the view "Source Control", in the timeline and with
+"Compare with Saved", because the editor is a custom text editor
+([R-VSC-001](#r-vsc-001)). VS Code opens a custom text editor in a diff only
+when the priority of the editor in the package.json of the extension also
+names the diff editor, `"priority": { "textEditor": "default",
+"diffEditor": "default" }`; VS Code 1.125 and later know this priority.
+Each side is a panel of its own. The left side is read-only; the right side
+is editable when its file system can write. The adapter connects the two
+panels that VS Code opens together for one tab of a diff, and the editor of
+each side gets the text of the other side.
+
+- Each side marks its changes, and the blocks of both sides line up and
+  scroll together (the rendered changes of nimblescape Markdown,
+  [R-EDIT-012](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-012)).
+  Each change of the right side updates the marks of both sides.
+- Buttons in the title of the editor go to the previous and to the next
+  change on both sides. The extension contributes their commands and names
+  them in the options of the adapter.
+
+VS Code has an API for the diffs of custom editors that gives both
+documents and both panels at once (`customEditorDiffs`). It is a proposed
+API, so the adapter does not use it ([R-VSC-003](#r-vsc-003)); when it is
+stable, the adapter uses it in place of the connection of the two panels.
+
+### R-VSC-010
+
+**The extensions of the Markdown preview.** The editor shows the syntax
+that other extensions add to the Markdown preview of VS Code, without a
+change of these extensions. Such an extension declares its parts in its
+package.json: `markdown.markdownItPlugins`, with a function
+`extendMarkdownIt(md)` that its `activate` returns,
+`markdown.previewStyles` and `markdown.previewScripts`.
+
+- The adapter finds them in the same way as the Markdown preview of VS
+  Code: it reads these declarations of all enabled extensions, activates
+  each extension with `markdown.markdownItPlugins`, and calls its
+  `extendMarkdownIt` on a markdown-it with the options of the renderer of
+  nimblescape Markdown
+  ([R-REN-001](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-ren-001)).
+  It leaves out the extensions that contribute plugins of the editor
+  ([R-VSC-008](#r-vsc-008)), for example Paper, and this extension, because
+  their plugins of the editor show their syntax.
+- These functions run in the extension host, not in the page. So the
+  adapter renders the top-level blocks of the file with them in the
+  extension host, and compares the HTML of each block with the HTML of the
+  renderer without these plugins. A block whose HTML differs becomes a block
+  of the level "render" (the plugin levels of nimblescape Markdown,
+  [R-GEN-012](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-gen-012)),
+  for example a code block `mermaid`, math between `$$` or a container
+  `:::`. Its rendering is the HTML of markdown-it with these plugins, and
+  the user switches between this rendering and its source, which never show
+  at the same time. The policy of the page stays the same, so a script
+  inside this HTML does not run.
+- Only blocks: a paragraph, a heading, a list and a table always stay
+  blocks of the editor. A code block stays a code block of the editor, with
+  the syntax colors of the editor, when its HTML with these plugins is still
+  code (`pre`), for example with other colors; only a code block whose
+  language a plugin shows as something else, for example a diagram, becomes
+  a block of the level "render". A listing and the other generated parts
+  ([R-TEXT-010](#r-text-010)) stay read-only parts of their plugin, and
+  these plugins never render them.
+- The page loads the style sheets of `markdown.previewStyles` and the
+  scripts of `markdown.previewScripts` from the folders of their
+  extensions, in the same way as the plugins of other extensions; the
+  scripts run with the rights that their extension already has in VS Code.
+  After each change of the rendering, the page sends the event
+  `vscode.markdown.updateContent` on `window`, as the Markdown preview
+  does, because the scripts of these extensions, for example of diagrams,
+  wait for it.
+- A plugin that changes the text inside a paragraph, for example the codes
+  of emoji or math between `$`, shows nothing in the editor: the paragraph
+  shows the text as it is written. A script that needs other parts of the
+  Markdown preview may not work.
+- The setting `previewExtensions` turns these extensions off in the editor.
+  The default is `true`.
+
+### R-VSC-011
+
+**The theme of VS Code.** In VS Code, every color of the editor must come
+from the active color theme: the style sheet `src/webview/vscode.css` maps
+each variable `--nsmd-*` of the theme of nimblescape Markdown
+([R-THEME-001](https://github.com/nimblescape/markdown/blob/main/docs/platforms.md#r-theme-001))
+to a variable `--vscode-*` of the webview, for the editor and for a
+rendering of the renderer (the class `nsmd-document`). The palette of seven
+colors (gray, red, orange, yellow, green, blue, purple) comes from the
+chart colors of the theme; Notes adds teal. The selected text takes the
+color of the selected text of the theme, which the themes of high contrast
+have. The page loads the style sheet after the style sheet of the editor.
+
+### R-VSC-012
+
+**Fonts in VS Code.** In VS Code, the text uses the font, the size and the
+line height of the settings of the Markdown preview, and code uses the font
+of the editor. A change of these settings shows at once.
 
 ## Side view
 
@@ -3127,6 +3366,13 @@ requirements above follow them.
     Markdown with `node scripts/install-markdown.mjs` after
     `npm ci --ignore-scripts`. The other choices were a token of CI as a
     secret of the repository, and no CI of the editor before the release.
+65. **The adapter of VS Code is a part of the extension**
+    ([R-VSC-001](#r-vsc-001)): nimblescape Markdown has no npm package for
+    VS Code. The adapter, its tests and the theme of VS Code are in the
+    code of the extension, and its requirements are in this document.
+    nimblescape Markdown keeps the packages of the parts that are useful
+    without VS Code: the source, the renderer, the layout, the editor and
+    the AI.
 
 ---
 

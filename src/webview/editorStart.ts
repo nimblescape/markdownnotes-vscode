@@ -4,16 +4,18 @@
 
 /**
  * The start of the editor of a whole file ([R-TEXT-010](../../docs/requirements.md#r-text-010)) on the page of the
- * bundle `dist/editor.js` (src/webview/editor.ts): the plugins of this extension and the plugins that other extensions
- * contribute ([R-GEN-012](../../docs/requirements.md#r-gen-012)). A plugin with the name of another plugin of the editor
+ * bundle `dist/editor.js` (src/webview/editor.ts): the plugins of this extension, with the plugin that shows the blocks
+ * of the extensions of the Markdown preview of VS Code ([R-VSC-010](../../docs/requirements.md#r-vsc-010)), and the
+ * plugins that other extensions contribute ([R-GEN-012](../../docs/requirements.md#r-gen-012)). A plugin with the name of another plugin of the editor
  * is left out, and when the plugins of other extensions stop the start of the editor, the editor starts with the plugins
  * of this extension only.
  */
 
 import { MarkdownEditor, type MarkdownPlugin } from '@nimblescape/markdowneditor';
-import type { VsCodeConnection } from '@nimblescape/markdownvscode/webview';
+import type { VsCodeConnection } from './connection';
 import { figuresPlugin } from './figuresPlugin';
 import { createNotesPlugin } from './notesPlugin';
+import { previewPlugin } from './previewPlugin';
 
 /**
  * withOthers returns the plugins of this extension and, after them, the plugins of other extensions with names that no
@@ -48,7 +50,7 @@ export function start(connection: VsCodeConnection, others: readonly MarkdownPlu
       plugins,
       threadIcons: false,
     });
-  const own = [createNotesPlugin({ comment: true }), figuresPlugin];
+  const own = [createNotesPlugin({ comment: true }), figuresPlugin, previewPlugin(connection.preview)];
   if (others.length === 0) {
     return create(own);
   }
