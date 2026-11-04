@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 /** The repository and the commit of nimblescape Markdown whose packages the extension uses. */
 const repository = 'https://github.com/nimblescape/markdown.git';
-const commit = '6ee2d2ba90cce3bf0c4003b5543af1f3f868cb2f';
+const commit = '283d7464352891679768e8103b8d4f1211d5027d';
 /** The packages that the extension uses, each with the packages of nimblescape Markdown that it depends on. */
 const packages = ['markdowntext', 'markdownrender', 'markdowneditor'];
 
