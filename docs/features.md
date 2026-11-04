@@ -35,9 +35,10 @@ new window, and the read-only front matter of the clean editing view, also of
 a paper without notes. No feature is
 planned and not built. Two features are postponed, the features of the
 section [Planned features](#planned-features): the symbols of a listing with
-tree-sitter parsers ([decision 51](requirements.md#decisions)), and the
-removal of the clean editing view, which stays beside the editor of a whole
-file for now ([decision 67](requirements.md#decisions)).
+tree-sitter parsers ([decision 51](requirements.md#decisions)), and a
+replacement of the clean editing view, the text-only editor that keeps the
+format of the file, by another editor with the same objective
+([decision 67](requirements.md#decisions)).
 Three questions are decided without a
 change of the code: there is no release for now, so the npm package is
 installed from GitHub only ([decision 48](requirements.md#decisions)); the
@@ -53,7 +54,7 @@ numbers of a rendered listing, and the generated lists
 [decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
 The planned features that stay open are the symbols of a listing with
-parsers (step 61, postponed) and the removal of the clean editing view
+parsers (step 61, postponed) and a replacement of the clean editing view
 (step 94, postponed).
 
 The columns of the tables:
@@ -281,7 +282,7 @@ the same day.
 
 2 features are in the plan but not built, and both are postponed: the
 symbols of a listing with parsers
-([decision 51](requirements.md#decisions)), and the removal of the clean
+([decision 51](requirements.md#decisions)), and a replacement of the clean
 editing view ([decision 67](requirements.md#decisions)). Their steps 61 and
 94 and all other open
 steps are in [section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps) of the one plan of all
@@ -290,7 +291,7 @@ products of nimblescape Markdown.
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
-| The removal of the clean editing view, now that the editor of nimblescape Markdown edits a whole file | 11-04 08:35 | [R-TEXT-009](requirements.md#r-text-009), [R-TEXT-010](requirements.md#r-text-010) | 94, the clean editing view stays for now ([decision 67](requirements.md#decisions)) | Postponed |
+| A text-only editor that keeps the format of the file, the objective of the clean editing view; a later replacement of the clean editing view only by another editor with this objective | 11-04 08:35, 10:17 | [R-TEXT-009](requirements.md#r-text-009), [R-TEXT-010](requirements.md#r-text-010) | 94, the clean editing view stays for now ([decision 67](requirements.md#decisions)) | Postponed |
 
 ## Moved to nimblescape Markdown Paper
 

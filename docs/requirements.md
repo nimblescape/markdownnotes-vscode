@@ -841,9 +841,12 @@ the form of its file ([R-FMT-002](#r-fmt-002)).
 **Clean editing view.** The text editor of a Markdown file with notes, and
 of a paper document ([decision 61](#decisions)), that does not open in the
 editor of a whole file ([R-TEXT-010](#r-text-010)), edits the text of the
-file without the notes markup ([decision 27](#decisions)):
-without the start markers, the references, the definitions of the notes and
-the comment of the format. The line breaks, the cursor, the word moves, the
+file without the notes markup ([decision 27](#decisions)). It is the
+text-only editor of Markdown Notes: it shows the Markdown text without
+rendering, and it keeps the format of the file, so that the notes and the
+other hidden parts stay as they are ([decision 67](#decisions)). The view
+edits the text without the start markers, the references, the definitions
+of the notes and the comment of the format. The line breaks, the cursor, the word moves, the
 search, the copy and Undo count only the characters of the text, as in a
 file without notes. The extension writes each change of the view into the
 file at once, and keeps each note at its text:
@@ -3304,10 +3307,14 @@ requirements above follow them.
     in each repository.
 67. **The clean editing view stays** ([R-TEXT-009](#r-text-009),
     [R-TEXT-010](#r-text-010)): the clean editing view stays beside the
-    editor of a whole file. A file with notes that the setting
-    `renderedEditor` does not open in the editor opens in the clean editing
-    view. The removal of the clean editing view is postponed. The other
-    choice was to remove it now.
+    editor of a whole file. Its objective is a text-only editor that keeps
+    the format of the file: it shows the Markdown text without rendering,
+    and the notes and the other hidden parts stay as they are. A file with
+    notes that the setting `renderedEditor` does not open in the editor
+    opens in the clean editing view. A later step may replace the clean
+    editing view only with another text-only editor that keeps the format
+    of the file; this step is postponed. The other choice was to remove the
+    clean editing view now.
 
 ---
 
