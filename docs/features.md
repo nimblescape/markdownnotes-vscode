@@ -194,6 +194,7 @@ Markdown, which the setting `renderedEditor` chooses.
 | Decisions in the specification | 10-30 03:48 | [R-GEN-014](requirements.md#r-gen-014) | Built | A rule for this document and the requirements |
 | Which command adds an entry and which adds a reference | 10-30 02:45, 02:47 | [R-XREF-001](requirements.md#r-xref-001) | Built | [Decision 35](requirements.md#decisions): the commands named by a noun add an entry, `/ref` and `/cite` add a reference |
 | `/todo` at the start of the text of a new note in the side view | 10-29 17:58 | [R-NOTE-008](requirements.md#r-note-008) | Dropped | The part of [decision 30](requirements.md#decisions) (18:40) |
+| Each new feature of the editor also in the clean editing view, for the notes and for the paper | 11-04 10:18 | [R-TEXT-009](requirements.md#r-text-009) | Decided | [Decision 68](requirements.md#decisions): the clean editing view is the text-only editor that keeps the format of the file ([decision 67](requirements.md#decisions)), so each new feature of the editor of a whole file, of the notes or of the plugins of other extensions gets its solution there in the same step |
 
 ## Markdown preview and the modes of VS Code
 
