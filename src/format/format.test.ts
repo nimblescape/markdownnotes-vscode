@@ -37,7 +37,7 @@ describe('the paragraphs', () => {
     expect(format('1. one  \n   two\n')).toBe('1. one  \n   two\n');
   });
 
-  test('never join a heading, a list, a quote of another depth, a fence, a table, HTML, math, a container or a footnote', () => {
+  test('never join a heading, a list, a quote of another depth, a fence, a table, HTML, math, a container, a footnote or the marker of an alert', () => {
     const kept = [
       '# Heading\n\nText\n- item\n',
       'Text\n> quote\n',
@@ -48,6 +48,8 @@ describe('the paragraphs', () => {
       '::: warning\nsome text\n:::\n',
       'Text\n[^1]: a footnote\n',
       'Title\n=====\n',
+      '> [!NOTE]\n> An alert of GitHub, whose marker needs a line of its own.\n',
+      '- > [!warning]\n  > In a list item.\n',
     ];
     for (const text of kept) {
       expect(format(text)).toBe(text);
