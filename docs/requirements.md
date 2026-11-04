@@ -2529,17 +2529,8 @@ class or a method ([decision 38](#decisions)):
   to mark the code in the source file with `/snippet`, and also at a listing
   whose file is not found. The warnings are read again with each change of
   the Markdown file.
-- There is no tree-sitter for now ([decision 51](#decisions)). When symbols
-  come, they come with a real parser of each language: tree-sitter, with
-  the "tags" query of each grammar, which GitHub uses for its code
-  navigation, the same in VS Code and on the command line. The file types
-  that must have symbols then: Go, TypeScript, TSX, JavaScript, JSX, Python,
-  HTML, CSS, YAML, JSON, JSONC and shell scripts. The proposal for their
-  names: functions, classes and methods with `.` between a container and its
-  member (in Go, a method after the type of its receiver, for example
-  `Reader.Read`), the functions of a shell script, the key paths of YAML,
-  JSON and JSONC (for example `services.web`), a rule of CSS by its
-  selector, and an element of HTML by its `id`.
+- The extension has no parser of a language, such as tree-sitter, for
+  symbols ([decision 51](#decisions)).
 
 ### R-CODE-006
 
@@ -3070,14 +3061,11 @@ requirements above follow them.
     marks without a tag, and a code lens above the dimmed start mark, built
     first in step 58, which needed one more line and let the cursor stand in
     the marks.
-38. **Symbols of a listing** ([R-CODE-005](#r-code-005)): for now, a listing
+38. **Symbols of a listing** ([R-CODE-005](#r-code-005)): a listing
     shows a whole file or a snippet, and the extension finds no symbols of a
-    language. Symbols come later with tree-sitter parsers, first for Go,
-    TypeScript, TSX, JavaScript, JSX, Python, HTML, CSS, YAML, JSON, JSONC
-    and shell scripts. The other proposals were the rules of the
-    declarations, built in step 57 and removed in step 60, because only a
-    parser knows the code, and the parsers now. Decision 51 postponed the
-    parsers.
+    language. The other proposals were the rules of the declarations, built
+    in step 57 and removed in step 60, because only a parser knows the code,
+    and tree-sitter parsers ([decision 51](#decisions)).
 39. **The form of the marks of a snippet** ([R-CODE-003](#r-code-003)):
     `// markdownnotes: snippet <name>` and
     `// markdownnotes: /snippet <name>`, with the `/` of the end marker of a
@@ -3163,10 +3151,10 @@ requirements above follow them.
     keys in the front matter, but GitHub shows the front matter of a
     Markdown file as a table at the top of the page, and the front matter
     holds the data of a paper.
-51. **No tree-sitter for now** ([R-CODE-005](#r-code-005)): the symbols of
-    a listing with tree-sitter parsers (step 61) are postponed without a
-    date. A listing shows a whole file or a snippet, as
-    [decision 38](#decisions) says.
+51. **No symbols of a listing** ([R-CODE-005](#r-code-005)): the extension
+    has no symbols of a language, also not with tree-sitter parsers. A
+    listing shows a whole file or a snippet, as [decision 38](#decisions)
+    says.
 52. **The visual editor is the editor of the VS Code Markdown Editor**
     (replaced by decision 63) ([R-SIDE-004](#r-side-004)): the tab "Visual" of the side view uses the
     npm package `@vscode/markdown-editor` of Microsoft (MIT), which VS Code
