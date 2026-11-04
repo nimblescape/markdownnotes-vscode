@@ -65,7 +65,7 @@ The columns of the tables:
   request.
 - **Spec**: the requirement or requirements that describe the feature.
 - **State**: Built (in the branch of the pull request), Bug (built, with an
-  open bug), Planned (in the specification and the [plan](https://github.com/nimblescape/markdown/blob/main/docs/plan.md),
+  open bug), Planned (in the specification and the [plan](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy),
   not built), Needs Hannes (an action that only Hannes can take), Decided
   (Hannes decided it, and the code does not change), Postponed (Hannes moved
   it to a later time), Replaced (a
@@ -286,8 +286,8 @@ symbols of a listing with parsers
 ([decision 51](requirements.md#decisions)), and a replacement of the clean
 editing view ([decision 67](requirements.md#decisions)). Their steps 61 and
 94 and all other open
-steps are in [section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps) of the one plan of all
-products of nimblescape Markdown.
+steps are in the section "Open steps" of the
+[one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy).
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
@@ -328,8 +328,8 @@ after step 35 ([decision 54](requirements.md#decisions)) and are built
 
 The open work of Markdown Notes, among it the first release and the steps
 that wait for a decision of Hannes, is in
-[section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps) of the one plan of all products of
-nimblescape Markdown, in the order of all work
+the section "Open steps" of the [one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy), in the
+order of all work
 ([decision 66](requirements.md#decisions)).
 
 ---

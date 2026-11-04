@@ -22,18 +22,16 @@ as the highlights of a marker pen on paper.
 [docs/specification.md](specification.md) summarizes every requirement that
 is still valid, in short; this document holds the full text of each
 requirement and the decisions of Hannes. The steps of the work are in the
-[one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md) of nimblescape Markdown
+Claude document [One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy)
 ([decision 66](#decisions)).
 
 ## Plan
 
-The plan of Markdown Notes is a part of the
-[one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md) of nimblescape Markdown
-([decision 66](#decisions)). It holds the open steps of Markdown Notes in the
-order of all work, in its
-[section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps), and the built steps 1 to 93 with the
-numbers that the code, the tests and the documents name, in its
-[section 7.2](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#72-nimblescape-markdown-notes).
+The plan of Markdown Notes is a part of the Claude document
+[One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy) ([decision 66](#decisions)). Its
+section "Open steps" holds the open steps of Markdown Notes in the order of
+all work, and its tab "Built steps" holds the built steps 1 to 93 with the
+numbers that the code, the tests and the documents name.
 
 ## General
 
@@ -338,7 +336,7 @@ its heading and adds no anchor ([R-XREF-003](#r-xref-003),
 the extension gets a requirement in this document, in the same change that
 builds it: each decision of Hannes also gets an entry in
 [Decisions](#decisions) with the choice that it replaced, and each built
-part a step of the [one plan of all products](https://github.com/nimblescape/markdown/blob/main/docs/plan.md)
+part a step of the [one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy)
 ([decision 66](#decisions)). A
 decision that changes an earlier requirement changes its text, so that this
 document describes the extension as it is.
@@ -3304,11 +3302,14 @@ requirements above follow them.
     without VS Code: the source, the renderer, the layout, the editor and
     the AI.
 66. **One plan for all products** ([R-GEN-014](#r-gen-014)): the open steps
-    and the built steps of Markdown Notes are in
-    [docs/plan.md](https://github.com/nimblescape/markdown/blob/main/docs/plan.md) of nimblescape Markdown, the one plan of the
-    libraries and of all products that build on them, and the section
-    [Plan](#plan) of this document links to it. The other choice was a plan
-    in each repository.
+    and the built steps of Markdown Notes are in the Claude document
+    [One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy), the one plan of the libraries and of
+    all products that build on them, and the section [Plan](#plan) of this
+    document links to it. No repository holds a plan. The plan names the
+    requirements of each step by their IDs, with links into the
+    repositories, and the requirements stay the normative text. The other
+    choices were a plan in each repository and one plan as a file in the
+    repository of nimblescape Markdown.
 67. **The clean editing view stays** ([R-TEXT-009](#r-text-009),
     [R-TEXT-010](#r-text-010)): the clean editing view stays beside the
     editor of a whole file. Its objective is a text-only editor that keeps
