@@ -45,7 +45,7 @@ package `@nimblescape/markdownnotes` holds none of them.
 | [@decimalturn/toml-patch](#decimalturntoml-patch) | 3.3.2 | MIT |
 | [jsonc-parser](#jsonc-parser) | 3.3.1 | MIT |
 | [yaml](#yaml) | 2.9.1 | ISC |
-| [@cfworker/json-schema](#cfworkerjson-schema) | 4.1.4 | MIT |
+| [@cfworker/json-schema](#cfworkerjson-schema) | 4.1.3 | MIT |
 | [diff](#diff) | 9.0.0 | BSD-3-Clause |
 
 | Package in `dist/visualEditor.js` and `dist/visualEditor.css` | Version | License |
@@ -101,7 +101,7 @@ package `@nimblescape/markdownnotes` holds none of them.
 | [@decimalturn/toml-patch](#decimalturntoml-patch) | 3.3.2 | MIT |
 | [jsonc-parser](#jsonc-parser) | 3.3.1 | MIT |
 | [yaml](#yaml) | 2.9.1 | ISC |
-| [@cfworker/json-schema](#cfworkerjson-schema) | 4.1.4 | MIT |
+| [@cfworker/json-schema](#cfworkerjson-schema) | 4.1.3 | MIT |
 | [diff](#diff) | 9.0.0 | BSD-3-Clause |
 | [prosemirror-markdown](#prosemirror-markdown) | 1.13.9 | MIT |
 | [ansi-regex](#ansi-regex) | 6.4.0 | MIT |

@@ -418,7 +418,8 @@ The extension uses the npm packages of nimblescape Markdown, which are not
 published before their release either. Until then, the script
 `scripts/install-markdown.mjs` (also the script `postinstall`) builds them
 from a clone of the repository of nimblescape Markdown at a fixed commit and
-installs them with the libraries that they use, without a change of
+installs them with the libraries that they use, in the versions of the lock
+file of that commit, without a change of
 `package.json` and `package-lock.json` ([decision 63](#decisions)). The
 repository of nimblescape Markdown is public, so git reads it without a
 token, also in CI, which runs the script after `npm ci --ignore-scripts`
