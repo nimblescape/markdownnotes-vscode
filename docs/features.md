@@ -33,9 +33,11 @@ notes for publishing, the checks of the standard footnotes with
 the clones of the command `mp` of nimblescape Markdown Paper, which open in a
 new window, and the read-only front matter of the clean editing view, also of
 a paper without notes. No feature is
-planned and not built. The symbols of a listing with tree-sitter parsers are
-postponed ([decision 51](requirements.md#decisions)), the feature of the
-section [Planned features](#planned-features).
+planned and not built. Two features are postponed, the features of the
+section [Planned features](#planned-features): the symbols of a listing with
+tree-sitter parsers ([decision 51](requirements.md#decisions)), and the
+removal of the clean editing view, which stays beside the editor of a whole
+file for now ([decision 67](requirements.md#decisions)).
 Three questions are decided without a
 change of the code: there is no release for now, so the npm package is
 installed from GitHub only ([decision 48](requirements.md#decisions)); the
@@ -50,8 +52,9 @@ numbers of a rendered listing, and the generated lists
 ([decision 32](requirements.md#decisions), [decision 35](requirements.md#decisions),
 [decision 42](requirements.md#decisions), [decision 45](requirements.md#decisions)).
 
-The planned feature that stays open is the symbols of a listing with
-parsers (step 61, postponed).
+The planned features that stay open are the symbols of a listing with
+parsers (step 61, postponed) and the removal of the clean editing view
+(step 94, postponed).
 
 The columns of the tables:
 
@@ -276,15 +279,18 @@ the same day.
 
 ## Planned features
 
-1 feature is in the specification and the plan but not built: the symbols
-of a listing with parsers are postponed
-([decision 51](requirements.md#decisions)). Its step 61 and all other open
+2 features are in the plan but not built, and both are postponed: the
+symbols of a listing with parsers
+([decision 51](requirements.md#decisions)), and the removal of the clean
+editing view ([decision 67](requirements.md#decisions)). Their steps 61 and
+94 and all other open
 steps are in [section 3](https://github.com/nimblescape/markdown/blob/main/docs/plan.md#3-open-steps) of the one plan of all
 products of nimblescape Markdown.
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
 | Symbols of a listing with parsers | 10-30 04:46, 05:36 | [R-CODE-005](requirements.md#r-code-005) | 61, no tree-sitter for now ([decision 51](requirements.md#decisions)) | Postponed |
+| The removal of the clean editing view, now that the editor of nimblescape Markdown edits a whole file | 11-04 08:35 | [R-TEXT-009](requirements.md#r-text-009), [R-TEXT-010](requirements.md#r-text-010) | 94, the clean editing view stays for now ([decision 67](requirements.md#decisions)) | Postponed |
 
 ## Moved to nimblescape Markdown Paper
 

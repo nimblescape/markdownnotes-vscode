@@ -974,7 +974,8 @@ extensions work as for the text editor.
   `all`, every Markdown file; `notesAndPapers`, a file with notes or with the
   comment of the format, and a paper document of nimblescape Markdown Paper;
   `none`, no file. *(proposal)* The default is `all`. Every other file opens
-  in the text editor, a file with notes in the clean editing view. "Reopen
+  in the text editor, a file with notes in the clean editing view, which
+  stays beside the editor ([decision 67](#decisions)). "Reopen
   Editor With" of VS Code always offers the text editor.
 - The button "Open Text Editor to the Side" in the title of the editor opens
   the text editor of the file to the side, with the selection of the editor.
@@ -2750,7 +2751,7 @@ notes:
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-11-03. The
+Hannes decided these questions from 2026-10-28 to 2026-11-04. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -3299,6 +3300,12 @@ requirements above follow them.
     libraries and of all products that build on them, and the section
     [Plan](#plan) of this document links to it. The other choice was a plan
     in each repository.
+67. **The clean editing view stays** ([R-TEXT-009](#r-text-009),
+    [R-TEXT-010](#r-text-010)): the clean editing view stays beside the
+    editor of a whole file. A file with notes that the setting
+    `renderedEditor` does not open in the editor opens in the clean editing
+    view. The removal of the clean editing view is postponed. The other
+    choice was to remove it now.
 
 ---
 
