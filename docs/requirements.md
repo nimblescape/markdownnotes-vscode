@@ -844,10 +844,11 @@ editor of a whole file ([R-TEXT-010](#r-text-010)), edits the text of the
 file without the notes markup ([decision 27](#decisions)). It is the
 text-only editor of Markdown Notes: it shows the Markdown text without
 rendering, and it keeps the format of the file, so that the notes and the
-other hidden parts stay as they are ([decision 67](#decisions)). Each new
-feature of the editor of a whole file ([R-TEXT-010](#r-text-010)), of the
-notes or of the plugins of other extensions gets its solution in the clean
-editing view in the same step ([decision 68](#decisions)). The view
+other hidden parts stay as they are ([decision 67](#decisions)). It has the
+same functions for the notes and for the plugins of other extensions as the
+editor of a whole file ([R-TEXT-010](#r-text-010)), which shows the text
+rendered: each new feature of one of the two gets its solution in the other
+in the same step ([decision 68](#decisions)). The view
 edits the text without the start markers, the references, the definitions
 of the notes and the comment of the format. The line breaks, the cursor, the word moves, the
 search, the copy and Undo count only the characters of the text, as in a
@@ -3318,11 +3319,13 @@ requirements above follow them.
     editing view only with another text-only editor that keeps the format
     of the file; this step is postponed. The other choice was to remove the
     clean editing view now.
-68. **Each feature of the editor also in the clean editing view**
-    ([R-TEXT-009](#r-text-009)): each new feature of the editor of a whole
-    file, of the notes or of the plugins of other extensions, such as
-    Markdown Paper, gets its solution in the clean editing view in the same
-    step, so that the text-only editor keeps up with the editor.
+68. **The same functions in both editors** ([R-TEXT-009](#r-text-009),
+    [R-TEXT-010](#r-text-010)): the editor of a whole file and the clean
+    editing view have the same functions for the notes and for the plugins
+    of other extensions, such as Markdown Paper. The editor shows the text
+    rendered, and the clean editing view shows the Markdown text. Each new
+    feature of one of the two gets its solution in the other in the same
+    step.
 
 ---
 
