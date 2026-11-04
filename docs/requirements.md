@@ -1108,18 +1108,22 @@ extensions work as for the text editor.
   only.
 - The plugin of the figures of the editor hides the markup that the
   formatter needs, as the clean editing view does: the anchors at the end of
-  captions and headings ([R-XREF-001](#r-xref-001)), the markers of the
-  values of the front matter ([R-XREF-004](#r-xref-004)) and the comments of
-  the listings ([R-CODE-001](#r-code-001)). The parts that the formatter
-  writes are read-only (the generated parts of the specification of
-  nimblescape Markdown,
+  captions and headings ([R-XREF-001](#r-xref-001)) and the comments of the
+  listings ([R-CODE-001](#r-code-001)). The parts that the formatter writes
+  are read-only (the generated parts of the specification of nimblescape
+  Markdown,
   [R-EDIT-011](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-011)):
   the number of a caption, the text of a reference to a figure, a table, a
-  listing or a section, the code block of a listing and the cite of its
-  source after its caption, and a value of the front matter with its
-  markers, when the front matter has its key. Ctrl+click (Cmd+click on
-  macOS) on a reference goes to its target. The user changes a part through
-  what it comes from, and the formatter writes it again on save. Text typed
+  listing or a section, and the code block of a listing and the cite of its
+  source after its caption. Ctrl+click (Cmd+click on macOS) on a reference
+  goes to its target. The editor of nimblescape Markdown itself hides the
+  markers of the values of the front matter ([R-XREF-004](#r-xref-004)) and
+  keeps a value with its markers read-only when the front matter has its
+  key, with Ctrl+click to the input of the key in the form of the front
+  matter
+  ([R-FM-007](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-007)).
+  The user changes a part through what it comes from, and the formatter
+  writes it again on save. Text typed
   after the anchor at the end of a caption or a heading goes before the
   anchor, an anchor stays at the end of its caption or heading when an edit
   replaces the text before it, and the comment of a listing goes with its

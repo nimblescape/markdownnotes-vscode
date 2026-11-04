@@ -3,14 +3,15 @@
 // © 2026 Hannes Stauss (scalarion@nimblescape.com)
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
-// The tests of the plugin of the figures, the tables, the listings, the references and the values of the front matter
-// for the editor of nimblescape Markdown (src/webview/figuresPlugin.ts): the markup keeps its text byte for byte and is
-// hidden, the parts that the formatter writes are read-only (R-TEXT-010), the guard keeps the anchors and the comments
-// of the listings, and the renderer keeps only the anchors.
+// The tests of the plugin of the figures, the tables, the listings and the references for the editor of nimblescape
+// Markdown (src/webview/figuresPlugin.ts), beside the values of the front matter in the text, which every editor of
+// nimblescape Markdown has: the markup keeps its text byte for byte and is hidden, the parts that the formatter writes
+// are read-only (R-TEXT-010), the guard keeps the anchors and the comments of the listings, and the renderer keeps only
+// the anchors.
 
 import { undo } from '@tiptap/pm/history';
 import { TextSelection } from '@tiptap/pm/state';
-import { createMarkdownIt, MarkdownEditor } from '@nimblescape/markdowneditor';
+import { createMarkdownIt, frontMatterValuesPlugin, MarkdownEditor, valueNodeName } from '@nimblescape/markdowneditor';
 import { TextSource } from '@nimblescape/markdowntext';
 import { afterEach, describe, expect, it } from 'vitest';
 import { analysisOf, extendMarkdownIt, figuresPlugin, nodeNames } from './figuresPlugin';
@@ -131,7 +132,7 @@ describe('the markup', () => {
       return true;
     });
     expect(names.filter((name) => name === nodeNames.anchor)).toHaveLength(3);
-    expect(names.filter((name) => name === nodeNames.field)).toHaveLength(4);
+    expect(names.filter((name) => name === valueNodeName)).toHaveLength(4);
     expect(names.filter((name) => name === nodeNames.listing)).toHaveLength(1);
     expect(names).not.toContain('htmlInline');
     expect(names).not.toContain('htmlBlock');
@@ -151,10 +152,9 @@ describe('the markup', () => {
 });
 
 describe('the generated parts', () => {
-  it('are the numbers of the captions, the references, the code and the cite of the listing, and the values of the front matter that it has', () => {
+  it('are the numbers of the captions, the references, the code and the cite of the listing, beside the values of the front matter that it has', () => {
     const editor = open(text);
     expect(generatedTexts(editor)).toEqual([
-      'The study of agents',
       'Figure 1',
       'Table 1',
       'Listing 1',
@@ -165,7 +165,11 @@ describe('the generated parts', () => {
       '(fields.ts, L12-L30)',
       'const a = 1;',
     ]);
-    // "Ann" has no key in the front matter, and "the plan" has no number: the user writes them.
+    // The editor makes the value of the title read-only. "Ann" has no key in the front matter, and "the plan" has no
+    // number: the user writes them.
+    const shown = [...document.querySelectorAll('.nsmd-generated')].map((part) => part.textContent);
+    expect(shown).toContain('The study of agents');
+    expect(shown).not.toContain('Ann');
     expect(document.querySelector('.nsmd-generated-block')?.textContent).toBe('const a = 1;');
   });
 
@@ -227,8 +231,8 @@ describe('the guard', () => {
     select(editor, positionOf(editor, 'Grades', true) + 1);
     key(editor, 'Backspace');
     expect(view.state.selection.head).toBe(positionOf(editor, 'Grades', true));
-    const value = analysisOf(view.state.doc).parts[0];
-    select(editor, value.to);
+    // The end of the value of the title, after its end marker.
+    select(editor, positionOf(editor, 'The study of agents', true) + 1);
     expect(key(editor, 'Backspace')).toBe(true);
     expect(editor.getMarkdown()).toContain('The title is , by <wbr><!--{author}-->Ann<!--{/author}-->.');
   });
@@ -255,7 +259,7 @@ describe('the guard', () => {
 
 describe('the renderer', () => {
   it('keeps the anchors and leaves out the markers and the comments of the listings', () => {
-    const html = createMarkdownIt([extendMarkdownIt]).render(text);
+    const html = createMarkdownIt([extendMarkdownIt, (md) => frontMatterValuesPlugin.extendMarkdownIt?.(md)]).render(text);
     expect(html).toContain('<p>Figure 1: Plan of the study<a id="fig-plan-study"></a></p>');
     expect(html).toContain('The title is The study of agents, by Ann.');
     expect(html).not.toContain('<!--');
