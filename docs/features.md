@@ -284,10 +284,8 @@ the same day.
 2 features are in the plan but not built, and both are postponed: the
 symbols of a listing with parsers
 ([decision 51](requirements.md#decisions)), and a replacement of the clean
-editing view ([decision 67](requirements.md#decisions)). Their steps 61 and
-94 and all other open
-steps are in the section "Open steps" of the
-[one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy).
+editing view ([decision 67](requirements.md#decisions)). The
+[one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy) names them as postponed.
 
 | Request | Asked | Spec | Plan step | State |
 | --- | --- | --- | --- | --- |
@@ -326,10 +324,8 @@ after step 35 ([decision 54](requirements.md#decisions)) and are built
 
 ## Open work and its order
 
-The open work of Markdown Notes, among it the first release and the steps
-that wait for a decision of Hannes, is in
-the section "Open steps" of the [one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy), in the
-order of all work
+The decisions on the open work of Markdown Notes, among them the first
+release, are in the [one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy)
 ([decision 66](requirements.md#decisions)).
 
 ---
