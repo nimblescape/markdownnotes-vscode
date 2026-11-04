@@ -3,29 +3,29 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 /**
- * The plugin of the figures, the tables, the listings, the references and the values of the front matter of Notes for
- * the editor of rendered Markdown of nimblescape Markdown, in the editor of a whole file
- * ([R-TEXT-010](../../docs/requirements.md#r-text-010)). It shows the text as the clean editing view does, without the
- * markup that the formatter needs ([R-XREF-001](../../docs/requirements.md#r-xref-001),
- * [R-XREF-004](../../docs/requirements.md#r-xref-004), [R-CODE-001](../../docs/requirements.md#r-code-001)):
+ * The plugin of the figures, the tables, the listings and the references of Notes for the editor of rendered Markdown of
+ * nimblescape Markdown, in the editor of a whole file ([R-TEXT-010](../../docs/requirements.md#r-text-010)). It shows
+ * the text as the clean editing view does, without the markup that the formatter needs
+ * ([R-XREF-001](../../docs/requirements.md#r-xref-001), [R-CODE-001](../../docs/requirements.md#r-code-001)). The
+ * values of the front matter in the text ([R-XREF-004](../../docs/requirements.md#r-xref-004)) are a part of every
+ * editor of nimblescape Markdown
+ * ([the values of the front matter in the text](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-007)).
  *
- * - The anchor at the end of a caption or a heading, for example `<a id="tab-grades"></a>`, and the markers of a value
- *   of the front matter, `<wbr><!--{title}-->` and `<!--{/title}-->`, are hidden nodes in the line, which keep their
- *   text byte for byte. The comment of a listing, for example `<!-- listing: ../src/fields.ts#read -->`, is a hidden
- *   block.
+ * - The anchor at the end of a caption or a heading, for example `<a id="tab-grades"></a>`, is a hidden node in the
+ *   line, which keeps its text byte for byte. The comment of a listing, for example
+ *   `<!-- listing: ../src/fields.ts#read -->`, is a hidden block.
  * - The parts that the formatter writes are read-only
  *   ([the generated parts](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-011)): the number of
  *   a caption, the text of a reference to a figure, a table, a listing or a section, which Ctrl+click (Cmd+click on
- *   macOS) follows to its target, the code block of a listing and the cite of its source after its caption, and a value
- *   of the front matter with its markers, when the front matter has its key. The user changes them through what they
- *   come from, and the formatter writes them again when the file is saved.
+ *   macOS) follows to its target, and the code block of a listing and the cite of its source after its caption. The
+ *   user changes them through what they come from, and the formatter writes them again when the file is saved.
  * - Text typed after the anchor at the end of a caption or a heading goes before the anchor, Enter there splits the
  *   block after the anchor, and Backspace and Delete jump over the hidden markup. An anchor stays at the end of its
  *   caption or heading when an edit replaces the text before it, and the comment of a listing goes with its code block.
  *   Changes from outside, Undo and Redo pass.
  *
- * In the renderer, for example in the pages, the anchors stay, so that the links to them work, and the other markup has
- * no output. The module uses no API of VS Code, so that the editor on a web page can use it too.
+ * In the renderer, for example in the pages, the anchors stay, so that the links to them work, and the comments of the
+ * listings have no output. The module uses no API of VS Code, so that the editor on a web page can use it too.
  */
 
 import { Extension, Node, type Editor } from '@tiptap/core';
@@ -36,7 +36,6 @@ import { Mapping } from '@tiptap/pm/transform';
 import type MarkdownIt from 'markdown-it';
 import type { StateCore, Token } from 'markdown-it';
 import { type GeneratedPart, type MarkdownPlugin, outsideChange, type PluginEditor } from '@nimblescape/markdowneditor';
-import { keyPattern, readFields } from '../notes/fields';
 import { captionKinds, captionStart, headingIds, type ItemKind, numberedLinkText, sectionWords, topLevel } from '../notes/figures';
 import { listingComment } from '../notes/listings';
 import { notesWrite } from './notesPlugin';
@@ -44,21 +43,17 @@ import { notesWrite } from './notesPlugin';
 /** pluginName is the name of the plugin. */
 export const pluginName = 'figures';
 
-/** The types of the tokens of the plugin: an anchor, a marker of a value of the front matter, and the comment of a listing. */
-export const tokenTypes = { anchor: 'nimblescape_anchor', field: 'nimblescape_field', listing: 'nimblescape_listing' } as const;
+/** The types of the tokens of the plugin: an anchor and the comment of a listing. */
+export const tokenTypes = { anchor: 'nimblescape_anchor', listing: 'nimblescape_listing' } as const;
 
 /** The names of the nodes of the plugin. */
-export const nodeNames = { anchor: 'figureAnchor', field: 'fieldMarker', listing: 'listingComment' } as const;
+export const nodeNames = { anchor: 'figureAnchor', listing: 'listingComment' } as const;
 
 /** figuresWrite is the meta of a transaction in which the plugin keeps its markup itself, which its guard lets pass. */
 export const figuresWrite = 'nimblescapeFiguresWrite';
 
 /** anchorOpen matches the start tag of an anchor of a figure, a table, a listing or a section, with its name. */
 const anchorOpen = /^<a id="((?:fig|tab|lst|sec)-[a-z0-9]+(?:-[a-z0-9]+)*)">$/;
-
-/** fieldOpen and fieldClose match the start marker and the end marker of a value of the front matter, with its key. */
-const fieldOpen = new RegExp(String.raw`^<!--\{(${keyPattern})\}-->$`);
-const fieldClose = new RegExp(String.raw`^<!--\{/(${keyPattern})\}-->$`);
 
 /** isHtml returns true for a token of inline HTML whose text is a text or matches a pattern. */
 const isHtml = (token: Token | undefined, test: RegExp | string): boolean =>
@@ -79,36 +74,12 @@ function newToken(state: StateCore, type: string, content: string, meta: Record<
 }
 
 /**
- * closeOf returns the index of the end marker of a value of the front matter after its start marker, in the same line,
- * or -1 when another marker or the end of the line comes first, as the formatter reads a value
- * ([src/notes/fields.ts](../notes/fields.ts)).
- * @param children - The tokens of the line.
- * @param from - The index after the start marker.
- * @param key - The key of the start marker.
- */
-function closeOf(children: readonly Token[], from: number, key: string): number {
-  for (let index = from; index < children.length; index++) {
-    const child = children[index];
-    if (child.type === 'softbreak' || child.type === 'hardbreak' || isHtml(child, fieldOpen)) {
-      return -1;
-    }
-    const close = child.type === 'html_inline' ? fieldClose.exec(child.content) : null;
-    if (close) {
-      return close[1] === key ? index : -1;
-    }
-  }
-  return -1;
-}
-
-/**
- * mergeInline makes one token of each anchor, `<a id="…">` and `</a>`, and of each marker of a value of the front matter
- * with the `<wbr>` before it, among the tokens of a line.
+ * mergeInline makes one token of each anchor, `<a id="…">` and `</a>`, among the tokens of a line.
  * @param state - The state of the core rule.
  * @param children - The tokens of the line.
  */
 function mergeInline(state: StateCore, children: readonly Token[]): Token[] {
   const merged: Token[] = [];
-  const closes = new Set<number>();
   for (let index = 0; index < children.length; index++) {
     const child = children[index];
     if (child.type !== 'html_inline') {
@@ -119,19 +90,6 @@ function mergeInline(state: StateCore, children: readonly Token[]): Token[] {
     if (anchor && isHtml(children[index + 1], '</a>')) {
       merged.push(newToken(state, tokenTypes.anchor, child.content + children[index + 1].content, { name: anchor[1] }));
       index++;
-      continue;
-    }
-    const wbr = child.content === '<wbr>' && isHtml(children[index + 1], fieldOpen) ? 1 : 0;
-    const open = fieldOpen.exec(children[index + wbr].content);
-    const close = open ? closeOf(children, index + wbr + 1, open[1]) : -1;
-    if (open && close > 0) {
-      merged.push(newToken(state, tokenTypes.field, (wbr ? child.content : '') + children[index + wbr].content, { key: open[1], edge: 'open' }));
-      closes.add(close);
-      index += wbr;
-      continue;
-    }
-    if (closes.has(index)) {
-      merged.push(newToken(state, tokenTypes.field, child.content, { key: fieldClose.exec(child.content)![1], edge: 'close' }));
       continue;
     }
     merged.push(child);
@@ -147,8 +105,8 @@ const isListingComment = (token: Token): boolean =>
   token.type === 'html_block' && token.map !== null && token.map[1] - token.map[0] === 1 && listingComment.test(token.content.replace(/\n$/, ''));
 
 /**
- * figuresRule is the core rule that makes the tokens of the plugin: one token of each anchor and of each marker of a
- * value of the front matter in the lines, and one token of each comment of a listing. It runs after the inline rules.
+ * figuresRule is the core rule that makes the tokens of the plugin: one token of each anchor in the lines, and one token
+ * of each comment of a listing. It runs after the inline rules.
  * @param state - The state of the core rule.
  */
 function figuresRule(state: StateCore): void {
@@ -172,14 +130,13 @@ function figuresRule(state: StateCore): void {
 
 /**
  * extendMarkdownIt adds the rule of the plugin to the markdown-it of the editor and of the renderer. In the output of
- * the renderer, the anchors stay as the file has them, and the markers and the comments of the listings have none.
+ * the renderer, the anchors stay as the file has them, and the comments of the listings have none.
  * @param md - The markdown-it.
  */
 export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
   md.core.ruler.after('inline', 'nimblescape_figures', figuresRule);
   // The text of an anchor matches anchorOpen and `</a>`, so it holds no other HTML.
   md.renderer.rules[tokenTypes.anchor] = (tokens, index) => tokens[index].content;
-  md.renderer.rules[tokenTypes.field] = () => '';
   md.renderer.rules[tokenTypes.listing] = () => '';
   return md;
 }
@@ -194,19 +151,6 @@ const FigureAnchor = Node.create({
   addAttributes: () => ({ name: { default: '', rendered: false }, text: { default: '', rendered: false } }),
   parseHTML: () => [],
   renderHTML: ({ node }) => ['span', { class: 'nsmd-figure-anchor', 'data-anchor': node.attrs.name as string }],
-  renderText: () => '',
-});
-
-/** FieldMarker is the start marker or the end marker of a value of the front matter in the line: hidden, with its text. */
-const FieldMarker = Node.create({
-  name: nodeNames.field,
-  group: 'inline',
-  inline: true,
-  atom: true,
-  selectable: false,
-  addAttributes: () => ({ key: { default: '', rendered: false }, edge: { default: 'open', rendered: false }, text: { default: '', rendered: false } }),
-  parseHTML: () => [],
-  renderHTML: ({ node }) => ['span', { class: 'nsmd-field-marker', 'data-field': node.attrs.key as string, 'data-edge': node.attrs.edge as string }],
   renderText: () => '',
 });
 
@@ -393,8 +337,7 @@ function reveal(doc: PmNode, pos: number): void {
 
 /**
  * analysisOf returns the generated parts and the anchors of a document. The parts follow the rules of the formatter
- * ([src/notes/figures.ts](../notes/figures.ts), [src/notes/listings.ts](../notes/listings.ts),
- * [src/notes/fields.ts](../notes/fields.ts)): a caption is a paragraph that starts with a word, a number and a colon
+ * ([src/notes/figures.ts](../notes/figures.ts), [src/notes/listings.ts](../notes/listings.ts)): a caption is a paragraph that starts with a word, a number and a colon
  * before its image, table or code block; a reference names the anchor of an item or, with a word such as "Chapter", the
  * GitHub ID of the heading of a section.
  * @param doc - The document.
@@ -410,7 +353,6 @@ export function analysisOf(doc: PmNode): Analysis {
   const links: Link[] = [];
   const pictures = new Set<number>();
   const idOf = headingIds();
-  const front = doc.firstChild?.type.name === 'frontMatter' ? readFields(String(doc.firstChild.attrs.text).split(/\r?\n/)) : new Map<string, string>();
   doc.descendants((node, pos, parent, index) => {
     if (node.type.name === nodeNames.listing && parent && isFence(parent.maybeChild(index + 1))) {
       // The code block after the comment of a listing, with or without a caption.
@@ -424,20 +366,6 @@ export function analysisOf(doc: PmNode): Analysis {
       return false;
     }
     links.push(...linksOf(node, pos));
-    // The values of the front matter, with their markers, when the front matter has their keys.
-    let start: PmNode | undefined;
-    let startPos = 0;
-    node.forEach((child, offset) => {
-      if (child.type.name !== nodeNames.field) {
-        return;
-      }
-      const at = pos + 1 + offset;
-      if (child.attrs.edge === 'close' && start && start.attrs.key === child.attrs.key && front.has(child.attrs.key as string)) {
-        parts.push({ from: startPos, to: at + 1 });
-      }
-      start = child.attrs.edge === 'open' ? child : undefined;
-      startPos = at;
-    });
     const anchor = trailingAnchor(node, pos);
     if (anchor) {
       anchors.push(anchor);
@@ -581,8 +509,8 @@ export function guardedEdit(transactions: readonly Transaction[], before: Editor
   return tr.docChanged ? tr.setMeta(figuresWrite, true) : null;
 }
 
-/** isHidden returns true for an anchor or a marker of a value of the front matter. */
-const isHidden = (node: PmNode | null | undefined): boolean => node?.type.name === nodeNames.anchor || node?.type.name === nodeNames.field;
+/** isHidden returns true for an anchor. The editor of nimblescape Markdown jumps over the markers of the values of the front matter itself. */
+const isHidden = (node: PmNode | null | undefined): boolean => node?.type.name === nodeNames.anchor;
 
 /**
  * jumpOverMarkup returns the command that moves the cursor over the anchors and the markers next to it, before
@@ -699,30 +627,20 @@ function activate(editor: PluginEditor): () => void {
   return () => editors.delete(tiptap);
 }
 
-/** figuresPlugin is the plugin of the figures, the tables, the listings, the references and the values of the front matter. */
+/** figuresPlugin is the plugin of the figures, the tables, the listings and the references. */
 export const figuresPlugin: MarkdownPlugin = {
   name: pluginName,
   apiVersion: 1,
   extendMarkdownIt,
   styles,
-  nodes: [FigureAnchor, FieldMarker, ListingComment, Guard],
+  nodes: [FigureAnchor, ListingComment, Guard],
   fromMarkdown: {
     [tokenTypes.anchor]: { node: nodeNames.anchor, getAttrs: (token) => ({ name: (token.meta as { name: string }).name, text: token.content }) },
-    [tokenTypes.field]: {
-      node: nodeNames.field,
-      getAttrs: (token) => {
-        const meta = token.meta as { key: string; edge: string };
-        return { key: meta.key, edge: meta.edge, text: token.content };
-      },
-    },
     [tokenTypes.listing]: { node: nodeNames.listing, getAttrs: (token) => ({ text: token.content }) },
   },
   toMarkdown: {
     nodes: {
       [nodeNames.anchor]: (state, node) => {
-        state.text(node.attrs.text as string, false);
-      },
-      [nodeNames.field]: (state, node) => {
         state.text(node.attrs.text as string, false);
       },
       [nodeNames.listing]: (state, node) => {
