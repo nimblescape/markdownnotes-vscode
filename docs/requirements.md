@@ -28,10 +28,12 @@ Claude document [One plan of all products](https://claude.ai/artifact/SatbygA2Fk
 ## Plan
 
 The plan of Markdown Notes is a part of the Claude document
-[One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy) ([decision 66](#decisions)). Its
-section "Open steps" holds the open steps of Markdown Notes in the order of
-all work, and its tab "Built steps" holds the built steps 1 to 93 with the
-numbers that the code, the tests and the documents name.
+[One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy) ([decision 66](#decisions)). It shows
+only the open points of Markdown Notes, in the order of all work, each with
+the text of its requirements. The built steps 1 to 93 keep the numbers that
+the code, the tests and the documents name; their list is in the
+[last version of the plan file](https://github.com/nimblescape/markdown/blob/23c2c0a/docs/plan.md#72-nimblescape-markdown-notes) in the
+history of nimblescape Markdown.
 
 ## General
 
@@ -335,9 +337,9 @@ its heading and adds no anchor ([R-XREF-003](#r-xref-003),
 **Everything in the requirements.** Everything that is decided or built for
 the extension gets a requirement in this document, in the same change that
 builds it: each decision of Hannes also gets an entry in
-[Decisions](#decisions) with the choice that it replaced, and each built
-part a step of the [one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy)
-([decision 66](#decisions)). A
+[Decisions](#decisions) with the choice that it replaced, and each part to
+build a step of the [one plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy), which the step
+leaves when it is built ([decision 66](#decisions)). A
 decision that changes an earlier requirement changes its text, so that this
 document describes the extension as it is.
 
@@ -3302,14 +3304,16 @@ requirements above follow them.
     without VS Code: the source, the renderer, the layout, the editor and
     the AI.
 66. **One plan for all products** ([R-GEN-014](#r-gen-014)): the open steps
-    and the built steps of Markdown Notes are in the Claude document
+    of Markdown Notes are in the Claude document
     [One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy), the one plan of the libraries and of
     all products that build on them, and the section [Plan](#plan) of this
-    document links to it. No repository holds a plan. The plan names the
-    requirements of each step by their IDs, with links into the
-    repositories, and the requirements stay the normative text. The other
-    choices were a plan in each repository and one plan as a file in the
-    repository of nimblescape Markdown.
+    document links to it. No repository holds a plan. The plan shows only
+    the open points, each with the text of the requirements that it names,
+    copied from the repositories with links to them; the requirements stay
+    the normative text. A step that is built leaves the plan. The other
+    choices were a plan in each repository, one plan as a file in the
+    repository of nimblescape Markdown, and a plan that also lists the built
+    steps.
 67. **The clean editing view stays** ([R-TEXT-009](#r-text-009),
     [R-TEXT-010](#r-text-010)): the clean editing view stays beside the
     editor of a whole file. Its objective is a text-only editor that keeps
