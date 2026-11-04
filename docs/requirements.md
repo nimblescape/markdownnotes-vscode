@@ -296,7 +296,7 @@ Markdown file with notes without this extension knowing anything of papers:
     replaced selected text, VS Code puts the text back as for `/note`, and
     `run` gets the range of that text. A command without it shows only when
     the slash replaced no text. A command that fails shows a message.
-  - *(proposal)* `registerEditorPlugin(name, connect)`: the part in the
+  - `registerEditorPlugin(name, connect)`: the part in the
     other extension of a plugin of the editor of a whole file
     ([R-TEXT-010](#r-text-010)). The package.json of the other extension
     names the scripts of its plugins in
@@ -979,7 +979,7 @@ extensions work as for the text editor.
 - The setting `renderedEditor` chooses the files that open in the editor:
   `all`, every Markdown file; `notesAndPapers`, a file with notes or with the
   comment of the format, and a paper document of nimblescape Markdown Paper;
-  `none`, no file. *(proposal)* The default is `all`. Every other file opens
+  `none`, no file. The default is `all`. Every other file opens
   in the text editor, a file with notes in the clean editing view, which
   stays beside the editor ([decision 67](#decisions)). "Reopen
   Editor With" of VS Code always offers the text editor.
@@ -1023,7 +1023,7 @@ extensions work as for the text editor.
   preview of VS Code, for example diagrams and math, as blocks that switch
   between their rendering and their source; the setting `previewExtensions`
   turns it off ([R-VSC-010](#r-vsc-010)).
-- *(proposal)* The editor also has the plugins of other extensions, for
+- The editor also has the plugins of other extensions, for
   example of Markdown Paper, after the plugins of this extension
   ([R-GEN-012](#r-gen-012)). A plugin with the name of another plugin of the
   editor is left out, and when the plugins of other extensions stop the
@@ -1052,7 +1052,7 @@ extensions work as for the text editor.
   replaces the text before it, and the comment of a listing goes with its
   code block.
 
-*(proposal)* The page of the editor and the extension exchange the
+The page of the editor and the extension exchange the
 selection, the selected note, the highlights and the button "Comment"
 through the channel of the plugin of the notes; each side checks each
 message before it uses it. Limits: a click on the thread of a standard
@@ -1091,7 +1091,7 @@ text editor of VS Code, so that the file stays a normal text document:
 save, the dirty mark, hot exit, Git diffs, the timeline and other
 extensions work as for the text editor ([R-TEXT-010](#r-text-010)).
 
-*(proposal)* The function `registerMarkdownEditor` of the adapter registers
+The function `registerMarkdownEditor` of the adapter registers
 the editor for the view type of the extension, with the script of the page
 that the extension bundles, the style sheets and a function that decides
 which documents open in it (the setting `renderedEditor` of
@@ -1121,7 +1121,7 @@ file to the side. Ctrl+S saves the file; the format on save
 ([R-FMT-001](#r-fmt-001)) runs, and the editor takes over the changed
 blocks.
 
-*(proposal)* The button is in the title of the editor; the extension
+The button is in the title of the editor; the extension
 contributes it with a command, which the adapter registers. The text editor
 opens with the selection of the editor. The page may also open it, for
 example from a button of its own.
@@ -1135,7 +1135,7 @@ network address of its own. It may require a newer VS Code version than
 
 ### R-VSC-005
 
-*(proposal)* **The page and the document.** The document of VS Code holds
+**The page and the document.** The document of VS Code holds
 the text of the file; the page of the webview holds a source with the same
 text. Each message that changes the text gives only the patches against a
 version that the other side knows. The page sends one change of the user at
@@ -1151,7 +1151,7 @@ document.
 
 ### R-VSC-006
 
-*(proposal)* **Undo and the keys of the editor.** Undo and Redo with the
+**Undo and the keys of the editor.** Undo and Redo with the
 keys in the editor undo and redo the steps of the editor, as the user made
 them. Undo from the menu of VS Code undoes the changes of the document. A
 key that the editor handles, for example Ctrl+K for a link or Ctrl+F for
@@ -1160,7 +1160,7 @@ reaches VS Code.
 
 ### R-VSC-007
 
-*(proposal)* **The views "Edit" and "Pages".** The adapter can show the
+**The views "Edit" and "Pages".** The adapter can show the
 pages of the file in its layout in place of the editor (the pages of
 nimblescape Markdown,
 [R-LAYOUT-003](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-layout-003)).
@@ -1189,7 +1189,7 @@ in its package.json, through the contribution point
 `"contributes": { "nimblescape.markdown.extensions": { "editorScripts":
 ["dist/editorPlugins.js"] } }` ([R-GEN-012](#r-gen-012)).
 
-*(proposal)* The extension registers the editor with the option
+The extension registers the editor with the option
 `contributedPlugins`, so that the adapter gives the page these scripts of
 all enabled extensions, in the order of the IDs of the extensions; a script
 must be a file `.js` in the folder of its extension. The page may load
