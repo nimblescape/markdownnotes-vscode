@@ -144,7 +144,11 @@ npmjs.com before the release of nimblescape Markdown
 `npm ci --ignore-scripts` and `npm run build`, packs them, and installs the
 packed packages with `npm install --no-save`, which also installs the
 libraries that they use and changes neither `package.json` nor
-`package-lock.json`. The file `.commit` in the folder of each package names
+`package-lock.json`. The libraries get the versions of the lock file of
+nimblescape Markdown at that commit, with which its tests ran: the script
+gives them to npm in the field `overrides` of `package.json`, which has the
+field only while npm runs. So a new version of a library on npmjs.com changes
+no build, and the table of `THIRD-PARTY-NOTICES.md` stays right. The file `.commit` in the folder of each package names
 the commit, so a second run does nothing. A later `npm install` without
 `--ignore-scripts` removes the packages and runs the script again.
 
