@@ -842,7 +842,8 @@ editor of a whole file ([R-TEXT-010](#r-text-010)), edits the text of the
 file without the notes markup ([decision 27](#decisions)). It is the
 text-only editor of Markdown Notes: it shows the Markdown text without
 rendering, and it keeps the format of the file, so that the notes and the
-other hidden parts stay as they are ([decision 67](#decisions)). It has the
+other hidden parts stay as they are. It is the view to learn Markdown
+([decision 67](#decisions)). It has the
 same functions for the notes and for the plugins of other extensions as the
 editor of a whole file ([R-TEXT-010](#r-text-010)), which shows the text
 rendered: each new feature of one of the two gets its solution in the other
@@ -3307,10 +3308,9 @@ requirements above follow them.
     the format of the file: it shows the Markdown text without rendering,
     and the notes and the other hidden parts stay as they are. A file with
     notes that the setting `renderedEditor` does not open in the editor
-    opens in the clean editing view. A later step may replace the clean
-    editing view only with another text-only editor that keeps the format
-    of the file; this step is postponed. The other choice was to remove the
-    clean editing view now.
+    opens in the clean editing view. It is the view to learn Markdown,
+    because it shows the Markdown text as the file writes it. The other
+    choice was to remove the clean editing view.
 68. **The same functions in both editors** ([R-TEXT-009](#r-text-009),
     [R-TEXT-010](#r-text-010)): the editor of a whole file and the clean
     editing view have the same functions for the notes and for the plugins
