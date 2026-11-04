@@ -306,8 +306,15 @@ const hardBreak = (text: string): boolean => / {2}$/.test(text) || /(?:^|[^\\])(
 const footnoteStart = /^\[\^[^\]\s]+\]:/;
 
 /**
+ * alertLine matches the text of the first line of a block quote that makes the quote an alert on GitHub, such as
+ * `[!NOTE]`. GitHub shows an alert only when the marker stands on a line of its own.
+ */
+const alertLine = /^\[!(?:note|tip|important|warning|caution)\]$/i;
+
+/**
  * joinedLines returns the lines of a paragraph with its text on one line: each line break becomes a space, except a
- * hard line break and the break before the definition of a footnote.
+ * hard line break, the break after the marker of an alert of GitHub at the start of a block quote, and the break before
+ * the definition of a footnote.
  * @param pieces - The lines of the paragraph.
  */
 function joinedLines(pieces: readonly Piece[]): string[] {
@@ -319,7 +326,7 @@ function joinedLines(pieces: readonly Piece[]): string[] {
     if (hardBreak(pieces[index - 1].text)) {
       result.push(current);
       current = `${piece.prefix}${text}`;
-    } else if (footnoteStart.test(text)) {
+    } else if (footnoteStart.test(text) || (index === 1 && pieces[0].prefix.includes('>') && alertLine.test(pieces[0].text.trim()))) {
       result.push(current.trimEnd());
       current = `${piece.prefix}${text}`;
     } else {
