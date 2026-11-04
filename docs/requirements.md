@@ -19,10 +19,10 @@ one place, the side view "Notes" of the extension, next to the text that each
 note is about: its highlight in the text editor and in the Markdown preview,
 as the highlights of a marker pen on paper.
 
-[docs/specification.md](specification.md) summarizes every requirement that
-is still valid, in short; this document holds the full text of each
-requirement and the decisions of Hannes. The decisions that wait for
-Hannes are in the Claude document [One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy)
+This document holds the full text of each requirement and the decisions of
+Hannes; no other file of the repository repeats them
+([decision 69](#decisions)). The decisions that wait for Hannes are in the
+Claude document [One plan of all products](https://claude.ai/artifact/SatbygA2FkJiW3ob623NEy)
 ([decision 66](#decisions)).
 
 ## Plan
@@ -348,10 +348,8 @@ document describes the extension as it is.
 **A clean specification.** This document states each requirement and each
 decision as a clean summary, without the words of the requests and without
 the history of the discussion ([R-GEN-014](#r-gen-014)). The same holds for
-every file of the repository: the other documents,
-[the list of the requested features](features.md) and the comments of the
-code. The words of the requests stay in the discussion documents, such as
-the concept documents in Claude.
+every file of the repository: the other documents and the comments of the
+code.
 
 ### R-GEN-016
 
@@ -3332,6 +3330,13 @@ requirements above follow them.
     rendered, and the clean editing view shows the Markdown text. Each new
     feature of one of the two gets its solution in the other in the same
     step.
+69. **No short specification and no list of the requests**
+    ([R-GEN-014](#r-gen-014), [R-GEN-015](#r-gen-015)): the repository
+    keeps no short form of the requirements and no list of the requested
+    features with their state. This document is the one description of what
+    the extension does, and the one plan of all products holds what waits
+    for a decision. The other choice was to keep `docs/specification.md` and
+    `docs/features.md` beside this document.
 
 ---
 

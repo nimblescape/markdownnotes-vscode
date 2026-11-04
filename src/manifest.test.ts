@@ -704,7 +704,7 @@ test('every requirement has a unique ID, and every link to a requirement or a se
   for (const target of markdownLinks(requirements).filter((target) => target.startsWith('#r-'))) {
     expect(anchors.has(target), target).toBe(true);
   }
-  for (const file of ['docs/guide.md', 'docs/features.md', 'docs/security.md', 'CONTRIBUTING.md']) {
+  for (const file of ['docs/guide.md', 'docs/security.md', 'CONTRIBUTING.md']) {
     for (const target of markdownLinks(read(file)).filter((target) => /requirements\.md#/.test(target))) {
       expect(anchors.has(target.slice(target.indexOf('#'))), `${file}: ${target}`).toBe(true);
     }
@@ -723,12 +723,10 @@ test('every requirement has a unique ID, and every link to a requirement or a se
   }
 });
 
-test('every link of the user guide and of the list of the features to one of their sections names an existing heading', () => {
-  for (const file of ['docs/guide.md', 'docs/features.md']) {
-    const text = read(file);
-    const anchors = new Set([...text.matchAll(/^#{2,4} (.+)$/gm)].map((match) => anchorOf(match[1])));
-    for (const target of markdownLinks(text).filter((target) => target.startsWith('#'))) {
-      expect(anchors.has(target), `${file}: ${target}`).toBe(true);
-    }
+test('every link of the user guide to one of its sections names an existing heading', () => {
+  const text = read('docs/guide.md');
+  const anchors = new Set([...text.matchAll(/^#{2,4} (.+)$/gm)].map((match) => anchorOf(match[1])));
+  for (const target of markdownLinks(text).filter((target) => target.startsWith('#'))) {
+    expect(anchors.has(target), target).toBe(true);
   }
 });
