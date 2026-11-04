@@ -2011,7 +2011,9 @@ blocks of HTML (also comments and the comment of the format of the notes,
 containers (`:::`), setext headings and the answers of the notes; of a
 note, it changes only the start marker and its form, whose lines it keeps
 ([R-FMT-002](#r-fmt-002)). The
-definition of a footnote stays on a line of its own. It reads the text as the
+definition of a footnote stays on a line of its own, and so does the marker
+of an alert of GitHub at the start of a block quote, such as `> [!NOTE]`,
+because GitHub shows the alert only then. It reads the text as the
 Markdown preview reads it, and keeps the text as it was when the formatted
 text would show other blocks or another text in the preview.
 
