@@ -3325,6 +3325,13 @@ requirements above follow them.
     the extension does, and the one plan of all products holds what waits
     for a decision. The other choice was to keep `docs/specification.md` and
     `docs/features.md` beside this document.
+70. **The side view in four modules, and the store of the notes**
+    ([R-SIDE-001](#r-side-001)): `src/notesView.ts` keeps the view, the
+    editors that it follows and the handling of the messages of its script;
+    its protocol, its page and its state are modules of their own. The class
+    that keeps the notes of the open documents is `NoteStore` in
+    `src/noteStore.ts`. The behavior does not change. The other choice was
+    one module of 1,285 lines and the name `NoteThreads` of an earlier design.
 
 ---
 

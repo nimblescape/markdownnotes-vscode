@@ -17,7 +17,7 @@
 
 import * as vscode from 'vscode';
 import { highlightFor } from './notes/edits';
-import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
+import { isNoteDocument, linesOf, type NoteStore } from './noteStore';
 import type { CleanMirror } from './notesView';
 
 /** addNoteTitle is the title of the action in the list of the light bulb. */
@@ -37,13 +37,13 @@ export class AddNoteAction implements vscode.CodeActionProvider {
   private readonly kind = vscode.CodeActionKind.QuickFix.append(addNoteKindPart);
 
   /**
-   * @param threads - The threads of the notes, which read each document once for each version.
+   * @param store - The store of the notes, which read each document once for each version.
    * @param command - The command "Add Note" of the side view.
    * @param mirror - The link of the clean editing view (R-TEXT-009), whose selected text names text of its
    * file.
    */
   constructor(
-    private readonly threads: NoteThreads,
+    private readonly store: NoteStore,
     private readonly command: string,
     private readonly mirror?: CleanMirror,
   ) {}
@@ -72,7 +72,7 @@ export class AddNoteAction implements vscode.CodeActionProvider {
     const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document === document && candidate.selection.isEqual(range));
     const start = real ? this.mirror!.toReal(document.uri, range.start) : range.start;
     const end = real ? this.mirror!.toReal(document.uri, range.end) : range.end;
-    if (editor === undefined || editor.selections.length > 1 || !start || !end || highlightFor(linesOf(file), new vscode.Range(start, end), this.threads.textReadingOf(file)) === undefined) {
+    if (editor === undefined || editor.selections.length > 1 || !start || !end || highlightFor(linesOf(file), new vscode.Range(start, end), this.store.textReadingOf(file)) === undefined) {
       return [];
     }
     const action = new vscode.CodeAction(addNoteTitle, this.kind);

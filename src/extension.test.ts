@@ -23,7 +23,7 @@ import { footnoteCommands, footnotesContext, highlightCommands, highlightsContex
 import { renumberCommand } from './footnoteActions';
 import { footnoteCodes } from './notes/checks';
 import { deleteCommands } from './noteEditor';
-import { notesViewId, viewCommands } from './notesView';
+import { notesViewId, viewCommands } from './notesViewProtocol';
 import { publishCommands } from './publish';
 import { renderedEditor } from './renderedEditor';
 import { settingsSection } from './settings';

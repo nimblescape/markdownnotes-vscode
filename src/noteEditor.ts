@@ -60,7 +60,7 @@ import { type Fold, foldsOf, headersOf } from './notes/folds';
 import { deletion, locksLine, offLines, outside, type Side, type Span, spansOf } from './notes/cursor';
 import { type Note, type Position, same } from './notes/notes';
 import { authorDate } from './notes/syntax';
-import { isNoteDocument, type NoteThreads } from './noteThreads';
+import { isNoteDocument, type NoteStore } from './noteStore';
 import type { SelectedNotes } from './selectedNotes';
 
 /** deleteCommands are the commands of Backspace and Delete, and of the keys that delete a word, next to a hidden marker. */
@@ -187,12 +187,12 @@ export class NoteEditor implements vscode.Disposable {
   private pointed: { document: string; label: string } | undefined;
 
   /**
-   * @param threads - The threads of the notes, which read the notes of each document and tell their changes.
+   * @param store - The store of the notes, which read the notes of each document and tell their changes.
    * @param showsHighlights - Tells whether the highlights of a document show: the setting showHighlights is on.
    * @param selected - The selected note of each document, whose highlight has the strong color.
    */
   constructor(
-    private readonly threads: NoteThreads,
+    private readonly store: NoteStore,
     private readonly showsHighlights: (document: vscode.Uri) => boolean,
     private readonly selected: SelectedNotes,
   ) {}
@@ -247,7 +247,7 @@ export class NoteEditor implements vscode.Disposable {
         this.shut.delete(key);
         this.read.delete(key);
       }),
-      this.threads.onDidChange((document) => this.decorateAll(document)),
+      this.store.onDidChange((document) => this.decorateAll(document)),
       this.selected.onDidChange((document) => this.decorateAll(document)),
     ];
     vscode.window.visibleTextEditors.forEach((editor) => this.decorate(editor));
@@ -315,7 +315,7 @@ export class NoteEditor implements vscode.Disposable {
    * @param document - The document.
    */
   private notesIn(document: vscode.TextDocument): Note[] {
-    return isNoteDocument(document) && !document.isClosed ? this.threads.notesOf(document) : [];
+    return isNoteDocument(document) && !document.isClosed ? this.store.notesOf(document) : [];
   }
 
   /**
@@ -571,7 +571,7 @@ export class NoteEditor implements vscode.Disposable {
     if (folds.length === 0 || !document) {
       return;
     }
-    await this.threads.settled(document);
+    await this.store.settled(document);
     if (vscode.window.activeTextEditor?.document !== document) {
       return;
     }

@@ -3,7 +3,7 @@
 // Licensed under the MIT License. See LICENSE in the repository root for details.
 
 // The tests of the script of the side view (media/notesView.js, R-GEN-018): the
-// script runs in a page of happy-dom with the page of src/notesView.ts, gets the
+// script runs in a page of happy-dom with the page of src/notesViewPage.ts, gets the
 // messages of the extension and sends its messages to a fake API of VS Code.
 
 import { Window, type HTMLInputElement, type HTMLTextAreaElement } from 'happy-dom';

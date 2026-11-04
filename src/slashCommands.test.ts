@@ -14,7 +14,7 @@
  */
 
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { notesViewId } from './notesView';
+import { notesViewId } from './notesViewProtocol';
 import { Fake, type FakeCompletionItem, FakeEditor, FakePosition, FakeRange, FakeSelection, type FakeSnippetString, FakeUri, type FakeView, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the

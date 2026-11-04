@@ -30,10 +30,13 @@
  * editor of a text switches between writing and the preview, which renders the
  * text with the Markdown preview of VS Code. A click on a link of a rendered
  * text opens the link ([src/links.ts](links.ts)). The view writes through the
- * operations of the threads ([src/noteThreads.ts](noteThreads.ts)), which check
- * a text before they write it. The script of the view is
+ * operations of the store of the notes ([src/noteStore.ts](noteStore.ts)),
+ * which check a text before they write it. The script of the view is
  * [media/notesView.js](../media/notesView.js); it gets the state of the view
- * from this module and sends the actions of the user back.
+ * ([src/notesViewState.ts](notesViewState.ts)) and sends the actions of the
+ * user back, in the messages of
+ * [src/notesViewProtocol.ts](notesViewProtocol.ts). Its page is
+ * [src/notesViewPage.ts](notesViewPage.ts).
  *
  * A click on a thread selects its note in the text editor
  * ([R-SIDE-007](../docs/requirements.md#r-side-007)). The view is a list of the
@@ -76,180 +79,21 @@ import * as vscode from 'vscode';
 import { githubProvider } from './github';
 import { openLink } from './links';
 import { hiddenText } from './format/format';
-import { colorIndexOf, colorNames, colorOf, noteColors } from './notes/colors';
-import { highlightFor, placeFor } from './notes/edits';
-import { type Footnote, footnoteAt, placeText, referenceAt, referencePlace } from './notes/footnotes';
+import { colorNames } from './notes/colors';
+import { highlightFor } from './notes/edits';
+import { footnoteAt, placeText, referenceAt, referencePlace } from './notes/footnotes';
 import { renderedRange } from './notes/rendered';
-import { authorDate, displayDate, type TodoState } from './notes/syntax';
-import { type AnswerRef, isNoteDocument, linesOf, type NoteThreads, problemMessage } from './noteThreads';
+import { isNoteDocument, linesOf, type NoteStore, problemMessage } from './noteStore';
+import { footnoteId, footnoteLabelOf, formContext, type Message, notesViewId, previewTextMissing, type State, viewCommands } from './notesViewProtocol';
+import { pageHtml } from './notesViewPage';
+import { highlightText, RenderCache, stateOf } from './notesViewState';
 import { renderedEditor } from './renderedEditor';
 import { showAt } from './scrolling';
 import type { SelectedNotes } from './selectedNotes';
 import type { Settings } from './settings';
 
-/** notesViewId is the identifier of the side view, which the manifest contributes. */
-export const notesViewId = 'nimblescape.markdownNotes.notes';
-
-/**
- * viewCommands are the commands of the side view: the buttons "Add Note", "Add Footnote"
- * ([R-FOOT-003](../docs/requirements.md#r-foot-003)) and "Hide Notes" in its title
- * ([R-SIDE-003](../docs/requirements.md#r-side-003)), "Show or Hide Notes" of the title of the Markdown editors and
- * of the Command Palette ([R-SIDE-006](../docs/requirements.md#r-side-006)), and the eye in its title with the commands
- * "Hide Notes from Other Viewers" and "Show Notes in Other Viewers" of the Command Palette
- * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): the eye has a command for each state, whose title is the tooltip
- * that says the state and what a click does. "Add Definition" opens the editor of a new definition for the label of a
- * reference without a definition, for its quick fix ([R-FOOT-004](../docs/requirements.md#r-foot-004)); it takes the URI
- * of the file and the label, so the Command Palette does not show it.
- */
-export const viewCommands = {
-  newNote: 'nimblescape.markdownNotes.newNote',
-  newFootnote: 'nimblescape.markdownNotes.addFootnote',
-  addDefinition: 'nimblescape.markdownNotes.addFootnoteDefinition',
-  hide: 'nimblescape.markdownNotes.hideNotes',
-  toggle: 'nimblescape.markdownNotes.toggleNotes',
-  hideFromViewers: 'nimblescape.markdownNotes.hideNotesFromViewers',
-  showInViewers: 'nimblescape.markdownNotes.showNotesInViewers',
-  eyeShown: 'nimblescape.markdownNotes.notesShownToViewers',
-  eyeHidden: 'nimblescape.markdownNotes.notesHiddenFromViewers',
-};
-
-/**
- * formContext is the context key that tells the menus the form of the notes of the document of the side view
- * ([R-HIDE-002](../docs/requirements.md#r-hide-002)): `visible`, `hidden`, or empty for a document without notes, for
- * which the eye does not show.
- */
-export const formContext = 'nimblescape.markdownNotes.notesForm';
-
-/** Message is a message of the script of the view. */
-export type Message =
-  | { type: 'ready' }
-  | { type: 'signIn' }
-  | { type: 'reveal'; id: string; focus?: boolean }
-  | { type: 'deselect' }
-  | { type: 'save'; request: number; id: string; answer: AnswerRef; text: string }
-  | { type: 'answer'; request: number; id: string; text: string; parent?: AnswerRef }
-  | { type: 'add'; request: number; text: string; color?: string; todo?: boolean }
-  | { type: 'todo'; id: string; done: boolean }
-  | { type: 'deleteAnswer'; id: string; answer: AnswerRef }
-  | { type: 'deleteNote'; id: string }
-  | { type: 'makeFootnote'; id: string }
-  | { type: 'color'; id: string; color: string | undefined }
-  | { type: 'saveText'; request: number; id: string; text: string; original: string }
-  | { type: 'render'; request: number; text: string }
-  | { type: 'openLink'; href: string }
-  | { type: 'saveFootnote'; request: number; id: string; text: string; original: string }
-  | { type: 'deleteFootnote'; id: string }
-  | { type: 'addFootnote'; request: number; text: string; label?: string }
-  | { type: 'footnoteClosed' };
-
-/** AnswerState is an answer as the view shows it. */
-interface AnswerState {
-  author: string;
-  /**
-   * date is the date in the local time of the reader, and authorDate the date in the local time of the author; written
-   * is the date as the file holds it, which names the answer in a message of a change, with its author and its index.
-   */
-  date: string;
-  authorDate: string;
-  written: string;
-  body: string;
-  html: string;
-  /** depth is 0 for the first answer, 1 for a reply to it, and so on; parent is the index of the answer that it replies to. */
-  depth: number;
-  parent: number | undefined;
-}
-
-/** ThreadState is a thread as the view shows it. */
-interface ThreadState {
-  id: string;
-  line: number;
-  /** color is the color of the note ([R-TEXT-006](../docs/requirements.md#r-text-006)), and colorName its name. */
-  color: string;
-  colorName: string;
-  /** text is the whole text of the note, for its text view. */
-  text: string;
-  /** todo is the state of a todo note ([R-NOTE-008](../docs/requirements.md#r-note-008)), or undefined for another note. */
-  todo?: TodoState;
-  answers: AnswerState[];
-  /**
-   * footnote is the label and the rendered text of a standard footnote ([R-FOOT-001](../docs/requirements.md#r-foot-001)),
-   * with the numbers of GitHub and of the Markdown preview, which have no number for a footnote without a reference;
-   * undefined for a note. A footnote has no answers, and its text is the text of its definition.
-   */
-  footnote?: { label: string; html: string; github?: number; preview?: number };
-}
-
-/** State is the content of the view, which the script shows. */
-export interface State {
-  type: 'state';
-  /** file is the name of the Markdown file, or undefined when no Markdown file was active. */
-  file: string | undefined;
-  /** line is the index of the line of the cursor in the text editor. */
-  line: number | undefined;
-  /**
-   * highlight is the text that a new note highlights, the selected text of the text editor, shortened; or undefined
-   * when the selection holds no text that a note can highlight.
-   */
-  highlight: string | undefined;
-  /**
-   * footnotePlace is the text before the place of the reference of a new footnote at the cursor, shortened, while the
-   * editor of a new footnote is open; undefined when no reference can stand at the cursor.
-   */
-  footnotePlace?: string;
-  /** account is the GitHub login of the user, or undefined without a sign-in. */
-  account: string | undefined;
-  selected: string | undefined;
-  threads: ThreadState[];
-  /** colors are the colors that "Color" offers, by their names; the first one is the default. */
-  colors: { name: string; color: string }[];
-}
-
-/** cacheSize is the number of rendered texts that the view keeps. */
-const cacheSize = 200;
-
-/** titleLength is the number of characters of the highlighted text in the title of the editor of a new note. */
-const titleLength = 60;
-
-/** footnotePrefix starts the identifier of the thread of a standard footnote; the threads of the notes have numbers. */
-const footnotePrefix = 'footnote-';
-
-/**
- * footnoteId returns the identifier of the thread of a standard footnote, which names its label.
- * @param label - The label of the footnote.
- */
-export const footnoteId = (label: string): string => `${footnotePrefix}${encodeURIComponent(label)}`;
-
-/**
- * footnoteLabelOf returns the label of the footnote of a thread, or undefined for the thread of a note.
- * @param id - The identifier of the thread.
- */
-const footnoteLabelOf = (id: string): string | undefined => (id.startsWith(footnotePrefix) ? decodeURIComponent(id.slice(footnotePrefix.length)) : undefined);
-
-/**
- * keyOfFootnote returns the place of a standard footnote in the order of the file: its first reference, else its
- * definition.
- * @param footnote - The footnote.
- */
-const keyOfFootnote = (footnote: Footnote): { line: number; character: number } => footnote.references[0]?.start ?? { line: footnote.definition.first, character: 0 };
-
-/**
- * isAfter tells whether a position comes after another one.
- * @param a - The position.
- * @param b - The other position.
- */
-const isAfter = (a: { line: number; character: number }, b: { line: number; character: number }): boolean => a.line > b.line || (a.line === b.line && a.character > b.character);
-
-/** footnoteColor is the color of the threads of the footnotes, which have no color of a note. */
-const footnoteColor = 'var(--vscode-descriptionForeground)';
-
 /** wordCharacter matches a letter, a digit or an underscore: a character of a word that a double click selects. */
 const wordCharacter = /[\p{L}\p{N}_]/u;
-
-/**
- * escapeHtml escapes the characters of a text that HTML reads as markup.
- * @param text - The text.
- */
-const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
 
 /** FollowedEditor is the part of a text editor that the view follows: its document and its selection. */
 export type FollowedEditor = Pick<vscode.TextEditor, 'document' | 'selection'>;
@@ -306,13 +150,6 @@ export interface CleanMirror {
   settled?(document: vscode.Uri): Promise<void>;
 }
 
-/**
- * previewTextMissing is the message for text of the Markdown preview that the view did not find in the file, such as a
- * formula, which the preview shows in another form.
- */
-export const previewTextMissing =
-  'The note was not added: the selected text of the preview was not found in the Markdown text. Select the text in the text editor, then choose "Add Note" again.';
-
 /** NotesView is the provider of the side view. */
 export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable {
   private view: vscode.WebviewView | undefined;
@@ -336,7 +173,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /** selections holds the selection of the text editor of each document, by its URI, for "Add Note". */
   private readonly selections = new Map<string, vscode.Range>();
   /** rendered holds the HTML of rendered texts, by the text. */
-  private readonly rendered = new Map<string, string>();
+  private readonly rendered: RenderCache;
   /** version counts the states, so that only the newest one reaches the view. */
   private version = 0;
   /** ready tells whether the script of the view started and receives messages. */
@@ -356,7 +193,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * @param extensionUri - The folder of the extension, which holds the script and the styles of the view.
-   * @param threads - The threads of the notes, whose operations the view uses.
+   * @param store - The store of the notes, whose operations the view uses.
    * @param login - Returns the GitHub login of the user; with signIn true after asking for a sign-in.
    * @param render - Renders a Markdown text as the Markdown preview does.
    * @param settingsOf - Returns the settings of a document.
@@ -365,19 +202,20 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly threads: NoteThreads,
+    private readonly store: NoteStore,
     private readonly login: (signIn: boolean) => Promise<string | undefined>,
     private readonly render: (text: string) => Promise<string>,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly chosen: SelectedNotes,
     private readonly mirror?: CleanMirror,
   ) {
+    this.rendered = new RenderCache(render);
     this.registrations = [
       vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor)),
       vscode.window.tabGroups.onDidChangeTabs(() => this.followTab()),
       vscode.window.tabGroups.onDidChangeTabGroups(() => this.followTab()),
       vscode.window.onDidChangeTextEditorSelection((event) => this.follow(event.textEditor, event.kind === vscode.TextEditorSelectionChangeKind.Mouse)),
-      threads.onDidChange((document) => {
+      store.onDidChange((document) => {
         if (document.toString() === this.document?.toString()) {
           void this.refresh();
         }
@@ -412,7 +250,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const media = vscode.Uri.joinPath(this.extensionUri, 'media');
     const dist = vscode.Uri.joinPath(this.extensionUri, 'dist');
     view.webview.options = { enableScripts: true, localResourceRoots: [media, dist] };
-    view.webview.html = this.html(view.webview, media, dist);
+    view.webview.html = pageHtml(view.webview, media, dist);
     view.webview.onDidReceiveMessage((message: Message) => this.receive(message));
     // The extension can start while VS Code opens a file in a mode of its own, after the change of the tabs.
     this.followTab();
@@ -457,7 +295,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   async choose(document: vscode.Uri, line: number): Promise<void> {
     this.document = document;
-    this.select(document, this.threads.entryAt(document, { line, character: 0 })?.id ?? this.selected);
+    this.select(document, this.store.entryAt(document, { line, character: 0 })?.id ?? this.selected);
     await this.refresh();
   }
 
@@ -468,7 +306,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   async show(document: vscode.Uri, line: number): Promise<void> {
     this.document = document;
-    this.select(document, this.threads.entryAt(document, { line, character: 0 })?.id ?? this.selected);
+    this.select(document, this.store.entryAt(document, { line, character: 0 })?.id ?? this.selected);
     await vscode.commands.executeCommand(`${notesViewId}.focus`);
     await this.refresh();
   }
@@ -568,7 +406,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     };
     const start = place(range.start);
     const end = place(range.end);
-    if (!start || !end || highlightFor(linesOf(file), new vscode.Range(start, end), this.threads.textReadingOf(file)) === undefined) {
+    if (!start || !end || highlightFor(linesOf(file), new vscode.Range(start, end), this.store.textReadingOf(file)) === undefined) {
       void vscode.window.showInformationMessage(problemMessage({ kind: 'place' }));
       return;
     }
@@ -677,7 +515,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       return undefined;
     }
     const lines = linesOf(open);
-    const place = referencePlace(lines, range.end, this.threads.textReadingOf(open));
+    const place = referencePlace(lines, range.end, this.store.textReadingOf(open));
     if (!place) {
       return undefined;
     }
@@ -704,7 +542,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       this.scrollPending = id !== undefined;
     }
     this.selected = id;
-    const entry = id === undefined ? undefined : this.threads.entriesOf(document).find((candidate) => candidate.id === id);
+    const entry = id === undefined ? undefined : this.store.entriesOf(document).find((candidate) => candidate.id === id);
     this.chosen.select(document, entry?.note.label, reveal);
   }
 
@@ -736,7 +574,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.document = document;
     this.clean = real !== undefined;
     const label = this.chosen.labelOf(document);
-    this.select(document, this.threads.entriesOf(document).find((entry) => entry.note.label === label)?.id);
+    this.select(document, this.store.entriesOf(document).find((entry) => entry.note.label === label)?.id);
     void this.refresh();
   }
 
@@ -797,10 +635,10 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     this.clean = real !== undefined;
     // The position, not only the line, names the note, because the selections of several notes can share a line. In the
     // clean editing view, the cursor at the start of a highlight is before its hidden start marker in the file.
-    const entry = this.threads.entryAt(document, active) ?? (real ? this.threads.entryAt(document, place(at, true)) : undefined);
+    const entry = this.store.entryAt(document, active) ?? (real ? this.store.entryAt(document, place(at, true)) : undefined);
     // The cursor on a reference or in a definition of a standard footnote selects the footnote (R-FOOT-001); a
     // reference in the highlight of a note, such as a citation, selects its footnote too.
-    const footnotes = this.settingsOf(document).showFootnotes ? this.threads.footnotesOf(document) : [];
+    const footnotes = this.settingsOf(document).showFootnotes ? this.store.footnotesOf(document) : [];
     const footnote = referenceAt(footnotes, active) ?? (entry ? undefined : footnoteAt(footnotes, active));
     const selected = footnote ? footnoteId(footnote.label) : entry?.id;
     const left = this.atCursor.get(document.toString()) === this.selected && this.selected !== undefined;
@@ -840,156 +678,35 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
   }
 
-  /**
-   * html returns the page of the view: its styles and its script, and the visual editor of the answers with its styles
-   * ([R-SIDE-004](../docs/requirements.md#r-side-004)), with a policy that allows no other script and no other style,
-   * also no style attribute: the scripts set their styles through the CSS object model, which the policy allows, and
-   * the style elements of the editor carry the nonce of the page.
-   * @param webview - The webview of the view.
-   * @param media - The folder of the script and the styles.
-   * @param dist - The folder of the bundle of the visual editor and its styles.
-   */
-  private html(webview: vscode.Webview, media: vscode.Uri, dist: vscode.Uri): string {
-    const nonce = globalThis.crypto.randomUUID().replace(/-/g, '');
-    const script = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.js'));
-    const styles = webview.asWebviewUri(vscode.Uri.joinPath(media, 'notesView.css'));
-    const editor = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.js'));
-    const editorStyles = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'visualEditor.css'));
-    const policy = `default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'nonce-${nonce}'; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';`;
-    return [
-      '<!DOCTYPE html>',
-      '<html lang="en">',
-      '<head>',
-      '<meta charset="UTF-8">',
-      `<meta http-equiv="Content-Security-Policy" content="${policy}">`,
-      '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-      `<link rel="stylesheet" href="${editorStyles.toString()}">`,
-      `<link rel="stylesheet" href="${styles.toString()}">`,
-      '<title>Notes</title>',
-      '</head>',
-      '<body>',
-      '<main id="notes"></main>',
-      `<script nonce="${nonce}" src="${editor.toString()}"></script>`,
-      `<script nonce="${nonce}" src="${script.toString()}"></script>`,
-      '</body>',
-      '</html>',
-    ].join('\n');
-  }
-
-  /**
-   * renderHtml renders a Markdown text, once for each text. A text that the preview cannot render shows as it is.
-   * @param text - The Markdown text.
-   */
-  private async renderHtml(text: string): Promise<string> {
-    let html = this.rendered.get(text);
-    if (html === undefined) {
-      html = await this.render(text).catch(() => `<pre>${escapeHtml(text)}</pre>`);
-      if (this.rendered.size >= cacheSize) {
-        this.rendered.clear();
-      }
-      this.rendered.set(text, html);
-    }
-    return html;
-  }
-
   /** settingsChanged shows the view again after a change of the settings of the extension. */
   settingsChanged(): void {
     void this.refresh();
   }
 
   /**
-   * highlightOf returns the text that a new note highlights for the selection of the text editor of a document: the text
-   * from its start marker to its reference, without the markers and references of other notes, on one line and
-   * shortened; or undefined when the selection holds no text that a note can highlight.
+   * highlightOf returns the text that a new note highlights for the selection of the text editor of a document
+   * (src/notesViewState.ts).
    * @param document - The URI of the document.
    */
   private highlightOf(document: vscode.Uri): string | undefined {
-    const range = this.selections.get(document.toString());
-    const open = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === document.toString());
-    if (!range || range.isEmpty || !open) {
-      return undefined;
-    }
-    const lines = linesOf(open);
-    const place = placeFor(lines, range, this.threads.textReadingOf(open));
-    if (!place) {
-      return undefined;
-    }
-    const text = open
-      .getText(new vscode.Range(place.marker.line, place.marker.character, place.reference.line, place.reference.character))
-      .replace(hiddenText, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return text.length > titleLength ? `${text.slice(0, titleLength - 1).trimEnd()}…` : text;
+    return highlightText(this.store, document, this.selections.get(document.toString()));
   }
 
-  /** state returns the content of the view. */
+  /** state returns the content of the view (src/notesViewState.ts). */
   async state(): Promise<State> {
     const document = this.document;
-    const entries = document ? this.threads.entriesOf(document) : [];
-    /**
-     * lineOf returns the line that the view names for a note: the line of its definition in the text editor, and the
-     * line of the start of its highlight in the clean editing view, which shows no definition.
-     * @param note - The note.
-     */
-    const lineOf = (note: (typeof entries)[number]['note']): number => {
-      const place = note.selection?.start ?? note.start;
-      const clean = this.clean && document ? this.mirror?.toClean(document, new vscode.Position(place.line, place.character)) : undefined;
-      return clean?.line ?? note.start.line;
-    };
-    const notes = await Promise.all(
-      entries.map(async ({ id, note, text }) => ({
-        id,
-        line: lineOf(note),
-        color: colorOf(note),
-        colorName: colorNames[colorIndexOf(note)],
-        text,
-        ...(note.answers[0]?.todo ? { todo: note.answers[0].todo } : {}),
-        answers: await Promise.all(
-          note.answers.map(
-            async (answer): Promise<AnswerState> => ({
-              author: answer.author,
-              date: displayDate(answer.date),
-              authorDate: authorDate(answer.date),
-              written: answer.date,
-              body: answer.body,
-              html: await this.renderHtml(answer.body),
-              depth: answer.depth,
-              parent: answer.parent,
-            }),
-          ),
-        ),
-      })),
-    );
-    const threads: ThreadState[] = [...notes];
-    const footnotes = document && this.settingsOf(document).showFootnotes ? this.threads.footnotesOf(document) : [];
-    for (const footnote of footnotes) {
-      // Each footnote stands at the place of its first reference, before the first note whose highlight starts later.
-      const place = keyOfFootnote(footnote);
-      const clean = this.clean && document ? this.mirror?.toClean(document, new vscode.Position(place.line, place.character)) : undefined;
-      const index = entries.findIndex((entry) => isAfter(entry.note.selection?.start ?? entry.note.start, place));
-      const thread: ThreadState = {
-        id: footnoteId(footnote.label),
-        line: clean?.line ?? place.line,
-        color: footnoteColor,
-        colorName: '',
-        text: footnote.text,
-        answers: [],
-        footnote: { label: footnote.label, html: await this.renderHtml(footnote.text), github: footnote.github, preview: footnote.preview },
-      };
-      const at = index < 0 ? threads.length : threads.findIndex((candidate) => candidate.id === entries[index].id);
-      threads.splice(at, 0, thread);
-    }
-    return {
-      type: 'state',
-      file: document?.path.split('/').pop(),
-      line: document ? this.lines.get(document.toString()) : undefined,
-      highlight: document && this.highlightOf(document),
-      ...(this.footnoteEditor && document ? { footnotePlace: this.footnotePlaceOf(document) } : {}),
-      account: await (this.account ??= this.login(false)),
-      selected: threads.some((thread) => thread.id === this.selected) ? this.selected : undefined,
-      threads,
-      colors: colorNames.map((name, index) => ({ name, color: noteColors[index] })),
-    };
+    return stateOf({
+      store: this.store,
+      document,
+      showFootnotes: () => document !== undefined && this.settingsOf(document).showFootnotes,
+      toClean: (position) => (this.clean && document ? this.mirror?.toClean(document, position) : undefined),
+      render: (text) => this.rendered.html(text),
+      line: () => (document ? this.lines.get(document.toString()) : undefined),
+      highlight: () => document && this.highlightOf(document),
+      footnotePlace: () => (this.footnoteEditor && document ? { footnotePlace: this.footnotePlaceOf(document) } : {}),
+      account: () => (this.account ??= this.login(false)),
+      selected: () => this.selected,
+    });
   }
 
   /**
@@ -1002,7 +719,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     if (!document) {
       return;
     }
-    const problem = await this.threads.changeForm(document, hidden);
+    const problem = await this.store.changeForm(document, hidden);
     if (problem) {
       void vscode.window.showWarningMessage(problemMessage(problem));
     }
@@ -1011,7 +728,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /** showForm tells the menus the form of the notes of the document of the view, for the eye in its title. */
   private showForm(): void {
-    const hidden = this.document && this.threads.formOf(this.document);
+    const hidden = this.document && this.store.formOf(this.document);
     const form = hidden === undefined ? '' : hidden ? 'hidden' : 'visible';
     if (form !== this.form) {
       this.form = form;
@@ -1051,14 +768,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   private targetOf(uri: vscode.Uri, id: string): { start: vscode.Position; end: vscode.Position } | undefined {
     const label = footnoteLabelOf(id);
     if (label !== undefined) {
-      const footnote = this.threads.footnotesOf(uri).find((candidate) => candidate.label === label);
+      const footnote = this.store.footnotesOf(uri).find((candidate) => candidate.label === label);
       const range = footnote?.references[0];
       if (range) {
         return { start: new vscode.Position(range.start.line, range.start.character), end: new vscode.Position(range.end.line, range.end.character) };
       }
       return footnote && { start: new vscode.Position(footnote.definition.first, 0), end: new vscode.Position(footnote.definition.first, 0) };
     }
-    const note = this.threads.entriesOf(uri).find((candidate) => candidate.id === id)?.note;
+    const note = this.store.entriesOf(uri).find((candidate) => candidate.id === id)?.note;
     if (!note) {
       return undefined;
     }
@@ -1136,7 +853,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         await this.refresh();
         return;
       case 'render':
-        await this.view?.webview.postMessage({ type: 'rendered', request: message.request, html: await this.renderHtml(message.text) });
+        await this.view?.webview.postMessage({ type: 'rendered', request: message.request, html: await this.rendered.html(message.text) });
         return;
       case 'reveal':
         await this.reveal(message.id, message.focus ?? true);
@@ -1161,15 +878,15 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     }
     switch (message.type) {
       case 'save':
-        await this.reply(message.request, await this.threads.saveAnswer(document, message.id, message.answer, message.text));
+        await this.reply(message.request, await this.store.saveAnswer(document, message.id, message.answer, message.text));
         return;
       case 'answer':
-        await this.reply(message.request, await this.threads.answer(document, message.id, message.text, undefined, message.parent));
+        await this.reply(message.request, await this.store.answer(document, message.id, message.text, undefined, message.parent));
         return;
       case 'add': {
         const line = this.lines.get(document.toString()) ?? 0;
         const range = this.selections.get(document.toString()) ?? new vscode.Range(line, 0, line, 0);
-        const result = await this.threads.addNote(
+        const result = await this.store.addNote(
           document,
           range,
           message.text,
@@ -1185,17 +902,17 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         return;
       }
       case 'saveText':
-        await this.reply(message.request, await this.threads.saveNoteText(document, message.id, message.text, message.original));
+        await this.reply(message.request, await this.store.saveNoteText(document, message.id, message.text, message.original));
         return;
       case 'saveFootnote': {
         const label = footnoteLabelOf(message.id);
-        await this.reply(message.request, label === undefined ? { kind: 'footnoteMissing' } : await this.threads.saveFootnote(document, label, message.text, message.original));
+        await this.reply(message.request, label === undefined ? { kind: 'footnoteMissing' } : await this.store.saveFootnote(document, label, message.text, message.original));
         return;
       }
       case 'addFootnote': {
         if (message.label !== undefined) {
           // The editor of a new definition, for the quick fix "Add Definition".
-          const problem = await this.threads.addDefinition(document, message.label, message.text);
+          const problem = await this.store.addDefinition(document, message.label, message.text);
           if (!problem) {
             this.select(document, footnoteId(message.label));
             await this.refresh();
@@ -1205,7 +922,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         }
         // The reference goes at the cursor of the text editor at the time of the save.
         const selection = this.selections.get(document.toString());
-        const result = selection ? await this.threads.addFootnote(document, selection.end, message.text) : { problem: { kind: 'footnotePlace' as const } };
+        const result = selection ? await this.store.addFootnote(document, selection.end, message.text) : { problem: { kind: 'footnotePlace' as const } };
         if ('label' in result) {
           this.footnoteEditor = false;
           this.select(document, footnoteId(result.label));
@@ -1228,14 +945,14 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
         if (choice !== 'Delete') {
           return;
         }
-        const problem = await this.threads.deleteFootnote(document, label);
+        const problem = await this.store.deleteFootnote(document, label);
         if (problem) {
           void vscode.window.showErrorMessage(problemMessage(problem));
         }
         return;
       }
       case 'makeFootnote': {
-        const replies = (this.threads.entriesOf(document).find((entry) => entry.id === message.id)?.note.answers.length ?? 1) - 1;
+        const replies = (this.store.entriesOf(document).find((entry) => entry.id === message.id)?.note.answers.length ?? 1) - 1;
         if (replies > 0) {
           // The replies go with the note: the user confirms it first.
           const choice = await vscode.window.showWarningMessage(
@@ -1247,7 +964,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
             return;
           }
         }
-        const result = await this.threads.makeFootnote(document, message.id);
+        const result = await this.store.makeFootnote(document, message.id);
         if ('problem' in result) {
           void vscode.window.showErrorMessage(problemMessage(result.problem));
           return;
@@ -1262,12 +979,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
       case 'deleteNote': {
         const problem =
           message.type === 'color'
-            ? await this.threads.colorNote(document, message.id, message.color)
+            ? await this.store.colorNote(document, message.id, message.color)
             : message.type === 'todo'
-              ? await this.threads.todoNote(document, message.id, message.done ? 'done' : 'todo')
+              ? await this.store.todoNote(document, message.id, message.done ? 'done' : 'todo')
               : message.type === 'deleteAnswer'
-              ? await this.threads.deleteAnswer(document, message.id, message.answer)
-              : await this.threads.deleteNote(document, message.id);
+              ? await this.store.deleteAnswer(document, message.id, message.answer)
+              : await this.store.deleteNote(document, message.id);
         if (problem) {
           void vscode.window.showErrorMessage(problemMessage(problem));
         }

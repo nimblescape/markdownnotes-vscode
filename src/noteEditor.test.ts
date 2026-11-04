@@ -21,7 +21,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { noteColors } from './notes/colors';
 import { doctypeLines } from './notes/doctype';
 import { deleteCommands, keepTime, markerContexts, settleTime } from './noteEditor';
-import { notesViewId } from './notesView';
+import { notesViewId } from './notesViewProtocol';
 import { Fake, FakeEditor, FakePosition, FakeRange, FakeThemeColor, FakeUri, type FakeView, settle } from './testing/fakeVscode';
 
 // The static import of the module reads only its constants; each test imports the extension with a new fake of the

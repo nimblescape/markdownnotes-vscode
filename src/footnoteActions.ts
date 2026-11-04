@@ -14,8 +14,8 @@
 import * as vscode from 'vscode';
 import { footnoteCodes } from './notes/checks';
 import { deleteFootnote } from './notes/footnotes';
-import { diagnosticSource, linesOf, type NoteThreads } from './noteThreads';
-import { viewCommands } from './notesView';
+import { diagnosticSource, linesOf, type NoteStore } from './noteStore';
+import { viewCommands } from './notesViewProtocol';
 
 /** renumberCommand is the command "Renumber Footnotes". The command "Add Definition" belongs to the side view. */
 export const renumberCommand = 'nimblescape.markdownNotes.renumberFootnotes';
@@ -36,9 +36,9 @@ export class FootnoteActions implements vscode.CodeActionProvider {
 
   /**
    * constructor keeps the threads, which read the footnotes of a document.
-   * @param threads - The threads of the notes.
+   * @param store - The store of the notes.
    */
-  constructor(private readonly threads: NoteThreads) {}
+  constructor(private readonly store: NoteStore) {}
 
   /** register registers the quick fixes for Markdown files. */
   register(): vscode.Disposable {
@@ -70,7 +70,7 @@ export class FootnoteActions implements vscode.CodeActionProvider {
       } else if (diagnostic.code === footnoteCodes.unreferenced) {
         const line = diagnostic.range.start.line;
         const label = definitionHead.exec(document.lineAt(line).text)?.[1];
-        const footnote = this.threads.footnotesOf(document.uri).find((candidate) => candidate.label === label && candidate.definition.first === line);
+        const footnote = this.store.footnotesOf(document.uri).find((candidate) => candidate.label === label && candidate.definition.first === line);
         if (footnote) {
           const edit = new vscode.WorkspaceEdit();
           const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
@@ -90,17 +90,17 @@ export class FootnoteActions implements vscode.CodeActionProvider {
 
 /**
  * registerRenumber registers the command "Renumber Footnotes".
- * @param threads - The threads of the notes, which write the change.
+ * @param store - The store of the notes, which writes the change.
  * @param fileOf - Returns the URI of the active Markdown file, the file behind a clean editing view, or undefined.
  */
-export function registerRenumber(threads: NoteThreads, fileOf: () => vscode.Uri | undefined): vscode.Disposable {
+export function registerRenumber(store: NoteStore, fileOf: () => vscode.Uri | undefined): vscode.Disposable {
   return vscode.commands.registerCommand(renumberCommand, async () => {
     const file = fileOf();
     if (!file) {
       void vscode.window.showInformationMessage('Open a Markdown file first: the command renumbers the footnotes of the active Markdown file.');
       return;
     }
-    const result = await threads.renumberFootnotes(file);
+    const result = await store.renumberFootnotes(file);
     if (result === undefined) {
       vscode.window.setStatusBarMessage('Renumbered the footnotes: 1, 2, 3 … in the order of their first reference.', 5000);
       return;

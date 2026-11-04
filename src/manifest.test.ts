@@ -21,7 +21,7 @@ import { cleanCommands } from './cleanView';
 import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath } from './extension';
 import { renumberCommand } from './footnoteActions';
 import { deleteCommands, markerContexts } from './noteEditor';
-import { formContext, notesViewId, viewCommands } from './notesView';
+import { formContext, notesViewId, viewCommands } from './notesViewProtocol';
 import { publishCommands } from './publish';
 import { renderedEditor } from './renderedEditor';
 import { defaultSettings, editorFiles, linkTargets, settingsSection } from './settings';

@@ -213,8 +213,8 @@ export const linesOf = (document: vscode.TextDocument): string[] => document.get
  */
 export const rangeOf = (note: Note): vscode.Range => new vscode.Range(note.start.line, note.start.character, note.end.line, note.end.character);
 
-/** NoteThreads keeps the threads of the notes of the open Markdown documents. */
-export class NoteThreads implements vscode.Disposable {
+/** NoteStore keeps the notes of the open Markdown documents, each as a thread with its identifier. */
+export class NoteStore implements vscode.Disposable {
   private readonly diagnostics: vscode.DiagnosticCollection;
   /** entries holds the threads of the notes of each document, by its URI. */
   private readonly entries = new Map<string, Entry[]>();

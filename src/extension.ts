@@ -9,7 +9,7 @@
  * ([src/markdown/markdownIt.ts](markdown/markdownIt.ts)), which the Markdown
  * extension of VS Code reads from the export `extendMarkdownIt` when it builds
  * its preview. It starts the notes of the open documents
- * ([src/noteThreads.ts](noteThreads.ts)), their overlay of the text editor
+ * ([src/noteStore.ts](noteStore.ts)), their overlay of the text editor
  * ([src/noteEditor.ts](noteEditor.ts)), and the side view
  * ([src/notesView.ts](notesView.ts)), the only place that shows the text of the
  * notes, with the GitHub login of the user as the author of new notes
@@ -48,10 +48,11 @@ import { NoteEditor } from './noteEditor';
 import { findDoctype } from './notes/doctype';
 import type { BlockFinder, MarkerFinder } from './notes/clean';
 import type { Note } from './notes/notes';
-import { isNoteDocument, linesOf, NoteThreads } from './noteThreads';
+import { isNoteDocument, linesOf, NoteStore } from './noteStore';
 import { registerPublishCommands } from './publish';
 import { RenderedEditors } from './renderedEditor';
-import { notesViewId, NotesView, viewCommands } from './notesView';
+import { NotesView } from './notesView';
+import { notesViewId, viewCommands } from './notesViewProtocol';
 import { SelectedNotes } from './selectedNotes';
 import { type SlashCommand, SlashCommands } from './slashCommands';
 import { Snippets } from './snippets';
@@ -346,21 +347,21 @@ function refreshMarkdownPreviews(): void {
  * @returns The export of the extension, which the Markdown extension of VS Code reads.
  */
 export function activate(context: vscode.ExtensionContext): Api {
-  const threads = new NoteThreads(() => githubLogin(true));
-  context.subscriptions.push(threads, ...threads.register());
+  const store = new NoteStore(() => githubLogin(true));
+  context.subscriptions.push(store, ...store.register());
   const selected = new SelectedNotes();
   /**
    * showsHighlights tells whether the highlights of a document show: the setting showHighlights is on.
    * @param document - The URI of the document, or undefined for the settings of the window.
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
-  const editor = new NoteEditor(threads, showsHighlights, selected);
+  const editor = new NoteEditor(store, showsHighlights, selected);
   const rendered = new RenderedEditors(context.extensionUri, readSettings, selected, () => vscode.commands.executeCommand(viewCommands.newNote));
   const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes, (document) => rendered.opens(document));
-  threads.waitBeforeWrites((uri) => clean.switchedOf(uri));
+  store.waitBeforeWrites((uri) => clean.switchedOf(uri));
   const steps = new FormatSteps();
-  const view = new NotesView(context.extensionUri, threads, githubLogin, renderMarkdown, readSettings, selected, clean);
-  const slash = new SlashCommands(threads, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);
+  const view = new NotesView(context.extensionUri, store, githubLogin, renderMarkdown, readSettings, selected, clean);
+  const slash = new SlashCommands(store, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);
   /** apiV1 is version 1 of the API for other extensions (R-GEN-012). */
   const apiV1: ApiV1 = {
     version: 1,
@@ -384,7 +385,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       // The file goes back to its text on disk after its clean editing view closed without a save.
       return { format: false, comment: false };
     }
-    const notes = threads.notesOf(document).length > 0;
+    const notes = store.notesOf(document).length > 0;
     return { format: settings.formatOnSave && (notes || findDoctype(linesOf(document)) !== undefined || keptCurrent(linesOf(document)) || steps.appliesTo(document)), comment: settings.addFormatComment && notes };
   };
   /** contextsChanged shows the buttons that fit the settings showHighlights and showFootnotes. */
@@ -412,13 +413,13 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     ...registerFormatter(extensionId, saveChangesOf, steps),
-    new AddNoteAction(threads, viewCommands.newNote, clean).register(),
+    new AddNoteAction(store, viewCommands.newNote, clean).register(),
     ...slash.register(),
     ...new Snippets(clean).register(),
     ...new UsedSnippets().register(),
     ...registerPublishCommands(() => view.activeFile),
-    new FootnoteActions(threads).register(),
-    registerRenumber(threads, () => view.activeFile),
+    new FootnoteActions(store).register(),
+    registerRenumber(store, () => view.activeFile),
     vscode.commands.registerCommand(highlightCommands.show, async () => {
       if (!readSettings(undefined).showHighlights) {
         await setSetting('showHighlights', true);
@@ -466,7 +467,7 @@ export function activate(context: vscode.ExtensionContext): Api {
           return image ? provider.asWebviewUri(image).toString(true) : undefined;
         },
       }),
-    notesOf: (document) => threads.entriesOf(document).map((entry) => entry.note),
+    notesOf: (document) => store.entriesOf(document).map((entry) => entry.note),
     getAPI: (version) => (version === 1 ? apiV1 : undefined),
   };
 }

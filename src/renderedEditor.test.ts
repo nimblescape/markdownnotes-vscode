@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { highlightCommands } from './extension';
 import { extensionMessage, pageMessage, pluginName } from './notes/editorMessages';
-import { notesViewId, viewCommands } from './notesView';
+import { notesViewId, viewCommands } from './notesViewProtocol';
 import { opensIn, renderedEditor, selectionDelay } from './renderedEditor';
 import { Fake, type FakePanel, type FakeView, marked, settle } from './testing/fakeVscode';
 
