@@ -7,8 +7,9 @@
 // folder of the file, from https and as data. Styles in attributes stay allowed, because the editor sets some, for
 // example the alignment of the cells of a table. The base of the page is the folder of the file, so that an image with
 // a relative path shows. The page has the element of the editor and the frame of the pages (docs/requirements.md,
-// R-VSC-007), which shows instead of the editor in the view "Pages": the page in the frame has the same policy and
-// uses the same nonce, and it gets its files as blob: URLs, so images and fonts may also be blobs and data.
+// R-VSC-007), which shows instead of the editor in the view "Pages": the page in the frame has the policy of the page
+// of a layout, which also loads nothing from the internet and lets no form send data, and the same nonce; it gets its
+// files as blob: URLs, so images and fonts may also be blobs and data.
 //
 // The page also loads the style sheets and the scripts of the extensions of the Markdown preview of VS Code
 // (docs/requirements.md, R-VSC-010): the style sheets before the style sheets of the editor, so that the look of the

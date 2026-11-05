@@ -1176,7 +1176,9 @@ the extension, and sends their bytes as Base64. The extension names the
 scripts of the pages, for example Paged.js, which it bundles. So that the
 page in the frame gets these files as `blob:` URLs, the page of the webview
 may also load its own files with `fetch` (`connect-src`), and images and
-fonts may be `blob:` URLs. The extension contributes no commands of the
+fonts may be `blob:` URLs. The page in the frame loads nothing from the
+internet and lets no form send data, because a layout can come from a third
+party (the page of a layout of nimblescape Markdown). The extension contributes no commands of the
 views yet, so the title of the editor shows no button of them.
 
 ### R-VSC-008
