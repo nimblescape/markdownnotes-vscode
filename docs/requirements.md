@@ -101,9 +101,8 @@ publisher of npmjs.com names the repository. The federated credential of the
 Marketplace also names the repository, so its
 [setup](../CONTRIBUTING.md#setup-of-a-repository) runs again before the
 first release. The publisher is `nimblescape`.
-The release uses the same workflows and checks as the other extensions of
-the publisher (`release.yml`, `release-dry-run.yml`,
-`marketplace-identity.yml`, `scripts/release-checks.mjs`) and follows the
+The release uses the same workflows as the other extensions of the
+publisher (`release.yml`, `marketplace-identity.yml`) and follows the
 [release rules](../CONTRIBUTING.md#release-rules) of the publisher. Nobody
 publishes the extension until Hannes asks for it, and nothing is published
 before the release ([R-GEN-017](#r-gen-017)). For now there is no release
