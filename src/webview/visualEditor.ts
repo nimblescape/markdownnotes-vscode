@@ -68,7 +68,6 @@ const create = (text: string, options: Options): VisualEditor => {
     // An answer is a part of a file: it has no front matter, and the side view edits it.
     frontMatterForm: false,
     readOnlyToggle: false,
-    learnToggle: false,
     threadIcons: false,
     ...(styleNonce ? { styleNonce } : {}),
     onChange: (changed) => options.changed(changed.getMarkdown()),
