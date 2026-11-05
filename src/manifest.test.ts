@@ -576,7 +576,9 @@ test('the npm package has the version of the extension, the command markdownnote
 
 test('the npm package holds exactly the bundles, the types, the notices, the README and the license (npm pack --dry-run)', () => {
   const listed = execFileSync('npm', ['pack', './cli', '--dry-run', '--json'], { cwd: repository, encoding: 'utf8' });
-  const files = (JSON.parse(listed) as { files: { path: string }[] }[])[0].files.map((file) => file.path);
+  // npm 10 and 11 write a list of the packed packages, npm 12 an object with the name of each package as its key.
+  const packed = JSON.parse(listed) as { files: { path: string }[] }[] | Record<string, { files: { path: string }[] }>;
+  const files = (Array.isArray(packed) ? packed : Object.values(packed))[0].files.map((file) => file.path);
   // The build writes dist/, LICENSE and THIRD-PARTY-NOTICES.md (esbuild.mjs).
   const built = (file: string) => file === 'LICENSE' || file === 'THIRD-PARTY-NOTICES.md' || file.startsWith('dist/');
   const expected = ['LICENSE', 'README.md', 'THIRD-PARTY-NOTICES.md', 'package.json', 'index.d.ts', 'dist/markdownnotes.js', 'dist/index.js'].filter(
