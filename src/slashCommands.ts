@@ -60,7 +60,7 @@ import { listingBlock, listingCite, listingTarget, snippetsOf, sourceFiles } fro
 import { cloneFolder, isMissing, referencesOf, sourceFilesOf } from './notes/repos';
 import { nextFootnoteLabel } from './notes/footnotes';
 import { dateText, sentenceBefore, timeText, typedAt } from './notes/slash';
-import { isNoteDocument, linesOf, type NoteThreads } from './noteThreads';
+import { isNoteDocument, linesOf, type NoteStore } from './noteStore';
 import type { CleanMirror } from './notesView';
 
 /** slashCommandIds are the commands that the suggestions run after VS Code wrote their text. No menu shows them. */
@@ -188,13 +188,13 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   private readonly others = new Map<string, SlashCommand>();
 
   /**
-   * @param threads - The threads of the notes, which read each document once for each version.
+   * @param store - The store of the notes, which read each document once for each version.
    * @param addNote - Opens the editor of a new note in the side view for text of a text editor.
    * @param addFootnote - Opens the editor of a new standard footnote in the side view for the cursor of a text editor.
    * @param mirror - The link of the clean editing view (R-TEXT-009), whose text is text of its file.
    */
   constructor(
-    private readonly threads: NoteThreads,
+    private readonly store: NoteStore,
     private readonly addNote: (editor: vscode.TextEditor, range: vscode.Range, todo: boolean) => Promise<void>,
     private readonly addFootnote: (editor: vscode.TextEditor) => Promise<void>,
     private readonly mirror?: CleanMirror,
@@ -312,7 +312,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const found = this.fileOf(document);
     const start = found?.place(range.start);
     const end = found?.place(range.end);
-    return !!found && !!start && !!end && highlightFor(linesOf(found.file), new vscode.Range(start, end), this.threads.textReadingOf(found.file)) !== undefined;
+    return !!found && !!start && !!end && highlightFor(linesOf(found.file), new vscode.Range(start, end), this.store.textReadingOf(found.file)) !== undefined;
   }
 
   /**
@@ -380,7 +380,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
         items.push(created);
       }
     } else {
-      const sentence = sentenceBefore(lines, new vscode.Position(position.line, typed.start), this.threads.textReadingOf(document));
+      const sentence = sentenceBefore(lines, new vscode.Position(position.line, typed.start), this.store.textReadingOf(document));
       const highlight = sentence && new vscode.Range(sentence.start.line, sentence.start.character, sentence.end.line, sentence.end.character);
       if (highlight && this.highlights(document, highlight)) {
         const created = item('/todo', 'Add Todo', `A todo note on ${quoted(document.getText(highlight))}`, vscode.CompletionItemKind.Function, removed, '');
@@ -390,7 +390,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const reference = new vscode.Position(position.line, typed.start);
     // The reference of a footnote goes after a word: the slash stands after a space.
-    if (!replaced && typed.start < typed.slash && this.fileOf(document) && referenceAllowed(lines, reference, this.threads.textReadingOf(document))) {
+    if (!replaced && typed.start < typed.slash && this.fileOf(document) && referenceAllowed(lines, reference, this.store.textReadingOf(document))) {
       const label = nextFootnoteLabel(lines);
       const created = item('/footnote', 'Add Footnote', `The footnote [^${label}], in the editor of the side view`, vscode.CompletionItemKind.Reference, removed, '');
       created.command = { command: slashCommandIds.footnote, title: 'Add Footnote', arguments: [document.uri] };
@@ -407,7 +407,7 @@ export class SlashCommands implements vscode.CompletionItemProvider {
       items.push(figure, table, listing);
     }
     // A link stands where a reference of a footnote can stand, in the text of a block.
-    if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.threads.textReadingOf(document)) && (findItems(linesOf(found.file)).length > 0 || readFields(linesOf(found.file)).size > 0)) {
+    if (found && referenceAllowed(lines, new vscode.Position(position.line, typed.slash), this.store.textReadingOf(document)) && (findItems(linesOf(found.file)).length > 0 || readFields(linesOf(found.file)).size > 0)) {
       const ref = item('/ref', 'Link a Figure, Table or Section', 'A link to a figure, a table, a listing or a section of the file, or a value of the front matter', vscode.CompletionItemKind.Reference, range, '');
       ref.command = { command: slashCommandIds.ref, title: 'Link a Figure, Table or Section', arguments: [document.uri] };
       items.push(ref);

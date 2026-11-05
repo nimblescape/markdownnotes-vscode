@@ -88,7 +88,7 @@
   'use strict';
 
   const vscode = acquireVsCodeApi();
-  // The page of the view holds the element; src/notesView.ts writes the page.
+  // The page of the view holds the element; src/notesViewPage.ts writes the page.
   const root = /** @type {HTMLElement} */ (document.getElementById('notes'));
 
   /**

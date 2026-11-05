@@ -19,7 +19,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { githubProvider } from './github';
 import { addPath, extensionId } from './extension';
-import { markdownModes, notesViewId, previewTextMissing, viewCommands } from './notesView';
+import { markdownModes } from './notesView';
+import { notesViewId, previewTextMissing, viewCommands } from './notesViewProtocol';
 import { scrollTime } from './scrolling';
 import { Fake, FakeEditor, FakePosition, FakeRange, FakeSelection, FakeTabInputText, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
