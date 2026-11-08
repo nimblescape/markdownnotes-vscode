@@ -71,6 +71,9 @@ const send = async (view: FakeView, message: unknown): Promise<void> => {
  */
 const labels = (items: FakeCompletionItem[]): string[] => items.map((item) => (typeof item.label === 'string' ? item.label : item.label.label));
 
+/** blocks are the labels of the commands of the blocks, which the list shows after the other commands. */
+const blocks = ['/text', '/h1', '/h2', '/h3', '/h4', '/h5', '/h6', '/bullets', '/numbers', '/tasks', '/quote', '/code', '/divider', '/image', '/alert'];
+
 /**
  * accept writes the text of a suggestion as VS Code does when the user presses Tab, and runs its command.
  * @param editor - The text editor.
@@ -88,10 +91,10 @@ test('a slash after a space offers /todo for the sentence before it, /footnote, 
   fake.login = 'carl';
   const { document, editor, view } = await start('Fix the bug. Write the tests /\n', 0, 30);
   const items = fake.complete(document, new FakePosition(0, 30));
-  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user']);
-  expect(items.map((item) => item.insertText)).toEqual(['', '', '2026-10-29', '2026-10-29 19:29', 'carl']);
+  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user', ...blocks]);
+  expect(items.slice(0, 5).map((item) => item.insertText)).toEqual(['', '', '2026-10-29', '2026-10-29 19:29', 'carl']);
   // /todo and /footnote remove the command with the space before it, /date, /time and /user keep the space.
-  expect(items.map((item) => [item.range!.start.character, item.range!.end.character])).toEqual([
+  expect(items.slice(0, 5).map((item) => [item.range!.start.character, item.range!.end.character])).toEqual([
     [28, 30],
     [28, 30],
     [29, 30],
@@ -119,7 +122,7 @@ test('a slash after a space offers /todo for the sentence before it, /footnote, 
 test('/todo shows only where a note can highlight the sentence, and a slash in a word offers nothing (R-EDIT-008)', async () => {
   const { document } = await start('/\n\n```\ncode /\n```\n\nand/\n', 0, 1);
   // A slash on a line of its own also offers a figure and a table (R-XREF-001).
-  expect(labels(fake.complete(document, new FakePosition(0, 1)))).toEqual(['/figure', '/table', '/listing', '/date', '/time', '/user']);
+  expect(labels(fake.complete(document, new FakePosition(0, 1)))).toEqual(['/figure', '/table', '/listing', '/date', '/time', '/user', ...blocks]);
   expect(labels(fake.complete(document, new FakePosition(3, 6)))).toEqual(['/date', '/time', '/user']);
   expect(fake.complete(document, new FakePosition(6, 4))).toEqual([]);
 });
@@ -161,7 +164,7 @@ test('a slash that replaced selected text offers /note and /todo, which put the 
   // A slash that replaced no selected text offers no /note.
   await editor.edit((builder) => builder.replace(new FakeRange(0, 12, 0, 12), ' /'));
   fake.fire('change', { document, contentChanges: [{ range: new FakeRange(0, 12, 0, 12), rangeOffset: 12, rangeLength: 0, text: ' /' }] });
-  expect(labels(fake.complete(document, new FakePosition(0, 14)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user']);
+  expect(labels(fake.complete(document, new FakePosition(0, 14)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user', ...blocks]);
 });
 
 test('/user inserts the GitHub login of the user, and asks for the sign-in first when there is none (R-EDIT-008, R-GEN-006)', async () => {
@@ -211,8 +214,8 @@ test('another extension adds a slash command through the API, which shows after 
   expect(() => v1.registerSlashCommand({ label: '/cite', run: () => undefined } as never)).toThrow('The slash command /cite exists already.');
   expect(() => v1.registerSlashCommand({ label: 'cite', run: () => undefined } as never)).toThrow('a slash and small letters');
   const items = fake.complete(document, new FakePosition(0, 10));
-  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/cite']);
-  const source = items.at(-1)!;
+  expect(labels(items)).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/cite', ...blocks]);
+  const source = items[5];
   expect([source.detail, source.insertText, source.range!.start.character, source.range!.end.character]).toEqual(['A source of the document', '', 9, 10]);
   await editor.edit((builder) => builder.replace(source.range!, source.insertText!));
   editor.selection = { active: new FakePosition(0, 9) };
@@ -251,7 +254,7 @@ test('a slash command of another extension on selected text shows only when the 
   const other = v1.registerSlashCommand({ label: '/cite', run: () => undefined } as never);
   // Without selected text, the command on selected text does not show, and the other command does.
   await editor.edit((builder) => builder.insert(new FakePosition(0, 23), ' /'));
-  expect(labels(fake.complete(document, new FakePosition(0, 25)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/cite']);
+  expect(labels(fake.complete(document, new FakePosition(0, 25)))).toEqual(['/todo', '/footnote', '/date', '/time', '/user', '/cite', ...blocks]);
   await editor.edit((builder) => builder.replace(new FakeRange(0, 23, 0, 25), ''));
   // VS Code replaces the selected text with the typed slash.
   editor.selection = new FakeSelection(new FakePosition(0, 7), new FakePosition(0, 22));
@@ -277,7 +280,7 @@ test('on a line of its own, /figure inserts a chosen image of the workspace as a
   fake.found = [new FakeUri('file', '/folder/images/plan (v2).png'), new FakeUri('file', '/other/logo.svg')];
   const items = fake.complete(document, new FakePosition(7, 1));
   // The heading starts a section, which /ref links (R-XREF-003).
-  expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user']);
+  expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user', ...blocks]);
   // The caption gets the number after the captions of its kind before it.
   const table = items[1];
   expect((table.insertText as unknown as FakeSnippetString).value).toBe('Table 2: ${1:Caption}\n\n| ${2:Column} | ${3:Column} |\n| --- | --- |\n| $4 | $5 |\n$0');
@@ -303,7 +306,7 @@ test('on a line of its own, /listing inserts the whole file or a chosen snippet 
   // The language extension gives the symbols, and /listing lists none of them.
   fake.symbols.set('/folder/src/read me.ts', [symbol('read', 11, 0), symbol('Reader', 4, 4, [symbol('open', 5, 6)])]);
   const items = fake.complete(document, new FakePosition(2, 1));
-  expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user']);
+  expect(labels(items)).toEqual(['/figure', '/table', '/listing', '/ref', '/date', '/time', '/user', ...blocks]);
   fake.pick = (choices) => (fake.picks.length === 1 ? choices.find((choice) => choice.label === 'read me.ts') : choices.find((choice) => choice.label === 'open-reader'));
   await accept(editor, items[2]);
   expect(fake.picks[0].map((choice) => choice.description)).toEqual(['docs/b.py', 'src/read me.ts']);
@@ -329,7 +332,7 @@ test('in text, /ref links a chosen figure or table, and gives it an anchor at th
   const text = 'As /\n\nFigure 1: Plan of the study\n\n![Plan of the study](plan.png)\n\n![No figure](logo.png)\n\nTable 1: Participants<a id="tab-people"></a>\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n';
   const { document, editor } = await start(text, 0, 4);
   const items = fake.complete(document, new FakePosition(0, 4));
-  expect(labels(items)).toEqual(['/todo', '/footnote', '/ref', '/date', '/time', '/user']);
+  expect(labels(items)).toEqual(['/todo', '/footnote', '/ref', '/date', '/time', '/user', ...blocks]);
   await accept(editor, items[2]);
   expect(fake.picks.at(-1)!.map((choice) => [choice.label, choice.description])).toEqual([
     ['Figure 1', 'Plan of the study'],
@@ -393,4 +396,56 @@ test('/ref inserts a value of the front matter between its markers (R-EDIT-008, 
   ]);
   expect(document.text.split('\n')[6]).toBe('See <wbr><!--{author.name}-->Ann<!--{/author.name}-->');
   expect(editor.selection.active).toEqual(new FakePosition(6, document.text.split('\n')[6].length));
+});
+
+/**
+ * choose shows the suggestions at a position, with the cursor there, and accepts the one of a label.
+ * @param editor - The text editor.
+ * @param position - The position after the typed slash.
+ * @param label - The label of the suggestion.
+ */
+const choose = async (editor: FakeEditor, position: FakePosition, label: string): Promise<void> => {
+  editor.selection = { active: position };
+  await accept(editor, fake.complete(editor.document, position).find((item) => labels([item])[0] === label)!);
+};
+
+test('/text, /h1 to /h6, /bullets, /numbers, /tasks and /quote change the marker of the line, as in the Markdown Editor (R-EDIT-008, decision 79)', async () => {
+  const { document, editor } = await start('Results /\n\n- item /\n\n1. step /\n\n- [x] done /\n\n> quote /\n\n   ## Title /\n', 0, 9);
+  // The command goes with the space before it, and the cursor stays at its place in the text.
+  const item = fake.complete(document, new FakePosition(0, 9)).find((each) => labels([each])[0] === '/h2')!;
+  expect([item.detail, item.range!.start.character, item.range!.end.character]).toEqual(['The line as a heading of level 2: ##', 7, 9]);
+  await editor.edit((builder) => builder.replace(item.range!, item.insertText!));
+  editor.selection = { active: new FakePosition(0, 7) };
+  await fake.run(item.command!.command, ...(item.command!.arguments ?? []));
+  expect(document.text.split('\n')[0]).toBe('## Results');
+  expect(editor.selection.active).toEqual(new FakePosition(0, 10));
+  await choose(editor, new FakePosition(2, 8), '/numbers');
+  await choose(editor, new FakePosition(4, 9), '/tasks');
+  await choose(editor, new FakePosition(6, 12), '/quote');
+  await choose(editor, new FakePosition(8, 9), '/text');
+  await choose(editor, new FakePosition(10, 13), '/bullets');
+  expect(document.text).toBe('## Results\n\n1. item\n\n- [ ] step\n\n> done\n\nquote\n\n   - Title\n');
+});
+
+test('/code, /divider, /image and /alert insert their block, with blank lines to the text around it, and no command of a block shows in a table or the front matter (R-EDIT-008, decision 79)', async () => {
+  const { document, editor } = await start('Intro text /\n\n/\nNext line.\n\nSee /more\n', 2, 1);
+  const at = (line: number, character: number, label: string) => fake.complete(document, new FakePosition(line, character)).find((item) => labels([item])[0] === label)!;
+  const snippet = (item: FakeCompletionItem) => (item.insertText as unknown as FakeSnippetString).value;
+  const columns = (item: FakeCompletionItem) => [item.range!.start.line, item.range!.start.character, item.range!.end.character];
+  // On a line of its own: a code block, and a divider and an alert with a blank line to the next line of text.
+  expect([snippet(at(2, 1, '/code')), columns(at(2, 1, '/code'))]).toEqual(['```$1\n$0\n```', [2, 0, 1]]);
+  expect([at(2, 1, '/divider').insertText, columns(at(2, 1, '/divider'))]).toEqual(['---\n', [2, 0, 1]]);
+  expect(snippet(at(2, 1, '/alert'))).toBe('> [!${1|NOTE,TIP,IMPORTANT,WARNING,CAUTION|}]\n> $0\n');
+  // In text: a divider between blank lines in place of the spaces around the command, and an image in the text.
+  expect([at(5, 5, '/divider').insertText, columns(at(5, 5, '/divider'))]).toEqual(['\n\n---\n\n', [5, 3, 5]]);
+  expect([snippet(at(5, 5, '/image')), columns(at(5, 5, '/image'))]).toEqual(['![](${1:address})', [5, 4, 5]]);
+  // /code after text puts the text of the line in a code block.
+  await choose(editor, new FakePosition(0, 12), '/code');
+  expect(document.text).toBe('```\nIntro text\n```\n\n/\nNext line.\n\nSee /more\n');
+  expect(editor.selection.active).toEqual(new FakePosition(1, 10));
+  // A table and the front matter have no commands of blocks.
+  const other = fake.open('---\ntitle: A /\n---\n\n| A |\n| --- |\n| x /\n\nText /\n', '/folder/b.md');
+  expect(labels(fake.complete(other, new FakePosition(1, 13)))).not.toContain('/h1');
+  expect(labels(fake.complete(other, new FakePosition(6, 5)))).not.toContain('/h1');
+  expect(labels(fake.complete(other, new FakePosition(8, 6)))).toContain('/h1');
 });

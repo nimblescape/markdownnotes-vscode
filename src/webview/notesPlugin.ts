@@ -45,6 +45,7 @@ import {
 import { colorIndexOf, colorNames, noteColors } from '../notes/colors';
 import { findDoctype } from '../notes/doctype';
 import { extensionMessage, type PageMessage, pluginName } from '../notes/editorMessages';
+import { type SlashConnection, slashItems, takeChange } from './slashItems';
 
 /** pluginName is the name of the plugin, the first part of the full names of its commands, for example `notes.select`. */
 export { pluginName };
@@ -703,6 +704,10 @@ const Guard = Extension.create({
       props: {
         handleTextInput: (view, from, to, text) => {
           const { state } = view;
+          if (from !== to && text === '/') {
+            // A slash on selected text opens the slash commands on selected text, such as /note, which keep the text.
+            return false;
+          }
           if (from !== to) {
             // Text that replaces the last word of a highlight stays in it, also the letters typed after it.
             const tr = state.tr.insertText(text, from, to);
@@ -875,6 +880,9 @@ export function revealNote(editor: PluginEditor, label: string): void {
 /** channels holds the channel of the plugin to its part in the extension, for each editor that has one. */
 const channels = new WeakMap<Editor, PluginChannel>();
 
+/** slashConnections holds the connection of the slash commands to the extension, for each editor that has a channel. */
+const slashConnections = new WeakMap<Editor, SlashConnection>();
+
 /**
  * activate connects the plugin in an editor to its part in the extension, when the platform has a channel for it: it
  * reports the selection of the editor as places in the text of the file, and takes the selected note and whether the
@@ -890,6 +898,8 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
   }
   const tiptap = editor.tiptap;
   channels.set(tiptap, channel);
+  const slash: SlashConnection = { editor, channel, requests: 0, waiting: new Map() };
+  slashConnections.set(tiptap, slash);
   let last: string | undefined;
   const report = (mouse: boolean) => {
     const { anchor, head } = tiptap.state.selection;
@@ -913,6 +923,8 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
       }
     } else if (message?.type === 'highlights') {
       showHighlights(editor, message.show);
+    } else if (message?.type === 'change') {
+      takeChange(slash, message);
     }
   });
   channel.post({ type: 'ready' } satisfies PageMessage);
@@ -921,6 +933,7 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
     tiptap.off('focus', onFocus);
     stop();
     channels.delete(tiptap);
+    slashConnections.delete(tiptap);
   };
 }
 
@@ -940,6 +953,12 @@ export interface NotesPluginOptions {
    * part of the plugin in the extension to add a note to the selected text.
    */
   readonly comment?: boolean;
+  /**
+   * slashCommands adds the slash commands of Notes to the list of slash commands of the editor, with the same names
+   * and results as in the text editor ([R-EDIT-008](../../docs/requirements.md#r-edit-008)), in the editor of a whole
+   * file.
+   */
+  readonly slashCommands?: boolean;
 }
 
 /**
@@ -998,7 +1017,14 @@ export const createNotesPlugin = (options: NotesPluginOptions = {}): MarkdownPlu
     addNote: (editor, fields) => addNote(editor, fields as AddNote) !== undefined,
   },
   threads: { find: threadsOf, open: openThread },
-  ...(options.comment ? { menus: { format: [commentButton] } } : {}),
+  ...(options.comment || options.slashCommands
+    ? {
+        menus: {
+          ...(options.comment ? { format: [commentButton] } : {}),
+          ...(options.slashCommands ? { insert: (tiptap: Editor) => slashItems(tiptap, slashConnections.get(tiptap)) } : {}),
+        },
+      }
+    : {}),
   activate,
 });
 
