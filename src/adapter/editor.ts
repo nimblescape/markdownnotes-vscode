@@ -29,7 +29,8 @@
 // that its part on the page sends before wait for it.
 //
 // The rendered changes (docs/requirements.md, R-VSC-009): the package.json of the extension asks for the editor in the
-// diffs of VS Code, with `"priority": { "textEditor": "default", "diffEditor": "default" }` (VS Code 1.125 and later).
+// diffs of VS Code, with `"priority": { "textEditor": "option", "diffEditor": "option" }` (VS Code 1.125 and later) and
+// its default of the setting `workbench.editorAssociations`, which VS Code also takes for the diffs of the files.
 // VS Code then opens the editor on both sides of a diff, each side a panel of its own, and the API of VS Code knows no
 // input for the tab of such a diff. So a panel that opens while the active tab of its group has no input is a side of
 // a diff, and the next panel that opens for the same tab soon after is the other side: the code connects the two. It

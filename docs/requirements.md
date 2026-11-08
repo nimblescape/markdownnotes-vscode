@@ -1378,8 +1378,11 @@ changed file in the view "Source Control", in the timeline and with
 "Compare with Saved", because the editor is a custom text editor
 ([R-VSC-001](#r-vsc-001)). VS Code opens a custom text editor in a diff only
 when the priority of the editor in the package.json of the extension also
-names the diff editor, `"priority": { "textEditor": "default",
-"diffEditor": "default" }`; VS Code 1.125 and later know this priority.
+names the diff editor, `"priority": { "textEditor": "option",
+"diffEditor": "option" }`, which VS Code 1.125 and later know, and an
+association names the editor for the file: the default of the setting
+`workbench.editorAssociations` of the extension
+([R-PREV-006](#r-prev-006)) counts for the diffs too.
 Each side is a panel of its own. The left side is read-only; the right side
 is editable when its file system can write. The adapter connects the two
 panels that VS Code opens together for one tab of a diff, and the editor of
@@ -2039,12 +2042,29 @@ The title of each view also has the buttons "Show or Hide Notes"
 ([R-GEN-011](#r-gen-011)).
 
 - The list of the editors at the right end of the breadcrumbs shows only
-  these three views. The extension hides the visual editor of VS Code
-  ([R-GEN-001](#r-gen-001)) there with its default of the setting
+  these three views, in the order Text Editor, Markdown Preview, Markdown
+  Editor ([decision 82](#decisions)). The extension hides the visual editor
+  of VS Code ([R-GEN-001](#r-gen-001)) there with its default of the setting
   `workbench.editor.hiddenEditorTypes` of VS Code, and names its own editor
-  "Markdown Editor". VS Code adds the name of the extension to an editor of
-  an extension: "Markdown Editor - nimblescape Markdown Notes". "Reopen
+  "Markdown Editor". VS Code adds the name of the extension to each editor
+  of an extension that is not part of VS Code, in the list and in its menu
+  "Set Default": "Markdown Editor - nimblescape Markdown Notes". The label of
+  the list names the active editor without it: "Markdown Editor". "Reopen
   Editor With…" still offers the visual editor of VS Code.
+- VS Code orders the list by the priority of each editor, and an editor
+  with the priority `default` comes before the text editor. So the editor
+  of the extension has the priority `option`, as the Markdown preview, and
+  comes after it. The default of the setting `workbench.editorAssociations`
+  of VS Code that the extension contributes, `*.md` and `*.markdown` to
+  the editor, keeps it the editor that opens a Markdown file
+  ([R-TEXT-010](#r-text-010)) and its changes ([R-VSC-009](#r-vsc-009)). A
+  user setting `workbench.editorAssociations` or "Set Default for '*.md'"
+  of the list chooses another default editor.
+- The buttons of the views come first in the title of each view, in the
+  order of the list. VS Code shows at most eight buttons in the title
+  besides "Split Editor" and moves the others into the menu "…" of the
+  title, so the buttons of other extensions never push the buttons of the
+  views there.
 - A button or an entry of the list opens the view in the place of the
   active editor, also for a file that the setting `renderedEditor` does not
   open in the Markdown Editor by itself. The Markdown Editor of a clean
@@ -3712,6 +3732,17 @@ requirements above follow them.
     was to format the text of the view and let the save of the file format
     the file again, which damaged papers and left the tab with unsaved
     changes.
+82. **The order of the three views and their buttons** ([R-PREV-006](#r-prev-006),
+    [R-VSC-009](#r-vsc-009)): the list of the editors of VS Code shows the
+    three views in the order Text Editor, Markdown Preview, Markdown Editor,
+    the place of the visual editor of VS Code before. The editor of the
+    extension has the priority `option` and is the default editor of the
+    Markdown files and of their diffs through the default of the setting
+    `workbench.editorAssociations`. Its entry keeps the name of the
+    extension, which VS Code adds to the editor of every extension. The
+    buttons of the views come first in the title of each view. The other
+    choice was the priority `default`, which puts the editor before the text
+    editor in the list.
 
 ---
 

@@ -188,9 +188,15 @@ test('the editor of a whole file is the default editor of the Markdown files, al
       // The list of the editors of VS Code names it as the view "Markdown Editor" of the file (R-VSC-002).
       displayName: 'Markdown Editor',
       selector: [{ filenamePattern: '*.md' }, { filenamePattern: '*.markdown' }],
-      priority: { textEditor: 'default', diffEditor: 'default' },
+      // The priority `option` puts it after "Text Editor" and "Markdown Preview" in the list of the editors (R-PREV-006).
+      priority: { textEditor: 'option', diffEditor: 'option' },
     },
   ]);
+  // The default of the setting workbench.editorAssociations makes it the default editor of the files, also in a diff.
+  expect(manifest.contributes.configurationDefaults['workbench.editorAssociations']).toEqual({
+    '*.md': renderedEditor.viewType,
+    '*.markdown': renderedEditor.viewType,
+  });
   const setting = manifest.contributes.configuration.properties[`${settingsSection}.renderedEditor`];
   expect(setting).toMatchObject({ type: 'string', enum: ['all', 'notesAndPapers', 'none'], default: defaultSettings.renderedEditor, scope: 'resource' });
   const own = `activeCustomEditorId == '${renderedEditor.viewType}'`;
@@ -210,11 +216,14 @@ const fromEditor = `activeCustomEditorId == '${renderedEditor.viewType}' && !${r
 test('a Markdown file has three views, Text Editor, Markdown Preview and Markdown Editor: the list of the editors of VS Code hides the Markdown Editor of VS Code, and the title of each view has the buttons of the two other views (R-VSC-002)', () => {
   expect(manifest.contributes.configurationDefaults['workbench.editor.hiddenEditorTypes']).toEqual(['vscode.markdown.editor']);
   // VS Code gives the buttons "Open as Preview" in the text editor and "Reopen as source file" in the Markdown preview.
+  // The buttons of the views come first in the title, in the order of the list of the editors, before "Run or Debug..."
+  // of VS Code (order -1, title after "Reopen"), so that the buttons of other extensions never push them into the menu
+  // "…" of the title, which takes every button after the eighth (R-PREV-006).
   expect(manifest.contributes.menus['editor/title']).toEqual(
     expect.arrayContaining([
-      { command: renderedEditor.reopenEditor, group: 'navigation@3', when: toEditor },
-      { command: renderedEditor.reopenText, group: 'navigation@3', when: fromEditor },
-      { command: renderedEditor.reopenPreview, group: 'navigation@4', when: fromEditor },
+      { command: renderedEditor.reopenEditor, group: 'navigation@-1', when: toEditor },
+      { command: renderedEditor.reopenText, group: 'navigation@-3', when: fromEditor },
+      { command: renderedEditor.reopenPreview, group: 'navigation@-2', when: fromEditor },
     ]),
   );
   expect(manifest.contributes.menus.commandPalette).toEqual(
@@ -345,9 +354,9 @@ test('the title of the text editor and of the preview of a Markdown file has the
     { command: usedSnippetCommands.show, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && !${usedSnippetContexts.shown}` },
     { command: usedSnippetCommands.hide, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && ${usedSnippetContexts.shown}` },
     { command: renderedEditor.openText, group: 'navigation', when: `activeCustomEditorId == '${renderedEditor.viewType}'` },
-    { command: renderedEditor.reopenEditor, group: 'navigation@3', when: toEditor },
-    { command: renderedEditor.reopenText, group: 'navigation@3', when: fromEditor },
-    { command: renderedEditor.reopenPreview, group: 'navigation@4', when: fromEditor },
+    { command: renderedEditor.reopenEditor, group: 'navigation@-1', when: toEditor },
+    { command: renderedEditor.reopenText, group: 'navigation@-3', when: fromEditor },
+    { command: renderedEditor.reopenPreview, group: 'navigation@-2', when: fromEditor },
     { command: renderedEditor.previousChange, group: 'navigation@1', when: renderedEditor.diffContext },
     { command: renderedEditor.nextChange, group: 'navigation@2', when: renderedEditor.diffContext },
   ]);
