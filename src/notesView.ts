@@ -379,6 +379,25 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
+   * addFromDocument opens the editor of a new note in the view for text of a file that a slash command of the view
+   * "Markdown Editor" names, for `/todo` on the sentence before it ([R-EDIT-008](../docs/requirements.md#r-edit-008)).
+   * @param document - The file.
+   * @param range - The text.
+   * @param todo - Whether the new note is a todo.
+   */
+  async addFromDocument(document: vscode.TextDocument, range: vscode.Range, todo: boolean): Promise<void> {
+    await this.newNoteAt(document, range, todo);
+  }
+
+  /**
+   * addTodoToSelection opens the editor of a new todo note in the view for the selected text, for `/todo` on selected
+   * text in the view "Markdown Editor" ([R-EDIT-008](../docs/requirements.md#r-edit-008)).
+   */
+  async addTodoToSelection(): Promise<void> {
+    await this.newNote(true);
+  }
+
+  /**
    * fileOf returns the file of a document that the extension can change: the document itself, or the file of a clean
    * editing view.
    * @param rendered - The document, also of a clean editing view.

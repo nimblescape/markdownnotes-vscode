@@ -12,7 +12,7 @@ import { highlightCommands } from './extension';
 import { extensionMessage, pageMessage, pluginName } from './notes/editorMessages';
 import { notesViewId, viewCommands } from './notesViewProtocol';
 import { opensIn, renderedEditor, selectionDelay } from './renderedEditor';
-import { Fake, type FakePanel, type FakeView, marked, settle } from './testing/fakeVscode';
+import { Fake, type FakePanel, type FakeView, FakeUri, marked, settle } from './testing/fakeVscode';
 
 vi.mock('vscode', () => ({}));
 
@@ -107,6 +107,23 @@ test('the setting renderedEditor chooses the files that open in the editor: ever
 test('each side of the channel takes only the messages of the plugin of the notes and ignores every other value (R-TEXT-010)', () => {
   expect(pageMessage({ type: 'ready' })).toEqual({ type: 'ready' });
   expect(pageMessage({ type: 'comment', extra: 1 })).toEqual({ type: 'comment' });
+  expect(pageMessage({ type: 'comment', todo: true })).toEqual({ type: 'comment', todo: true });
+  expect(pageMessage({ type: 'footnote' })).toEqual({ type: 'footnote' });
+  expect(pageMessage({ type: 'slash', request: 2, command: 'figure', text: 'ab', at: 1 })).toEqual({ type: 'slash', request: 2, command: 'figure', text: 'ab', at: 1 });
+  for (const value of [
+    { type: 'slash', request: 2, command: 'date', text: 'ab', at: 1 },
+    { type: 'slash', request: 2, command: 'figure', text: 'ab', at: 3 },
+    { type: 'slash', request: -1, command: 'figure', text: 'ab', at: 1 },
+  ]) {
+    expect(pageMessage(value), JSON.stringify(value)).toBeUndefined();
+  }
+  expect(extensionMessage({ type: 'change', request: 1, patches: [{ from: 1, to: 2, insert: 'x', more: 1 }], select: { from: 1, to: 2 } })).toEqual({
+    type: 'change',
+    request: 1,
+    patches: [{ from: 1, to: 2, insert: 'x' }],
+    select: { from: 1, to: 2 },
+  });
+  expect(extensionMessage({ type: 'change', request: 1, patches: [{ from: 2, to: 1, insert: 'x' }] })).toBeUndefined();
   expect(pageMessage({ type: 'selection', anchor: 3, head: 9, mouse: true })).toEqual({ type: 'selection', anchor: 3, head: 9, mouse: true });
   expect(pageMessage({ type: 'selection', anchor: 3, head: 9, mouse: 'yes' })).toEqual({ type: 'selection', anchor: 3, head: 9, mouse: false });
   for (const value of [undefined, null, 'ready', { type: 'run', command: 'workbench.action.terminal.new' }, { type: 'selection', anchor: -1, head: 2 }, { type: 'selection', anchor: 1.5, head: 2 }, { type: 'selection', anchor: '1', head: 2 }]) {
@@ -168,6 +185,71 @@ test('"Comment" of the format bar and "Add Note" open the editor of a new note f
   await select(panel, start);
   await fake.run(viewCommands.newNote);
   expect(fake.infos.at(-1)).toMatch(/select/i);
+});
+
+test('/note, /todo and /footnote of the editor open the editor of a new note, a todo note or a footnote in the side view, as in the text editor (R-EDIT-008, decision 79)', async () => {
+  fake.login = 'carl';
+  const { document, panel, view } = await open();
+  const start = at('change');
+  // /todo on selected text: the editor selects the text again, and the side view opens the editor of a todo note.
+  await page(panel, { type: 'selection', anchor: start, head: start + 'change'.length, mouse: false });
+  await page(panel, { type: 'comment', todo: true });
+  expect(view.messages.at(-1)).toEqual({ type: 'new', todo: true });
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toMatchObject({ highlight: 'change' });
+  // /footnote: the side view opens the editor of a new footnote at the cursor.
+  await page(panel, { type: 'selection', anchor: start + 'change'.length, head: start + 'change'.length, mouse: false });
+  await page(panel, { type: 'footnote' });
+  expect(fake.calls.at(-1)).toEqual({ command: viewCommands.newFootnote, args: [] });
+  // /todo after text: the todo note on the sentence before the cursor, which the page sends with the text.
+  const sentence = 'Fix the bug. Write the tests';
+  const text = `${document.getText().trimEnd()}\n\n${sentence}\n`;
+  // The change of the page reaches the document a moment after the message.
+  const sent = page(panel, { type: 'slash', request: 1, command: 'todo', text, at: text.length - 1 });
+  document.text = text;
+  document.version++;
+  fake.fire('change', { document, contentChanges: [] });
+  await sent;
+  expect(view.messages.filter((message) => message.type === 'new')).toEqual([
+    { type: 'new', todo: true },
+    { type: 'new', todo: true },
+  ]);
+  expect(view.messages.filter((message) => message.type === 'line').at(-1)).toMatchObject({ highlight: 'Write the tests' });
+});
+
+test('/figure, /table, /ref and /user of the editor run on the text that the page sent, as in the text editor, and send back the change and the text to select (R-EDIT-008, decision 79)', async () => {
+  fake.login = 'carl';
+  const content = '# Results\n\nTable 1: Grades\n\n| A |\n| --- |\n\nSee \n';
+  const { panel } = await open(content);
+  fake.found = [new FakeUri('file', '/folder/images/plan.png')];
+  const last = () => panel.pluginMessages(pluginName).at(-1);
+  // The page removed the typed command. Its empty paragraph after the table has no text in the file: its place is the
+  // end of the table, and a figure gets the blank lines before it.
+  const text = content;
+  const empty = text.indexOf('\n\nSee');
+  await page(panel, { type: 'slash', request: 1, command: 'figure', text, at: empty });
+  const figure = '\n\nFigure 1: Caption\n\n![Caption](images/plan.png)';
+  expect(last()).toEqual({ type: 'change', request: 1, patches: [{ from: empty, to: empty, insert: figure }], select: { from: empty + 12, to: empty + 19 } });
+  await page(panel, { type: 'slash', request: 2, command: 'table', text, at: empty });
+  const table = '\n\nTable 2: Caption\n\n| Column | Column |\n| --- | --- |\n|  |  |';
+  expect(last()).toEqual({ type: 'change', request: 2, patches: [{ from: empty, to: empty, insert: table }], select: { from: empty + 11, to: empty + 18 } });
+  // /ref links the table and gives its caption an anchor; the cursor goes after the link.
+  fake.pick = (choices) => choices.find((choice) => choice.label === 'Table 1');
+  const end = content.length - 1;
+  await page(panel, { type: 'slash', request: 3, command: 'ref', text: content, at: end });
+  const caption = content.indexOf('Grades') + 'Grades'.length;
+  const anchor = '<a id="tab-grades"></a>';
+  const link = '[Table 1](#tab-grades)';
+  expect(last()).toEqual({
+    type: 'change',
+    request: 3,
+    patches: [
+      { from: caption, to: caption, insert: anchor },
+      { from: end, to: end, insert: link },
+    ],
+    select: { from: end + anchor.length + link.length, to: end + anchor.length + link.length },
+  });
+  await page(panel, { type: 'slash', request: 4, command: 'user', text: content, at: end });
+  expect(last()).toEqual({ type: 'change', request: 4, patches: [{ from: end, to: end, insert: 'carl' }], select: { from: end + 4, to: end + 4 } });
 });
 
 test('a click on a thread selects its note in the editor, which scrolls to it, and opens no text editor (R-TEXT-010, R-SIDE-007)', async () => {

@@ -34,7 +34,8 @@ import * as vscode from 'vscode';
 import { fileOf } from './cleanView';
 import { isPaperDocument } from './notes/clean';
 import { findDoctype } from './notes/doctype';
-import { type ExtensionMessage, pageMessage, pluginName } from './notes/editorMessages';
+import { type ExtensionMessage, pageMessage, pluginName, type SlashName } from './notes/editorMessages';
+import type { TextChange } from './slashCommands';
 import type { SelectedNotes } from './selectedNotes';
 import type { EditorFiles, Settings } from './settings';
 
@@ -87,11 +88,51 @@ export interface EditorSelection {
 /** selectionDelay is the time in milliseconds after which a selection of the page counts, after its change is in the document. */
 export const selectionDelay = 50;
 
+/**
+ * RenderedCommands run the slash commands of the editor that need the extension ([R-EDIT-008](../docs/requirements.md#r-edit-008)).
+ */
+export interface RenderedCommands {
+  /** footnote opens the editor of a new standard footnote in the side view for the cursor of the editor, for `/footnote`. */
+  footnote(): Thenable<unknown>;
+  /**
+   * slash runs a slash command on the text of a file that the page sent, at a place of the cursor, and returns the
+   * change of the text, or undefined.
+   */
+  slash(file: vscode.TextDocument, command: SlashName, text: string, at: number): Promise<TextChange | undefined>;
+}
+
 /** Connection is the channel of the plugin in the panel of one document. */
 interface Connection {
   readonly channel: PluginPanelChannel;
   /** pending is the last selection of the page that waits for selectionDelay. */
   pending: { anchor: number; head: number; mouse: boolean; timer: ReturnType<typeof setTimeout> } | undefined;
+}
+
+/** textDelay is the longest time in milliseconds that a slash command waits for the change of the page in the document. */
+export const textDelay = 1000;
+
+/**
+ * textOf resolves when a document has a text, or after textDelay.
+ * @param document - The document.
+ * @param text - The text.
+ */
+function textOf(document: vscode.TextDocument, text: string): Promise<void> {
+  if (document.getText() === text) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      listener.dispose();
+      resolve();
+    };
+    const timer = setTimeout(done, textDelay);
+    const listener = vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document === document && document.getText() === text) {
+        done();
+      }
+    });
+  });
 }
 
 /** RenderedEditors registers the editor and connects the plugin of the notes of each editor to the extension. */
@@ -107,16 +148,19 @@ export class RenderedEditors implements vscode.Disposable {
    * @param extensionUri - The folder of the extension, which holds the script and the styles of the page.
    * @param settingsOf - Returns the settings of a document.
    * @param selected - The selected note of each document.
-   * @param comment - Adds a note to the selected text of an editor, for the button "Comment" of its format bar.
+   * @param comment - Adds a note or a todo note to the selected text of an editor, for the button "Comment" of its
+   * format bar and for `/note` and `/todo`.
    * @param select - Selects a range of a file in its text editor that the editor opened, which can become the clean
    * editing view ([R-TEXT-009](../docs/requirements.md#r-text-009)).
+   * @param commands - Runs the other slash commands of the editor that need the extension.
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly selected: SelectedNotes,
-    private readonly comment: () => Thenable<unknown>,
+    private readonly comment: (todo: boolean) => Thenable<unknown>,
     private readonly select?: (file: vscode.Uri, range: vscode.Range) => Thenable<void>,
+    private readonly commands?: RenderedCommands,
   ) {}
 
   /** register registers the editor and the listeners of the selected notes. */
@@ -205,7 +249,12 @@ export class RenderedEditors implements vscode.Disposable {
         connection.pending = { anchor: message.anchor, head: message.head, mouse: message.mouse, timer: setTimeout(() => this.take(connection), selectionDelay) };
       } else if (message?.type === 'comment') {
         this.take(connection);
-        void this.comment();
+        void this.comment(message.todo === true);
+      } else if (message?.type === 'footnote') {
+        this.take(connection);
+        void this.commands?.footnote();
+      } else if (message?.type === 'slash') {
+        void this.slash(connection, message);
       }
     });
     return {
@@ -215,6 +264,27 @@ export class RenderedEditors implements vscode.Disposable {
         this.connections.delete(connection);
       },
     };
+  }
+
+  /**
+   * slash runs a slash command of the page on the text that it sent, and sends the change of the text back.
+   * @param connection - The connection.
+   * @param message - The message of the page.
+   */
+  private async slash(connection: Connection, message: { request: number; command: SlashName; text: string; at: number }): Promise<void> {
+    try {
+      const { document } = connection.channel;
+      if (message.command === 'todo') {
+        // The side view finds the sentence in the document, which gets the last change of the page a moment later.
+        await textOf(document, message.text);
+      }
+      const change = await this.commands?.slash(document, message.command, message.text, message.at);
+      if (change) {
+        this.post(connection, { type: 'change', request: message.request, patches: change.patches, ...(change.select ? { select: change.select } : {}) });
+      }
+    } catch (error) {
+      void vscode.window.showErrorMessage(`The slash command /${message.command} failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**

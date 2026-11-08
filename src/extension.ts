@@ -421,13 +421,23 @@ export function activate(context: vscode.ExtensionContext): Api {
     context.extensionUri,
     readSettings,
     selected,
-    () => vscode.commands.executeCommand(viewCommands.newNote),
+    (todo) => (todo ? view.addTodoToSelection() : vscode.commands.executeCommand(viewCommands.newNote)),
     (file, range) => clean.select(file, range),
+    {
+      footnote: () => vscode.commands.executeCommand(viewCommands.newFootnote),
+      slash: (file, command, text, at) => slash.runInText(file, command, text, at),
+    },
   );
   store.waitBeforeWrites((uri) => clean.switchedOf(uri));
   const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, store, githubLogin, renderMarkdown, readSettings, selected, clean);
-  const slash = new SlashCommands(store, (editor, range, todo) => view.addFromText(editor, range, todo), (editor) => view.addFootnoteFrom(editor), clean);
+  const slash = new SlashCommands(
+    store,
+    (editor, range, todo) => view.addFromText(editor, range, todo),
+    (editor) => view.addFootnoteFrom(editor),
+    clean,
+    (document, range, todo) => view.addFromDocument(document, range, todo),
+  );
   /** apiV1 is version 1 of the API for other extensions (R-GEN-012). */
   const apiV1: ApiV1 = {
     version: 1,

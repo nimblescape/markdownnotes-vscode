@@ -744,8 +744,9 @@ describe('nimblescape Markdown Notes', () => {
     const { document } = await open('Written by /\n', 0);
     const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', document.uri, new vscode.Position(0, 12), '/');
     const own = list.items.map((item) => (typeof item.label === 'string' ? item.label : item.label.label)).filter((label) => label.startsWith('/'));
-    // The test has no GitHub session: /user offers the sign-in.
-    assert.deepEqual(own, ['/todo', '/footnote', '/date', '/time', '/user']);
+    // The test has no GitHub session: /user offers the sign-in. The commands of the blocks follow (decision 79).
+    const blocks = ['/text', '/h1', '/h2', '/h3', '/h4', '/h5', '/h6', '/bullets', '/numbers', '/tasks', '/quote', '/code', '/divider', '/image', '/alert'];
+    assert.deepEqual(own, ['/todo', '/footnote', '/date', '/time', '/user', ...blocks]);
   });
 
   it('formats a file and gives each start marker <wbr> before it (R-FMT-001)', async () => {

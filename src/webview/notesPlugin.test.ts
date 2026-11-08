@@ -11,9 +11,11 @@ import { undo } from '@tiptap/pm/history';
 import { TextSelection } from '@tiptap/pm/state';
 import { createMarkdownIt, MarkdownEditor } from '@nimblescape/markdowneditor';
 import { TextSource } from '@nimblescape/markdowntext';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { PageMessage } from '../notes/editorMessages';
 import { doctypeLines } from '../notes/doctype';
-import { addNote, extendMarkdownIt, noteAt, nodeNames, notesPlugin, partsOf } from './notesPlugin';
+import { figuresPlugin } from './figuresPlugin';
+import { addNote, createNotesPlugin, extendMarkdownIt, noteAt, nodeNames, notesPlugin, partsOf } from './notesPlugin';
 
 let editors: MarkdownEditor[] = [];
 afterEach(() => {
@@ -390,5 +392,119 @@ describe('the renderer', () => {
 
   it('names the nodes of the plugin', () => {
     expect(Object.values(nodeNames)).toEqual(['noteMarker', 'noteReference', 'notesHidden']);
+  });
+});
+
+describe('the slash commands of Notes in the editor of a whole file (R-EDIT-008, decision 79)', () => {
+  /** opened returns an editor with the slash commands of Notes, the messages that it sends and a function that sends it a message. */
+  function opened(markdown: string): { editor: MarkdownEditor; sent: PageMessage[]; send: (message: unknown) => void } {
+    const sent: PageMessage[] = [];
+    const listeners: ((message: unknown) => void)[] = [];
+    const element = document.createElement('div');
+    document.body.append(element);
+    const editor = new MarkdownEditor(element, {
+      source: new TextSource(markdown),
+      plugins: [createNotesPlugin({ comment: true, slashCommands: true }), figuresPlugin],
+      host: {
+        platform: 'vscode',
+        channel: () => ({
+          post: (message) => sent.push(message as PageMessage),
+          onMessage: (listener) => {
+            listeners.push(listener);
+            return () => undefined;
+          },
+        }),
+      },
+    });
+    editors.push(editor);
+    return { editor, sent, send: (message) => listeners.forEach((listener) => listener(message)) };
+  }
+
+  /** labels returns the labels of the items of the open menu. */
+  const labels = (): string[] => [...document.querySelectorAll('.nsmd-menu-item .nsmd-menu-label')].map((item) => item.textContent ?? '');
+
+  it('add a note or a todo note to the text that a slash was typed on, which the editor selects again', () => {
+    const { editor, sent } = opened('Some text here.\n');
+    select(editor, positionOf(editor, 'text'), positionOf(editor, 'text', true));
+    type(editor, '/');
+    expect(labels()).toEqual(['Add Note', 'Add Todo']);
+    type(editor, 'todo');
+    expect(key(editor, 'Enter')).toBe(true);
+    expect(editor.getMarkdown()).toBe('Some text here.\n');
+    expect(sent.at(-2)).toEqual({ type: 'selection', anchor: 5, head: 9, mouse: false });
+    expect(sent.at(-1)).toEqual({ type: 'comment', todo: true });
+  });
+
+  it('insert the date and the time, offer the figure, the table with its caption and the listing in a paragraph of their own, and /todo, /footnote and /ref after text', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 29, 19, 29));
+    try {
+      const { editor } = opened('Text\n\n\n');
+      select(editor, positionOf(editor, 'Text', true));
+      type(editor, ' /');
+      // The footnote of Notes takes the place of the footnote of the editor; the commands of Notes follow the items of the editor.
+      expect(labels().slice(-6)).toEqual(['Footnote', 'Date: 2026-10-29', 'Time: 2026-10-29 19:29', 'Add Todo to the sentence before', 'Link a Figure, Table or Section', 'Your GitHub login']);
+      expect(labels().filter((label) => label === 'Footnote')).toHaveLength(1);
+      type(editor, 'time');
+      key(editor, 'Enter');
+      expect(editor.getMarkdown()).toBe('Text 2026-10-29 19:29\n');
+      editor.tiptap.commands.enter();
+      type(editor, '/');
+      expect(labels()).toEqual(expect.arrayContaining(['Figure', 'Table with caption', 'Listing']));
+      expect(labels()).not.toContain('Table');
+      expect(labels()).not.toContain('Footnote');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ask the extension for /figure with the text of the file and the cursor, and make the change that it sends back as a change of the user', () => {
+    const { editor, sent, send } = opened('# Results\n\nMore.\n');
+    select(editor, positionOf(editor, 'Results', true));
+    editor.tiptap.commands.enter();
+    type(editor, '/figure');
+    expect(labels()[0]).toBe('Figure');
+    key(editor, 'Enter');
+    const request = sent.at(-1) as Extract<PageMessage, { type: 'slash' }>;
+    expect(request).toMatchObject({ type: 'slash', request: 1, command: 'figure' });
+    expect(request.text).toBe(editor.getMarkdown());
+    // The empty paragraph has no text in the file: its place is the end of the heading, and the change has the blank lines.
+    expect(request.text).toBe('# Results\n\nMore.\n');
+    expect(request.at).toBe('# Results'.length);
+    const insert = 'Figure 1: Caption\n\n![Caption](images/plan.png)';
+    send({ type: 'change', request: 1, patches: [{ from: request.at, to: request.at, insert: `\n\n${insert}` }], select: { from: request.at + 12, to: request.at + 19 } });
+    expect(editor.getMarkdown()).toBe(`# Results\n\n${insert}\n\nMore.\n`);
+    const { from, to } = editor.tiptap.state.selection;
+    expect(editor.tiptap.state.doc.textBetween(from, to)).toBe('Caption');
+    // A change for an older text or another request changes nothing.
+    send({ type: 'change', request: 1, patches: [{ from: 0, to: 0, insert: 'x' }] });
+    expect(editor.getMarkdown()).toBe(`# Results\n\n${insert}\n\nMore.\n`);
+    undo(editor.tiptap.state, editor.tiptap.view.dispatch);
+    expect(editor.getMarkdown()).not.toContain('Figure 1');
+  });
+
+  it('make the change of /ref, with the anchor of the caption that the editor hides, and put the cursor after the link', () => {
+    const text = 'Table 1: Grades\n\n| A |\n| --- |\n\nSee more.\n';
+    const { editor, sent, send } = opened(text);
+    select(editor, positionOf(editor, 'See', true));
+    type(editor, ' /ref');
+    key(editor, 'Enter');
+    const request = sent.at(-1) as Extract<PageMessage, { type: 'slash' }>;
+    // The typed command goes, and the space before it stays, as in the text editor.
+    expect(request).toMatchObject({ command: 'ref', text: text.replace('See more', 'See  more'), at: text.indexOf(' more') + 1 });
+    const anchor = '<a id="tab-grades"></a>';
+    const link = '[Table 1](#tab-grades)';
+    const caption = 'Table 1: Grades'.length;
+    send({
+      type: 'change',
+      request: request.request,
+      patches: [
+        { from: caption, to: caption, insert: anchor },
+        { from: request.at, to: request.at, insert: link },
+      ],
+      select: { from: request.at + anchor.length + link.length, to: request.at + anchor.length + link.length },
+    });
+    expect(editor.getMarkdown()).toBe(`Table 1: Grades${anchor}\n\n| A |\n| --- |\n\nSee ${link} more.\n`);
+    expect(editor.tiptap.state.doc.textBetween(editor.tiptap.state.selection.from, editor.tiptap.state.selection.from + 5)).toBe(' more');
   });
 });
