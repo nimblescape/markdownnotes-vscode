@@ -509,7 +509,7 @@ describe('the slash commands of Notes in the editor of a whole file (R-EDIT-008,
   });
 });
 
-describe('the selection of the editor of a whole file for the side view (R-TEXT-010, decision 83)', () => {
+describe('the selection of the editor of a whole file for the side view (R-TEXT-010, decision 85)', () => {
   it('report a click of the mouse that leaves the cursor where it is, so that a click on the highlight of the selected note scrolls the side view to its thread again', () => {
     const sent: PageMessage[] = [];
     const element = document.createElement('div');

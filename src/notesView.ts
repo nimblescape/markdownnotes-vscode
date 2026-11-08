@@ -54,7 +54,7 @@
  * A click with the mouse on a highlight, in the text editor, the Markdown
  * preview and the editor of a whole file, selects its thread, opens the view
  * when it is closed and scrolls the view to the thread, while the focus stays
- * in the text ([decision 83](../docs/requirements.md#decisions)). A click on a
+ * in the text ([decision 85](../docs/requirements.md#decisions)). A click on a
  * thread while the Markdown preview shows the file and no text editor does
  * keeps the preview, which scrolls to the note.
  *
@@ -302,7 +302,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
 
   /**
    * choose selects the note at a line of a document, for a click on its highlight in the preview, opens the view and
-   * scrolls it to the thread of the note; the focus stays in the preview (decision 83).
+   * scrolls it to the thread of the note; the focus stays in the preview (decision 85).
    * @param document - The URI of the document.
    * @param line - The index of a line of the note.
    */
@@ -649,7 +649,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * is in it, and the cursor that leaves it deselects it; a click with the mouse outside the notes deselects the
    * selected note. A move of the cursor with the keys outside the notes keeps a note that the user chose in the view. A
    * click on a highlight, and a double click on it, of which VS Code may report only the second click, open the view
-   * and scroll it to the thread (decision 83).
+   * and scroll it to the thread (decision 85).
    * @param editor - The text editor, or undefined.
    * @param click - Whether a click with the mouse moved the cursor.
    */
@@ -709,7 +709,7 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /**
    * openAtThread scrolls the view to the selected thread for a click on a highlight, also to a thread that was selected
    * before, after the user scrolled the view, and opens the hidden view after openDelay, while a thread is still selected
-   * (decision 83). The focus stays in the text.
+   * (decision 85). The focus stays in the text.
    */
   private openAtThread(): void {
     clearTimeout(this.openTimer);

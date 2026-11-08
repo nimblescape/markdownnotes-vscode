@@ -29,7 +29,7 @@
  *
  * The highlights show while the setting `showHighlights` is on, also while the
  * side view is closed; a click on a highlight selects its note, opens the side
- * view and scrolls it to the note ([decision 83](../docs/requirements.md#decisions)),
+ * view and scrolls it to the note ([decision 85](../docs/requirements.md#decisions)),
  * and a double click in the preview also gives the focus to the side view. The
  * context key highlightsContext tells the menus whether they show: the title
  * of the editors has "Hide Highlights" then, and else "Show Highlights", which
@@ -73,7 +73,7 @@ export const openPath = '/open';
 
 /**
  * selectPath is the path of the links of the preview that select a note, open the side view and scroll it to the note,
- * and keep the focus in the preview, for a click on its highlight (decision 83): the script of the preview takes the link
+ * and keep the focus in the preview, for a click on its highlight (decision 85): the script of the preview takes the link
  * of the highlight with this path.
  */
 export const selectPath = '/select';

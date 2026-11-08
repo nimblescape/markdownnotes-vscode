@@ -502,7 +502,7 @@
   /**
    * selectLink returns the address of a click on a highlight from the address of the end of the highlight, which a double
    * click opens: the click selects the note and opens the side view with the focus in the preview, the double click also
-   * gives the focus to the side view (decision 83).
+   * gives the focus to the side view (decision 85).
    * @param {string} href - The address of the end of the highlight.
    */
   const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes)\/open(?=\?|$)/, '$1/select');

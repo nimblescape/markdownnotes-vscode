@@ -172,7 +172,7 @@ test('the side view follows the selection of the editor: the cursor in a highlig
   expect(selected(view)).toBeUndefined();
 });
 
-test('a click on a highlight of the editor opens the side view at its thread, also the first click of a quick double click, which is not lost in the series (R-TEXT-010, decision 83)', async () => {
+test('a click on a highlight of the editor opens the side view at its thread, also the first click of a quick double click, which is not lost in the series (R-TEXT-010, decision 85)', async () => {
   const { panel, view } = await open();
   const [first] = view.state().threads;
   view.visible = false;
