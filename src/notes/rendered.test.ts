@@ -89,6 +89,14 @@ describe('the text of the preview in the Markdown text', () => {
     expect(selected('| A | B |\n|---|---|\n| one | two three |', 2, 'onetwo ', 'three')).toBe('three');
   });
 
+  test('finds text of a block whose first line the page leaves out, such as the marker of a GitHub alert', () => {
+    const alert = '> [!NOTE]\n> Note that the text\n> goes on here.';
+    expect(selected(alert, 1, '', 'Note that')).toBe('Note that');
+    expect(selected(alert, 1, 'Note that the text ', 'goes on')).toBe('goes on');
+    expect(selected(alert, 0, 'NOTE ', 'Note that')).toBe('Note that');
+    expect(selected('> [!NOTE]\n> Some text.\n\nNext.', 3, '', 'Some')).toBeUndefined();
+  });
+
   test('takes the nearest occurrence when the page shows the text before it in another form, and nothing for other text', () => {
     // The page shows an emoji for a shortcode, which has no letters.
     expect(selected('Hi :smile: then hi again.', 0, 'Hi 😄 then ', 'hi')).toBe('hi');

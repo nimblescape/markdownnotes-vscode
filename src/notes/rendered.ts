@@ -210,14 +210,19 @@ const matchesAt = (characters: readonly string[], part: readonly string[], offse
  * there.
  * @param lines - The lines of the Markdown text that the preview renders.
  * @param line - The line of the block of the selected text, which the preview names (`data-line`): a paragraph, a
- * heading, a list item or a row of a table.
+ * heading, a list item or a row of a table. A renderer that leaves out the first line of a block, such as the renderer
+ * of nimblescape Markdown Paper the marker of a GitHub alert (`> [!NOTE]`), names the line where the text of the block
+ * that the page shows starts; the text of the block before that line does not count.
  * @param before - The text of the block before the selected text, as the page shows it.
  * @param selected - The selected text, as the page shows it.
  * @param reading - The reading of the lines.
  */
 export function renderedRange(lines: readonly string[], line: number, before: string, selected: string, reading: Reading = read(lines)): Range | undefined {
-  // The blocks of text of the line: one, or the cells of a row of a table.
-  const blocks = reading.blocks.filter((block) => block.first === line).sort((a, b) => a.starts.get(line)!.character - b.starts.get(line)!.character);
+  // The blocks of text of the line: one, or the cells of a row of a table; else the block that holds the line.
+  const starting = reading.blocks.filter((block) => block.first === line);
+  const blocks = (starting.length > 0 ? starting : reading.blocks.filter((block) => block.first < line && line <= block.last && block.starts.has(line))).sort(
+    (a, b) => a.starts.get(line)!.character - b.starts.get(line)!.character,
+  );
   const target = wordOf(selected);
   if (blocks.length === 0 || target.length === 0) {
     return undefined;
@@ -228,7 +233,7 @@ export function renderedRange(lines: readonly string[], line: number, before: st
   /** lineEnd is the position after the last character of the line before, where the break between two lines stands. */
   let lineEnd: Position | undefined;
   for (const block of blocks) {
-    for (let index = block.first; index <= block.last; index++) {
+    for (let index = Math.max(block.first, line); index <= block.last; index++) {
       const start = block.starts.get(index);
       const end = block.ends.get(index);
       if (!start || !end) {
