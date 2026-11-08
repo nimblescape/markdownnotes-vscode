@@ -156,6 +156,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "nimblescape.markdownNotes.addNoteInPreview",
+        "title": "Add Note",
+        "category": "Markdown Notes"
+      },
+      {
         "command": "nimblescape.markdownNotes.addSnippet",
         "title": "Add Snippet",
         "category": "Markdown Notes"
@@ -502,6 +507,10 @@
           "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
         },
         {
+          "command": "nimblescape.markdownNotes.addNoteInPreview",
+          "when": "false"
+        },
+        {
           "command": "nimblescape.markdownNotes.addFootnote",
           "when": "editorLangId == markdown && !editorReadonly"
         },
@@ -637,6 +646,13 @@
           "group": "nimblescape@2",
           "when": "editorLangId == markdown && !editorReadonly"
         }
+      ],
+      "webview/context": [
+        {
+          "command": "nimblescape.markdownNotes.addNoteInPreview",
+          "group": "nimblescape@1",
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && nimblescapeNotesAdd"
+        }
       ]
     },
     "keybindings": [
@@ -760,7 +776,7 @@
           ],
           "default": "all",
           "scope": "resource",
-          "markdownDescription": "Which Markdown files open in the editor of rendered Markdown, which shows the text without the markup of the notes and the notes in the side view Notes. Every other file opens in the text editor. \"Reopen Editor With\" of VS Code and the button \"Open Text Editor to the Side\" open the text editor of a file in each case: for a file with notes and for a paper, the clean editing view, which keeps the front matter read-only and the markup of the notes hidden."
+          "markdownDescription": "Which Markdown files open in the editor of rendered Markdown, which shows the text without the markup of the notes and the notes in the side view Notes. Every other file opens in the text editor. \"Reopen Editor With\" of VS Code and the button \"Open Text Editor to the Side\" open the text editor of a file in each case: for a file with notes and for a paper, the clean editing view, which keeps the rules of the front matter and the markup of the notes hidden."
         },
         "nimblescape.markdownNotes.previewExtensions": {
           "type": "boolean",

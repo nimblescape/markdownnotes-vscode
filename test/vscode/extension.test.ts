@@ -3,7 +3,8 @@
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
-// R-XREF-004), the generated parts that the clean editing view keeps read-only (R-TEXT-009), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
+// R-XREF-004), the generated parts that the clean editing view keeps read-only and the rules of its front matter
+// (R-TEXT-009), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), a listing in
 // the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), the commands of the eye that hide the
 // notes from other viewers (R-HIDE-002), the copy of a file without its notes (R-HIDE-004), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
@@ -26,6 +27,13 @@ const extensionId = 'nimblescape.nimblescape-markdownnotes';
 
 /** marked returns a text with the comment of the format at its top, as a change of the extension writes it (R-NOTE-007). */
 const marked = (text: string): string => `${doctypeLines.join('\n')}\n\n${text}`;
+
+/** paperSchema is the schema of the front matter of a paper: the key layout read-only, and the key kind a required choice (decision 75). */
+const paperSchema = {
+  type: 'object',
+  properties: { layout: { type: 'string', readOnly: true }, title: { type: 'string' }, kind: { type: 'string', enum: ['Bachelor', 'Master'], default: 'Bachelor' } },
+  required: ['layout', 'title', 'kind'],
+};
 
 /** commandOf returns the full name of a command of the extension. */
 const commandOf = (name: string): string => `nimblescape.markdownNotes.${name}`;
@@ -230,47 +238,68 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
-  it('keeps the front matter read-only in the clean editing view: an edit of it goes back, the file keeps it, the link above it opens the file, and undo goes on with the edits before it (R-TEXT-009)', async () => {
-    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
-    fs.writeFileSync(file.fsPath, `---\ntitle: A paper\n---\n\n${note}`);
-    await vscode.commands.executeCommand('vscode.open', file);
-    const view = await viewOf(file);
-    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
-    // An edit after the front matter goes into the file.
-    await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('More.')), 'Even '));
-    await waitFor(() => (real()?.getText().includes('\nEven More.\n') ? true : undefined), 'the change in the file');
-    const before = view.document.getText();
-    // An edit of a value, and an edit that removes the front matter, go back; the file keeps its front matter.
-    for (const change of [
-      (edit: vscode.TextEditorEdit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('A paper')), 'The '),
-      (edit: vscode.TextEditorEdit) => edit.delete(new vscode.Range(0, 0, 4, 0)),
-    ]) {
-      assert.ok(await view.edit(change));
-      await waitFor(() => (view.document.getText() === before ? true : undefined), 'the front matter as it was');
-    }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    assert.equal(view.document.getText(), before);
-    assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), real()!.getText());
-    // Without nimblescape Markdown Paper, the link above the front matter opens the file itself.
-    const lenses = await vscode.commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', view.document.uri);
-    assert.deepEqual(
-      lenses.map((lens) => [lens.range.start.line, lens.command?.title, lens.command?.command]),
-      [[0, 'Open File with Markup', commandOf('openWithMarkup')]],
-    );
-    // Undo never brings an edit of the front matter back: one undo goes over each edit that went back.
-    let steps = 0;
-    while (steps < 4 && view.document.getText().includes('Even ')) {
-      await vscode.commands.executeCommand('undo');
-      steps++;
+  it('edits the front matter in the clean editing view as text, and with the rules of another extension keeps the keys of the schema and the read-only keys, with a warning, its quick fix and the suggestions of a choice (R-TEXT-009, decision 75)', async () => {
+    const registration = (await api()).getAPI(1)!.registerFrontMatterSchema({ schemaOf: (_file, text) => (text.includes('layout: pht/thesis') ? { schema: paperSchema } : undefined) });
+    try {
+      const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+      fs.writeFileSync(file.fsPath, `---\nlayout: pht/thesis\ntitle: A paper\n---\n\n${note}`);
+      await vscode.commands.executeCommand('vscode.open', file);
+      const view = await viewOf(file);
+      const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+      // The text after a key, and an edit after the front matter, go into the file.
+      await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('A paper')), 'The '));
+      await waitFor(() => (real()?.getText().includes('\ntitle: The A paper\n') ? true : undefined), 'the value in the file');
+      await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('More.')), 'Even '));
+      await waitFor(() => (real()?.getText().includes('\nEven More.\n') ? true : undefined), 'the change in the file');
+      const before = view.document.getText();
+      // An edit of a key of the schema, of the value of a read-only key, and an edit that removes the front matter go back.
+      for (const change of [
+        (edit: vscode.TextEditorEdit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('title:')), 'sub'),
+        (edit: vscode.TextEditorEdit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('pht/thesis')), 'my/'),
+        (edit: vscode.TextEditorEdit) => edit.delete(new vscode.Range(0, 0, 5, 0)),
+      ]) {
+        assert.ok(await view.edit(change));
+        await waitFor(() => (view.document.getText() === before ? true : undefined), 'the front matter as it was');
+      }
       await new Promise((resolve) => setTimeout(resolve, 300));
-      assert.ok(view.document.getText().startsWith('---\ntitle: A paper\n---\n\n# Title\n'), view.document.getText());
+      assert.equal(view.document.getText(), before);
+      assert.ok(real()!.getText().startsWith('---\nlayout: pht/thesis\ntitle: The A paper\n---\n\n# Title\n'), real()!.getText());
+      // No link above the front matter.
+      const lenses = await vscode.commands.executeCommand<vscode.CodeLens[]>('vscode.executeCodeLensProvider', view.document.uri);
+      assert.deepEqual(lenses.filter((lens) => lens.range.start.line === 0), []);
+      // Undo never brings an edit that went back: one undo goes over each such edit.
+      let steps = 0;
+      while (steps < 6 && view.document.getText().includes('Even ')) {
+        await vscode.commands.executeCommand('undo');
+        steps++;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        assert.ok(view.document.getText().startsWith('---\nlayout: pht/thesis\ntitle: The A paper\n---\n\n# Title\n'), view.document.getText());
+      }
+      assert.equal(steps, 4, 'the undo of the edit before');
+      // The missing key shows as a warning at the first fence, and its quick fix adds it.
+      const problems = await waitFor(() => {
+        const found = vscode.languages.getDiagnostics(view.document.uri).filter((diagnostic) => diagnostic.source === 'Markdown Notes');
+        return found.length > 0 ? found : undefined;
+      }, 'the warning of the missing key');
+      assert.deepEqual(
+        problems.map((problem) => [problem.range.start.line, problem.message]),
+        [[0, '"kind": A value is required.']],
+      );
+      const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', view.document.uri, new vscode.Range(0, 0, 0, 0));
+      const add = actions.find((action) => action.title === 'Add "kind: Bachelor"');
+      assert.ok(add?.edit, actions.map((action) => action.title).join(', '));
+      assert.ok(await vscode.workspace.applyEdit(add.edit));
+      await waitFor(() => (real()?.getText().includes('\ntitle: The A paper\nkind: Bachelor\n---\n') ? true : undefined), 'the key of the quick fix in the file');
+      // After the key, the values of the choice are the suggestions.
+      const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', view.document.uri, new vscode.Position(3, 'kind: '.length));
+      const labels = list.items.map((item) => (typeof item.label === 'string' ? item.label : item.label.label));
+      assert.ok(['Bachelor', 'Master'].every((value) => labels.includes(value)), labels.join(', '));
+    } finally {
+      registration.dispose();
     }
-    assert.equal(steps, 3, 'the undo of the edit before');
-    await waitFor(() => (real()?.getText().includes('\nMore.\n') ? true : undefined), 'the undo in the file');
-    assert.ok(real()!.getText().startsWith('---\ntitle: A paper\n---\n'));
   });
 
-  it('opens a paper document without notes in the clean editing view, where its front matter is read-only (R-TEXT-009, decision 61)', async () => {
+  it('opens a paper document without notes in the clean editing view, where its front matter without rules is text (R-TEXT-009, decision 61)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     const paper = '---\nlayout: plain\ntitle: A paper\n---\n\n# Title\n\nA text without notes.\n';
     fs.writeFileSync(file.fsPath, paper);
@@ -279,9 +308,9 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(view.document.getText(), paper);
     const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
     assert.ok(await view.edit((edit) => edit.insert(view.document.positionAt(paper.indexOf('A paper')), 'The ')));
-    await waitFor(() => (view.document.getText() === paper ? true : undefined), 'the front matter as it was');
-    await view.edit((edit) => edit.insert(view.document.positionAt(paper.indexOf('A text')), 'Now '));
-    await waitFor(() => (real()?.getText() === paper.replace('A text', 'Now A text') ? true : undefined), 'the change in the file');
+    await waitFor(() => (real()?.getText() === paper.replace('A paper', 'The A paper') ? true : undefined), 'the change of the front matter in the file');
+    await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('A text')), 'Now '));
+    await waitFor(() => (real()?.getText() === paper.replace('A paper', 'The A paper').replace('A text', 'Now A text') ? true : undefined), 'the change in the file');
   });
 
   it('keeps the generated parts read-only in the clean editing view, and lets "Format Document" of the view write them (R-TEXT-009, decision 74)', async () => {
@@ -814,9 +843,10 @@ describe('the editor of a whole file (R-TEXT-010)', () => {
     assert.ok(plain.input instanceof vscode.TabInputCustom, 'the custom editor of a file without notes');
   });
 
-  it('keeps the front matter of a paper read-only in the text editor beside the editor, and saves the view after a save of the file in the editor (decision 72)', async () => {
+  it('keeps the rules of the front matter of a paper in the text editor beside the editor, and saves the view after a save of the file in the editor (decision 72)', async () => {
     await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
-    const paper = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text.\n';
+    const registration = (await api()).getAPI(1)!.registerFrontMatterSchema({ schemaOf: () => ({ schema: paperSchema }) });
+    const paper = '---\nlayout: pht/thesis\ntitle: A paper\nkind: Master\n---\n\nA text.\n';
     const { file } = await opened(paper);
     await vscode.commands.executeCommand(commandOf('openTextEditor'), file);
     const editor = await waitFor(() => {
@@ -824,15 +854,16 @@ describe('the editor of a whole file (R-TEXT-010)', () => {
       return active?.document.uri.scheme === 'markdownnotes' && active.document.uri.path === file.path ? active : undefined;
     }, 'the clean editing view');
     const real = vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString())!;
-    // An edit of the front matter goes back.
-    await editor.edit((edit) => edit.insert(new vscode.Position(2, 7), 'The '));
+    // An edit of the value of the read-only key layout goes back.
+    await editor.edit((edit) => edit.insert(new vscode.Position(1, 8), 'my/'));
     await waitFor(() => (editor.document.getText() === paper ? true : undefined), 'the front matter back');
     assert.equal(real.getText(), paper);
     // An edit after it goes into the file; the save of the file saves the view too.
-    await editor.edit((edit) => edit.insert(new vscode.Position(5, 0), 'Now '));
+    await editor.edit((edit) => edit.insert(new vscode.Position(6, 0), 'Now '));
     await waitFor(() => (real.getText().includes('Now A text.') ? true : undefined), 'the edit in the file');
     assert.ok(await real.save(), 'the save of the file');
     await waitFor(() => (editor.document.isDirty ? undefined : true), 'the save of the view');
+    registration.dispose();
   });
 
   it('opens only the files with notes and the papers in the editor with the value notesAndPapers, and no file with none', async () => {

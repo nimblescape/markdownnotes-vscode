@@ -107,6 +107,7 @@ test('a request to scroll to the selected note waits for the pages of nimblescap
   const scrolled: string[] = [];
   const selected = ' data-selected="true" data-reveal="1"';
   const page = start(`<div class="markdown-body"><div class="nimblescape-paper" hidden data-paper="{}"></div><p data-line="2">The ${edges('aaaa', 'text', selected)}.</p></div>`, (window) => {
+    Object.defineProperty(window.document, 'readyState', { configurable: true, get: () => 'complete' });
     window.Element.prototype.scrollIntoView = function (this: Element) {
       scrolled.push(this.closest('.nimblescape-paper-pages') ? 'pages' : 'content');
     };
@@ -125,13 +126,35 @@ test('a request to scroll to the selected note waits for the pages of nimblescap
   expect(scrolled).toEqual(['pages']);
 });
 
-test('a request to scroll to the selected note of another document scrolls at once', () => {
+test('the pages of before take the state of the notes from the content, when nimblescape Markdown Paper shows them without a new layout (R-PREV-009)', () => {
+  // The content of VS Code has the new selected note; the pages of before have the selected note of before.
+  const content = `<p data-line="2">${edges('aaaa', 'one')} and ${edges('bbbb', 'two', ' data-selected="true" data-reveal="5"')}.</p>`;
+  const before = `<p data-line="2">${edges('aaaa', 'paged one', ' data-selected="true" data-reveal="4"')} and ${edges('bbbb', 'paged two')}.</p>`;
+  const page = start(`<div class="nimblescape-paper-pages"><div class="pagedjs_page"><div class="pagedjs_page_content">${before}</div></div></div><div class="markdown-body">${content}</div>`, (window) => {
+    window.Element.prototype.scrollIntoView = () => undefined;
+  });
+  page.window.dispatchEvent(new page.window.Event('nimblescape-paper-rendered'));
+  expect(page.painted()).toEqual({ 'nimblescape-note-3-dim': ['paged one'], 'nimblescape-note-3-selected': ['paged two'] });
+  const ends = [...page.document.querySelectorAll('.nimblescape-paper-pages [data-edge="end"]')].map((end) => [end.getAttribute('data-selected'), end.getAttribute('data-reveal')]);
+  expect(ends).toEqual([
+    [null, null],
+    ['true', '5'],
+  ]);
+});
+
+test('a request to scroll to the selected note of another document scrolls once the page is loaded', () => {
   const scrolled: string[] = [];
-  start(`<div class="markdown-body"><p data-line="2">The ${edges('aaaa', 'text', ' data-selected="true" data-reveal="4"')}.</p></div>`, (window) => {
+  let state = 'interactive';
+  const page = start(`<div class="markdown-body"><p data-line="2">The ${edges('aaaa', 'text', ' data-selected="true" data-reveal="4"')}.</p></div>`, (window) => {
+    // In the preview of VS Code, a smooth scroll that starts before the page is loaded does not move the page.
+    Object.defineProperty(window.document, 'readyState', { configurable: true, get: () => state });
     window.Element.prototype.scrollIntoView = function (this: Element) {
       scrolled.push(this.getAttribute('data-note') ?? this.className);
     };
   });
+  expect(scrolled).toEqual([]);
+  state = 'complete';
+  page.window.dispatchEvent(new page.window.Event('load'));
   expect(scrolled).toEqual(['note-aaaa']);
 });
 
@@ -153,4 +176,77 @@ test('the frame of the selected note in the zoomed pages of nimblescape Markdown
   );
   const style = page.document.querySelector('.nimblescape-note-frame')?.getAttribute('style');
   expect(style).toBe('left: 49px; top: 99px; width: 32px; height: 12px;');
+});
+
+/** doi is the address of a citation link in the text of a note. */
+const doi = 'https://doi.org/10.1000/example';
+
+/**
+ * citing opens a page whose note holds a citation link, as the preview of VS Code writes it, and points the caret of
+ * the page into the text of the link (happy-dom has no layout).
+ */
+const citing = () => {
+  const page = start(`<p data-line="2">See ${edges('aaaa', `the study of <a href="${doi}" data-href="${doi}">Singla et al., 2025</a>`)} and <a href="${doi}" data-href="${doi}">another</a>.</p>`);
+  const [inNote, outside] = [...page.document.querySelectorAll('p a')] as unknown as HTMLAnchorElement[];
+  let caret: Node = inNote.firstChild!;
+  Object.assign(page.document, { caretPositionFromPoint: () => ({ offsetNode: caret, offset: 2 }) });
+  /** press presses the mouse on a link, with the caret in its text. */
+  const press = (link: HTMLAnchorElement, init: { ctrlKey?: boolean; metaKey?: boolean } = {}) => {
+    caret = link.firstChild!;
+    link.dispatchEvent(new page.window.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, detail: 1, clientX: 5, clientY: 5, ...init }) as unknown as Event);
+  };
+  /** release releases the mouse on a link and waits until the script took its address back. */
+  const release = async (link: HTMLAnchorElement) => {
+    link.dispatchEvent(new page.window.MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 0 }) as unknown as Event);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  };
+  const attributes = (link: HTMLAnchorElement) => ({ href: link.getAttribute('href'), dataHref: link.getAttribute('data-href'), draggable: link.getAttribute('draggable') });
+  return { ...page, inNote, outside, press, release, attributes };
+};
+
+test('a click on a link in a highlight, for example a citation, selects the note: the link holds the address that selects it for the time of the click (R-PREV-003)', async () => {
+  const page = citing();
+  page.press(page.inNote);
+  // VS Code opens the address of the first link of the path of the click, and the preview opens `data-href` first.
+  expect(page.attributes(page.inNote)).toEqual({ href: open.replace('/open?', '/select?'), dataHref: null, draggable: 'false' });
+  const click = new page.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 1 });
+  page.inNote.dispatchEvent(click as unknown as Event);
+  expect(click.defaultPrevented).toBe(true);
+  await page.release(page.inNote);
+  expect(page.attributes(page.inNote)).toEqual({ href: doi, dataHref: doi, draggable: null });
+});
+
+test('Ctrl+click (Cmd+click on macOS) on a link in a highlight opens the link, and a link outside the highlights keeps its click (R-PREV-003)', async () => {
+  const page = citing();
+  const link = page.document.body.shadowRoot!.querySelector('a')!;
+  for (const init of [{ ctrlKey: true }, { metaKey: true }]) {
+    page.press(page.inNote, init);
+    expect(page.attributes(page.inNote)).toEqual({ href: doi, dataHref: doi, draggable: null });
+    expect(link.hasAttribute('href')).toBe(false);
+    await page.release(page.inNote);
+  }
+  page.press(page.outside);
+  expect(page.attributes(page.outside)).toEqual({ href: doi, dataHref: doi, draggable: null });
+  expect(link.hasAttribute('href')).toBe(false);
+});
+
+test('the context menu of the preview offers "Add Note" for selected text: the body holds the link of "Add Note" in the context of the menu while text is selected (R-PREV-008)', () => {
+  const add = 'vscode://nimblescape.nimblescape-markdownnotes/add?document=file%3A%2F%2F%2Fpaper.md';
+  const page = start(`<p data-line="2">The text of the page.</p><div class="nimblescape-note-page" data-add="${add}" hidden></div>`);
+  const menu = () => JSON.parse(page.document.body.getAttribute('data-vscode-context') ?? 'null') as Record<string, string> | null;
+  const open = () => page.window.dispatchEvent(new page.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
+  // Another script, or VS Code, may have keys of its own on the body, which stay.
+  page.document.body.setAttribute('data-vscode-context', JSON.stringify({ other: 'value' }));
+  const text = page.document.querySelector('p')!.firstChild!;
+  const range = page.document.createRange();
+  range.setStart(text, 12);
+  range.setEnd(text, 20);
+  page.document.getSelection()!.removeAllRanges();
+  page.document.getSelection()!.addRange(range);
+  open();
+  expect(menu()).toEqual({ other: 'value', nimblescapeNotesAdd: `${add}&line=2&before=The+text+of+&text=the+page` });
+  // Without selected text, the menu has no "Add Note".
+  page.document.getSelection()!.removeAllRanges();
+  open();
+  expect(menu()).toEqual({ other: 'value' });
 });

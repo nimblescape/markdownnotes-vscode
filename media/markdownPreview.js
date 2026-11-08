@@ -29,8 +29,12 @@
 // second press of a double click on a highlight selects no word, and its double
 // click does not open the text editor, as a double click on other text does.
 // The script arms only an address of this extension (ownLink), so that HTML of
-// a file with the same attributes opens no other address with a click. A click
-// on a link of the text, the end of a drag that selects text, and a double
+// a file with the same attributes opens no other address with a click. A link
+// of the text in a highlight, for example a citation, belongs to the note, as
+// in the editors: VS Code opens the address of the first link of the path of a
+// click, so the script gives that link the address for the time of the click,
+// and Ctrl+click (Cmd+click on macOS) opens the link itself. A click on a link
+// outside the highlights, the end of a drag that selects text, and a double
 // click on other text open no address of the script. Chromium sends no click
 // when the element of the press leaves the page before the release, so the
 // script moves no element of the page; and the path of an event, where VS Code
@@ -50,7 +54,9 @@
 // in the color of the note, one for each line of the text, and the highlights
 // of the other notes are dimmed. An end with the attribute data-reveal asks the
 // preview to scroll to the note; the script scrolls once for each number of the
-// attribute, smoothly as the side view, unless the system asks for less motion.
+// attribute, smoothly as the side view, unless the system asks for less motion,
+// once the page is loaded: in the preview of VS Code, a smooth scroll that
+// starts before does not move the page.
 //
 // nimblescape Markdown Paper shows the pages of a paper document in this
 // preview: its script copies the content of the page into the pages of the
@@ -61,7 +67,10 @@
 // the preview again for each change of the selected note; until the first
 // pages show, the user sees no text, so a request to scroll to the selected
 // note waits for the pages, which Markdown Paper shows at the place of the
-// pages of before.
+// pages of before. When only the selected note changed, Markdown Paper shows
+// the pages of before without a new layout, with the attributes of the state
+// of before; the content of VS Code holds the new ones, and the script copies
+// them to the ends of the pages (stateAttributes).
 //
 // Markdown Paper makes the pages smaller with the CSS property `zoom` when the
 // preview is narrower than a page. The browser of VS Code has no standardized
@@ -119,6 +128,12 @@
 
   /** @type {'open' | 'select' | 'deselect' | 'add' | undefined} what the address of the link of the page does. */
   let armed;
+
+  /**
+   * @type {{ link: HTMLAnchorElement, attributes: Map<string, string | null> } | undefined} the link of the text in a
+   * highlight that holds the address of the extension for the time of a click, with its own attributes.
+   */
+  let borrowed;
 
   /** @type {string | undefined} the address of the button "Add Note": the address of the page with the selected text. */
   let addHref;
@@ -268,8 +283,48 @@
     return range.collapsed ? undefined : range;
   };
 
+  /**
+   * stateAttributes are the attributes of an end that change without a change of the text: the selected note, its
+   * request to scroll and its link that deselects it, and the hidden highlights.
+   */
+  const stateAttributes = ['data-selected', 'data-reveal', 'data-deselect', 'data-hidden'];
+
+  /**
+   * syncPages gives each end on the pages of nimblescape Markdown Paper the attributes of the state of its end in the
+   * content of VS Code: Markdown Paper shows the pages of before, without a new layout, when only these attributes
+   * changed.
+   */
+  const syncPages = () => {
+    const pages = document.querySelector(pagesSelector);
+    if (!pages) {
+      return;
+    }
+    /** @type {Map<string, Element>} the ends of the content by their selection. */
+    const sources = new Map();
+    for (const end of document.querySelectorAll(endSelector)) {
+      if (!pages.contains(end)) {
+        sources.set(end.getAttribute('data-selection') ?? '', end);
+      }
+    }
+    for (const end of pages.querySelectorAll(endSelector)) {
+      const source = sources.get(end.getAttribute('data-selection') ?? '');
+      if (!source) {
+        continue;
+      }
+      for (const name of stateAttributes) {
+        const value = source.getAttribute(name);
+        if (value === null) {
+          end.removeAttribute(name);
+        } else if (end.getAttribute(name) !== value) {
+          end.setAttribute(name, value);
+        }
+      }
+    }
+  };
+
   /** highlight finds the highlight of each note, and paints them. */
   const highlight = () => {
+    syncPages();
     highlights = new Map();
     for (const end of scope().querySelectorAll(endSelector)) {
       const range = rangeOf(end);
@@ -333,8 +388,9 @@
     const own = selected ? highlights.get(selected) : undefined;
     frame(own?.range, own?.color ?? '');
     const request = selected?.getAttribute('data-reveal') ?? undefined;
-    // The request to scroll waits for the pages of a paper document, so that it scrolls the pages, not the hidden content.
-    if (selected && request !== undefined && request !== revealed && !waitsForPages()) {
+    // The request to scroll waits for the pages of a paper document, so that it scrolls the pages, not the hidden content,
+    // and for the load of the page: in the preview of VS Code, a smooth scroll that starts before does not move the page.
+    if (selected && request !== undefined && request !== revealed && !waitsForPages() && document.readyState === 'complete') {
       revealed = request;
       (frames.firstElementChild ?? selected).scrollIntoView({ block: 'center', behavior: motion() });
     }
@@ -437,6 +493,12 @@
   const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes\/(open|select|deselect|add)(\?|$)/;
 
   /**
+   * menuAddKey is the key of the context of the menu of the preview with the link of "Add Note" for the selected text,
+   * which the command "Add Note" of the menu opens (previewAddKey of src/extension.ts).
+   */
+  const menuAddKey = 'nimblescapeNotesAdd';
+
+  /**
    * selectLink returns the address that only selects the note of the address of the end of a highlight, which also
    * opens the side view.
    * @param {string} href - The address of the end of the highlight.
@@ -444,23 +506,67 @@
   const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes)\/open(?=\?|$)/, '$1/select');
 
   /**
-   * arm gives the link of the page an address of the extension for the time of a click.
+   * arm gives the link of the page, or a link of the text in a highlight, an address of the extension for the time of a
+   * click. VS Code opens the address of the first link of the path of the click, so the link of the text gets the
+   * address itself: without the attribute `data-href`, from which the preview of VS Code opens the address of the
+   * Markdown text, and not draggable, so that a move of the mouse does not drag the address.
    * @param {string} href - The address.
    * @param {'open' | 'select' | 'deselect' | 'add'} kind - What the address does.
+   * @param {HTMLAnchorElement} [text] - The link of the text in a highlight, or none for the link of the page.
    */
-  const arm = (href, kind) => {
-    const link = linkOfPage();
-    if (link && ownLink.test(href)) {
-      link.href = href;
-      armed = kind;
+  const arm = (href, kind, text) => {
+    const link = text ?? linkOfPage();
+    if (!link || !ownLink.test(href)) {
+      return;
     }
+    if (text) {
+      borrowed = { link: text, attributes: new Map(['href', 'data-href', 'draggable'].map((name) => [name, text.getAttribute(name)])) };
+      text.removeAttribute('data-href');
+      text.setAttribute('draggable', 'false');
+    }
+    link.href = href;
+    armed = kind;
   };
 
-  /** disarm takes the address from the link of the page, so that a click opens no address of the script. */
+  /**
+   * disarm takes the address from the link of the page and gives a link of the text its own attributes again, so that a
+   * click opens no address of the script.
+   */
   const disarm = () => {
     pageLink?.removeAttribute('href');
+    if (borrowed) {
+      for (const [name, value] of borrowed.attributes) {
+        if (value === null) {
+          borrowed.link.removeAttribute(name);
+        } else {
+          borrowed.link.setAttribute(name, value);
+        }
+      }
+      borrowed = undefined;
+    }
     armed = undefined;
   };
+
+  /**
+   * textLinkOf returns the link of the text under the pointer whose press belongs to the highlight under it: a link,
+   * for example a citation, in a highlight, pressed without Ctrl (Cmd on macOS), which opens the link. Every other
+   * control, and a link outside the highlights, keeps its click.
+   * @param {Element} target - The element of the event.
+   * @param {MouseEvent} event - The event.
+   * @returns {HTMLAnchorElement | undefined}
+   */
+  const textLinkOf = (target, event) => {
+    const control = target.closest(controlSelector);
+    return control instanceof HTMLAnchorElement && control.hasAttribute('href') && !(event.ctrlKey || event.metaKey) && highlightAt(event.clientX, event.clientY) ? control : undefined;
+  };
+
+  /**
+   * ownsPress tells whether the script may handle the press of the mouse on an element: not on a control, unless it is
+   * a link in a highlight (textLinkOf).
+   * @param {Element} target - The element of the event.
+   * @param {MouseEvent} event - The event.
+   */
+  const ownsPress = (target, event) => !target.closest(controlSelector) || textLinkOf(target, event) !== undefined;
 
   /**
    * elementOf returns the element of a node: the node, or the element that holds it.
@@ -567,7 +673,7 @@
 
   document.addEventListener('mousemove', (event) => {
     const target = targetOf(event);
-    const end = target && !target.closest(controlSelector) && !addButton.contains(target) ? highlightAt(event.clientX, event.clientY) : undefined;
+    const end = target && ownsPress(target, event) && !addButton.contains(target) ? highlightAt(event.clientX, event.clientY) : undefined;
     if (end !== hovered) {
       hovered = end;
       document.documentElement.toggleAttribute('data-nimblescape-highlight', end !== undefined);
@@ -598,9 +704,11 @@
       if (event.button === 0) {
         pressed = true;
       }
-      if (event.button !== 0 || !target || target === document.body || target === document.documentElement || target.closest(controlSelector) || frames.contains(target)) {
+      if (event.button !== 0 || !target || target === document.body || target === document.documentElement || !ownsPress(target, event) || frames.contains(target)) {
         return;
       }
+      // A link in a highlight, for example a citation, selects the note too, as in the editors; Ctrl+click opens it.
+      const text = textLinkOf(target, event);
       const end = highlightAt(event.clientX, event.clientY);
       const href = end?.getAttribute('data-href');
       if (event.detail > 1) {
@@ -608,13 +716,13 @@
         // opens no address, so that the double click opens the text editor.
         if (href) {
           event.preventDefault();
-          arm(href, 'open');
+          arm(href, 'open', text);
         }
         return;
       }
       const deselect = end ? undefined : chosen()?.getAttribute('data-deselect');
       if (href) {
-        arm(selectLink(href), 'select');
+        arm(selectLink(href), 'select', text);
       } else if (deselect) {
         arm(deselect, 'deselect');
       }
@@ -624,7 +732,9 @@
   window.addEventListener(
     'click',
     (event) => {
-      if (!pageLink?.hasAttribute('href') || !event.composedPath().includes(pageLink)) {
+      const path = event.composedPath();
+      const own = (pageLink?.hasAttribute('href') && path.includes(pageLink)) || (borrowed !== undefined && path.includes(borrowed.link));
+      if (!own) {
         return;
       }
       // The page never follows the address itself; VS Code opens it, also after preventDefault. The address goes after
@@ -659,8 +769,36 @@
     'dblclick',
     (event) => {
       const target = targetOf(event);
-      if (event.button === 0 && target && !target.closest(controlSelector) && !addButton.contains(target) && highlightAt(event.clientX, event.clientY)?.getAttribute('data-href')) {
+      if (event.button === 0 && target && ownsPress(target, event) && !addButton.contains(target) && highlightAt(event.clientX, event.clientY)?.getAttribute('data-href')) {
         event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+  // The context menu of the preview offers "Add Note" for the selected text. VS Code shows the commands of the menu whose
+  // condition holds for the keys of `data-vscode-context` of the element under the pointer and of the elements around
+  // it, and passes these keys to the command; so the body gets the link of "Add Note" when the menu opens.
+  window.addEventListener(
+    'contextmenu',
+    () => {
+      const place = selectedText();
+      /** @type {Record<string, unknown>} */
+      let menu;
+      try {
+        const old = JSON.parse(document.body.getAttribute('data-vscode-context') ?? '{}');
+        menu = old && typeof old === 'object' ? old : {};
+      } catch {
+        menu = {};
+      }
+      if (place) {
+        menu[menuAddKey] = place.href;
+      } else {
+        delete menu[menuAddKey];
+      }
+      if (Object.keys(menu).length > 0) {
+        document.body.setAttribute('data-vscode-context', JSON.stringify(menu));
+      } else {
+        document.body.removeAttribute('data-vscode-context');
       }
     },
     true,

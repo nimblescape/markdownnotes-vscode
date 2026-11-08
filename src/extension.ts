@@ -38,7 +38,7 @@ import type { PluginPanelChannel } from './adapter/editor';
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
-import { CleanView, fileOf } from './cleanView';
+import { CleanView, fileOf, type FrontMatterSchemas } from './cleanView';
 import { FootnoteActions, registerRenumber } from './footnoteActions';
 import { type FormatStep, FormatSteps, registerFormatter, type SaveChanges } from './formatter';
 import { keptCurrent } from './format/format';
@@ -77,6 +77,15 @@ export const deselectPath = '/deselect';
 
 /** addPath is the path of the links of the preview that add a note to the text that the user selected in the preview. */
 export const addPath = '/add';
+
+/** previewAddCommand is the command "Add Note" of the context menu of the Markdown preview for selected text (R-PREV-008). */
+export const previewAddCommand = 'nimblescape.markdownNotes.addNoteInPreview';
+
+/**
+ * previewAddKey is the key of the context of the menu of the Markdown preview (`data-vscode-context`) that holds the link
+ * of "Add Note" for the selected text; the script of the preview sets it when the user opens the menu.
+ */
+export const previewAddKey = 'nimblescapeNotesAdd';
 
 /**
  * highlightCommands are the commands of the buttons in the title of the text editor and of the Markdown preview of a
@@ -165,6 +174,15 @@ export interface ApiV1 {
    * @param markers - The finder of the markers.
    */
   registerHiddenMarkers(markers: HiddenMarkers): vscode.Disposable;
+  /**
+   * registerFrontMatterSchema gives the clean editing view the rules of the front matter of a file
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009), decision 75): its JSON schema and its read-only keys. In the
+   * view, the keys of the schema and the read-only keys with their values stay as they are, and the schema gives the
+   * problems, the quick fixes and the suggestions of the front matter. The first extension that gives rules for a file
+   * wins.
+   * @param schemas - Gives the rules of the front matter of a file.
+   */
+  registerFrontMatterSchema(schemas: FrontMatterSchemas): vscode.Disposable;
   /**
    * registerGeneratedParts makes the clean editing view keep the parts of a file that the format step of the other
    * extension writes read-only ([R-TEXT-009](../docs/requirements.md#r-text-009)).
@@ -275,6 +293,29 @@ function addLink(env: unknown): string | undefined {
     return undefined;
   }
   return `${vscode.env.uriScheme}://${extensionId}${addPath}?${new URLSearchParams({ document: document.toString() }).toString()}`;
+}
+
+/**
+ * addFromPreviewMenu opens the editor of a new note for the text that the user selected in the Markdown preview, from the
+ * command "Add Note" of the context menu of the preview: the context of the menu holds the link of "Add Note" of the
+ * script of the preview. Only a link of "Add Note" of this extension counts.
+ * @param context - The context of the menu, which VS Code passes to the command.
+ * @param view - The side view.
+ */
+async function addFromPreviewMenu(context: unknown, view: NotesView): Promise<void> {
+  const href = typeof context === 'object' && context !== null ? (context as Record<string, unknown>)[previewAddKey] : undefined;
+  if (typeof href !== 'string') {
+    return;
+  }
+  let uri: vscode.Uri;
+  try {
+    uri = vscode.Uri.parse(href, true);
+  } catch {
+    return;
+  }
+  if (uri.authority.toLowerCase() === extensionId.toLowerCase() && uri.path === addPath) {
+    await openFromLink(uri, view);
+  }
 }
 
 /**
@@ -394,6 +435,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     registerFormatStep: (step) => steps.register(step),
     registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
     registerHiddenMarkers: (markers) => clean.registerHiddenMarkers((lines) => markers.find(lines)),
+    registerFrontMatterSchema: (schemas) => clean.registerFrontMatterSchema(schemas),
     registerGeneratedParts: (parts) => clean.registerGeneratedParts((lines) => parts.find(lines)),
     registerSlashCommand: (command) => slash.add(command),
     registerEditorPlugin: (name, connect) => rendered.addPlugin(name, connect),
@@ -439,6 +481,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
+    vscode.commands.registerCommand(previewAddCommand, (menu: unknown) => addFromPreviewMenu(menu, view)),
     ...registerFormatter(extensionId, saveChangesOf, steps, (document, edits) => clean.formats(document, edits)),
     new AddNoteAction(store, viewCommands.newNote, clean).register(),
     ...slash.register(),

@@ -8,8 +8,8 @@ answer a note and each other, so each note is a thread with a tree of
 replies. The side view "Notes" shows the threads next to their highlights in
 the text editor, and is the editor of the notes. You add a note by selecting
 text and choosing "Add Note": in the light bulb at the selected text, with a
-shortcut, in the context menu, or with the button above the selected text of
-the Markdown preview. Every change goes back into the footnote in
+shortcut, in the context menu of the text editor or of the Markdown preview,
+or with the button above the selected text of the Markdown preview. Every change goes back into the footnote in
 the file, with the GitHub login of the author.
 
 ![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the list of the two threads, the selected blue thread at its top with a frame, and the dimmed green thread](https://raw.githubusercontent.com/nimblescape/markdownnotes-vscode/main/docs/images/notes.png)
@@ -74,9 +74,11 @@ describes each step and where its protection ends.
   editor shows the highlights of the notes, the side view follows its
   cursor, and "Comment" in the format bar over the selected text adds a
   note. The button "Open Text Editor to the Side" in the title of the editor
-  opens the text editor of the file, which keeps the front matter and the
-  parts that the formatter writes read-only and the markup of the notes
-  hidden. A Markdown file has three views, "Text
+  opens the text editor of the file, which keeps the rules of the front
+  matter, the parts that the formatter writes read-only and the markup of the
+  notes hidden. With the schema of a paper from nimblescape Markdown Paper,
+  the text editor keeps the keys of the layout, shows the problems of the
+  front matter with quick fixes, and suggests the values of a key. A Markdown file has three views, "Text
   Editor", "Markdown Preview" and "Markdown Editor", and the title of each
   view has a button for each of the other two. A diff, for example of the changes in Git,
   shows the editor on both sides, with the removed and the new text marked.
@@ -168,9 +170,9 @@ describes each step and where its protection ends.
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
   editor, or with "Add Note" (`+`) in the title of the side view. In the
-  Markdown preview, the button "Add Note" shows above the selected text. Each
-  opens the editor of the new note in the side view, where you choose its
-  color.
+  Markdown preview, the button "Add Note" shows above the selected text, and
+  "Add Note" is also in the context menu of the selected text. Each opens the
+  editor of the new note in the side view, where you choose its color.
   Nothing shows by itself over the selected text, and there is no note
   without highlighted text.
 - **The text stays readable.** A Markdown file with notes opens in the clean

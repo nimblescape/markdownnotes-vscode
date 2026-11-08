@@ -253,9 +253,13 @@ export class FakeWorkspaceEdit {
 export class FakeSnippetString {
   constructor(readonly value: string) {}
 
-  /** text returns the text that VS Code inserts for the snippet: each placeholder with its default text. */
+  /** text returns the text that VS Code inserts for the snippet: each placeholder with its default text, and each choice with its first value. */
   get text(): string {
-    return this.value.replace(/\$\{\d+:((?:\\.|[^}\\])*)\}|\$\d+/g, (_whole, text: string | undefined) => text ?? '').replace(/\\([\\$}])/g, '$1');
+    return this.value
+      .replace(/\$\{\d+\|((?:\\.|[^,|\\])*)(?:,(?:\\.|[^|\\])*)?\|\}/g, (_whole, first: string) => first.replace(/\\([\\$}|,])/g, '\u0000$1'))
+      .replace(/\$\{\d+:((?:\\.|[^}\\])*)\}|\$\d+/g, (_whole, text: string | undefined) => text ?? '')
+      .replace(/\\([\\$}])/g, '$1')
+      .replace(/\u0000/g, '');
   }
 }
 
@@ -749,7 +753,7 @@ export class Fake {
       DocumentLink: FakeDocumentLink,
       CodeActionTriggerKind: { Invoke: 1, Automatic: 2 },
       CompletionItem: FakeCompletionItem,
-      CompletionItemKind: { Function: 2, Value: 11, Reference: 17 },
+      CompletionItemKind: { Function: 2, Property: 9, Value: 11, Reference: 17, EnumMember: 19 },
       WorkspaceEdit: FakeWorkspaceEdit,
       EventEmitter: FakeEventEmitter,
       Disposable: FakeDisposable,
