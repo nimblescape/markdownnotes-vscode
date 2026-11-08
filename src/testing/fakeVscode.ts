@@ -1120,10 +1120,10 @@ export class Fake {
    * open adds an open document.
    * @param text - The text of the document.
    * @param path - The path of the document.
-   * @param options - The scheme and the language of the document.
+   * @param options - The scheme, the authority and the language of the document.
    */
-  open(text: string, path = '/folder/a.md', options: { scheme?: string; languageId?: string } = {}): FakeDocument {
-    const document = new FakeDocument(new FakeUri(options.scheme ?? 'file', path), text, options.languageId);
+  open(text: string, path = '/folder/a.md', options: { scheme?: string; authority?: string; languageId?: string } = {}): FakeDocument {
+    const document = new FakeDocument(new FakeUri(options.scheme ?? 'file', path, '', options.authority), text, options.languageId);
     this.documents.push(document);
     return document;
   }

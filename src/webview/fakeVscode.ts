@@ -66,6 +66,8 @@ export interface FakeTab {
 export interface FakeTabGroup {
   readonly viewColumn: number;
   activeTab: FakeTab | undefined;
+  /** tabs are the tabs of the group, when a test gives them. */
+  tabs?: FakeTab[];
 }
 
 /** FakePosition is a line and a character. */
@@ -85,6 +87,24 @@ export class FakeRange {
     this.start = first ? a : b;
     this.end = first ? b : a;
   }
+}
+
+/** FakeSelection is a range with its anchor and its active end. */
+export class FakeSelection extends FakeRange {
+  constructor(
+    readonly anchor: FakePosition,
+    readonly active: FakePosition,
+  ) {
+    super(anchor, active);
+  }
+}
+
+/** FakeTextEditor is a text editor of a document, with its selection and the ranges that it revealed. */
+export interface FakeTextEditor {
+  readonly document: FakeDocument;
+  selection: FakeSelection | undefined;
+  readonly revealed: FakeRange[];
+  revealRange(range: FakeRange): void;
 }
 
 /** FakeWorkspaceEdit holds the replacements of an edit. */
@@ -230,8 +250,14 @@ export interface FakeVsCode {
   readonly group: FakeTabGroup;
   /** showTab makes a new tab the active tab of the group, by default a tab without input, as a diff. */
   showTab(label: string, input?: unknown): FakeTab;
+  /** changeTab gives a tab another input, as the list of the editors of VS Code does. */
+  changeTab(tab: FakeTab, input: unknown): void;
   /** closed are the tabs that the adapter closed. */
   readonly closed: FakeTab[];
+  /** activeTextEditor is the active text editor, when a test gives one. */
+  activeTextEditor: FakeTextEditor | undefined;
+  /** textEditor returns a new text editor of a document. */
+  textEditor(document: FakeDocument): FakeTextEditor;
 }
 
 /** fakeVsCode returns a new fake API. */
@@ -279,11 +305,22 @@ export function fakeVsCode(): FakeVsCode {
       tabs.fire({ opened: [tab], closed: [], changed: [] });
       return tab;
     },
+    changeTab(tab, input) {
+      (tab as { input: unknown }).input = input;
+      tabs.fire({ opened: [], closed: [], changed: [tab] });
+    },
     closed,
+    activeTextEditor: undefined,
+    textEditor(document) {
+      const revealed: FakeRange[] = [];
+      return { document, selection: undefined, revealed, revealRange: (range) => revealed.push(range) };
+    },
   };
   const api = {
     Uri: FakeUri,
     Range: FakeRange,
+    Selection: FakeSelection,
+    TextEditorRevealType: { InCenterIfOutsideViewport: 2 },
     Position: FakePosition,
     WorkspaceEdit: FakeWorkspaceEdit,
     ViewColumn: { Active: -1, Beside: -2, One: 1, Two: 2 },
@@ -294,6 +331,9 @@ export function fakeVsCode(): FakeVsCode {
       },
     },
     window: {
+      get activeTextEditor() {
+        return fake.activeTextEditor;
+      },
       registerCustomEditorProvider: (viewType: string, provider: vscode.CustomTextEditorProvider, options: unknown) => {
         registered = { viewType, provider, options };
         return { dispose: () => (registered = undefined) };

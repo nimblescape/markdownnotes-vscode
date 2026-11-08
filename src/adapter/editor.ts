@@ -10,6 +10,13 @@
 // the page a change of the document (src/adapter/messages.ts). VS Code does not say who made a change of the document, so the
 // page gives each such change the origin `program` with the name `vscode`.
 //
+// A Markdown file has three views in the place of its editor (docs/requirements.md, R-VSC-002): the text editor, the
+// Markdown preview of VS Code and this editor. The commands of the registration open the file of the active editor in
+// another view, with the command `reopenActiveEditorWith` of VS Code, which also the list of the editors of VS Code
+// uses. A document that only shows a file, for example a document of the clean editing view of Notes, opens the editor
+// of the file itself (the option `fileOf`). A file that the user chose for this editor opens in it also when the option
+// `opens` returns false for it.
+//
 // The page shows the editor ("Edit") or the pages of the file in its layout ("Pages", docs/requirements.md, R-VSC-007).
 // The commands of the extension switch the view of the active panel; the context key `<view type>.pages` is true while
 // the active panel shows the pages, so that the title of the editor shows the button of the other view. For the pages,
@@ -71,10 +78,22 @@ export interface MarkdownEditorRegistration {
    */
   readonly opens?: (document: vscode.TextDocument) => boolean;
   /**
+   * fileOf returns the file whose editor takes the place of the panel of a document that only shows a file, for example
+   * a document of the clean editing view of Notes (R-TEXT-009), or undefined for a file itself.
+   */
+  readonly fileOf?: (document: vscode.Uri) => vscode.Uri | undefined;
+  /**
    * openTextCommand is the ID of a command that opens the text editor of the file to the side (R-VSC-002); the
    * package.json of the extension contributes the command and its button in the title of the editor.
    */
   readonly openTextCommand?: string;
+  /**
+   * reopenCommands are the IDs of the commands that open the file of the active editor in another of its three views,
+   * in the place of the active editor (R-VSC-002): `editor` in this editor, from the text editor or the Markdown
+   * preview; `text` in the text editor and `preview` in the Markdown preview of VS Code, from this editor. The
+   * package.json of the extension contributes the commands and their buttons in the title of the editor.
+   */
+  readonly reopenCommands?: { readonly editor?: string; readonly text?: string; readonly preview?: string };
   /**
    * showPagesCommand and showEditCommand are the IDs of the commands that switch the active panel to the view "Pages"
    * and back to "Edit" (docs/requirements.md, R-VSC-007); the package.json of the extension contributes the commands
@@ -260,10 +279,71 @@ export function registerMarkdownEditor(api: VsCode, registration: MarkdownEditor
     modified.setDiff('modified', original);
     showDiff();
   };
+  /** chosen holds the files that the user chose to open in the editor, with the time of the choice. */
+  const chosen = new Map<string, number>();
+  const choose = (file: vscode.Uri) => chosen.set(file.toString(), Date.now());
+  /**
+   * left holds the editors of files that left their groups in the last moments, closed or replaced by another editor
+   * of the tab, with their view types (undefined for the text editor), and inputs the last known editor of each tab.
+   * The list of the editors of VS Code replaces the editor of the active tab: the tab gets this editor in place of
+   * the text editor or the Markdown preview of the file, before the editor opens.
+   */
+  const left: { column: vscode.ViewColumn; uri: vscode.Uri; viewType: unknown; at: number }[] = [];
+  const inputs = new WeakMap<vscode.Tab, { uri: vscode.Uri | undefined; viewType: unknown }>();
+  const inputOf = (tab: vscode.Tab) => ({ uri: tabUri(tab), viewType: (tab.input as { viewType?: unknown } | undefined)?.viewType });
+  const leave = (tab: vscode.Tab, input: { uri: vscode.Uri | undefined; viewType: unknown } | undefined, at: number) => {
+    if (input?.uri) {
+      left.push({ column: tab.group.viewColumn, uri: input.uri, viewType: input.viewType, at });
+    }
+  };
+  const followTabs = (event: vscode.TabChangeEvent) => {
+    const at = Date.now();
+    left.splice(0, left.filter((entry) => at - entry.at > choiceTime).length);
+    // An event may miss a list, for example of a fake API.
+    (event.closed ?? []).forEach((tab) => leave(tab, inputs.get(tab) ?? inputOf(tab), at));
+    for (const tab of event.changed ?? []) {
+      const before = inputs.get(tab);
+      const now = inputOf(tab);
+      if (before && (before.uri?.toString() !== now.uri?.toString() || before.viewType !== now.viewType)) {
+        leave(tab, before, at);
+      }
+      inputs.set(tab, now);
+    }
+    (event.opened ?? []).forEach((tab) => inputs.set(tab, inputOf(tab)));
+  };
+  api.window.tabGroups?.all.forEach((group) => group.tabs?.forEach((tab) => inputs.set(tab, inputOf(tab))));
+  /**
+   * opensHere tells whether a document opens in the editor: by `opens` of the registration, or because the user chose
+   * the editor for it, with a button of the title or with the list of the editors of VS Code, which replaces another
+   * editor of the file, or of a document that only shows the file, in the group of the panel.
+   */
+  const opensHere = (document: vscode.TextDocument, panel: vscode.WebviewPanel): boolean => {
+    const key = document.uri.toString();
+    const chosenAt = chosen.get(key);
+    chosen.delete(key);
+    const at = Date.now();
+    if (!registration.opens || (chosenAt !== undefined && at - chosenAt <= choiceTime)) {
+      return true;
+    }
+    const replaces = left.some(
+      (entry) =>
+        entry.column === panel.viewColumn && entry.viewType !== registration.viewType && at - entry.at <= choiceTime && (registration.fileOf?.(entry.uri) ?? entry.uri).toString() === key,
+    );
+    return replaces || registration.opens(document);
+  };
   const provider: vscode.CustomTextEditorProvider = {
     resolveCustomTextEditor: async (document, webviewPanel) => {
       const diffTab = diffTabOf(api, webviewPanel);
-      if (!diffTab && registration.opens && !registration.opens(document)) {
+      const file = diffTab ? undefined : registration.fileOf?.(document.uri);
+      if (file) {
+        // The editor of the file itself takes the place of the panel in the same group: the user chose the editor for a
+        // document that only shows the file.
+        choose(file);
+        await api.commands.executeCommand('vscode.openWith', file, registration.viewType, webviewPanel.viewColumn);
+        webviewPanel.dispose();
+        return;
+      }
+      if (!diffTab && !opensHere(document, webviewPanel)) {
         // The text editor takes the place of the panel in the same group.
         await api.commands.executeCommand('vscode.openWith', document.uri, 'default', webviewPanel.viewColumn);
         webviewPanel.dispose();
@@ -294,6 +374,9 @@ export function registerMarkdownEditor(api: VsCode, registration: MarkdownEditor
       webviewOptions: { retainContextWhenHidden: registration.retainContextWhenHidden ?? true },
     }),
   ];
+  if (api.window.tabGroups) {
+    disposables.push(api.window.tabGroups.onDidChangeTabs(followTabs));
+  }
   if (diffContext && api.window.tabGroups) {
     disposables.push(api.window.tabGroups.onDidChangeTabs(showDiff), api.window.tabGroups.onDidChangeTabGroups(showDiff));
   }
@@ -339,6 +422,38 @@ export function registerMarkdownEditor(api: VsCode, registration: MarkdownEditor
       }),
     );
   }
+  // The buttons of the three views of a Markdown file act on the active editor, as the buttons of the Markdown extension
+  // of VS Code do, and VS Code replaces it in its group, at its place in the tabs (R-VSC-002).
+  const reopen = registration.reopenCommands;
+  if (reopen?.editor) {
+    disposables.push(
+      api.commands.registerCommand(reopen.editor, async () => {
+        const uri = tabUri(api.window.tabGroups?.activeTabGroup.activeTab);
+        if (uri) {
+          choose(registration.fileOf?.(uri) ?? uri);
+          await api.commands.executeCommand('reopenActiveEditorWith', registration.viewType);
+        }
+      }),
+    );
+  }
+  if (reopen?.text) {
+    disposables.push(
+      api.commands.registerCommand(reopen.text, async () => {
+        const panel = panelOf();
+        const range = panel?.selectedRange();
+        await api.commands.executeCommand('reopenActiveEditorWith', 'default');
+        // The text editor gets the selection of the editor.
+        const editor = api.window.activeTextEditor;
+        if (panel && range && editor?.document.uri.toString() === panel.uri.toString()) {
+          editor.selection = new api.Selection(range.start, range.end);
+          editor.revealRange(range, api.TextEditorRevealType.InCenterIfOutsideViewport);
+        }
+      }),
+    );
+  }
+  if (reopen?.preview) {
+    disposables.push(api.commands.registerCommand(reopen.preview, () => api.commands.executeCommand('reopenActiveEditorWith', markdownPreview)));
+  }
   return {
     dispose: () => {
       disposables.forEach((disposable) => disposable.dispose());
@@ -382,6 +497,21 @@ interface Diff {
 
 /** diffPairTime is the time in milliseconds in which the second side of a diff opens after the first one. */
 const diffPairTime = 2000;
+
+/** markdownPreview is the view type of the mode "Markdown Preview" of VS Code, the Markdown preview in the place of the text editor. */
+export const markdownPreview = 'vscode.markdown.preview.editor';
+
+/** choiceTime is the time in milliseconds in which the editor of a file that the user chose opens. */
+const choiceTime = 5000;
+
+/**
+ * tabUri returns the URI of the document of a tab of a text editor or of a custom editor, or undefined.
+ * @param tab - The tab.
+ */
+function tabUri(tab: vscode.Tab | undefined): vscode.Uri | undefined {
+  const input = tab?.input as { uri?: unknown } | undefined;
+  return input?.uri && typeof input.uri === 'object' ? (input.uri as vscode.Uri) : undefined;
+}
 
 /**
  * diffTabOf returns the tab of a diff that a panel opens in: the active tab of the group of the panel, when the API of
@@ -741,14 +871,16 @@ class EditorPanel {
   /** openText opens the text editor of the file to the side, with the selection of the page (R-VSC-002). */
   async openText(): Promise<void> {
     const options: vscode.TextDocumentShowOptions = { viewColumn: this.api.ViewColumn.Beside, preview: false };
+    const selection = this.selectedRange();
+    await this.api.commands.executeCommand('vscode.openWith', this.document.uri, 'default', selection ? { ...options, selection } : options);
+  }
+
+  /** selectedRange returns the selection of the page as a range of the document, or undefined before the page sent one. */
+  selectedRange(): vscode.Range | undefined {
     const selection = this.selection;
-    const show = selection
-      ? {
-          ...options,
-          selection: new this.api.Range(this.document.positionAt(Math.min(selection.anchor, selection.head)), this.document.positionAt(Math.max(selection.anchor, selection.head))),
-        }
-      : options;
-    await this.api.commands.executeCommand('vscode.openWith', this.document.uri, 'default', show);
+    return selection
+      ? new this.api.Range(this.document.positionAt(Math.min(selection.anchor, selection.head)), this.document.positionAt(Math.max(selection.anchor, selection.head)))
+      : undefined;
   }
 
   /** schedulePreview sends the blocks of the preview after a change of the document, once the changes pause. */

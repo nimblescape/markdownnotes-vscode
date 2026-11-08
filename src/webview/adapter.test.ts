@@ -5,12 +5,12 @@
 
 // The tests of the adapter for VS Code (docs/requirements.md, R-VSC-001 to R-VSC-009, R-VSC-012): the custom
 // text editor with its page, the text and the changes between the page and the document, also when both change at the
-// same time, the read-only mode, the fonts, the text editor to the side, a MarkdownEditor in the page, and the rendered
-// changes in a diff.
+// same time, the read-only mode, the fonts, the text editor to the side, the three views of a Markdown file, a
+// MarkdownEditor in the page, and the rendered changes in a diff.
 
 import { MarkdownEditor } from '@nimblescape/markdowneditor';
 import type { TextChange } from '@nimblescape/markdowntext';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerMarkdownEditor, type MarkdownEditorHandle, type MarkdownEditorRegistration, type PluginPanelChannel } from '../adapter/editor';
 import { editorElementId, pageMessage, pagesElementId } from '../adapter/messages';
 import { FakeRange, FakeUri, fakeVsCode, openPanel, type FakeDocument, type FakePanel, type FakeVsCode } from './fakeVscode';
@@ -304,6 +304,84 @@ describe('the text editor to the side', () => {
     const uri = FakeUri.file('/work/other.md');
     await fake.commands.get('test.openText')?.(uri);
     expect(fake.executed).toEqual([['vscode.openWith', uri, 'default', { viewColumn: -2, preview: false }]]);
+  });
+});
+
+describe('the three views of a Markdown file', () => {
+  const reopenCommands = { editor: 'test.reopenEditor', text: 'test.reopenText', preview: 'test.reopenPreview' };
+  /** clean is the URI of a document that only shows the file /work/docs/file.md, as the clean editing view of Notes. */
+  const clean = new FakeUri('clean', '/work/docs/file.md');
+  const fileOf = (uri: { scheme: string; path: string }) => (uri.scheme === 'clean' ? FakeUri.file(uri.path) : undefined);
+
+  it('opens the file of the active text editor or Markdown preview in the editor, in its place, also a file that the extension does not open by itself', async () => {
+    register({ reopenCommands, opens: () => false });
+    const document = fake.open(text);
+    fake.showTab('file.md', { uri: document.uri });
+    await fake.commands.get(reopenCommands.editor)?.(document.uri);
+    expect(fake.executed).toEqual([['reopenActiveEditorWith', viewType]]);
+    const panel = await openPanel(fake, document);
+    expect(panel.disposed).toBe(false);
+    // Another time, the setting of the extension counts again.
+    const again = await openPanel(fake, document);
+    expect(again.disposed).toBe(true);
+  });
+
+  it('opens the text editor and the Markdown preview of VS Code in the place of the editor, the text editor with the selection of the page', async () => {
+    const { document, panel, connection } = await start(text, { reopenCommands });
+    connection.source.setSelections('page', [{ anchor: 18, head: 9 }]);
+    await panel.settle();
+    const editor = fake.textEditor(document);
+    fake.activeTextEditor = editor;
+    await fake.commands.get(reopenCommands.text)?.(document.uri);
+    expect(fake.executed).toEqual([['reopenActiveEditorWith', 'default']]);
+    expect(editor.selection?.anchor).toEqual({ line: 2, character: 0 });
+    expect(editor.selection?.active).toEqual({ line: 2, character: 9 });
+    expect(editor.revealed).toHaveLength(1);
+    await fake.commands.get(reopenCommands.preview)?.(document.uri);
+    expect(fake.executed[1]).toEqual(['reopenActiveEditorWith', 'vscode.markdown.preview.editor']);
+  });
+
+  it('opens the editor of the file itself for a document that only shows the file, from the button and from the list of the editors of VS Code', async () => {
+    register({ reopenCommands, fileOf: fileOf as never, opens: () => false });
+    const file = fake.open(text);
+    const view = fake.open(text, clean);
+    const panel = await openPanel(fake, view);
+    expect(panel.disposed).toBe(true);
+    expect(panel.webview.html).toBe('');
+    expect(fake.executed).toEqual([['vscode.openWith', file.uri, viewType, 1]]);
+    expect((await openPanel(fake, file)).disposed).toBe(false);
+    fake.showTab('file.md', { uri: clean });
+    await fake.commands.get(reopenCommands.editor)?.(clean);
+    expect(fake.executed[1]).toEqual(['reopenActiveEditorWith', viewType]);
+    expect((await openPanel(fake, file)).disposed).toBe(false);
+  });
+
+  it('opens a file that the extension does not open by itself when the editor takes the place of another editor of the file in its tab, as with the list of the editors of VS Code', async () => {
+    register({ fileOf: fileOf as never, opens: () => false });
+    const document = fake.open(text);
+    // Another file left its tab: the setting of the extension counts.
+    const other = fake.showTab('other.md', { uri: FakeUri.file('/work/docs/other.md') });
+    fake.changeTab(other, { uri: document.uri, viewType });
+    expect((await openPanel(fake, document)).disposed).toBe(true);
+    // The Markdown preview of the file, the text editor of the file, and the clean view of the file leave their tab.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      for (const input of [{ uri: document.uri, viewType: 'vscode.markdown.preview.editor' }, { uri: document.uri }, { uri: clean }]) {
+        // An earlier choice no longer counts after a few seconds.
+        vi.setSystemTime(Date.now() + 6000);
+        expect((await openPanel(fake, document)).disposed).toBe(true);
+        const tab = fake.showTab('file.md', input);
+        fake.changeTab(tab, { uri: document.uri, viewType });
+        expect((await openPanel(fake, document)).disposed).toBe(false);
+      }
+      // A closed tab of the file counts too, as VS Code may close it and open a new one.
+      vi.setSystemTime(Date.now() + 6000);
+      const closed = fake.showTab('file.md', { uri: document.uri });
+      await fake.api.window.tabGroups.close(closed as never);
+      expect((await openPanel(fake, document)).disposed).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

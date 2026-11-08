@@ -56,7 +56,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Checks of the footnotes](#checks-of-the-footnotes), [Renumber Footnotes](#renumber-the-footnotes) | text editor, Problems view, Command Palette, side view | available | [R-FOOT-004](requirements.md#r-foot-004), [R-FOOT-005](requirements.md#r-foot-005) |
 | [Make a note a footnote](#make-a-note-a-footnote) | side view | available | [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
-| [Modes of a Markdown file](#modes-of-a-markdown-file) | modes "Markdown Preview" and "Markdown Editor" of VS Code | Markdown Preview: available; Markdown Editor: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
+| [Three views of a Markdown file](#three-views-of-a-markdown-file) | views "Text Editor", "Markdown Preview" and "Markdown Editor", the list of the editors and the buttons in the title | available; the visual editor of VS Code: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
 | [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007), [R-FOOT-001](requirements.md#r-foot-001), [R-HIDE-002](requirements.md#r-hide-002) |
 | [Visual editing of an answer](#editors-of-the-side-view) | side view | available | [R-SIDE-004](requirements.md#r-side-004) |
@@ -369,9 +369,10 @@ note at its place.
   above it, or "Add Note" in the title of the side view
   ([Add a note](#add-a-note)).
 - The button "Open Text Editor to the Side" in the title of the editor opens
-  the text of the file to the side, with the selection of the editor.
-  "Reopen Editor With" of VS Code opens the file in the text editor in the
-  same place.
+  the text of the file to the side, with the selection of the editor. The
+  buttons "Reopen in Text Editor" and "Reopen in Markdown Preview" open the
+  file in the same place in the other views
+  ([Three views of a Markdown file](#three-views-of-a-markdown-file)).
 - A save of the editor saves the file, with the format on save
   ([Formatter](#formatter)).
 - The editor hides the anchors of the [figures, tables and links to
@@ -549,7 +550,8 @@ window, where VS Code also shows the chat. The Explorer and the other views
 of the primary side bar stay usable while it is open. The button "Show or Hide
 Notes" (two speech bubbles) in the title of the text editor and of the preview
 of a Markdown file opens and closes it with one click, also in Zen Mode and
-in the modes "Markdown Preview" and "Markdown Editor" of VS Code. A double
+in the views "Markdown Preview" and "Markdown Editor"
+([Three views of a Markdown file](#three-views-of-a-markdown-file)). A double
 click on a highlight in the text editor or in the preview opens it too, and
 the view scrolls to the thread of the note. The view is the only place of the
 text of the notes, and their editor:
@@ -558,8 +560,8 @@ text of the notes, and their editor:
   of the note and its answers rendered as Markdown with author and date. The
   replies to a reply stand indented below it. The tooltip of a date shows the
   local time of the author. The active Markdown file is the file of the text
-  editor, of the Markdown preview, or of the mode "Markdown Editor" of
-  VS Code.
+  editor, of the Markdown preview, of the Markdown Editor, or of the visual
+  editor of VS Code.
 - The buttons are small icons with a tooltip, as the buttons in the title of
   an editor of VS Code. Each answer has "Reply" (an arrow), "Edit" (a pencil)
   and "Delete" (a trash can). Each thread has its color, "Line N", "Show as
@@ -588,8 +590,10 @@ text of the notes, and their editor:
     note.
   - When only the Markdown preview shows the file, the preview stays and
     scrolls to the highlight of the note, which gets the strong highlight.
-  - In the mode "Markdown Editor" of VS Code, the text of the highlight is
-    selected there.
+  - In the Markdown Editor, the note is selected, and the editor scrolls to
+    it.
+  - In the visual editor of VS Code, the text of the highlight is selected
+    there.
 
   The text editor and the preview scroll smoothly to the note, over the
   whole way in about half a second. A click or a key in the text editor
@@ -1437,24 +1441,35 @@ layout in the Markdown preview. The highlights, the selection of a note and
 "Add Note" work in these pages in the same way; the PDF of the paper has no
 notes.
 
-## Modes of a Markdown file
+## Three views of a Markdown file
 
-VS Code 1.143 shows a Markdown file in one of three modes. The switch at the
-top right of the editor, or "Reopen Editor With…", changes the mode:
+A Markdown file has three views in the place of its editor. The list of the
+editors at the right end of the breadcrumbs, "Reopen Editor With…", and the
+buttons in the title of the editor change the view, in the same place:
 
-| Mode | Notes |
-| --- | --- |
-| Text Editor | All features of this guide. |
-| Markdown Preview | The highlights, as in the preview to the side. The buttons "Show or Hide Notes" and "Hide Highlights" or "Show Highlights" are in its title. The side view "Notes" lists the notes of the file, and a click on a thread keeps the mode and scrolls to the note. |
-| Markdown Editor | The side view "Notes" lists the notes of the file, and a click on a thread selects the text of its highlight in the Markdown Editor. The Markdown Editor itself shows no notes and no highlights. |
+| View | What it shows | Buttons to the other views |
+| --- | --- | --- |
+| Text Editor | The Markdown text, with all features of this guide. A file with notes or a paper of nimblescape Markdown Paper shows the [clean editing view](#clean-editing-view). | "Open as Preview" (VS Code), "Reopen in Markdown Editor" (a pencil) |
+| Markdown Preview | The file rendered, with the highlights, as in the preview to the side; a paper shows the pages of its layout. A click on a thread keeps the view and scrolls to the note. | "Reopen as source file" (VS Code), "Reopen in Markdown Editor" (a pencil) |
+| Markdown Editor | The [editor of rendered Markdown](#editor-of-rendered-markdown), with the notes and, for a paper, the parts of Markdown Paper. | "Reopen in Text Editor", "Reopen in Markdown Preview" |
 
-The Markdown Editor renders the file with its own engine, which takes no
-plugin of an extension, and its comments come from an API that only the
-extensions of VS Code may use; the Marketplace refuses an extension that uses
-such an API. The Markdown Editor therefore shows a start marker as a gap, a
-reference as its text, for example `[^note-7k2q]`, and the text of a note as
-a code block. The notes stay in the file as they are. Use the text editor or
-the mode "Markdown Preview" to see the highlights.
+The buttons "Show or Hide Notes" and "Hide Highlights" or "Show Highlights"
+are in the title of each view, and the side view "Notes" lists the notes of
+the file in each view. The list of the editors names the Markdown Editor
+"Markdown Editor - nimblescape Markdown Notes", because VS Code adds the
+name of the extension to an editor of an extension. A button or the list
+opens the Markdown Editor also for a file that the setting `renderedEditor`
+does not open in it by itself.
+
+VS Code has a visual editor of its own, which it names "Markdown Editor"
+too. The extension hides it from the list of the editors; "Reopen Editor
+With…" still offers it. That editor renders the file with its own engine,
+which takes no plugin of an extension, and its comments come from an API
+that only the extensions of VS Code may use; the Marketplace refuses an
+extension that uses such an API. It therefore shows a start marker as a gap,
+a reference as its text, for example `[^note-7k2q]`, and the text of a note
+as a code block. The notes stay in the file as they are, and a click on a
+thread in the side view selects the text of its highlight there.
 
 ## Formatter
 
@@ -1553,7 +1568,7 @@ code as `stripNotes(lines)` of the library of the npm package.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown ([Editor of rendered Markdown](#editor-of-rendered-markdown)): `all` every Markdown file; `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper; `none` no file. Every other file opens in the text editor, a file with notes in the clean editing view. "Reopen Editor With" of VS Code always offers the text editor. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown ([Editor of rendered Markdown](#editor-of-rendered-markdown)): `all` every Markdown file; `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper; `none` no file. Every other file opens in the text editor, a file with notes in the clean editing view. "Reopen Editor With" of VS Code always offers the text editor, and "Reopen in Markdown Editor" opens any Markdown file in the editor. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.previewExtensions` | `true` | Whether the editor of rendered Markdown shows the syntax that other extensions add to the Markdown preview of VS Code, for example diagrams and math ([Editor of rendered Markdown](#editor-of-rendered-markdown)). A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |
@@ -1588,9 +1603,10 @@ you can remove them from your settings.
   Undo. Its Markdown preview does not show an image of HTML (`<img>`) from
   outside the folder of the file, nor a style sheet of `markdown.styles` with
   an absolute path; use a relative path from the folder of the workspace.
-- The mode "Markdown Editor" of VS Code shows no notes and no highlights,
-  only the side view does; the section
-  [Modes of a Markdown file](#modes-of-a-markdown-file) explains why.
+- The visual editor of VS Code, which "Reopen Editor With…" still offers,
+  shows no notes and no highlights, only the side view does; the section
+  [Three views of a Markdown file](#three-views-of-a-markdown-file) explains
+  why.
 - A note needs a reference in the text of a paragraph, a heading, a list item
   or a table cell. A note in a block quote shows in VS Code, but not on
   GitHub.
