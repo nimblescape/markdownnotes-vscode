@@ -453,12 +453,13 @@ export class FakeEditor {
   }
 
   /**
-   * insertSnippet inserts the text of a snippet at a position, as VS Code does, and puts the cursor after it.
+   * insertSnippet inserts the text of a snippet at a position, or in place of a range, as VS Code does, and puts the
+   * cursor after it.
    * @param snippet - The snippet.
-   * @param position - The position.
+   * @param location - The position or the range.
    */
-  async insertSnippet(snippet: FakeSnippetString, position: FakePosition): Promise<boolean> {
-    await this.edit((builder) => builder.insert(position, snippet.text));
+  async insertSnippet(snippet: FakeSnippetString, location: FakePosition | FakeRange): Promise<boolean> {
+    await this.edit((builder) => ('start' in location ? builder.replace(location, snippet.text) : builder.insert(location, snippet.text)));
     return true;
   }
 

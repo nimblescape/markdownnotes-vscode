@@ -411,11 +411,11 @@ const choose = async (editor: FakeEditor, position: FakePosition, label: string)
 
 test('/text, /h1 to /h6, /bullets, /numbers, /tasks and /quote change the marker of the line, as in the Markdown Editor (R-EDIT-008, decision 79)', async () => {
   const { document, editor } = await start('Results /\n\n- item /\n\n1. step /\n\n- [x] done /\n\n> quote /\n\n   ## Title /\n', 0, 9);
-  // The command goes with the space before it, and the cursor stays at its place in the text.
+  // VS Code removes the typed command, and the command the space before it; the cursor stays at its place in the text.
   const item = fake.complete(document, new FakePosition(0, 9)).find((each) => labels([each])[0] === '/h2')!;
-  expect([item.detail, item.range!.start.character, item.range!.end.character]).toEqual(['The line as a heading of level 2: ##', 7, 9]);
+  expect([item.detail, item.range!.start.character, item.range!.end.character]).toEqual(['The line as a heading of level 2: ##', 8, 9]);
   await editor.edit((builder) => builder.replace(item.range!, item.insertText!));
-  editor.selection = { active: new FakePosition(0, 7) };
+  editor.selection = { active: new FakePosition(0, 8) };
   await fake.run(item.command!.command, ...(item.command!.arguments ?? []));
   expect(document.text.split('\n')[0]).toBe('## Results');
   expect(editor.selection.active).toEqual(new FakePosition(0, 10));
@@ -432,17 +432,19 @@ test('/code, /divider, /image and /alert insert their block, with blank lines to
   const at = (line: number, character: number, label: string) => fake.complete(document, new FakePosition(line, character)).find((item) => labels([item])[0] === label)!;
   const snippet = (item: FakeCompletionItem) => (item.insertText as unknown as FakeSnippetString).value;
   const columns = (item: FakeCompletionItem) => [item.range!.start.line, item.range!.start.character, item.range!.end.character];
-  // On a line of its own: a code block, and a divider and an alert with a blank line to the next line of text.
-  expect([snippet(at(2, 1, '/code')), columns(at(2, 1, '/code'))]).toEqual(['```$1\n$0\n```', [2, 0, 1]]);
-  expect([at(2, 1, '/divider').insertText, columns(at(2, 1, '/divider'))]).toEqual(['---\n', [2, 0, 1]]);
+  // On a line of its own: a code block, a divider and an alert, with a blank line to the next line of text.
+  expect([snippet(at(2, 1, '/code')), columns(at(2, 1, '/code'))]).toEqual(['```$1\n$0\n```\n', [2, 0, 1]]);
+  expect([snippet(at(2, 1, '/divider')), columns(at(2, 1, '/divider'))]).toEqual(['---\n', [2, 0, 1]]);
   expect(snippet(at(2, 1, '/alert'))).toBe('> [!${1|NOTE,TIP,IMPORTANT,WARNING,CAUTION|}]\n> $0\n');
-  // In text: a divider between blank lines in place of the spaces around the command, and an image in the text.
-  expect([at(5, 5, '/divider').insertText, columns(at(5, 5, '/divider'))]).toEqual(['\n\n---\n\n', [5, 3, 5]]);
+  // In text, an image stays in the text.
   expect([snippet(at(5, 5, '/image')), columns(at(5, 5, '/image'))]).toEqual(['![](${1:address})', [5, 4, 5]]);
   // /code after text puts the text of the line in a code block.
   await choose(editor, new FakePosition(0, 12), '/code');
   expect(document.text).toBe('```\nIntro text\n```\n\n/\nNext line.\n\nSee /more\n');
   expect(editor.selection.active).toEqual(new FakePosition(1, 10));
+  // A divider in text goes between blank lines, in place of the spaces around the command.
+  await choose(editor, new FakePosition(7, 5), '/divider');
+  expect(document.text).toBe('```\nIntro text\n```\n\n/\nNext line.\n\nSee\n\n---\n\nmore\n');
   // A table and the front matter have no commands of blocks.
   const other = fake.open('---\ntitle: A /\n---\n\n| A |\n| --- |\n| x /\n\nText /\n', '/folder/b.md');
   expect(labels(fake.complete(other, new FakePosition(1, 13)))).not.toContain('/h1');

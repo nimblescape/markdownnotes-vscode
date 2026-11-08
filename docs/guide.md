@@ -42,7 +42,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Filters of the side view](#filters-of-the-side-view) | side view | available | [R-SIDE-008](requirements.md#r-side-008) |
 | [Add a note](#add-a-note) | text editor, side view | available | [R-SIDE-003](requirements.md#r-side-003), [R-EDIT-003](requirements.md#r-edit-003), [R-EDIT-006](requirements.md#r-edit-006) |
 | [Todo notes](#todo-notes) | text editor, side view | available | [R-NOTE-008](requirements.md#r-note-008) |
-| [Slash commands](#slash-commands) | text editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/listing`, `/ref`, `/date`, `/time`, `/user`: available; commands of other extensions, such as `/cite` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
+| [Slash commands](#slash-commands) | text editor, Markdown Editor | `/note`, `/todo`, `/footnote`, `/figure`, `/table`, `/listing`, `/ref`, `/date`, `/time`, `/user` and the commands of the blocks, such as `/h2` and `/bullets`: available in both editors; commands of other extensions, such as `/cite` of nimblescape Markdown Paper | [R-EDIT-008](requirements.md#r-edit-008) |
 | [Edit and save an answer](#edit-an-answer) | side view | available | [R-EDIT-001](requirements.md#r-edit-001), [R-EDIT-002](requirements.md#r-edit-002) |
 | [Text view of a note](#text-view-of-a-note) | side view | available | [R-SIDE-002](requirements.md#r-side-002) |
 | [Answer a note or an answer](#answer-a-note) | side view | available | [R-EDIT-005](requirements.md#r-edit-005) |
@@ -737,8 +737,9 @@ The editor of a text in the side view has two tabs:
   the text has Undo, Redo, the text style and the list of the block with the
   cursor, the insert menu "+" and find and replace. Select text to get the
   format bar with bold, italic, code and a link, or use the keys Ctrl+B,
-  Ctrl+I and Ctrl+K (Cmd on macOS); type `/` at the start of a line for the
-  slash commands. Ctrl+Z takes a change back. Ctrl+Click (Cmd+Click on
+  Ctrl+I and Ctrl+K (Cmd on macOS); type `/` at the start of a line or after
+  a space for the slash commands, the same as in the text editor
+  ([Slash commands](#slash-commands)). Ctrl+Z takes a change back. Ctrl+Click (Cmd+Click on
   macOS) on a link opens it.
 - **Markdown:** you edit the Markdown text in a plain text field. The button
   "Preview", with the icon of the mode "Markdown Preview" of VS Code, shows
@@ -839,12 +840,13 @@ A slash (`/`) at the start of a line or after a space shows the slash
 commands in the list of suggestions of VS Code, in the text editor of a
 Markdown file, also in the clean editing view. Type the first letters of a
 command to narrow the list, and press Tab or Enter to run the chosen
-command; Escape closes the list. The editors of the side view have no slash
-commands.
+command; Escape closes the list. The Markdown Editor has the same commands,
+with the same names and the same results, in its own list: Enter runs the
+chosen command. The editors of the side view have no slash commands.
 
 | Command | What it does |
 | --- | --- |
-| `/note` | Adds a note to the selected text. Select the text, type `/`: VS Code replaces the selected text with the slash, and `/note` puts the text back, selects it and opens the editor of the new note in the side view. The list shows `/note` only after a slash that replaced selected text. |
+| `/note` | Adds a note to the selected text. Select the text, type `/`: VS Code replaces the selected text with the slash, and `/note` puts the text back, selects it and opens the editor of the new note in the side view. The list shows `/note` only after a slash that replaced selected text. In the Markdown Editor, the slash goes after the selected text, which stays marked while the list is open. |
 | `/todo` | Adds a [todo note](#todo-notes): to the selected text, as `/note`, or else to the sentence before the command, from the end of the sentence before it (`.`, `!` or `?`) in the same paragraph, or from the start of the paragraph. It removes the command with the space before it. The list shows `/todo` only where a note can highlight the sentence. |
 | `/footnote` | Adds a standard footnote after the word before the command. It removes the command with the space before it and opens the editor of the new footnote in the side view, as "Add Footnote" does ([Footnotes in the side view](#footnotes-in-the-side-view)). The list names the label of the new footnote, the next free number, for example `[^3]`. Write the text and click "Add Footnote". The list shows `/footnote` only after a word where a reference can stand. |
 | `/figure` | Adds a figure: lists the images of the workspace by their paths from the folder of the file, and inserts the chosen one as a figure: its caption line with the next number, for example `Figure 2: Caption`, a blank line and the image, with the caption selected for typing ([Figures, tables and links to them](#figures-tables-and-links-to-them)). The list shows `/figure` only on an empty line outside a code block. |
@@ -855,12 +857,27 @@ commands.
 | `/time` | Inserts the current date and the local time, for example `2026-10-29 19:29`. |
 | `/user` | Inserts your GitHub login, for example `hannes`, the name that your notes give their author. The list shows the login. Without a sign-in, the list shows "Sign in with GitHub": VS Code asks you to sign in, and the login follows ([GitHub sign-in](#github-sign-in)). |
 
+The commands of the blocks have the same names as in the Markdown Editor.
+The text editor shows them after the other commands, outside code blocks,
+tables and the front matter:
+
+| Command | What it does |
+| --- | --- |
+| `/text` | Makes the line a paragraph: removes the marker of a heading, a list item, a task or a quote. |
+| `/h1` to `/h6` | Makes the line a heading of the level, for example `## ` for `/h2`. |
+| `/bullets`, `/numbers`, `/tasks` | Makes the line an item of a bulleted list (`- `), of a numbered list (`1. `) or a task (`- [ ] `). |
+| `/quote` | Makes the line a quote (`> `). |
+| `/code` | Inserts a code block on an empty line, or puts the text of the line in a code block. |
+| `/divider` | Inserts a divider, `---`, with a blank line before and after it. |
+| `/image` | Inserts an image, `![](address)`, with the address selected for typing. |
+| `/alert` | Inserts an alert of the kind that you choose, for example `> [!NOTE]`, with a blank line before and after it. |
+
 The commands named by a noun add an entry, and `/ref` adds a reference to
 it ([decision 35](requirements.md#decisions)). Other extensions add their own
 slash commands after these, for example `/cite` and `/research` of
-nimblescape Markdown Paper: `/cite` adds a citation of a source, and
-`/research` on selected text marks a claim for which an AI agent researches
-evidence.
+nimblescape Markdown Paper, also in the Markdown Editor: `/cite` adds a
+citation of a source, and `/research` on selected text marks a claim for
+which an AI agent researches evidence.
 
 ## Figures, tables and links to them
 

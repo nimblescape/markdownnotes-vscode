@@ -48,6 +48,14 @@
  * the same rules. A command on selected text, such as `/research` of Markdown
  * Paper, shows only when the slash replaced selected text, which it puts back
  * as `/note` does; the other commands show only when the slash replaced none.
+ *
+ * The commands of the blocks have the names of the editor of nimblescape Markdown and show after the other commands,
+ * outside code blocks, tables and the front matter ([decision 79](../docs/requirements.md#decisions)): `/text`, `/h1`
+ * to `/h6`, `/bullets`, `/numbers`, `/tasks` and `/quote` change the marker of the line, and `/code`, `/divider`,
+ * `/image` and `/alert` insert their block ([src/notes/slash.ts](notes/slash.ts)).
+ *
+ * The view "Markdown Editor" runs the same commands on the text of its file (`runInText`), so that both editors have
+ * the same commands with the same results ([src/renderedEditor.ts](renderedEditor.ts)).
  */
 
 import * as vscode from 'vscode';
@@ -79,6 +87,14 @@ export const slashCommandIds = {
 
 /** ownLabels are the slash commands of the notes and of the blocks, which no other extension can add. */
 const ownLabels = ['/note', '/todo', '/footnote', '/figure', '/table', '/listing', '/ref', '/date', '/time', '/user', ...Object.keys(blockCommands).map((name) => `/${name}`)];
+
+/** blockSnippets are the snippets of the commands that insert a block: on a line of its own, or in text for `/image`. */
+const blockSnippets: Partial<Record<BlockName, string>> = {
+  code: '```$1\n$0\n```',
+  divider: '---',
+  image: '![](${1:address})',
+  alert: '> [!${1|NOTE,TIP,IMPORTANT,WARNING,CAUTION|}]\n> $0',
+};
 
 /** blockDetails are the longer texts of the commands of the blocks in the list of suggestions. */
 const blockDetails: Record<BlockName, string> = {
@@ -540,28 +556,20 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     // The commands of the blocks have the names of the editor of nimblescape Markdown (decision 79), outside the code
     // blocks, the tables and the front matter.
+    // Each replaces only the slash and the typed letters, so that VS Code keeps them after the commands of the notes; a
+    // command that changes the line removes the spaces before the cursor itself.
     if (!replaced && position.line >= frontMatterEnd(lines) && !codeLines(lines, true).has(position.line)) {
-      const before = line.slice(0, typed.start);
-      const after = line.slice(position.character);
-      const ownLine = before.trim() === '' && after.trim() === '';
-      // A block in a line gets blank lines around it, in place of the spaces around the command.
-      const { lead, trail } = blockSpacing(lines, position.line, before, after);
-      const spaces = after.trim() === '' ? 0 : /^[ \t]*/.exec(after)![0].length;
-      const around = new vscode.Range(position.line, typed.start, position.line, position.character + spaces);
+      const ownLine = line.slice(0, typed.slash).trim() === '' && line.slice(position.character).trim() === '';
+      const { lead, trail } = blockSpacing(lines, position.line, '', '');
       for (const [name, description] of Object.entries(blockCommands) as [BlockName, string][]) {
         const label = `/${name}`;
         const detail = blockDetails[name];
         const kind = vscode.CompletionItemKind.Function;
-        if (name === 'divider') {
-          items.push(item(label, description, detail, kind, around, `${lead}---${trail}`));
-        } else if (name === 'alert') {
-          items.push(item(label, description, detail, kind, around, new vscode.SnippetString(`${lead}> [!\${1|NOTE,TIP,IMPORTANT,WARNING,CAUTION|}]\n> $0${trail}`)));
-        } else if (name === 'image') {
-          items.push(item(label, description, detail, kind, range, new vscode.SnippetString('![](${1:address})')));
-        } else if (name === 'code' && ownLine) {
-          items.push(item(label, description, detail, kind, range, new vscode.SnippetString('```$1\n$0\n```')));
+        const block = ownLine ? blockSnippets[name] : name === 'image' ? blockSnippets.image : undefined;
+        if (block !== undefined) {
+          items.push(item(label, description, detail, kind, range, new vscode.SnippetString(name === 'image' ? block : `${lead}${block}${trail}`)));
         } else {
-          const created = item(label, description, detail, kind, removed, '');
+          const created = item(label, description, detail, kind, range, '');
           created.command = { command: slashCommandIds.block, title: description, arguments: [document.uri, name, position.line] };
           items.push(created);
         }
@@ -926,9 +934,11 @@ export class SlashCommands implements vscode.CompletionItemProvider {
   }
 
   /**
-   * block changes the block of a line of a text editor for a command of a block, after VS Code removed the typed
-   * command: `/text`, `/h1` to `/h6`, `/bullets`, `/numbers`, `/tasks` and `/quote` write the marker of their block in
-   * place of the marker of the line, and `/code` puts the text of the line between the lines of a code block.
+   * block runs a command of a block in a line with text of a text editor, after VS Code removed the typed command, and
+   * removes the spaces before the cursor: `/text`, `/h1` to `/h6`, `/bullets`, `/numbers`, `/tasks` and `/quote` write
+   * the marker of their block in place of the marker of the line, `/code` puts the text of the line between the lines
+   * of a code block, and `/divider` and `/alert` insert their block between blank lines in place of the spaces around
+   * the cursor.
    * @param uri - The URI of the document.
    * @param name - The name of the command.
    * @param line - The index of the line.
@@ -937,6 +947,22 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     const editor = this.editorOf(uri);
     if (!editor || line >= editor.document.lineCount) {
       return;
+    }
+    const at = editor.selection.active.line === line ? editor.selection.active.character : editor.document.lineAt(line).text.length;
+    const full = editor.document.lineAt(line).text;
+    const spaces = /[ \t]*$/.exec(full.slice(0, at))![0].length;
+    const snippet = blockSnippets[name];
+    if (snippet !== undefined && name !== 'code') {
+      const before = full.slice(0, at - spaces);
+      const after = full.slice(at).replace(/^[ \t]+/, '');
+      const { lead, trail } = blockSpacing(linesOf(editor.document), line, before, after);
+      const range = new vscode.Range(line, at - spaces, line, full.length - after.length);
+      await editor.insertSnippet(new vscode.SnippetString(`${lead}${snippet}${trail}`), range);
+      return;
+    }
+    // The spaces before the cursor go, unless they indent the line.
+    if (spaces > 0 && spaces < at) {
+      await editor.edit((builder) => builder.delete(new vscode.Range(line, at - spaces, line, at)));
     }
     const text = editor.document.lineAt(line).text;
     if (name === 'code') {
