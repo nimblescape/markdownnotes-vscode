@@ -906,7 +906,12 @@ file at once, and keeps each note at its text:
   with the URI of the file, which opens its view "Front Matter" in the side
   bar, a form with one row for each field of the layout. Without that
   command, the link is "Open File with Markup". The message of the status bar
-  after a refused edit names the link of the form when it exists.
+  after a refused edit names the link of the form when it exists. As in the
+  form of the front matter of the editor of a whole file
+  ([R-FM-003](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-003)
+  of nimblescape Markdown), the keys of the layout stay in that view: the
+  author changes their values, but does not rename or remove them
+  ([decision 71](#decisions)).
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -3333,6 +3338,15 @@ requirements above follow them.
     that keeps the notes of the open documents is `NoteStore` in
     `src/noteStore.ts`. The behavior does not change. The other choice was
     one module of 1,285 lines and the name `NoteThreads` of an earlier design.
+71. **The keys of the schema stay in the form of the front matter**
+    ([R-TEXT-009](#r-text-009)): in the form of the front matter of the
+    editor of a whole file, also in the mode "Edit keys", a key that the
+    schema names, for example a field of the layout of a paper, has no
+    input for its name and no button that removes it; the author changes
+    its value. The view "Front Matter" of nimblescape Markdown Paper, the
+    form of the clean editing view, does the same. Only the other keys get
+    a new name or go. The other choice was to rename and remove every key in
+    the mode "Edit keys".
 
 ---
 
