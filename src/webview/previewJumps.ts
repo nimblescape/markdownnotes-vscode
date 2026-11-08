@@ -6,8 +6,8 @@
  * The way back after a jump in the Markdown preview ([R-TEXT-011](../../docs/requirements.md#r-text-011)), the bundle
  * `dist/previewJumps.js` of `markdown.previewScripts`: a click on a link to a place of the document that moves the
  * preview, for example an entry of a table of contents, a cross reference, a citation or a footnote, keeps the place
- * before the click, and Go Back and Go Forward return through the places, with the keys of Go Back and Go Forward of
- * VS Code, with the back and forward buttons of the mouse and with the buttons "Back" and "Forward" at the bottom
+ * before the click, and Go Back and Go Forward return through the places, with the keys that the user binds to Go Back
+ * and Go Forward of VS Code, with the back and forward buttons of the mouse and with the buttons "Back" and "Forward" at the bottom
  * right of the preview, which show while there is a place in their direction (`installPageJumps` of
  * `@nimblescape/markdownrender/jumps`). Without a place, a key goes on to VS Code. On Windows, VS Code gives the mouse
  * buttons to its own commands Go Back and Go Forward, so the preview leaves them to VS Code. The places belong to the
@@ -15,7 +15,7 @@
  * nimblescape Markdown Paper installs the same jumps in its pages, and the page keeps one set of them.
  */
 
-import { installPageJumps, platformOf, vscodeJumpKeys } from '@nimblescape/markdownrender/jumps';
+import { installPageJumps, pageJumpKeys, platformOf, vscodeJumpKeys } from '@nimblescape/markdownrender/jumps';
 
 /** previewSource returns the URI of the file of the preview from the data of the page of VS Code. */
 function previewSource(): string | undefined {
@@ -38,4 +38,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
 });
 
 const platform = platformOf(navigator);
-installPageJumps(window, { keys: vscodeJumpKeys(platform), mouseButtons: platform !== 'windows', platform, key: () => source });
+// The keys that the user binds to Go Back and Go Forward of VS Code come in a hidden element of the rendered page, which
+// the plugin of markdown-it of this extension adds; without it, the default keys of VS Code on the platform apply.
+const keys = () => pageJumpKeys(document) ?? vscodeJumpKeys(platform);
+installPageJumps(window, { keys, mouseButtons: platform !== 'windows', platform, key: () => source });

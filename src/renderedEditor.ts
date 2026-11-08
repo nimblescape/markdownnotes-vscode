@@ -33,6 +33,7 @@
 
 import { registerMarkdownEditor, type MarkdownEditorHandle, type PluginConnect, type PluginPanelChannel } from './adapter/editor';
 import * as vscode from 'vscode';
+import type { JumpKeys } from '@nimblescape/markdownrender/jumps';
 import { fileOf } from './cleanView';
 import { isPaperDocument } from './notes/clean';
 import { findDoctype } from './notes/doctype';
@@ -159,6 +160,8 @@ export class RenderedEditors implements vscode.Disposable {
    * @param select - Selects a range of a file in its text editor that the editor opened, which can become the clean
    * editing view ([R-TEXT-009](../docs/requirements.md#r-text-009)).
    * @param commands - Runs the other slash commands of the editor that need the extension.
+   * @param jumpKeys - Returns the keys that the user binds to Go Back and Go Forward of VS Code, or undefined while they
+   * are not known ([R-TEXT-011](../docs/requirements.md#r-text-011)).
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -167,6 +170,7 @@ export class RenderedEditors implements vscode.Disposable {
     private readonly comment: (todo: boolean) => Thenable<unknown>,
     private readonly select?: (file: vscode.Uri, range: vscode.Range) => Thenable<void>,
     private readonly commands?: RenderedCommands,
+    private readonly jumpKeys?: () => JumpKeys | undefined,
   ) {}
 
   /** register registers the editor and the listeners of the selected notes. */
@@ -226,6 +230,24 @@ export class RenderedEditors implements vscode.Disposable {
     return document.languageId === 'markdown' && opensIn(this.settingsOf(document.uri).renderedEditor, document.getText());
   }
 
+  /** jumpKeysChanged sends each editor the keys of Go Back and Go Forward after a change of the keyboard shortcuts. */
+  jumpKeysChanged(): void {
+    for (const connection of this.connections) {
+      this.postJumpKeys(connection);
+    }
+  }
+
+  /**
+   * postJumpKeys sends an editor the keys that the user binds to Go Back and Go Forward, once they are known.
+   * @param connection - The connection of the editor.
+   */
+  private postJumpKeys(connection: Connection): void {
+    const keys = this.jumpKeys?.();
+    if (keys) {
+      this.post(connection, { type: 'jumpKeys', keys });
+    }
+  }
+
   /** showsChanged sends each editor whether the highlights show, after a change of the setting `showHighlights`. */
   showsChanged(): void {
     for (const connection of this.connections) {
@@ -254,6 +276,7 @@ export class RenderedEditors implements vscode.Disposable {
       if (message?.type === 'ready') {
         this.post(connection, { type: 'highlights', show: this.settingsOf(channel.document.uri).showHighlights });
         this.post(connection, { type: 'select', label: this.selected.labelOf(channel.document.uri), reveal: false });
+        this.postJumpKeys(connection);
       } else if (message?.type === 'selection') {
         // Only the last selection of the keys in a quick series counts, but a click of the mouse counts at once when the
         // next selection comes: the first click of a double click puts the cursor that names its word (decision 86).

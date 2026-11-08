@@ -9,6 +9,8 @@
  * and of the browser, so that both sides use it.
  */
 
+import type { JumpKeys } from '@nimblescape/markdownrender/jumps';
+
 /** pluginName is the name of the plugin of the notes, which names its channel. */
 export const pluginName = 'notes';
 
@@ -45,13 +47,16 @@ export type PageMessage =
 
 /**
  * ExtensionMessage is a message of the extension: `select` with the label of the selected note, or none, and whether
- * the editor scrolls to it, `highlights` with whether the highlights of the notes show, and `change` with the result of
+ * the editor scrolls to it, `highlights` with whether the highlights of the notes show, `jumpKeys` with the keys that
+ * the user binds to Go Back and Go Forward of VS Code ([R-TEXT-011](../../docs/requirements.md#r-text-011)), and
+ * `change` with the result of
  * a slash command: the patches of the text that the page sent with the request, and the range of the text to select
  * after them, for example the caption of a new figure.
  */
 export type ExtensionMessage =
   | { type: 'select'; label: string | undefined; reveal: boolean }
   | { type: 'highlights'; show: boolean }
+  | { type: 'jumpKeys'; keys: JumpKeys }
   | { type: 'change'; request: number; patches: TextPatch[]; select?: { from: number; to: number } };
 
 /** isOffset is true for a place in a text: a whole number from 0. */
@@ -114,6 +119,13 @@ export function extensionMessage(value: unknown): ExtensionMessage | undefined {
   }
   if (message.type === 'highlights' && typeof message.show === 'boolean') {
     return { type: 'highlights', show: message.show };
+  }
+  if (message.type === 'jumpKeys') {
+    const keys = message.keys as Record<string, unknown> | null;
+    const strings = (list: unknown): list is string[] => Array.isArray(list) && list.every((each) => typeof each === 'string');
+    if (typeof keys === 'object' && keys !== null && strings(keys.back) && strings(keys.forward)) {
+      return { type: 'jumpKeys', keys: { back: [...keys.back], forward: [...keys.forward] } };
+    }
   }
   if (message.type === 'change' && isOffset(message.request) && Array.isArray(message.patches) && message.patches.every(isPatch)) {
     const select = message.select as Record<string, unknown> | undefined;

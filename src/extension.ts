@@ -45,6 +45,7 @@ import { FootnoteActions, registerRenumber } from './footnoteActions';
 import { type FormatStep, FormatSteps, registerFormatter, type SaveChanges } from './formatter';
 import { keptCurrent } from './format/format';
 import { githubLogin } from './github';
+import { userKeybindingsOf, VsCodeJumpKeys } from './jumpKeys';
 import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
 import { findDoctype } from './notes/doctype';
@@ -424,6 +425,9 @@ export function activate(context: vscode.ExtensionContext): Api {
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
   const editor = new NoteEditor(store, showsHighlights, selected, (shown) => clean.becomesView(shown));
+  // The keys that the user binds to Go Back and Go Forward, for the Markdown Editor and the preview (R-TEXT-011). In a
+  // remote window, the file of the keyboard shortcuts of the user is on the other computer.
+  const jumpKeys = new VsCodeJumpKeys(vscode.env.remoteName ? undefined : userKeybindingsOf(context.globalStorageUri));
   const rendered = new RenderedEditors(
     context.extensionUri,
     readSettings,
@@ -434,6 +438,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       footnote: () => vscode.commands.executeCommand(viewCommands.newFootnote),
       slash: (file, command, text, at) => slash.runInText(file, command, text, at),
     },
+    () => jumpKeys.keys,
   );
   store.waitBeforeWrites((uri) => clean.switchedOf(uri));
   const steps = new FormatSteps();
@@ -520,6 +525,12 @@ export function activate(context: vscode.ExtensionContext): Api {
       }
     }),
     vscode.commands.registerCommand(footnoteCommands.hide, () => setSetting('showFootnotes', false)),
+    jumpKeys,
+    // The Markdown Editor and the preview go back and forward with the keys that the user binds (R-TEXT-011).
+    jumpKeys.onDidChange(() => {
+      rendered.jumpKeysChanged();
+      refreshMarkdownPreviews();
+    }),
     // The preview shows the selected note with a strong highlight, and scrolls to it on a request.
     selected.onDidChange(() => refreshMarkdownPreviews()),
     // The preview of a clean editing view renders the text of its file, which can change while the clean text stays.
@@ -554,6 +565,7 @@ export function activate(context: vscode.ExtensionContext): Api {
           const image = document && provider && clean.imageOf(document, source);
           return image ? provider.asWebviewUri(image).toString(true) : undefined;
         },
+        jumpKeys: () => jumpKeys.keys,
       }),
     notesOf: (document) => store.entriesOf(document).map((entry) => entry.note),
     getAPI: (version) => (version === 1 ? apiV1 : undefined),

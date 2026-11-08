@@ -12,8 +12,9 @@
  * (R-FMT-001); the buttons of the side view (R-SIDE-006); the links of the
  * preview; the comment of the format (R-NOTE-007); the reading of the notes
  * after a change; the warnings (R-TEXT-008); the folds (R-TEXT-005); and the
- * light bulb action of the selected text that adds a note (R-EDIT-006), and the
- * API for other extensions (R-GEN-012).
+ * light bulb action of the selected text that adds a note (R-EDIT-006), the
+ * API for other extensions (R-GEN-012), and the keys of Go Back and Go Forward
+ * that the user binds (R-TEXT-011).
  */
 
 import MarkdownIt from 'markdown-it';
@@ -144,6 +145,42 @@ test('the export renders the highlights with the link of the rendered document, 
   expect(md.render(note, { currentDocument: hidden })).toContain(' data-hidden="true"');
   // The preview never shows the text of a note.
   expect(md.render(note, { currentDocument: document })).not.toContain('An answer');
+});
+
+test('the preview gets the keys that the user binds to Go Back and Go Forward, also after a change of the keyboard shortcuts (R-TEXT-011)', async () => {
+  // The default keyboard shortcuts of VS Code with those of the extensions, and the file of the user next to globalStorage.
+  const defaults = '// Overwrite key bindings by placing them into your key bindings file.\n[\n{ "key": "ctrl+alt+-", "command": "workbench.action.navigateBack" },\n{ "key": "ctrl+shift+-", "command": "workbench.action.navigateForward" },\n]';
+  fake.providers.set('vscode', { readFile: () => new TextEncoder().encode(defaults) });
+  const userFile = '/user/User/keybindings.json';
+  fake.files.set(userFile, '// own keys\n[{ "key": "cmd+alt+left", "command": "workbench.action.navigateBack" }, { "key": "cmd+alt+right", "command": "workbench.action.navigateForward" },]');
+  const { api } = await fake.activate();
+  await settle();
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  const keysOf = (html: string) => {
+    const value = /data-nimblescape-jump-keys="([^"]*)"/.exec(html)?.[1];
+    return value === undefined ? undefined : (JSON.parse(value.replace(/&quot;/g, '"').replace(/&amp;/g, '&')) as unknown);
+  };
+  expect(keysOf(md.render('Text'))).toEqual({ back: ['Ctrl-Alt--', 'Alt-Meta-ArrowLeft'], forward: ['Ctrl-Shift--', 'Alt-Meta-ArrowRight'] });
+  // The file of the user is read again when the window gets the focus, and the previews render again with the new keys.
+  const refreshes = fake.executed.filter((command) => command === 'markdown.preview.refresh').length;
+  fake.files.set(userFile, '[{ "key": "ctrl+alt+-", "command": "-workbench.action.navigateBack" }]');
+  fake.fire('windowState', { focused: true });
+  await vi.advanceTimersByTimeAsync(500);
+  await settle();
+  expect(keysOf(md.render('Text'))).toEqual({ back: [], forward: ['Ctrl-Shift--'] });
+  expect(fake.executed.filter((command) => command === 'markdown.preview.refresh').length).toBe(refreshes + 1);
+  // Without a change of the keys, the previews do not render again.
+  fake.fire('tabs', {});
+  await vi.advanceTimersByTimeAsync(500);
+  await settle();
+  expect(fake.executed.filter((command) => command === 'markdown.preview.refresh').length).toBe(refreshes + 1);
+});
+
+test('the preview has no keys of Go Back and Go Forward while the default keyboard shortcuts cannot be read, so the default keys of the platform apply (R-TEXT-011)', async () => {
+  const { api } = await fake.activate();
+  await settle();
+  const md = api.extendMarkdownIt(new MarkdownIt({ html: true }));
+  expect(md.render('Text')).not.toContain('data-nimblescape-jump-keys');
 });
 
 test('the export gives other extensions version 1 of the API, which names the file behind a clean editing view, and no other version (R-GEN-012)', async () => {
