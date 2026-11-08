@@ -147,13 +147,14 @@ describes each step and where its protection ends.
   definition and at a definition without a reference, with a quick fix for
   each, and "Renumber Footnotes" gives the numbered footnotes the labels
   1, 2, 3 … in the order of their first reference.
-- **Slash commands.** In the text editor, a `/` at the start of a line or
-  after a space offers `/note` (over selected text), `/todo` (for the
-  sentence before it), `/footnote` (the editor of a new footnote in the side
-  view), `/figure`, `/table` and `/listing` (code of a source file), `/ref`
-  (a link to a figure, a table, a listing or a section, or a value of the
-  front matter), `/date`, `/time` and `/user` (your GitHub login); Tab takes
-  the chosen command.
+- **Slash commands.** In the text editor and in the Markdown Editor, a `/`
+  at the start of a line or after a space offers the same commands:
+  `/note` (over selected text), `/todo` (for the sentence before it),
+  `/footnote` (the editor of a new footnote in the side view), `/figure`,
+  `/table` and `/listing` (code of a source file), `/ref` (a link to a
+  figure, a table, a listing or a section, or a value of the front matter),
+  `/date`, `/time` and `/user` (your GitHub login), and the commands of the
+  blocks, such as `/h2`, `/bullets`, `/code`, `/divider` and `/alert`.
 - **Code of the repository in the text.** `/listing` adds the code of a
   source file, or of a snippet of it, as a code block with the comment of
   its source, `<!-- listing: ../src/fields.ts#read-fields -->`, and a caption

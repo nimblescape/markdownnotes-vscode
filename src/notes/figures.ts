@@ -563,13 +563,15 @@ export function captionWord(lines: readonly string[], kind: Exclude<ItemKind, 's
 }
 
 /**
- * codeLines returns the indexes of the lines of the code blocks and the blocks of HTML of a text.
+ * codeLines returns the indexes of the lines of the code blocks and the blocks of HTML of a text, and also of its tables
+ * when asked.
  * @param lines - The lines of the text.
+ * @param tables - Whether the lines of the tables count too.
  */
-export function codeLines(lines: readonly string[]): Set<number> {
+export function codeLines(lines: readonly string[], tables = false): Set<number> {
   const code = new Set<number>();
   for (const token of parse(lines)) {
-    if ((token.type === 'fence' || token.type === 'code_block' || token.type === 'html_block') && token.map) {
+    if ((token.type === 'fence' || token.type === 'code_block' || token.type === 'html_block' || (tables && token.type === 'table_open')) && token.map) {
       for (let line = token.map[0]; line < token.map[1]; line++) {
         code.add(line);
       }

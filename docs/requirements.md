@@ -1131,6 +1131,9 @@ extensions work as for the text editor.
   preview of VS Code, for example diagrams and math, as blocks that switch
   between their rendering and their source; the setting `previewExtensions`
   turns it off ([R-VSC-010](#r-vsc-010)).
+- The editor has the slash commands of the text editor, with the same names
+  and the same results, and the text editor has the commands of the blocks
+  of the editor ([R-EDIT-008](#r-edit-008), [decision 79](#decisions)).
 - The editor also has the plugins of other extensions, for
   example of Markdown Paper, after the plugins of this extension
   ([R-GEN-012](#r-gen-012)). A plugin with the name of another plugin of the
@@ -1162,8 +1165,8 @@ extensions work as for the text editor.
   code block.
 
 The page of the editor and the extension exchange the
-selection, the selected note, the highlights and the button "Comment"
-through the channel of the plugin of the notes; each side checks each
+selection, the selected note, the highlights, the button "Comment" and the
+slash commands through the channel of the plugin of the notes; each side checks each
 message before it uses it. Limits: a click on the thread of a standard
 footnote does not scroll the editor to its reference. A changed paragraph
 is written as one line, as the formatter writes it (the specification of
@@ -1807,9 +1810,12 @@ the selected note.
 
 **Slash commands.** A slash (`/`) at the start of a line or after a space
 offers commands in the text editor of a Markdown file, also in the clean
-editing view ([R-TEXT-009](#r-text-009)). The list of suggestions of VS Code
-shows the commands that start with the typed letters; Tab or Enter takes the
-chosen one, and Escape closes the list. VS Code shows the list after a slash
+editing view ([R-TEXT-009](#r-text-009)), and in the editor of a whole file,
+the view "Markdown Editor" ([R-TEXT-010](#r-text-010)). Both editors have
+the same commands, with the same names and the same results
+([decision 79](#decisions)). In the text editor, the list of suggestions of
+VS Code shows the commands that start with the typed letters; Tab or Enter
+takes the chosen one, and Escape closes the list. VS Code shows the list after a slash
 also in a Markdown file, where it shows no suggestions while the user types
 words.
 
@@ -1854,15 +1860,49 @@ words.
 - `/listing` adds the code of a file of the workspace, or of a snippet of
   the file, as a listing ([R-CODE-001](#r-code-001)). It shows on a line of
   its own, outside code blocks, as `/figure` and `/table`.
+- The commands of the blocks have the names of the editor of nimblescape
+  Markdown (the specification of nimblescape Markdown,
+  [R-GEN-003](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-gen-003)).
+  The text editor shows them after the other commands, outside code blocks,
+  tables and the front matter. `/text`, `/h1` to `/h6`, `/bullets`,
+  `/numbers`, `/tasks` and `/quote` make the line of the command a
+  paragraph, a heading, an item of a bulleted or a numbered list, a task or
+  a quote: they remove the typed command with the spaces before it and write
+  the marker of the block (`#`, `-`, `1.`, `- [ ]`, `>`) in place of the
+  marker of the line, after its indentation. `/code` inserts a code block on
+  a line of its own, or puts the text of the line between the lines of a code
+  block. `/divider` inserts `---`, and `/alert` an alert of the kind that the
+  user chooses (`NOTE`, `TIP`, `IMPORTANT`, `WARNING` or `CAUTION`), each with
+  a blank line to the text before and after it. `/image` inserts an image
+  with its address, `![](address)`.
+
+In the editor of a whole file, the list of the editor of nimblescape
+Markdown shows the commands, and the plugin of the notes adds the commands
+of the notes (the specification of nimblescape Markdown,
+[R-NOTES-001](https://github.com/nimblescape/markdown/blob/main/docs/plugins.md#r-notes-001)):
+`/note` and `/todo` after a slash typed on selected text, which stays marked
+while the list is open; `/todo` and `/footnote` after a word; `/figure`,
+`/table` and `/listing` in a paragraph of their own; `/ref` after text; and
+`/date`, `/time` and `/user`. `/table` of the notes, a table with its
+caption, takes the place of the table of the editor, and `/footnote` of the
+notes, which opens the editor of the new footnote in the side view, takes
+the place of its footnote; neither shows where the text editor does not
+offer it. For `/todo` after text, `/figure`, `/table`, `/listing`, `/ref`
+and `/user`, the extension runs the command of the text editor on the text
+of the file at the cursor, with the lists of VS Code, for example the images
+of the workspace. The editor makes the change as one change of the user, in
+one step of Undo, and selects the text to write, for example the caption.
+When the text of the file changed in the meantime, it makes no change.
 
 The editors of the side view have no slash commands, so `/todo` at the start
 of a new note, which [decision 30](#decisions) named, is dropped.
 `/cite` and `/research` for the sources of a document are commands of
-nimblescape Markdown Paper, which adds them through the API
-([R-GEN-012](#r-gen-012), [decision 32](#decisions)), with the citations,
-the metadata of the sources and the citation style of the PHT (APA 7).
-`/research` works on selected text, as `/note`: the list offers it only
-after a slash that replaced selected text.
+nimblescape Markdown Paper, which adds them to the text editor through the
+API ([R-GEN-012](#r-gen-012), [decision 32](#decisions)) and to the editor
+of a whole file through its plugin, with the citations, the metadata of the
+sources and the citation style of the PHT (APA 7). `/research` works on
+selected text, as `/note`: the list offers it only after a slash typed on
+selected text.
 
 ## Markdown preview
 
@@ -3611,6 +3651,15 @@ requirements above follow them.
     a whole file, typed text is always text, so it has the same rule
     ([decision 68](#decisions)). The other choice was to take a typed tag
     into the file and hide it after the edit.
+79. **All slash commands work in both editors** ([R-EDIT-008](#r-edit-008),
+    [R-TEXT-010](#r-text-010)): the text editor, also the clean editing
+    view, and the editor of a whole file have the same slash commands, with
+    the same names and the same results: the commands of the notes, of
+    nimblescape Markdown Paper and of the blocks of the editor of
+    nimblescape Markdown. A command on selected text, as `/note`, follows a
+    slash typed on the text in both editors. The other choice was `/note` and
+    the other commands of the notes only in the text editor, and the
+    commands of the blocks only in the editor of a whole file.
 
 ---
 

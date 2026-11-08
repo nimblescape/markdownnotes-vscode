@@ -50,7 +50,7 @@ export function start(connection: VsCodeConnection, others: readonly MarkdownPlu
       plugins,
       threadIcons: false,
     });
-  const own = [createNotesPlugin({ comment: true }), figuresPlugin, previewPlugin(connection.preview)];
+  const own = [createNotesPlugin({ comment: true, slashCommands: true }), figuresPlugin, previewPlugin(connection.preview)];
   if (others.length === 0) {
     return create(own);
   }
