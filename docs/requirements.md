@@ -2103,7 +2103,11 @@ Preview" of VS Code, also of the clean editing view
   no "Add Note".
 - The preview shows the text without the markup of Markdown and HTML, so the
   extension finds the selected text in the file by its letters and digits,
-  after the text of its block before it (`src/notes/rendered.ts`). Text that
+  after the text of its block before it (`src/notes/rendered.ts`). The line
+  of the block is its first line, or the line where the text that the page
+  shows starts, when the page leaves out the first line of the block, such as
+  the marker of a GitHub alert (`> [!NOTE]`) in the pages of a paper
+  ([R-PREV-009](#r-prev-009)). Text that
   the extension does not find in the file, such as a formula, adds no note,
   and a message tells the user to select the text in the text editor.
 
