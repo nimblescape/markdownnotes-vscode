@@ -229,3 +229,24 @@ test('Ctrl+click (Cmd+click on macOS) on a link in a highlight opens the link, a
   expect(page.attributes(page.outside)).toEqual({ href: doi, dataHref: doi, draggable: null });
   expect(link.hasAttribute('href')).toBe(false);
 });
+
+test('the context menu of the preview offers "Add Note" for selected text: the body holds the link of "Add Note" in the context of the menu while text is selected (R-PREV-008)', () => {
+  const add = 'vscode://nimblescape.nimblescape-markdownnotes/add?document=file%3A%2F%2F%2Fpaper.md';
+  const page = start(`<p data-line="2">The text of the page.</p><div class="nimblescape-note-page" data-add="${add}" hidden></div>`);
+  const menu = () => JSON.parse(page.document.body.getAttribute('data-vscode-context') ?? 'null') as Record<string, string> | null;
+  const open = () => page.window.dispatchEvent(new page.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
+  // Another script, or VS Code, may have keys of its own on the body, which stay.
+  page.document.body.setAttribute('data-vscode-context', JSON.stringify({ other: 'value' }));
+  const text = page.document.querySelector('p')!.firstChild!;
+  const range = page.document.createRange();
+  range.setStart(text, 12);
+  range.setEnd(text, 20);
+  page.document.getSelection()!.removeAllRanges();
+  page.document.getSelection()!.addRange(range);
+  open();
+  expect(menu()).toEqual({ other: 'value', nimblescapeNotesAdd: `${add}&line=2&before=The+text+of+&text=the+page` });
+  // Without selected text, the menu has no "Add Note".
+  page.document.getSelection()!.removeAllRanges();
+  open();
+  expect(menu()).toEqual({ other: 'value' });
+});

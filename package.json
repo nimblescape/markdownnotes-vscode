@@ -156,6 +156,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "nimblescape.markdownNotes.addNoteInPreview",
+        "title": "Add Note",
+        "category": "Markdown Notes"
+      },
+      {
         "command": "nimblescape.markdownNotes.addSnippet",
         "title": "Add Snippet",
         "category": "Markdown Notes"
@@ -502,6 +507,10 @@
           "when": "editorLangId == markdown && !editorReadonly && editorHasSelection"
         },
         {
+          "command": "nimblescape.markdownNotes.addNoteInPreview",
+          "when": "false"
+        },
+        {
           "command": "nimblescape.markdownNotes.addFootnote",
           "when": "editorLangId == markdown && !editorReadonly"
         },
@@ -636,6 +645,13 @@
           "command": "nimblescape.markdownNotes.addFootnote",
           "group": "nimblescape@2",
           "when": "editorLangId == markdown && !editorReadonly"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "nimblescape.markdownNotes.addNoteInPreview",
+          "group": "nimblescape@1",
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && nimblescapeNotesAdd"
         }
       ]
     },

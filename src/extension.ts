@@ -78,6 +78,15 @@ export const deselectPath = '/deselect';
 /** addPath is the path of the links of the preview that add a note to the text that the user selected in the preview. */
 export const addPath = '/add';
 
+/** previewAddCommand is the command "Add Note" of the context menu of the Markdown preview for selected text (R-PREV-008). */
+export const previewAddCommand = 'nimblescape.markdownNotes.addNoteInPreview';
+
+/**
+ * previewAddKey is the key of the context of the menu of the Markdown preview (`data-vscode-context`) that holds the link
+ * of "Add Note" for the selected text; the script of the preview sets it when the user opens the menu.
+ */
+export const previewAddKey = 'nimblescapeNotesAdd';
+
 /**
  * highlightCommands are the commands of the buttons in the title of the text editor and of the Markdown preview of a
  * Markdown file, which show and hide the highlights of the notes ([R-PREV-005](../docs/requirements.md#r-prev-005)).
@@ -287,6 +296,29 @@ function addLink(env: unknown): string | undefined {
 }
 
 /**
+ * addFromPreviewMenu opens the editor of a new note for the text that the user selected in the Markdown preview, from the
+ * command "Add Note" of the context menu of the preview: the context of the menu holds the link of "Add Note" of the
+ * script of the preview. Only a link of "Add Note" of this extension counts.
+ * @param context - The context of the menu, which VS Code passes to the command.
+ * @param view - The side view.
+ */
+async function addFromPreviewMenu(context: unknown, view: NotesView): Promise<void> {
+  const href = typeof context === 'object' && context !== null ? (context as Record<string, unknown>)[previewAddKey] : undefined;
+  if (typeof href !== 'string') {
+    return;
+  }
+  let uri: vscode.Uri;
+  try {
+    uri = vscode.Uri.parse(href, true);
+  } catch {
+    return;
+  }
+  if (uri.authority.toLowerCase() === extensionId.toLowerCase() && uri.path === addPath) {
+    await openFromLink(uri, view);
+  }
+}
+
+/**
  * openFromLink selects the note of a link of the preview, and opens the side view for a link that opens it. The link
  * names a document and a line. A link can also come from outside VS Code, so the extension opens only a Markdown
  * document that is open or that belongs to the workspace, and only shows its notes. A link that deselects the selected
@@ -449,6 +481,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
+    vscode.commands.registerCommand(previewAddCommand, (menu: unknown) => addFromPreviewMenu(menu, view)),
     ...registerFormatter(extensionId, saveChangesOf, steps, (document, edits) => clean.formats(document, edits)),
     new AddNoteAction(store, viewCommands.newNote, clean).register(),
     ...slash.register(),

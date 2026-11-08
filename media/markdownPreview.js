@@ -493,6 +493,12 @@
   const ownLink = /^[a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes\/(open|select|deselect|add)(\?|$)/;
 
   /**
+   * menuAddKey is the key of the context of the menu of the preview with the link of "Add Note" for the selected text,
+   * which the command "Add Note" of the menu opens (previewAddKey of src/extension.ts).
+   */
+  const menuAddKey = 'nimblescapeNotesAdd';
+
+  /**
    * selectLink returns the address that only selects the note of the address of the end of a highlight, which also
    * opens the side view.
    * @param {string} href - The address of the end of the highlight.
@@ -765,6 +771,34 @@
       const target = targetOf(event);
       if (event.button === 0 && target && ownsPress(target, event) && !addButton.contains(target) && highlightAt(event.clientX, event.clientY)?.getAttribute('data-href')) {
         event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+  // The context menu of the preview offers "Add Note" for the selected text. VS Code shows the commands of the menu whose
+  // condition holds for the keys of `data-vscode-context` of the element under the pointer and of the elements around
+  // it, and passes these keys to the command; so the body gets the link of "Add Note" when the menu opens.
+  window.addEventListener(
+    'contextmenu',
+    () => {
+      const place = selectedText();
+      /** @type {Record<string, unknown>} */
+      let menu;
+      try {
+        const old = JSON.parse(document.body.getAttribute('data-vscode-context') ?? '{}');
+        menu = old && typeof old === 'object' ? old : {};
+      } catch {
+        menu = {};
+      }
+      if (place) {
+        menu[menuAddKey] = place.href;
+      } else {
+        delete menu[menuAddKey];
+      }
+      if (Object.keys(menu).length > 0) {
+        document.body.setAttribute('data-vscode-context', JSON.stringify(menu));
+      } else {
+        document.body.removeAttribute('data-vscode-context');
       }
     },
     true,
