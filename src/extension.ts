@@ -47,6 +47,7 @@ import { extendMarkdownIt } from './markdown/markdownIt';
 import { NoteEditor } from './noteEditor';
 import { findDoctype } from './notes/doctype';
 import type { BlockFinder, MarkerFinder } from './notes/clean';
+import type { GeneratedFinder } from './notes/generated';
 import type { Note } from './notes/notes';
 import { isNoteDocument, linesOf, NoteStore } from './noteStore';
 import { registerPublishCommands } from './publish';
@@ -122,6 +123,18 @@ export interface HiddenMarkers {
   find: MarkerFinder;
 }
 
+/** GeneratedParts finds the generated parts of a file that the format step of another extension writes. */
+export interface GeneratedParts {
+  /**
+   * find returns the generated parts of a file, which the clean editing view keeps read-only: parts of a line, by the
+   * index of the line and the start and the end in it, such as the text of a citation, and blocks of whole lines, from
+   * the first to the last line, such as a reference list. Text typed into a part, or a change of a piece of it, goes
+   * back; a change that takes a whole block, or a whole part of a line with text around it, stays.
+   * @param lines - The lines of the file.
+   */
+  find: GeneratedFinder;
+}
+
 /**
  * ApiV1 is version 1 of the API of the extension for other extensions, for example nimblescape Markdown Paper, which
  * add their parts to the notes of a Markdown file without the extension knowing them. Each register call returns a
@@ -152,6 +165,12 @@ export interface ApiV1 {
    * @param markers - The finder of the markers.
    */
   registerHiddenMarkers(markers: HiddenMarkers): vscode.Disposable;
+  /**
+   * registerGeneratedParts makes the clean editing view keep the parts of a file that the format step of the other
+   * extension writes read-only ([R-TEXT-009](../docs/requirements.md#r-text-009)).
+   * @param parts - The finder of the parts.
+   */
+  registerGeneratedParts(parts: GeneratedParts): vscode.Disposable;
   /**
    * registerSlashCommand adds a slash command to the text editors of Markdown files
    * ([R-EDIT-008](../docs/requirements.md#r-edit-008)), after the commands of the notes. Its label is a slash and
@@ -369,6 +388,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     registerFormatStep: (step) => steps.register(step),
     registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
     registerHiddenMarkers: (markers) => clean.registerHiddenMarkers((lines) => markers.find(lines)),
+    registerGeneratedParts: (parts) => clean.registerGeneratedParts((lines) => parts.find(lines)),
     registerSlashCommand: (command) => slash.add(command),
     registerEditorPlugin: (name, connect) => rendered.addPlugin(name, connect),
   };
@@ -413,7 +433,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     view,
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
-    ...registerFormatter(extensionId, saveChangesOf, steps),
+    ...registerFormatter(extensionId, saveChangesOf, steps, (document, edits) => clean.formats(document, edits)),
     new AddNoteAction(store, viewCommands.newNote, clean).register(),
     ...slash.register(),
     ...new Snippets(clean).register(),
