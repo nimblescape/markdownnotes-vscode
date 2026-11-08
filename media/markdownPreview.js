@@ -54,7 +54,9 @@
 // in the color of the note, one for each line of the text, and the highlights
 // of the other notes are dimmed. An end with the attribute data-reveal asks the
 // preview to scroll to the note; the script scrolls once for each number of the
-// attribute, smoothly as the side view, unless the system asks for less motion.
+// attribute, smoothly as the side view, unless the system asks for less motion,
+// once the page is loaded: in the preview of VS Code, a smooth scroll that
+// starts before does not move the page.
 //
 // nimblescape Markdown Paper shows the pages of a paper document in this
 // preview: its script copies the content of the page into the pages of the
@@ -65,7 +67,10 @@
 // the preview again for each change of the selected note; until the first
 // pages show, the user sees no text, so a request to scroll to the selected
 // note waits for the pages, which Markdown Paper shows at the place of the
-// pages of before.
+// pages of before. When only the selected note changed, Markdown Paper shows
+// the pages of before without a new layout, with the attributes of the state
+// of before; the content of VS Code holds the new ones, and the script copies
+// them to the ends of the pages (stateAttributes).
 //
 // Markdown Paper makes the pages smaller with the CSS property `zoom` when the
 // preview is narrower than a page. The browser of VS Code has no standardized
@@ -278,8 +283,48 @@
     return range.collapsed ? undefined : range;
   };
 
+  /**
+   * stateAttributes are the attributes of an end that change without a change of the text: the selected note, its
+   * request to scroll and its link that deselects it, and the hidden highlights.
+   */
+  const stateAttributes = ['data-selected', 'data-reveal', 'data-deselect', 'data-hidden'];
+
+  /**
+   * syncPages gives each end on the pages of nimblescape Markdown Paper the attributes of the state of its end in the
+   * content of VS Code: Markdown Paper shows the pages of before, without a new layout, when only these attributes
+   * changed.
+   */
+  const syncPages = () => {
+    const pages = document.querySelector(pagesSelector);
+    if (!pages) {
+      return;
+    }
+    /** @type {Map<string, Element>} the ends of the content by their selection. */
+    const sources = new Map();
+    for (const end of document.querySelectorAll(endSelector)) {
+      if (!pages.contains(end)) {
+        sources.set(end.getAttribute('data-selection') ?? '', end);
+      }
+    }
+    for (const end of pages.querySelectorAll(endSelector)) {
+      const source = sources.get(end.getAttribute('data-selection') ?? '');
+      if (!source) {
+        continue;
+      }
+      for (const name of stateAttributes) {
+        const value = source.getAttribute(name);
+        if (value === null) {
+          end.removeAttribute(name);
+        } else if (end.getAttribute(name) !== value) {
+          end.setAttribute(name, value);
+        }
+      }
+    }
+  };
+
   /** highlight finds the highlight of each note, and paints them. */
   const highlight = () => {
+    syncPages();
     highlights = new Map();
     for (const end of scope().querySelectorAll(endSelector)) {
       const range = rangeOf(end);
@@ -343,8 +388,9 @@
     const own = selected ? highlights.get(selected) : undefined;
     frame(own?.range, own?.color ?? '');
     const request = selected?.getAttribute('data-reveal') ?? undefined;
-    // The request to scroll waits for the pages of a paper document, so that it scrolls the pages, not the hidden content.
-    if (selected && request !== undefined && request !== revealed && !waitsForPages()) {
+    // The request to scroll waits for the pages of a paper document, so that it scrolls the pages, not the hidden content,
+    // and for the load of the page: in the preview of VS Code, a smooth scroll that starts before does not move the page.
+    if (selected && request !== undefined && request !== revealed && !waitsForPages() && document.readyState === 'complete') {
       revealed = request;
       (frames.firstElementChild ?? selected).scrollIntoView({ block: 'center', behavior: motion() });
     }

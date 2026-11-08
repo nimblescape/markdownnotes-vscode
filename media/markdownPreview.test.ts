@@ -107,6 +107,7 @@ test('a request to scroll to the selected note waits for the pages of nimblescap
   const scrolled: string[] = [];
   const selected = ' data-selected="true" data-reveal="1"';
   const page = start(`<div class="markdown-body"><div class="nimblescape-paper" hidden data-paper="{}"></div><p data-line="2">The ${edges('aaaa', 'text', selected)}.</p></div>`, (window) => {
+    Object.defineProperty(window.document, 'readyState', { configurable: true, get: () => 'complete' });
     window.Element.prototype.scrollIntoView = function (this: Element) {
       scrolled.push(this.closest('.nimblescape-paper-pages') ? 'pages' : 'content');
     };
@@ -125,13 +126,35 @@ test('a request to scroll to the selected note waits for the pages of nimblescap
   expect(scrolled).toEqual(['pages']);
 });
 
-test('a request to scroll to the selected note of another document scrolls at once', () => {
+test('the pages of before take the state of the notes from the content, when nimblescape Markdown Paper shows them without a new layout (R-PREV-009)', () => {
+  // The content of VS Code has the new selected note; the pages of before have the selected note of before.
+  const content = `<p data-line="2">${edges('aaaa', 'one')} and ${edges('bbbb', 'two', ' data-selected="true" data-reveal="5"')}.</p>`;
+  const before = `<p data-line="2">${edges('aaaa', 'paged one', ' data-selected="true" data-reveal="4"')} and ${edges('bbbb', 'paged two')}.</p>`;
+  const page = start(`<div class="nimblescape-paper-pages"><div class="pagedjs_page"><div class="pagedjs_page_content">${before}</div></div></div><div class="markdown-body">${content}</div>`, (window) => {
+    window.Element.prototype.scrollIntoView = () => undefined;
+  });
+  page.window.dispatchEvent(new page.window.Event('nimblescape-paper-rendered'));
+  expect(page.painted()).toEqual({ 'nimblescape-note-3-dim': ['paged one'], 'nimblescape-note-3-selected': ['paged two'] });
+  const ends = [...page.document.querySelectorAll('.nimblescape-paper-pages [data-edge="end"]')].map((end) => [end.getAttribute('data-selected'), end.getAttribute('data-reveal')]);
+  expect(ends).toEqual([
+    [null, null],
+    ['true', '5'],
+  ]);
+});
+
+test('a request to scroll to the selected note of another document scrolls once the page is loaded', () => {
   const scrolled: string[] = [];
-  start(`<div class="markdown-body"><p data-line="2">The ${edges('aaaa', 'text', ' data-selected="true" data-reveal="4"')}.</p></div>`, (window) => {
+  let state = 'interactive';
+  const page = start(`<div class="markdown-body"><p data-line="2">The ${edges('aaaa', 'text', ' data-selected="true" data-reveal="4"')}.</p></div>`, (window) => {
+    // In the preview of VS Code, a smooth scroll that starts before the page is loaded does not move the page.
+    Object.defineProperty(window.document, 'readyState', { configurable: true, get: () => state });
     window.Element.prototype.scrollIntoView = function (this: Element) {
       scrolled.push(this.getAttribute('data-note') ?? this.className);
     };
   });
+  expect(scrolled).toEqual([]);
+  state = 'complete';
+  page.window.dispatchEvent(new page.window.Event('load'));
   expect(scrolled).toEqual(['note-aaaa']);
 });
 
