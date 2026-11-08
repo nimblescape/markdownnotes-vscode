@@ -217,9 +217,9 @@ interface Mirror {
    */
   refused?: Array<{ text: string; clean: string }>;
   /**
-   * formatted is the formatted text of the file of "Format Document" of the view, with its clean text. The change that
-   * gives the view this clean text takes the formatted text as it is, with the generated parts that the formatter keeps
-   * current and the hidden parts.
+   * formatted is the formatted text of the file of "Format Document" of the view or of the format before its save,
+   * with its clean text. The change that gives the view this clean text takes the formatted text as it is, with the
+   * generated parts that the formatter keeps current and the hidden parts.
    */
   formatted?: { clean: string; text: string };
   /**
@@ -647,7 +647,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * formatOf returns the edits of "Format Document" of a clean document (R-FMT-001): the formatter formats the text of
+   * formatOf returns the edits of "Format Document" of a clean document and of its format before its save (R-FMT-001,
+   * decision 81): the formatter formats the text of
    * its file, with the hidden parts that the clean text lacks, and the edits change the clean text into the clean
    * text of the formatted file. The change that gives this clean text takes the formatted file as it is, also its
    * generated parts (R-GEN-016). A format that changes only hidden parts goes into the file at once. A view whose text

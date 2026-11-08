@@ -270,8 +270,9 @@ Markdown file with notes without this extension knowing anything of papers:
     at most three times: so a step that writes the markers of a list gets
     the anchors of its captions in the same format
     ([R-GEN-016](#r-gen-016)). A step must keep a text that it formatted as
-    it is. In the clean editing view, the steps run with the save
-    of the file, not in "Format Document" of the view.
+    it is. In the clean editing view, the steps format the text of the file
+    in "Format Document" of the view and before its save
+    ([decision 81](#decisions)).
   - `registerHiddenBlocks({ find(lines) })`: blocks of whole lines at the
     end of a file that the clean editing view leaves out
     ([R-TEXT-009](#r-text-009)), such as the database of the sources of
@@ -1011,6 +1012,17 @@ file at once, and keeps each note at its text:
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
   example a note of the side view, shows in the view. A view that closes
   without a save ("Don't Save") brings the file back to its text on disk.
+- The formatter formats the text of the file, with its hidden parts and the
+  steps of other extensions, never the text of the view
+  ([decision 81](#decisions)): "Format Document" of the view, and the format
+  on save before the save of the view, give the view the formatted file as
+  it is. When the save of the file still changes it, the view shows the
+  change and saves it as it is, so the tab of the view has no unsaved
+  changes after the save. An automatic save of the view after a delay and
+  "Save without Formatting" save the file without the format. When VS Code
+  opens the view with a text that it read before another extension
+  registered the parts that it hides, the view shows the text of now and
+  the file stays as it is.
 - The view shows the highlights of the notes as the text editor of the file
   does ([R-GEN-011](#r-gen-011)), the selected note strong
   ([R-SIDE-007](#r-side-007)), and the light bulb action "Add Note" at the
@@ -1064,8 +1076,7 @@ of the view takes back the changes of the view only, not a change of the side
 view, which leaves the clean text as it is (Undo in the text editor of the
 file itself takes it back); the warnings of the notes
 ([R-TEXT-008](#r-text-008)) show in the Problems view only; the view shows no changes of git at the left edge; a hidden highlight
-does not show under the pointer ([R-GEN-011](#r-gen-011)); "Format Document"
-formats the text of the view, and the save formats the whole file; an edit
+does not show under the pointer ([R-GEN-011](#r-gen-011)); an edit
 that opens a comment or a code block over a note changes how the file reads,
 and the view then shows the markup that is no longer a note, until Undo; the
 preview of the view does not show an image of HTML (`<img>`) from outside the
@@ -3688,6 +3699,19 @@ requirements above follow them.
     preformatted text, so that it fits each theme; the themes of high
     contrast add a dotted frame. The other choice was no mark,
     so that a read-only part showed only when an edit went back.
+81. **The formatter formats the file of the clean editing view, never its
+    text** ([R-TEXT-009](#r-text-009), [R-FMT-001](#r-fmt-001)): the text
+    of the view lacks the hidden parts of the file, such as the anchors of
+    the captions, the markers of the generated lists and the database of
+    the sources of nimblescape Markdown Paper, and a formatter that sees
+    this text writes them a second time. "Format Document" of the view and
+    the format on save before the save of the view format the text of the
+    file, with the steps of other extensions, and the view takes the
+    formatted file as it is; a save of the file that still changes it saves
+    the view again as it is, so that its tab shows no dot. The other choice
+    was to format the text of the view and let the save of the file format
+    the file again, which damaged papers and left the tab with unsaved
+    changes.
 
 ---
 
