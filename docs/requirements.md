@@ -1246,7 +1246,7 @@ itself goes to that place, and Go Back returns to the place of the link
   link (the jumps of the editor of nimblescape Markdown,
   [R-EDIT-014](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-014)).
   Go Back and Go Forward return through the places, with the keys of Go
-  Back and Go Forward of VS Code, with the back and forward buttons of the
+  Back and Go Forward of VS Code (below), with the back and forward buttons of the
   mouse, and with the buttons "Go Back" and "Go Forward" in the toolbar of
   the editor, which show after the first jump.
 - **Markdown Preview:** a click on a link that moves the preview keeps the
@@ -1254,22 +1254,35 @@ itself goes to that place, and Go Back returns to the place of the link
   Markdown,
   [R-REN-004](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-ren-004)),
   also in the pages of a paper document of Markdown Paper. Go Back and Go
-  Forward return through the places, with the keys of VS Code, with the
-  back and forward buttons of the mouse, and with the buttons "Back" and
+  Forward return through the places, with the keys of Go Back and Go
+  Forward of VS Code (below), with the back and forward buttons of the
+  mouse, and with the buttons "Back" and
   "Forward" at the bottom right of the preview, which show while there is
   a place in their direction. The places belong to the file of the preview
   and stay when VS Code loads the preview again, for example for a change
   of the selected note.
 
-The keys of Go Back and Go Forward of VS Code are Ctrl+Alt+- and
-Ctrl+Shift+- on Linux, Alt+Left and Alt+Right on Windows, and Ctrl+- and
-Ctrl+Shift+- on macOS, and the keys Browser Back and Browser Forward on
-each platform. In the Markdown Editor and in the preview, a key without a
-place in its direction goes on to VS Code, which goes back to the editor of
-before. Limits: the buttons Go Back and Go Forward in the title bar of
-VS Code use the history of VS Code, which holds no place inside the
-Markdown Editor or the preview, and on Windows VS Code takes the back and
-forward buttons of the mouse for its history in every view.
+The keys of Go Back and Go Forward in the Markdown Editor and in the preview
+are the keys that the user binds to the commands Go Back and Go Forward of
+VS Code (`workbench.action.navigateBack` and
+`workbench.action.navigateForward`, also those "in Navigation Locations"),
+for example Option+Cmd+Left and Option+Cmd+Right, in the keyboard shortcuts
+of the user or of an extension, for example a keymap extension
+([decision 87](#decisions)). Without other keys, these are the default keys
+of VS Code: Ctrl+Alt+- and Ctrl+Shift+- on Linux, Alt+Left and Alt+Right on
+Windows, and Ctrl+- and Ctrl+Shift+- on macOS, and the keys Browser Back and
+Browser Forward on each platform. A change of the keyboard shortcuts applies
+in the open views; the tooltips of the buttons name the keys. A key binding
+with a condition (`when`) counts without its condition, and a chord of two
+keys does not count. In the Markdown Editor and in the preview, a key
+without a place in its direction goes on to VS Code, which goes back to the
+editor of before. Limits: the buttons Go Back and Go Forward in the title
+bar of VS Code use the history of VS Code, which holds no place inside the
+Markdown Editor or the preview; on Windows VS Code takes the back and
+forward buttons of the mouse for its history in every view; and in a remote
+window, for example over SSH or in a Dev Container, the keyboard shortcuts
+of the user stay on the computer of the user, so only the default keys and
+those of the extensions apply there.
 
 ### R-VIEW-001
 
@@ -3895,6 +3908,15 @@ requirements above follow them.
     text. A drag of the mouse and the keys only select the note. This
     replaces the first rule of [decision 29](#decisions). The other choice
     was to keep the double click as the only way to open the side view.
+87. **The way back follows the keys of the user** ([R-TEXT-011](#r-text-011)):
+    the Markdown Editor and the preview go back and forward with the keys
+    that the user binds to Go Back and Go Forward of VS Code, as the Text
+    Editor does, and not only with the default keys of VS Code. VS Code
+    gives an extension no API for its keyboard shortcuts, so the extension
+    reads the default keyboard shortcuts with those of the extensions, as
+    VS Code shows them, and the file `keybindings.json` of the user, and
+    gives the keys to the pages. The other choice was to keep the default
+    keys and to ask the user to bind the same keys a second time.
 
 ---
 

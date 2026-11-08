@@ -854,6 +854,7 @@ export class Fake {
         },
       },
       window: {
+        onDidChangeWindowState: on('windowState'),
         showQuickPick: async (items: { label: string; description?: string }[]) => {
           this.picks.push(items);
           return this.pick(items);
@@ -1145,7 +1146,11 @@ export class Fake {
   /** activate imports the extension with this fake API and activates it. */
   async activate() {
     const extension = await import('../extension');
-    const context = { subscriptions: [] as { dispose(): void }[], extensionUri: new FakeUri('file', '/extension') };
+    const context = {
+      subscriptions: [] as { dispose(): void }[],
+      extensionUri: new FakeUri('file', '/extension'),
+      globalStorageUri: new FakeUri('vscode-userdata', '/user/User/globalStorage/nimblescape.markdownnotes'),
+    };
     const api = extension.activate(context as never);
     return { api, context, extension };
   }

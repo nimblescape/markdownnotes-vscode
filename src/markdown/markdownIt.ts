@@ -43,6 +43,7 @@
 
 import type MarkdownIt from 'markdown-it';
 import type { StateCore, Token } from 'markdown-it';
+import { type JumpKeys, jumpKeysHtml } from '@nimblescape/markdownrender/jumps';
 import { colorIndexOf } from '../notes/colors';
 import { textParents } from '../notes/notes';
 import { addNoteRules, type InlineMeta, markerType, noteCloseType, type NoteMeta, noteOpenType, referenceText, referenceType } from '../notes/syntax';
@@ -55,6 +56,8 @@ const edgeTokenType = 'nimblescape_note_edge';
 
 /** pageTokenType is the type of the block token at the end of the page that holds the link of "Add Note": a hidden element. */
 const pageTokenType = 'nimblescape_note_page';
+/** jumpKeysTokenType is the type of the block token at the end of the page with the keys of Go Back and Go Forward. */
+const jumpKeysTokenType = 'nimblescape_jump_keys';
 
 /** PreviewSettings are the settings of the extension that change the preview. */
 export interface PreviewSettings {
@@ -115,6 +118,12 @@ export interface PreviewOptions {
    * @param source - The address of the image in the Markdown text, as markdown-it encodes it.
    */
   imageOf?(env: unknown, source: string): string | undefined;
+  /**
+   * jumpKeys returns the keys that the user binds to Go Back and Go Forward of VS Code, or undefined while they are not
+   * known: the page gets them in a hidden element, from which the script of the way back after a jump reads them
+   * ([R-TEXT-011](../../docs/requirements.md#r-text-011)).
+   */
+  jumpKeys?(): JumpKeys | undefined;
 }
 
 /** PreviewNote is what the preview needs of a note: its label, its color, the ID of its highlight, and the line of its definition. */
@@ -277,6 +286,13 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
       state.tokens.push(page);
     });
   }
+  if (options.jumpKeys) {
+    md.core.ruler.push('nimblescape_jump_keys', (state) => {
+      const keys = new state.Token(jumpKeysTokenType, '', 0);
+      keys.block = true;
+      state.tokens.push(keys);
+    });
+  }
   // The lines of the tokens of the text of a file name the lines of its clean editing view, after the notes took theirs.
   md.core.ruler.push('nimblescape_lines', (state) => {
     const lines = (state.env as { nimblescapeLines?: readonly number[] }).nimblescapeLines;
@@ -308,6 +324,10 @@ export function extendMarkdownIt(md: MarkdownIt, options: PreviewOptions): Markd
   md.renderer.rules[pageTokenType] = (_tokens, _index, _options, env) => {
     const link = options.addLinkOf?.(env);
     return link === undefined ? '' : `<div class="${noteClass}-page" data-add="${md.utils.escapeHtml(link)}" hidden></div>\n`;
+  };
+  md.renderer.rules[jumpKeysTokenType] = () => {
+    const keys = options.jumpKeys?.();
+    return keys ? jumpKeysHtml(keys) : '';
   };
   // A reference that the core rule did not reach, such as one in the body of a note that the side view renders, shows
   // as written, and a start marker nothing.

@@ -45,6 +45,7 @@ import {
 import { colorIndexOf, colorNames, noteColors } from '../notes/colors';
 import { findDoctype } from '../notes/doctype';
 import { extensionMessage, type PageMessage, pluginName } from '../notes/editorMessages';
+import { takeJumpKeys } from './jumpKeys';
 import { type SlashConnection, slashItems, takeChange } from './slashItems';
 
 /** pluginName is the name of the plugin, the first part of the full names of its commands, for example `notes.select`. */
@@ -943,6 +944,8 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
       }
     } else if (message?.type === 'highlights') {
       showHighlights(editor, message.show);
+    } else if (message?.type === 'jumpKeys') {
+      takeJumpKeys(message.keys);
     } else if (message?.type === 'change') {
       takeChange(slash, message);
     }

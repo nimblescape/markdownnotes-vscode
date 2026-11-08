@@ -89,3 +89,39 @@ test('the editor shows the blocks of the extensions of the Markdown preview, wit
   expect([...page.element.querySelectorAll('[data-note="note-7k2q"].nsmd-note')].map((element) => element.textContent).join('')).toBe('marked text');
   expect(editor.getMarkdown()).toBe(text);
 });
+
+test('the editor goes back and forward with the keys that the extension sends, the keys that the user binds to Go Back and Go Forward of VS Code (R-TEXT-011)', () => {
+  const page = connection('# Title\n\nSee [the end](#end).\n\n## End\n\nThe last text.\n');
+  let listener: ((message: unknown) => void) | undefined;
+  (page as { host: unknown }).host = {
+    platform: 'vscode',
+    channel: () => ({
+      post: () => undefined,
+      onMessage: (each: (message: unknown) => void) => {
+        listener = each;
+        return () => undefined;
+      },
+    }),
+  };
+  const editor = start(page, []);
+  editors.push(editor);
+  const back = page.element.querySelector<HTMLButtonElement>('button[title^="Go Back"]')!;
+  // Until the keys come, the default keys of VS Code on the platform apply.
+  expect(back.title).toBe('Go Back (Ctrl+Alt+-)');
+  listener?.({ type: 'jumpKeys', keys: { back: ['Alt-Meta-ArrowLeft'], forward: ['Alt-Meta-ArrowRight'] } });
+  let end = -1;
+  editor.tiptap.state.doc.descendants((node, pos) => {
+    if (end < 0 && node.isText && node.text === 'The last text.') {
+      end = pos;
+    }
+  });
+  editor.jumpTo(end);
+  back.dispatchEvent(new MouseEvent('mouseenter'));
+  expect(back.title).toBe('Go Back (Alt+Meta+Left)');
+  const dom = editor.tiptap.view.dom;
+  dom.dispatchEvent(new KeyboardEvent('keydown', { key: '-', code: 'Minus', ctrlKey: true, altKey: true, bubbles: true, cancelable: true }));
+  expect(editor.canGoBack).toBe(true);
+  dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true, metaKey: true, bubbles: true, cancelable: true }));
+  expect(editor.canGoBack).toBe(false);
+  expect(editor.canGoForward).toBe(true);
+});

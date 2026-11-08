@@ -1584,16 +1584,21 @@ and Go Back returns to the link:
 - In the Text Editor and in the Markdown Editor, Ctrl+click (Cmd+click on
   macOS) on a link goes to its target. In the Markdown Preview, a click on
   a link goes there.
-- Go Back and Go Forward of VS Code return: Ctrl+Alt+- and Ctrl+Shift+- on
-  Linux, Alt+Left and Alt+Right on Windows, Ctrl+- and Ctrl+Shift+- on
-  macOS, and the back and forward buttons of the mouse. The Markdown
+- Go Back and Go Forward of VS Code return, with the keys that you bind to
+  them in the keyboard shortcuts of VS Code, for example Option+Cmd+Left
+  and Option+Cmd+Right. Without keys of your own, these are Ctrl+Alt+- and
+  Ctrl+Shift+- on Linux, Alt+Left and Alt+Right on Windows, Ctrl+- and
+  Ctrl+Shift+- on macOS. The back and forward buttons of the mouse return
+  too. The tooltips of the buttons name the keys. The Markdown
   Editor shows the buttons "Go Back" and "Go Forward" in its toolbar after
   the first jump, and the preview shows the buttons "Back" and "Forward" at
   its bottom right while there is a place to go to.
 - In the Markdown Editor and in the preview, the buttons Go Back and Go
   Forward in the title bar of VS Code go to the editor of before, not to a
   place inside the view, and on Windows the back and forward buttons of the
-  mouse do the same.
+  mouse do the same. In a remote window, for example over SSH or in a Dev
+  Container, the Markdown Editor and the preview know only the default keys
+  and those of extensions, not the keys of your own.
 
 ## Formatter
 

@@ -133,9 +133,32 @@ test('each side of the channel takes only the messages of the plugin of the note
   expect(extensionMessage({ type: 'select', label: 'note-a3k9', reveal: true })).toEqual({ type: 'select', label: 'note-a3k9', reveal: true });
   expect(extensionMessage({ type: 'select', label: undefined })).toEqual({ type: 'select', label: undefined, reveal: false });
   expect(extensionMessage({ type: 'highlights', show: false })).toEqual({ type: 'highlights', show: false });
-  for (const value of [{ type: 'select', label: 'note-a3k9"><script>' }, { type: 'select', label: 7 }, { type: 'highlights', show: 'no' }, { type: 'init' }]) {
+  expect(extensionMessage({ type: 'jumpKeys', keys: { back: ['Alt-Meta-ArrowLeft'], forward: [], more: 1 } })).toEqual({ type: 'jumpKeys', keys: { back: ['Alt-Meta-ArrowLeft'], forward: [] } });
+  for (const value of [
+    { type: 'select', label: 'note-a3k9"><script>' },
+    { type: 'select', label: 7 },
+    { type: 'highlights', show: 'no' },
+    { type: 'init' },
+    { type: 'jumpKeys', keys: { back: [1], forward: [] } },
+    { type: 'jumpKeys', keys: { back: [] } },
+    { type: 'jumpKeys' },
+  ]) {
     expect(extensionMessage(value), JSON.stringify(value)).toBeUndefined();
   }
+});
+
+test('the editor gets the keys that the user binds to Go Back and Go Forward when its plugin starts, and again after a change (R-TEXT-011)', async () => {
+  const defaults = '[{ "key": "ctrl+alt+-", "command": "workbench.action.navigateBack" }, { "key": "ctrl+shift+-", "command": "workbench.action.navigateForward" }]';
+  fake.providers.set('vscode', { readFile: () => new TextEncoder().encode(defaults) });
+  const userFile = '/user/User/keybindings.json';
+  fake.files.set(userFile, '[{ "key": "cmd+alt+left", "command": "workbench.action.navigateBack" }]');
+  const { panel } = await open();
+  expect(panel.pluginMessages(pluginName)).toContainEqual({ type: 'jumpKeys', keys: { back: ['Ctrl-Alt--', 'Alt-Meta-ArrowLeft'], forward: ['Ctrl-Shift--'] } });
+  fake.files.set(userFile, '[{ "key": "cmd+alt+right", "command": "workbench.action.navigateForward" }]');
+  fake.fire('windowState', { focused: true });
+  await vi.advanceTimersByTimeAsync(500);
+  await settle();
+  expect(panel.pluginMessages(pluginName).at(-1)).toEqual({ type: 'jumpKeys', keys: { back: ['Ctrl-Alt--'], forward: ['Ctrl-Shift--', 'Alt-Meta-ArrowRight'] } });
 });
 
 test('the editor gets the highlights and the selected note when its plugin starts, and the highlights again after "Hide Highlights" (R-TEXT-010, R-GEN-011)', async () => {

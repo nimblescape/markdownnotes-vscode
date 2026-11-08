@@ -14,9 +14,10 @@
  */
 
 import { MarkdownEditor, type MarkdownPlugin } from '@nimblescape/markdowneditor';
-import { platformOf, vscodeJumpKeys } from '@nimblescape/markdownrender/jumps';
+import { platformOf } from '@nimblescape/markdownrender/jumps';
 import type { VsCodeConnection } from './connection';
 import { figuresPlugin } from './figuresPlugin';
+import { jumpKeysOf } from './jumpKeys';
 import { createNotesPlugin } from './notesPlugin';
 import { previewPlugin } from './previewPlugin';
 
@@ -45,7 +46,8 @@ export function withOthers(own: readonly MarkdownPlugin[], others: readonly Mark
  */
 export function start(connection: VsCodeConnection, others: readonly MarkdownPlugin[]): MarkdownEditor {
   const platform = platformOf(navigator);
-  const jumps = { keys: vscodeJumpKeys(platform), mouseButtons: platform !== 'windows' };
+  // The keys that the user binds to Go Back and Go Forward of VS Code, which the extension sends (R-TEXT-011).
+  const jumps = { keys: jumpKeysOf(platform), mouseButtons: platform !== 'windows' };
   const create = (plugins: MarkdownPlugin[]) =>
     new MarkdownEditor(connection.element, {
       source: connection.source,
