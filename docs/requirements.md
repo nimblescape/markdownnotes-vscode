@@ -895,7 +895,8 @@ file at once, and keeps each note at its text:
 - Undo and Redo bring back the file as it was, with each note at its place.
 - The front matter is read-only ([decision 58](#decisions)): an edit that
   changes, removes or adds a front matter goes back as a whole, the file
-  keeps its front matter, and the status bar names "Open File with Markup",
+  keeps its front matter, the view of a file without changes keeps no
+  changes either, and the status bar names "Open File with Markup",
   where the front matter can be changed. An edit after the closing line of
   the front matter stays. Undo never brings such an edit back: one Undo goes
   over it to the edit before it. A change of the front matter from
@@ -942,7 +943,16 @@ such a paper document of nimblescape Markdown Paper, a
 Markdown file whose YAML front matter has the key `layout`, also without
 notes, so that the front matter of every paper is read-only
 ([decision 61](#decisions)). The view opens from the Explorer, a search, a link, the tabs of the last
-session, and when a file gets its first note. The view takes the place of
+session, and when a file gets its first note. The text editor of such a file
+is always the view, also when the file opens in the editor of a whole file
+([R-TEXT-010](#r-text-010)): the button "Open Text Editor to the Side" and
+"Reopen Editor With" of VS Code open the view, so that each text editor keeps
+the front matter read-only and the markup hidden
+([decision 72](#decisions)). While the editor of a whole file shows the
+file too, both change the same file: a save of the file in the editor saves
+the view too, so that the view has no changes that are not saved, and a
+close of the view without a save keeps the changes of the file in the
+editor. The view takes the place of
 the text editor of the file in its group, with the same selection and the
 same first visible line, and the tab of the file closes. VS Code keeps a tab
 of each file with changes that are not saved, also when only its view
@@ -953,7 +963,9 @@ the file.
 
 The command "Open File with Markup" of the Command Palette opens the file
 itself beside the view, for rare cases such as a conflict of git in a note;
-that file stays in its own text editor until its tab closes. The text editor
+that file stays in its own text editor until its tab closes. It is the only
+text editor that shows the markup of a file with notes or of a paper
+document. The text editor
 of the file collapses the notes and hides the markers
 ([R-TEXT-005](#r-text-005), [R-NOTE-006](#r-note-006)).
 
@@ -987,15 +999,21 @@ extensions work as for the text editor.
   `all`, every Markdown file; `notesAndPapers`, a file with notes or with the
   comment of the format, and a paper document of nimblescape Markdown Paper;
   `none`, no file. The default is `all`. Every other file opens
-  in the text editor, a file with notes in the clean editing view, which
-  stays beside the editor ([decision 67](#decisions)). "Reopen
-  Editor With" of VS Code always offers the text editor.
+  in the text editor, a file with notes or a paper document in the clean
+  editing view, which stays beside the editor ([decision 67](#decisions)).
+  "Reopen Editor With" of VS Code always offers the text editor, which is
+  the clean editing view for a file with notes, with the comment of the
+  format, or a paper document ([decision 72](#decisions)).
 - The editor is the view "Markdown Editor" of the three views of a Markdown
   file ([R-PREV-006](#r-prev-006)): the list of the editors of VS Code
   names it so, and the buttons "Reopen in Text Editor" and "Reopen in
   Markdown Preview" in its title switch to the other two views.
 - The button "Open Text Editor to the Side" in the title of the editor opens
-  the text editor of the file to the side, with the selection of the editor.
+  the text editor of the file to the side, with the selection of the editor:
+  for a file with notes, with the comment of the format, or a paper
+  document, the clean editing view ([R-TEXT-009](#r-text-009),
+  [decision 72](#decisions)), with the front matter read-only and the
+  markup of the notes and the other hidden parts hidden.
   The buttons of the side view and of the highlights
   ([R-GEN-011](#r-gen-011)) are in the title of the editor too.
 - The plugin of the notes of the editor keeps each note of the file byte for
@@ -3360,7 +3378,9 @@ requirements above follow them.
     the format of the file: it shows the Markdown text without rendering,
     and the notes and the other hidden parts stay as they are. A file with
     notes that the setting `renderedEditor` does not open in the editor
-    opens in the clean editing view. It is the view to learn Markdown,
+    opens in the clean editing view, and the text editor of a file that
+    opens in the editor is the clean editing view too
+    ([decision 72](#decisions)). It is the view to learn Markdown,
     because it shows the Markdown text as the file writes it. The other
     choice was to remove the clean editing view.
 68. **The same functions in both editors** ([R-TEXT-009](#r-text-009),
@@ -3393,6 +3413,16 @@ requirements above follow them.
     form of the clean editing view, does the same. Only the other keys get
     a new name or go. The other choice was to rename and remove every key in
     the mode "Edit keys".
+72. **The text editor is always the clean editing view**
+    ([R-TEXT-009](#r-text-009), [R-TEXT-010](#r-text-010)): the text
+    editor of a Markdown file with notes, with the comment of the format, or
+    of a paper document is the clean editing view, also when the file opens
+    in the editor of a whole file, for example after "Open Text Editor to
+    the Side" or "Reopen Editor With". So each text editor keeps the front
+    matter read-only and the markup of the notes and the other hidden parts
+    hidden, as the editor does. Only "Open File with Markup" shows the file
+    with its markup. The other choice was the text of the file with its
+    markup beside the editor.
 73. **The three views of a Markdown file** ([R-PREV-006](#r-prev-006),
     [R-TEXT-010](#r-text-010), [R-VSC-002](#r-vsc-002)): a Markdown file has
     three views: "Text Editor", the clean editing view for a file with notes

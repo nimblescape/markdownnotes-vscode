@@ -22,7 +22,7 @@ import { noteColors } from './notes/colors';
 import { doctypeLines } from './notes/doctype';
 import { deleteCommands, keepTime, markerContexts, settleTime } from './noteEditor';
 import { notesViewId } from './notesViewProtocol';
-import { Fake, FakeEditor, FakePosition, FakeRange, FakeThemeColor, FakeUri, type FakeView, settle } from './testing/fakeVscode';
+import { Fake, FakeEditor, FakePosition, FakeRange, FakeTabInputText, FakeThemeColor, FakeUri, type FakeView, settle } from './testing/fakeVscode';
 
 // The static import of the module reads only its constants; each test imports the extension with a new fake of the
 // editor API.
@@ -160,6 +160,22 @@ test('the notes collapse the first time their file is in the active editor, into
   fake.fire('activeEditor', editor);
   await settle();
   expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([fold(0, 6)]);
+});
+
+test('the notes of a text editor that becomes the clean editing view do not collapse, because the fold would act on the view, which takes its place (R-TEXT-005, R-TEXT-009)', async () => {
+  const document = fake.open(text);
+  const editor = new FakeEditor(document, 12);
+  const tab = { input: new FakeTabInputText(document.uri) };
+  fake.tabGroups.push({ viewColumn: 1, tabs: [tab], activeTab: tab });
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  await fake.activate();
+  fake.fire('activeEditor', editor);
+  for (let step = 0; step < 5; step++) {
+    await settle();
+  }
+  expect(fake.activeEditor?.document.uri.scheme).toBe('markdownnotes');
+  expect(fake.calls.filter(({ command }) => command === 'editor.fold')).toEqual([]);
 });
 
 test('a fold command waits for the edits of the extension, and folds the lines of the notes in the changed document (R-TEXT-005)', async () => {

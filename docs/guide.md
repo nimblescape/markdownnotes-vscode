@@ -369,10 +369,13 @@ note at its place.
   above it, or "Add Note" in the title of the side view
   ([Add a note](#add-a-note)).
 - The button "Open Text Editor to the Side" in the title of the editor opens
-  the text of the file to the side, with the selection of the editor. The
-  buttons "Reopen in Text Editor" and "Reopen in Markdown Preview" open the
-  file in the same place in the other views
-  ([Three views of a Markdown file](#three-views-of-a-markdown-file)).
+  the text editor of the file to the side, with the selection of the editor.
+  The buttons "Reopen in Text Editor" and "Reopen in Markdown Preview" open
+  the file in the same place in the other views
+  ([Three views of a Markdown file](#three-views-of-a-markdown-file)). For a
+  file with notes and for a paper, the text editor is the
+  [clean editing view](#clean-editing-view): the front matter stays
+  read-only and the markup of the notes stays hidden, as in the editor.
 - A save of the editor saves the file, with the format on save
   ([Formatter](#formatter)).
 - The editor hides the anchors of the [figures, tables and links to
@@ -414,7 +417,9 @@ Every other file opens in the text editor, as the next section describes.
 A Markdown file with notes, or with the comment of the format, that does not
 open in the editor of rendered Markdown opens in the clean editing view, and
 so does such a paper of nimblescape Markdown Paper, a file whose front
-matter has the key `layout`, also without notes. The text editor
+matter has the key `layout`, also without notes. The text editor of such a
+file is always the clean editing view, also beside the editor of rendered
+Markdown. The text editor
 shows the text of the file without the
 notes markup, and behaves as in a file without notes. The side view shows
 the text of the notes. The view shows the highlights, and the light bulb at
@@ -447,7 +452,8 @@ into the file at once, and each note stays at its text:
   moves after the paragraph of its highlight.
 - Undo and Redo bring back the file as it was, with each note at its place.
 - The front matter at the top of the file is read-only in the view: an edit
-  of it goes back at once, and the status bar says so. Change the front
+  of it goes back at once, leaves no changes to save, and the status bar
+  says so. Change the front
   matter with the link above it: "Edit Front Matter" opens the form of
   nimblescape Markdown Paper in the side bar; without Markdown Paper, the
   link is "Open File with Markup". The commands of Markdown Paper, such as
@@ -456,7 +462,9 @@ into the file at once, and each note stays at its text:
   back.
 - A save of the view saves the file, with the format on save and the comment
   of the format. "Don't Save" at the close of the view brings the file back
-  to its text on disk.
+  to its text on disk. While the editor of rendered Markdown shows the file
+  too, a save there saves the view too, and "Don't Save" at the close of the
+  view keeps the changes in the editor.
 - A relative link of the view opens the file of the link: in its view when it
   has notes, else in its own text editor.
 - The Markdown preview of the view shows the highlights and scrolls with the
@@ -1568,7 +1576,7 @@ code as `stripNotes(lines)` of the library of the npm package.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown ([Editor of rendered Markdown](#editor-of-rendered-markdown)): `all` every Markdown file; `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper; `none` no file. Every other file opens in the text editor, a file with notes in the clean editing view. "Reopen Editor With" of VS Code always offers the text editor, and "Reopen in Markdown Editor" opens any Markdown file in the editor. A folder of a workspace can have its own value. |
+| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown ([Editor of rendered Markdown](#editor-of-rendered-markdown)): `all` every Markdown file; `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper; `none` no file. Every other file opens in the text editor, a file with notes in the clean editing view. "Reopen Editor With" of VS Code always offers the text editor, which is the clean editing view for a file with notes and for a paper, and "Reopen in Markdown Editor" opens any Markdown file in the editor. A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.previewExtensions` | `true` | Whether the editor of rendered Markdown shows the syntax that other extensions add to the Markdown preview of VS Code, for example diagrams and math ([Editor of rendered Markdown](#editor-of-rendered-markdown)). A folder of a workspace can have its own value. |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlight of each note in its color in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The value `false` hides them; the highlight of the selected note and a highlight under the pointer still show. The buttons "Hide Highlights" and "Show Highlights" change it ([Show and hide the highlights](#show-and-hide-the-highlights)). |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them ([Footnotes in the side view](#footnotes-in-the-side-view)). The value `false` shows the notes only. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |

@@ -23,9 +23,11 @@
  * document of nimblescape Markdown Paper (a front matter with the key
  * `layout`), also without notes, so that its front matter is read-only
  * (decision 61): each text editor of such a file that shows becomes the view,
- * in its group and at its place of the cursor. The command "Open File with Markup" opens the file itself, for
- * example for a conflict of git in a note; that file stays as it is until its
- * tab closes.
+ * in its group and at its place of the cursor, also the text editor of a file
+ * that opens in the editor of a whole file, for example with "Open Text Editor
+ * to the Side" (decision 72). The command "Open File with Markup" opens the
+ * file itself, for example for a conflict of git in a note; that file stays as
+ * it is until its tab closes.
  */
 
 import * as vscode from 'vscode';
@@ -139,6 +141,8 @@ interface Mirror {
   queue: Promise<void>;
   /** writing counts the writes into the document of the file that run. */
   writing: number;
+  /** cleaned resolves when the last write of the clean text into the clean document is done. */
+  cleaned?: Promise<void>;
   /** mtime is the time of the last change of the clean text for the file system. */
   mtime: number;
   /**
@@ -237,6 +241,14 @@ function positionIn(text: string, offset: number): vscode.Position {
 const hasTab = (file: vscode.Uri): boolean =>
   vscode.window.tabGroups.all.some((group) => group.tabs.some((tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === file.toString()));
 
+/**
+ * hasCustomTab tells whether a tab of a group shows a document in a custom editor, for example in the editor of a whole
+ * file ([R-TEXT-010](../docs/requirements.md#r-text-010)), which keeps the changes of the document.
+ * @param file - The URI of the document.
+ */
+const hasCustomTab = (file: vscode.Uri): boolean =>
+  vscode.window.tabGroups.all.some((group) => group.tabs.some((tab) => tab.input instanceof vscode.TabInputCustom && tab.input.uri.toString() === file.toString()));
+
 /** CleanView is the file system of the clean documents, and their link to the documents of their files. */
 export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly changes = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
@@ -259,8 +271,11 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly opening = new Set<string>();
   /** switching holds the files whose text editors become the view now, by their URIs. */
   private readonly switching = new Set<string>();
-  /** reverting holds the files whose changes go back to their text on disk, by their URIs, after the view closed without a save. */
-  private readonly reverting = new Set<string>();
+  /**
+   * asIs holds the documents that VS Code saves as they are now, by their URIs: the files whose changes go back to their
+   * text on disk after the view closed without a save, and the views that follow a save of their files elsewhere.
+   */
+  private readonly asIs = new Set<string>();
   /** left holds the links of the clean documents that VS Code closed, by their URIs, until the next pass takes their files. */
   private readonly left = new Map<string, Mirror>();
   /** saved tells whether a document was saved since the last pass, which then closes the tabs behind the views. */
@@ -306,14 +321,11 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    * @param selected - The selected note of each file, whose highlight is strong.
    * @param showsFootnotes - Tells whether the side view shows the standard footnotes of a file, whose definitions the
    * view then hides.
-   * @param opensRendered - Tells whether a file opens in the editor of a whole file
-   * ([R-TEXT-010](../docs/requirements.md#r-text-010)): its text editor then shows the file with its markup.
    */
   constructor(
     private readonly showsHighlights: (document: vscode.Uri) => boolean,
     private readonly selected: SelectedNotes,
     private readonly showsFootnotes: (document: vscode.Uri) => boolean = () => false,
-    private readonly opensRendered: (document: vscode.TextDocument) => boolean = () => false,
   ) {}
 
   /**
@@ -406,9 +418,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
           this.switchLater();
         }
       }),
-      vscode.workspace.onDidSaveTextDocument(() => {
+      vscode.workspace.onDidSaveTextDocument((document) => {
         this.saved = true;
         this.switchLater();
+        void this.followSave(document).catch((error: unknown) => this.log.appendLine(`${new Date().toISOString()} ${String(error)}`));
       }),
       vscode.workspace.onDidCloseTextDocument((document) => this.closed(document)),
       vscode.window.onDidChangeVisibleTextEditors(() => {
@@ -452,11 +465,12 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * reverts tells whether the changes of a file go back to its text on disk now, so that its save changes nothing more.
-   * @param file - The URI of the file.
+   * savesAsIs tells whether VS Code saves a document as it is now, so that its save changes nothing more: a file whose
+   * changes go back to its text on disk, or a view that follows a save of its file elsewhere.
+   * @param document - The URI of the document.
    */
-  reverts(file: vscode.Uri): boolean {
-    return this.reverting.has(file.toString());
+  savesAsIs(document: vscode.Uri): boolean {
+    return this.asIs.has(document.toString());
   }
 
   /**
@@ -530,6 +544,20 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   sourceOf(clean: string): { text: string; lines: number[] } | undefined {
     const mirror = [...this.ready.values()].find((candidate) => candidate.projection.clean === clean && candidate.projection.text !== clean);
     return mirror && { text: mirror.projection.text, lines: cleanLines(mirror.projection) };
+  }
+
+  /**
+   * becomesView tells whether a text editor becomes the view: the text editor of a file that the view takes (switchable)
+   * in a tab of its own, which "Open File with Markup" did not open. The side of a view of the changes of git stays.
+   * @param editor - The text editor.
+   */
+  becomesView(editor: vscode.TextEditor): boolean {
+    const key = editor.document.uri.toString();
+    if (this.markup.has(key) || !this.switchable(editor.document)) {
+      return false;
+    }
+    const tab = vscode.window.tabGroups.all.find((group) => group.viewColumn === editor.viewColumn)?.activeTab;
+    return tab?.input instanceof vscode.TabInputText && tab.input.uri.toString() === key;
   }
 
   /** openWithMarkup opens the file of the active clean document itself, at the same place, beside the view in its group. */
@@ -667,14 +695,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, with the
-   * comment of the format, or a paper document, that the extension can change, and that does not open in the editor of
-   * a whole file.
+   * comment of the format, or a paper document, that the extension can change. The text editor of a file that opens in
+   * the editor of a whole file becomes the view too, for example after "Open Text Editor to the Side" or "Reopen Editor
+   * With", so that each text editor of such a file keeps the front matter read-only and the markup hidden (decision 72).
    * @param document - The document.
    */
   private switchable(document: vscode.TextDocument): boolean {
     return (
       document.uri.scheme !== cleanScheme &&
-      !this.opensRendered(document) &&
       document.languageId === 'markdown' &&
       vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) === true &&
       this.belongsInView(document.getText())
@@ -870,14 +898,14 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * revertLeft brings the file of a closed view back to its text on disk, when it has the changes of the view: the user
-   * closed the view without a save.
+   * closed the view without a save. A file that the editor of a whole file still shows keeps its changes there.
    * @param mirror - The link of the closed view.
    * @returns Whether the file went back.
    */
   private async revertLeft(mirror: Mirror): Promise<boolean> {
     await mirror.queue;
     const real = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === mirror.file.toString());
-    if (!real?.isDirty || real.getText() !== mirror.model) {
+    if (!real?.isDirty || real.getText() !== mirror.model || hasCustomTab(mirror.file)) {
       return false;
     }
     const disk = new TextDecoder().decode(await vscode.workspace.fs.readFile(mirror.file));
@@ -885,14 +913,45 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const edit = new vscode.WorkspaceEdit();
     edit.replace(mirror.file, new vscode.Range(real.positionAt(change.start), real.positionAt(change.end)), change.text);
     const key = mirror.file.toString();
-    this.reverting.add(key);
+    this.asIs.add(key);
     try {
       await vscode.workspace.applyEdit(edit);
       await real.save();
     } finally {
-      this.reverting.delete(key);
+      this.asIs.delete(key);
     }
     return true;
+  }
+
+  /**
+   * followSave saves the views of a file without changes, for example after its save in the editor of a whole file
+   * ([R-TEXT-010](../docs/requirements.md#r-text-010)) or after an edit of the front matter that went back: a view
+   * whose clean text is the clean text of the file then has no changes that are not saved, which VS Code would ask
+   * about at its close. The save of the view changes nothing more (savesAsIs).
+   * @param document - The document of the file.
+   */
+  private async followSave(document: vscode.TextDocument): Promise<void> {
+    if (document.uri.scheme === cleanScheme) {
+      return;
+    }
+    const file = document.uri.toString();
+    for (const [key, mirror] of this.ready) {
+      if (mirror.file.toString() !== file) {
+        continue;
+      }
+      await mirror.queue;
+      await mirror.cleaned;
+      const view = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === key);
+      if (!view?.isDirty || document.isDirty || document.getText() !== mirror.model || view.getText() !== mirror.projection.clean) {
+        continue;
+      }
+      this.asIs.add(key);
+      try {
+        await view.save();
+      } finally {
+        this.asIs.delete(key);
+      }
+    }
   }
 
   /**
@@ -1009,7 +1068,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * refuse takes back an edit of a clean document that changes its front matter, which is read-only in the view: the
-   * edit goes back as a whole, the file stays as it is, and the status bar says why. An Undo that brings back such an
+   * edit goes back as a whole, the file stays as it is, the view of a file without changes has no changes either, and
+   * the status bar says why. An Undo that brings back such an
    * edit undoes the edit too, so that Undo goes on with the edits before it.
    * @param mirror - The link of the clean document.
    * @param event - The change.
@@ -1032,7 +1092,13 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       mirror.refused = [...refused, { text, clean }].slice(-historySize);
     }
     vscode.window.setStatusBarMessage(hasFrontMatterForm() ? frontMatterInForm : frontMatterReadOnly, 5000);
-    void this.writeClean(document.uri, mirror);
+    // A file without changes keeps a view without changes: the edit that went back changed nothing.
+    void this.writeClean(document.uri, mirror)
+      .then(() => {
+        const real = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === mirror.file.toString());
+        return real && this.followSave(real);
+      })
+      .catch((error: unknown) => this.log.appendLine(`${new Date().toISOString()} ${String(error)}`));
   }
 
   /**
@@ -1055,11 +1121,23 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * writeClean writes the clean text of the model into the clean document.
+   * writeClean writes the clean text of the model into the clean document, and keeps the write in the link, so that a
+   * save of the view after a save of its file waits for it.
    * @param uri - The URI of the clean document.
    * @param mirror - The link of the clean document.
    */
-  private async writeClean(uri: vscode.Uri, mirror: Mirror): Promise<void> {
+  private writeClean(uri: vscode.Uri, mirror: Mirror): Promise<void> {
+    const write = this.writeCleanText(uri, mirror);
+    mirror.cleaned = write.catch(() => undefined);
+    return write;
+  }
+
+  /**
+   * writeCleanText writes the clean text of the model into the clean document, for writeClean.
+   * @param uri - The URI of the clean document.
+   * @param mirror - The link of the clean document.
+   */
+  private async writeCleanText(uri: vscode.Uri, mirror: Mirror): Promise<void> {
     const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri.toString());
     if (document && !document.isDirty && !hasTab(uri)) {
       // VS Code reads a clean document without a tab and without changes again from the file system; an edit would
@@ -1203,7 +1281,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   /**
    * writeFile saves the file of a clean document: VS Code writes the clean text when the user saves the view. A text
    * that differs from the clean text of the model goes into the file as one change first. A file that the clean URI
-   * names as it is (resourceOf) does not change.
+   * names as it is (resourceOf) does not change. A view that follows a file without changes (followSave) leaves the
+   * file as it is, also when it changed again since.
    * @param uri - The URI of the clean document.
    * @param content - The clean text.
    */
@@ -1212,6 +1291,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       throw vscode.FileSystemError.NoPermissions('The clean editing view changes only Markdown files.');
     }
     const mirror = await this.mirrorOf(uri);
+    if (this.asIs.has(uri.toString())) {
+      mirror.mtime = Date.now();
+      return;
+    }
     const text = new TextDecoder().decode(content);
     if (text !== mirror.projection.clean) {
       this.takeText(mirror, text);

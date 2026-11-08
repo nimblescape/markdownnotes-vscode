@@ -766,17 +766,47 @@ describe('the editor of a whole file (R-TEXT-010)', () => {
     return { file, input };
   }
 
-  it('opens every Markdown file in the editor by default, and "Open Text Editor to the Side" opens the text of the file', async () => {
+  it('opens every Markdown file in the editor by default, and "Open Text Editor to the Side" opens the clean editing view of a file with notes beside it (decision 72)', async () => {
     await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
     const { file, input } = await opened(note);
     assert.ok(input instanceof vscode.TabInputCustom, 'the custom editor');
     assert.equal(input.viewType, viewType);
     await vscode.commands.executeCommand(commandOf('openTextEditor'), file);
-    const editor = await waitFor(() => (vscode.window.activeTextEditor?.document.uri.toString() === file.toString() ? vscode.window.activeTextEditor : undefined), 'the text editor');
-    assert.equal(editor.document.getText(), note);
+    // The text editor of the file becomes the clean editing view (R-TEXT-009), and the editor stays.
+    const editor = await waitFor(() => {
+      const active = vscode.window.activeTextEditor;
+      return active?.document.uri.scheme === 'markdownnotes' && active.document.uri.path === file.path ? active : undefined;
+    }, 'the clean editing view');
+    assert.doesNotMatch(editor.document.getText(), /note-aaaa|<!--/);
     assert.notEqual(editor.viewColumn, vscode.ViewColumn.One);
+    await waitFor(() => (vscode.window.tabGroups.all.flatMap((group) => group.tabs).some((tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === file.toString()) ? undefined : true), 'the close of the tab of the file');
+    assert.ok(
+      vscode.window.tabGroups.all.flatMap((group) => group.tabs).some((tab) => tab.input instanceof vscode.TabInputCustom && tab.input.uri.toString() === file.toString()),
+      'the editor of the file stays',
+    );
     const plain = await opened('# Title\n\nText.\n');
     assert.ok(plain.input instanceof vscode.TabInputCustom, 'the custom editor of a file without notes');
+  });
+
+  it('keeps the front matter of a paper read-only in the text editor beside the editor, and saves the view after a save of the file in the editor (decision 72)', async () => {
+    await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
+    const paper = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text.\n';
+    const { file } = await opened(paper);
+    await vscode.commands.executeCommand(commandOf('openTextEditor'), file);
+    const editor = await waitFor(() => {
+      const active = vscode.window.activeTextEditor;
+      return active?.document.uri.scheme === 'markdownnotes' && active.document.uri.path === file.path ? active : undefined;
+    }, 'the clean editing view');
+    const real = vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString())!;
+    // An edit of the front matter goes back.
+    await editor.edit((edit) => edit.insert(new vscode.Position(2, 7), 'The '));
+    await waitFor(() => (editor.document.getText() === paper ? true : undefined), 'the front matter back');
+    assert.equal(real.getText(), paper);
+    // An edit after it goes into the file; the save of the file saves the view too.
+    await editor.edit((edit) => edit.insert(new vscode.Position(5, 0), 'Now '));
+    await waitFor(() => (real.getText().includes('Now A text.') ? true : undefined), 'the edit in the file');
+    assert.ok(await real.save(), 'the save of the file');
+    await waitFor(() => (editor.document.isDirty ? undefined : true), 'the save of the view');
   });
 
   it('opens only the files with notes and the papers in the editor with the value notesAndPapers, and no file with none', async () => {
