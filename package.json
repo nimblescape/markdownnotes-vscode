@@ -712,7 +712,7 @@
           ],
           "default": "all",
           "scope": "resource",
-          "markdownDescription": "Which Markdown files open in the editor of rendered Markdown, which shows the text without the markup of the notes and the notes in the side view Notes. Every other file opens in the text editor. \"Reopen Editor With\" of VS Code and the button \"Open Text Editor to the Side\" open the text editor of a file in each case."
+          "markdownDescription": "Which Markdown files open in the editor of rendered Markdown, which shows the text without the markup of the notes and the notes in the side view Notes. Every other file opens in the text editor. \"Reopen Editor With\" of VS Code and the button \"Open Text Editor to the Side\" open the text editor of a file in each case: for a file with notes and for a paper, the clean editing view, which keeps the front matter read-only and the markup of the notes hidden."
         },
         "nimblescape.markdownNotes.previewExtensions": {
           "type": "boolean",

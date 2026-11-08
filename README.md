@@ -74,7 +74,8 @@ describes each step and where its protection ends.
   editor shows the highlights of the notes, the side view follows its
   cursor, and "Comment" in the format bar over the selected text adds a
   note. The button "Open Text Editor to the Side" in the title of the editor
-  opens the text of the file. A diff, for example of the changes in Git,
+  opens the text editor of the file, which keeps the front matter read-only
+  and the markup of the notes hidden. A diff, for example of the changes in Git,
   shows the editor on both sides, with the removed and the new text marked.
   The editor shows what other extensions add to the Markdown preview, for
   example diagrams and math. The setting `renderedEditor` chooses the files
@@ -266,7 +267,7 @@ extension to everyone who opens it.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown: `all` every Markdown file, `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper, `none` no file. Every other file opens in the text editor. "Reopen Editor With" of VS Code always offers the text editor. |
+| `nimblescape.markdownNotes.renderedEditor` | `all` | Which Markdown files open in the editor of rendered Markdown: `all` every Markdown file, `notesAndPapers` the files with notes or with the comment of the format and the papers of nimblescape Markdown Paper, `none` no file. Every other file opens in the text editor. "Reopen Editor With" of VS Code always offers the text editor, which is the clean editing view for a file with notes and for a paper. |
 | `nimblescape.markdownNotes.previewExtensions` | `true` | Whether the editor of rendered Markdown shows the syntax that other extensions add to the Markdown preview of VS Code, for example diagrams and math. |
 | `nimblescape.markdownNotes.showHighlights` | `true` | Shows the highlights of the notes in the editor of rendered Markdown, the text editor and the Markdown preview, also while the side view "Notes" is closed. The buttons "Hide Highlights" and "Show Highlights" in the title of the editor change it. |
 | `nimblescape.markdownNotes.showFootnotes` | `true` | Shows the standard footnotes of the file, for example `[^1]`, in the side view, where you edit and delete them. "Hide Footnotes" and "Show Footnotes" in the menu "…" of the title of the side view change it. |

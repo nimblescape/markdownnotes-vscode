@@ -30,7 +30,7 @@ import { settingsSection } from './settings';
 import { slashCommandIds } from './slashCommands';
 import { snippetCommands } from './snippets';
 import { usedSnippetCommands } from './usedSnippets';
-import { Fake, FakeCodeActionKind, FakeDocument, FakeEditor, FakeFoldingRange, FakePosition, FakeRange, FakeSelection, type FakeTextEdit, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
+import { Fake, FakeCodeActionKind, FakeDocument, FakeEditor, FakeFoldingRange, FakePosition, FakeRange, FakeSelection, type FakeTab, FakeTabInputCustom, FakeTabInputText, type FakeTextEdit, FakeUri, type FakeView, marked, settle } from './testing/fakeVscode';
 
 // The static imports of the modules read only their constants; each test imports the extension with a new fake of the
 // editor API.
@@ -207,6 +207,31 @@ test('a step of another extension that writes the markers of a list runs again a
   // The next format keeps the text.
   expect(await save(fake.open(text, '/folder/formatted.md'))).toEqual([]);
   registration.dispose();
+});
+
+test.each([
+  ['all, the default', undefined],
+  ['notesAndPapers', 'notesAndPapers'],
+  ['none', 'none'],
+])('the text editor of a file with notes is the clean editing view with the value %s of the setting renderedEditor, also beside the editor of a whole file (R-TEXT-009, decision 72)', async (_name, files) => {
+  if (files) {
+    fake.settings.set('workspace', { renderedEditor: files });
+  }
+  const file = fake.open(note);
+  // The editor of a whole file shows the file in the first group, and its text editor opens to the side.
+  const custom: FakeTab = { input: new FakeTabInputCustom(file.uri, renderedEditor.viewType) };
+  const text: FakeTab = { input: new FakeTabInputText(file.uri) };
+  fake.tabGroups.push({ viewColumn: 1, tabs: [custom], activeTab: custom }, { viewColumn: 2, tabs: [text], activeTab: text });
+  const editor = new FakeEditor(file, 0, 2);
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  await fake.activate();
+  for (let step = 0; step < 5; step++) {
+    await settle();
+  }
+  expect(fake.activeEditor?.document.uri.scheme).toBe('markdownnotes');
+  expect(fake.activeEditor?.document.getText()).not.toContain('note-aaaa');
+  expect(fake.closedTabs).toEqual([text]);
 });
 
 test('another extension hides blocks at the end of a file in the clean editing view through the API, until its disposal (R-TEXT-009, R-GEN-012)', async () => {
