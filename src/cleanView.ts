@@ -15,13 +15,16 @@
  * the notes at their text; a change of the file, for example a new note of the
  * side view, comes back into the clean text. A save of the view saves the file.
  * The highlights of the notes show in the view as in the text editor of the
- * file. The front matter is read-only in the view (decision 58): an edit of it
- * goes back, and Undo goes over such an edit. The link above it opens the form
- * of the front matter of nimblescape Markdown Paper (decision 59).
+ * file. The front matter is text in the view. Another extension, for example
+ * nimblescape Markdown Paper, can give the rules of the front matter of a file
+ * (decision 75): the keys of its schema and the lines of its read-only keys
+ * stay as they are, an edit that changes them goes back, and Undo goes over
+ * such an edit; the schema gives the problems, the quick fixes and the
+ * suggestions of the front matter ([src/frontMatterEditing.ts](frontMatterEditing.ts)).
  *
  * A Markdown file with notes always opens in the view, and so does a paper
  * document of nimblescape Markdown Paper (a front matter with the key
- * `layout`), also without notes, so that its front matter is read-only
+ * `layout`), also without notes, so that the rules of its front matter apply
  * (decision 61): each text editor of such a file that shows becomes the view,
  * in its group and at its place of the cursor, also the text editor of a file
  * that opens in the editor of a whole file, for example with "Open Text Editor
@@ -31,9 +34,11 @@
  */
 
 import * as vscode from 'vscode';
+import { registerFrontMatterEditing } from './frontMatterEditing';
 import { highlightStyles } from './noteEditor';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, keepsFrontMatter, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
 import { frontMatterEnd } from './notes/doctype';
+import { type FrontMatterRules, keepsRules } from './notes/frontMatterRules';
 import { colorIndexOf, noteColors } from './notes/colors';
 import type { SelectedNotes } from './selectedNotes';
 
@@ -43,25 +48,19 @@ export const cleanScheme = 'markdownnotes';
 /** cleanCommands are the commands of the clean editing view. */
 export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWithMarkup' };
 
-/** frontMatterReadOnly is the message of the status bar after an edit of the front matter in the clean editing view. */
-export const frontMatterReadOnly = 'The front matter is read-only in the clean editing view. Change it with "Open File with Markup".';
+/** frontMatterKept is the message of the status bar after an edit that went back because it broke the rules of the front matter. */
+export const frontMatterKept = 'The keys of the schema of the front matter and the read-only keys with their values stay as they are. Change the text after a key.';
 
-/** frontMatterInForm is the message of the status bar after an edit of the front matter, while the form of nimblescape Markdown Paper exists. */
-export const frontMatterInForm = 'The front matter is read-only in the clean editing view. Change it with "Edit Front Matter" above it.';
-
-/**
- * paper names nimblescape Markdown Paper and its command that opens and focuses its view "Front Matter", the form of the
- * front matter of a file, with the URI of the file as its argument.
- */
-export const paper = { extension: 'nimblescape.nimblescape-markdownpaper', editFrontMatter: 'nimblescape.markdownPaper.editFrontMatter' };
-
-/**
- * hasFrontMatterForm tells whether the installed nimblescape Markdown Paper has the command of its form of the front
- * matter. VS Code starts the extension when the command runs.
- */
-function hasFrontMatterForm(): boolean {
-  const commands: unknown = vscode.extensions.getExtension(paper.extension)?.packageJSON?.contributes?.commands;
-  return Array.isArray(commands) && commands.some((command: { command?: unknown }) => command?.command === paper.editFrontMatter);
+/** FrontMatterSchemas gives the clean editing view the rules of the front matter of a file (decision 75). */
+export interface FrontMatterSchemas {
+  /**
+   * schemaOf returns the rules of the front matter of a file, or undefined when the extension has no rules for it.
+   * @param file - The URI of the file.
+   * @param text - The text of the file.
+   */
+  schemaOf(file: vscode.Uri, text: string): Thenable<FrontMatterRules | undefined> | FrontMatterRules | undefined;
+  /** onDidChange tells that the rules can have changed, for example after a change of a layout. */
+  onDidChange?: vscode.Event<void>;
 }
 
 /**
@@ -163,6 +162,14 @@ interface Mirror {
    */
   typing?: { from: number; to: number };
   /**
+   * rules are the rules of the front matter of the file: undefined while they load the first time, null without rules.
+   * They come from the extensions that give the rules of front matters (decision 75).
+   */
+  rules?: FrontMatterRules | null;
+  /** rulesFor is the front matter of the last load of the rules, and rulesRun counts the loads, so that only the last one counts. */
+  rulesFor?: string;
+  rulesRun?: number;
+  /**
    * refused holds the clean texts after the edits of the front matter that went back, each with the clean text before
    * it. VS Code keeps the write of the front matter back as an undo step of its own, so Undo brings such an edit back;
    * the view then undoes one more step, the edit itself, and comes back to the clean text before it.
@@ -257,8 +264,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly changes = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this.changes.event;
   private readonly fileChanges = new vscode.EventEmitter<vscode.Uri>();
-  /** lensChanges fires when the link above the front matter changes, after an extension was installed or removed. */
-  private readonly lensChanges = new vscode.EventEmitter<void>();
+  /** rulesChanges tells the clean document whose rules of the front matter changed. */
+  private readonly rulesChanges = new vscode.EventEmitter<vscode.Uri>();
+  /** schemas are the extensions that give the rules of front matters, in the order of their registration. */
+  private readonly schemas: FrontMatterSchemas[] = [];
   /**
    * onDidChangeMarkup tells the file of a view whose text changed from elsewhere, for example a new note of the side
    * view: the Markdown preview of the view renders the file again, also when its clean text stays.
@@ -343,8 +352,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   /**
    * belongsInView tells whether the file of a text opens in the view: a text with the markup of notes (a start marker, a
    * reference or a definition of a note, or the comment of the format; an anchor of a figure or a table; or a block or a
-   * marker that another extension hides), or a paper document, also without notes, so that its front matter is
-   * read-only (decision 61).
+   * marker that another extension hides), or a paper document, also without notes, so that the rules of its front
+   * matter apply (decision 61).
    * @param text - The text.
    */
   private belongsInView(text: string): boolean {
@@ -395,6 +404,91 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     });
   }
 
+  /**
+   * registerFrontMatterSchema makes the view keep the rules of the front matter that another extension gives
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009), decision 75): the keys of the schema and the read-only keys with
+   * their values stay, and the schema gives the problems, the quick fixes and the suggestions. The first extension
+   * that gives rules for a file wins.
+   * @param schemas - Gives the rules of the front matter of a file.
+   */
+  registerFrontMatterSchema(schemas: FrontMatterSchemas): vscode.Disposable {
+    this.schemas.push(schemas);
+    const listener = schemas.onDidChange?.(() => this.reloadRules());
+    this.reloadRules();
+    return new vscode.Disposable(() => {
+      listener?.dispose();
+      const index = this.schemas.indexOf(schemas);
+      if (index >= 0) {
+        this.schemas.splice(index, 1);
+        this.reloadRules();
+      }
+    });
+  }
+
+  /** reloadRules loads the rules of the front matter of each view anew. */
+  private reloadRules(): void {
+    for (const [key, mirror] of this.ready) {
+      this.loadRules(vscode.Uri.parse(key), mirror, true);
+    }
+  }
+
+  /**
+   * loadRules loads the rules of the front matter of a view, after a change of its front matter, or again. Until the
+   * first load is done, the front matter stays as it is; a later load keeps the rules before it until it is done.
+   * @param uri - The URI of the clean document.
+   * @param mirror - The link of the clean document.
+   * @param again - Tells whether the rules load also for the same front matter.
+   */
+  private loadRules(uri: vscode.Uri, mirror: Mirror, again = false): void {
+    const lines = mirror.model.split(/\r\n|\r|\n/);
+    const head = lines.slice(0, frontMatterEnd(lines)).join('\n');
+    if (!again && mirror.rulesRun !== undefined && mirror.rulesFor === head) {
+      return;
+    }
+    mirror.rulesFor = head;
+    const run = (mirror.rulesRun ?? 0) + 1;
+    mirror.rulesRun = run;
+    const done = (rules: FrontMatterRules | undefined): void => {
+      if (mirror.rulesRun === run) {
+        mirror.rules = rules ?? null;
+        this.rulesChanges.fire(uri);
+      }
+    };
+    if (this.schemas.length === 0 || head === '') {
+      done(undefined);
+      return;
+    }
+    void this.rulesFrom(mirror.file, mirror.model).then(done, () => done(undefined));
+  }
+
+  /**
+   * rulesFrom returns the rules of the front matter of a file from the first extension that has rules for it; an
+   * extension that fails has none.
+   * @param file - The URI of the file.
+   * @param text - The text of the file.
+   */
+  private async rulesFrom(file: vscode.Uri, text: string): Promise<FrontMatterRules | undefined> {
+    for (const schemas of [...this.schemas]) {
+      try {
+        const rules = await schemas.schemaOf(file, text);
+        if (rules) {
+          return rules;
+        }
+      } catch {
+        // The next extension.
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * rulesOf returns the rules of the front matter of a clean document, or undefined without rules or while they load.
+   * @param document - The URI of the clean document.
+   */
+  rulesOf(document: vscode.Uri): FrontMatterRules | undefined {
+    return this.ready.get(document.toString())?.rules ?? undefined;
+  }
+
   /** blocksChanged writes each view anew after a change of the finders of hidden blocks or markers, and switches the text editors. */
   private blocksChanged(): void {
     for (const [key, mirror] of this.ready) {
@@ -411,8 +505,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const registrations = [
       vscode.workspace.registerFileSystemProvider(cleanScheme, this, { isCaseSensitive: true }),
       vscode.commands.registerCommand(cleanCommands.openWithMarkup, () => this.openWithMarkup()),
-      vscode.languages.registerCodeLensProvider({ scheme: cleanScheme }, { onDidChangeCodeLenses: this.lensChanges.event, provideCodeLenses: (document) => this.frontMatterLenses(document) }),
-      vscode.extensions.onDidChange(() => this.lensChanges.fire()),
+      ...registerFrontMatterEditing(cleanScheme, { rulesOf: (document) => this.rulesOf(document), onDidChangeRules: this.rulesChanges.event }),
       vscode.workspace.onDidOpenTextDocument((document) => this.opened(document)),
       vscode.workspace.onDidChangeTextDocument((event) => {
         void this.changed(event);
@@ -452,7 +545,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   dispose(): void {
     this.changes.dispose();
     this.fileChanges.dispose();
-    this.lensChanges.dispose();
+    this.rulesChanges.dispose();
     this.log.dispose();
     for (const type of this.highlights.flat()) {
       type.dispose();
@@ -873,6 +966,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       const projection = project(model, this.optionsOf(file));
       const opened: Mirror = { file, model, projection, queue: Promise.resolve(), writing: 0, mtime: Date.now(), shown: false, history: [entryOf(projection)] };
       this.ready.set(key, opened);
+      this.loadRules(uri, opened);
       if (vscode.workspace.textDocuments.some((document) => document.uri.toString() === key)) {
         // VS Code read the document before as a file that is no Markdown file, as it is; it reads the clean text now.
         this.changes.fire([{ type: vscode.FileChangeType.Changed, uri }]);
@@ -896,6 +990,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const mirror = this.ready.get(document.uri.toString());
     if (mirror && document.getText() !== mirror.projection.clean) {
       this.takeText(mirror, document.getText());
+      this.loadRules(document.uri, mirror);
     }
   }
 
@@ -1019,6 +1114,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         mirror.model = event.document.getText();
         mirror.projection = project(mirror.model, this.optionsOf(mirror.file));
         mirror.history = [entryOf(mirror.projection)];
+        this.loadRules(vscode.Uri.parse(clean), mirror);
         await this.writeClean(vscode.Uri.parse(clean), mirror);
         this.fileChanges.fire(mirror.file);
       }
@@ -1065,7 +1161,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       const from = continues ? Math.min(typing!.from, start) : start;
       typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(projection, after) ? { from, to: after } : undefined;
     }
-    if (!keepsFrontMatter(mirror.model, model)) {
+    if (!keepsRules(mirror.model, model, mirror.rules)) {
       this.refuse(mirror, event);
       return;
     }
@@ -1074,6 +1170,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     mirror.typing = typing;
     mirror.history = [...mirror.history, entryOf(mirror.projection)].slice(-historySize);
     this.writeReal(mirror);
+    this.loadRules(document.uri, mirror);
     if (document.getText() !== mirror.projection.clean) {
       // The edit changed how the file reads, for example a code block that it opened: the view shows the file again.
       this.log.appendLine(`${new Date().toISOString()} the clean text is written anew`);
@@ -1107,8 +1204,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * refuse takes back an edit of a clean document that changes its front matter, which is read-only in the view: the
-   * edit goes back as a whole, the file stays as it is, the view of a file without changes has no changes either, and
+   * refuse takes back an edit of a clean document that breaks the rules of its front matter (decision 75): the edit goes
+   * back as a whole, the file stays as it is, the view of a file without changes has no changes either, and
    * the status bar says why. An Undo that brings back such an
    * edit undoes the edit too, so that Undo goes on with the edits before it.
    * @param mirror - The link of the clean document.
@@ -1131,7 +1228,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // A typed edit, or its Redo: its undo step comes back to the clean text before it.
       mirror.refused = [...refused, { text, clean }].slice(-historySize);
     }
-    vscode.window.setStatusBarMessage(hasFrontMatterForm() ? frontMatterInForm : frontMatterReadOnly, 5000);
+    vscode.window.setStatusBarMessage(frontMatterKept, 5000);
     // A file without changes keeps a view without changes: the edit that went back changed nothing.
     void this.writeClean(document.uri, mirror)
       .then(() => {
@@ -1139,25 +1236,6 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         return real && this.followSave(real);
       })
       .catch((error: unknown) => this.log.appendLine(`${new Date().toISOString()} ${String(error)}`));
-  }
-
-  /**
-   * frontMatterLenses returns the link above the front matter of a clean document, which is read-only in the view: "Edit
-   * Front Matter", which opens the form of the front matter of nimblescape Markdown Paper for the file, or without it
-   * "Open File with Markup", which opens the file itself.
-   * @param document - The clean document.
-   */
-  private frontMatterLenses(document: vscode.TextDocument): vscode.CodeLens[] {
-    const file = fileOf(document.uri);
-    if (!file || frontMatterEnd(document.getText().split(/\r\n|\r|\n/)) === 0) {
-      return [];
-    }
-    const range = new vscode.Range(0, 0, 0, 0);
-    return [
-      hasFrontMatterForm()
-        ? new vscode.CodeLens(range, { title: 'Edit Front Matter', command: paper.editFrontMatter, arguments: [file], tooltip: 'Open the form of the front matter of nimblescape Markdown Paper' })
-        : new vscode.CodeLens(range, { title: 'Open File with Markup', command: cleanCommands.openWithMarkup, tooltip: 'The front matter is read-only here: open the file itself to change it' }),
-    ];
   }
 
   /**
