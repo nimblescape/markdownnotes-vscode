@@ -108,7 +108,8 @@ test('the extension starts with the Markdown files, and adds its plugin, its sty
   expect(manifest.activationEvents).toEqual(['onLanguage:markdown', 'workspaceContains:**/*.md', 'onFileSystem:markdownnotes', 'onUri']);
   expect(manifest.contributes['markdown.markdownItPlugins']).toBe(true);
   expect(manifest.contributes['markdown.previewStyles']).toEqual(['./media/markdownPreview.css']);
-  expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js']);
+  // The script of the way back after a jump (R-TEXT-011) is a bundle of the build.
+  expect(manifest.contributes['markdown.previewScripts']).toEqual(['./media/markdownPreview.js', './dist/previewJumps.js']);
   for (const file of ['media/markdownPreview.css', 'media/markdownPreview.js']) {
     expect(fs.existsSync(path.join(repository, file)), file).toBe(true);
   }
@@ -614,6 +615,7 @@ test('the package holds the bundle, the styles and the scripts of the preview an
     '!dist/extension.js',
     '!dist/visualEditor.js',
     '!dist/editor.js',
+    '!dist/previewJumps.js',
     '!dist/visualEditor.css',
     '!media/markdownPreview.css',
     '!media/markdownPreview.js',

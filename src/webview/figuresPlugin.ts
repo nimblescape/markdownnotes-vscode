@@ -313,25 +313,20 @@ interface Analysis {
 /** analyses holds the analysis of each document, which is the same for the same document. */
 const analyses = new WeakMap<PmNode, Analysis>();
 
-/** editors are the editors with the plugin, so that a reference can go to its target in its editor. */
-const editors = new Set<Editor>();
+/** editors are the editors with the plugin, by their Tiptap editors, so that a reference can go to its target in its editor. */
+const editors = new Map<Editor, PluginEditor>();
 
 /**
- * reveal puts the cursor at the start of a target in the editor of a document and scrolls to it.
+ * reveal goes to the start of a target in the editor of a document, from the reference where the cursor stands, so that
+ * Go Back returns to the reference ([R-TEXT-011](../../docs/requirements.md#r-text-011)).
  * @param doc - The document.
  * @param pos - The position of the textblock of the target.
  */
 function reveal(doc: PmNode, pos: number): void {
-  for (const tiptap of editors) {
-    if (tiptap.state.doc !== doc) {
-      continue;
+  for (const [tiptap, editor] of editors) {
+    if (tiptap.state.doc === doc) {
+      editor.jumpTo(pos + 1);
     }
-    const { view } = tiptap;
-    const selection = TextSelection.near(doc.resolve(pos + 1));
-    view.dispatch(view.state.tr.setSelection(selection).scrollIntoView());
-    const { node } = view.domAtPos(selection.from);
-    const element = node instanceof Element ? node : node.parentElement;
-    element?.scrollIntoView?.({ block: 'center' });
   }
 }
 
@@ -623,7 +618,7 @@ export const styles = '.nsmd-listing-comment { display: none; }';
  */
 function activate(editor: PluginEditor): () => void {
   const tiptap = editor.tiptap;
-  editors.add(tiptap);
+  editors.set(tiptap, editor);
   return () => editors.delete(tiptap);
 }
 

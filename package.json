@@ -136,7 +136,8 @@
       "./media/markdownPreview.css"
     ],
     "markdown.previewScripts": [
-      "./media/markdownPreview.js"
+      "./media/markdownPreview.js",
+      "./dist/previewJumps.js"
     ],
     "viewsContainers": {
       "secondarySidebar": [

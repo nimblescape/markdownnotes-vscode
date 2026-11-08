@@ -4,13 +4,15 @@
 
 # The package holds the bundle, the styles and the scripts of the Markdown
 # preview and of the side view, the bundle of the visual editor of the side
-# view with its styles, the bundle of the editor of a whole file, the icons,
-# the icon font and the documents only:
+# view with its styles, the bundle of the editor of a whole file, the bundle
+# of the way back in the preview, the icons, the icon font and the documents
+# only:
 # ignore everything, then keep the listed files.
 **
 !dist/extension.js
 !dist/visualEditor.js
 !dist/editor.js
+!dist/previewJumps.js
 !dist/visualEditor.css
 !media/markdownPreview.css
 !media/markdownPreview.js

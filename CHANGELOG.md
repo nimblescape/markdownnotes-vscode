@@ -327,6 +327,14 @@ The first version.
   of the front matter of a file in the clean editing view, and
   `registerSlashCommand` for a
   slash command, also one on selected text.
+- Jumps in the file and the way back, in the three views of a Markdown
+  file: a link to a heading or an anchor of the file, such as an entry of a
+  table of contents, a cross reference or a citation, and a footnote go to
+  their target with Ctrl+click (Cmd+click on macOS) in the Text Editor and
+  in the Markdown Editor, and with a click in the Markdown Preview. Go Back
+  and Go Forward return, with the keys of VS Code, the back and forward
+  buttons of the mouse, and the buttons of the Markdown Editor and of the
+  preview.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,
   `nimblescape.markdownNotes.openLinksIn`,

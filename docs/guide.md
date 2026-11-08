@@ -57,6 +57,7 @@ Windows and Linux; on macOS, use Cmd instead of Ctrl.
 | [Make a note a footnote](#make-a-note-a-footnote) | side view | available | [R-FOOT-006](requirements.md#r-foot-006) |
 | [Highlights in the Markdown preview](#highlights-in-the-markdown-preview) | Markdown preview | available | [R-PREV-001](requirements.md#r-prev-001), [R-PREV-003](requirements.md#r-prev-003), [R-PREV-004](requirements.md#r-prev-004) |
 | [Three views of a Markdown file](#three-views-of-a-markdown-file) | views "Text Editor", "Markdown Preview" and "Markdown Editor", the list of the editors and the buttons in the title | available; the visual editor of VS Code: side view only, because VS Code offers no API for extensions there | [R-GEN-001](requirements.md#r-gen-001), [R-PREV-006](requirements.md#r-prev-006) |
+| [Go back after a link](#go-back-after-a-link) | Text Editor, Markdown Preview, Markdown Editor | available | [R-TEXT-011](requirements.md#r-text-011) |
 | [Formatter](#formatter) | text editor, on save; [command line](#formatter-on-the-command-line) for programs and AI agents | available | [R-FMT-001](requirements.md#r-fmt-001) to [R-FMT-004](requirements.md#r-fmt-004) |
 | [Settings](#settings) | VS Code | available | [R-GEN-010](requirements.md#r-gen-010), [R-GEN-011](requirements.md#r-gen-011), [R-NOTE-007](requirements.md#r-note-007), [R-FOOT-001](requirements.md#r-foot-001), [R-HIDE-002](requirements.md#r-hide-002) |
 | [Visual editing of an answer](#editors-of-the-side-view) | side view | available | [R-SIDE-004](requirements.md#r-side-004) |
@@ -1562,6 +1563,33 @@ extension that uses such an API. It therefore shows a start marker as a gap,
 a reference as its text, for example `[^note-7k2q]`, and the text of a note
 as a code block. The notes stay in the file as they are, and a click on a
 thread in the side view selects the text of its highlight there.
+
+### Go back after a link
+
+A link to a place of the file itself goes there in each of the three views,
+and Go Back returns to the link:
+
+- The links are the links to a heading or to an anchor of the file, for
+  example the entries of a table of contents and of the lists of figures,
+  tables and listings, the references to figures, tables, listings and
+  sections, and the citations of nimblescape Markdown Paper; a footnote
+  reference goes to its footnote, and the label of a footnote goes to its
+  first reference. While the side view shows the footnotes, the clean
+  editing view hides them, and the cursor on a reference selects the
+  footnote in the side view.
+- In the Text Editor and in the Markdown Editor, Ctrl+click (Cmd+click on
+  macOS) on a link goes to its target. In the Markdown Preview, a click on
+  a link goes there.
+- Go Back and Go Forward of VS Code return: Ctrl+Alt+- and Ctrl+Shift+- on
+  Linux, Alt+Left and Alt+Right on Windows, Ctrl+- and Ctrl+Shift+- on
+  macOS, and the back and forward buttons of the mouse. The Markdown
+  Editor shows the buttons "Go Back" and "Go Forward" in its toolbar after
+  the first jump, and the preview shows the buttons "Back" and "Forward" at
+  its bottom right while there is a place to go to.
+- In the Markdown Editor and in the preview, the buttons Go Back and Go
+  Forward in the title bar of VS Code go to the editor of before, not to a
+  place inside the view, and on Windows the back and forward buttons of the
+  mouse do the same.
 
 ## Formatter
 
