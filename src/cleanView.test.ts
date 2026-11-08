@@ -346,27 +346,40 @@ test('keeps the generated parts read-only: an edit of the number of a caption or
   expect(fake.statusMessages).toHaveLength(3);
 });
 
-test('lets the format of the view write the generated parts, and keeps the parts that another extension names read-only (R-TEXT-009, R-GEN-012)', async () => {
+test('formats the text of the file for "Format Document" of the view, with its hidden parts, and takes the formatted file as it is (R-TEXT-009, R-FMT-001)', async () => {
   const { generatedReadOnly } = await import('./cleanView');
-  const { FakeTextEdit } = await import('./testing/fakeVscode');
   const stale = figured.replace('Figure 1: A cat', 'Figure 3: A cat');
   const { view, real, document } = await opened(stale);
   document.isDirty = true;
-  // "Format Document" of the view writes the number of the caption anew.
-  const number = document.text.indexOf('3:');
-  const range = new FakeRange(document.positionAt(number), document.positionAt(number + 1));
-  view.formats(document as never, [FakeTextEdit.replace(range, '1') as never]);
-  typeIn(document, number, number + 1, '1');
+  // The formatter gets the text of the file, with the anchor of the caption and the notes that the view hides, and
+  // writes the number of the caption anew; the edit changes only the number in the view.
+  const texts: string[] = [];
+  const edits = view.formatOf(document as never, (file) => {
+    texts.push(file);
+    return file.replace('Figure 3: A cat', 'Figure 1: A cat');
+  });
+  expect(texts).toEqual([stale]);
+  expect(edits.map((edit) => [document.offsetAt(edit.range.start as never), document.offsetAt(edit.range.end as never), edit.newText])).toEqual([[7, 8, '1']]);
+  typeIn(document, 7, 8, '1');
   await settle();
   expect(real.text).toBe(figured);
   expect(fake.statusMessages).toEqual([]);
-  // A part that another extension names, such as a citation, is read-only too, until its finder goes.
+  // A format that changes only hidden parts, such as the text of a note, goes into the file at once, without edits.
+  expect(view.formatOf(document as never, (file) => file.replace('Which ways?', 'Which way?'))).toEqual([]);
+  await settle();
+  expect(real.text).toBe(figured.replace('Which ways?', 'Which way?'));
+  expect(document.getText()).toBe(figured.replace('<a id="fig-cat"></a>', '').replace(text, clean));
+  // A view whose text is not the clean text of its file, for example during a write, gets no edits.
+  document.text = `Now ${document.text}`;
+  expect(view.formatOf(document as never, (file) => file.replace('A cat', 'A dog'))).toEqual([]);
+  document.text = document.text.slice('Now '.length);
+  // A part that another extension names, such as a citation, is read-only, until its finder goes.
   const finder = (lines: readonly string[]) => lines.flatMap((line, index) => (line.startsWith('See ') ? [{ line: index, start: line.indexOf('the next'), end: line.indexOf('the next') + 'the next'.length }] : []));
   const registration = view.registerGeneratedParts(finder);
   const next = document.text.indexOf('next part');
   typeIn(document, next, next + 'next'.length, 'last');
   await settle();
-  expect(real.text).toBe(figured);
+  expect(real.text).toBe(figured.replace('Which ways?', 'Which way?'));
   expect(fake.statusMessages).toEqual([generatedReadOnly]);
   registration.dispose();
   typeIn(document, next, next + 'next'.length, 'last');
@@ -412,6 +425,67 @@ test('saves the file for a save of the view, with each note', async () => {
   await view.writeFile(document.uri as never, new TextEncoder().encode(document.getText()));
   expect(real.saves).toBe(1);
   expect(real.text.startsWith('Now The agents <wbr><!--[note-7k2q green-->')).toBe(true);
+});
+
+test('saves the view as it is after the format of the save of its file changed its clean text, so that its tab shows no dot (R-FMT-001)', async () => {
+  const { view, real, document } = await opened();
+  typeIn(document, 0, 0, 'Now ');
+  await settle();
+  // The save of the file formats it before the write; the change reaches the view during the save of the view.
+  const save = real.save.bind(real);
+  real.save = async () => {
+    const end = real.positionAt(real.text.length);
+    await fake.applyEdit(Object.assign(new (fake.api.WorkspaceEdit as new () => object)(), { replacements: [{ uri: real.uri, range: new FakeRange(end.line, end.character, end.line, end.character), text: 'Formatted.\n' }] }) as never);
+    await settle();
+    return save();
+  };
+  document.isDirty = true;
+  await view.writeFile(document.uri as never, new TextEncoder().encode(document.getText()));
+  expect(real.text.endsWith('The next paragraph.\nFormatted.\n')).toBe(true);
+  expect(real.isDirty).toBe(false);
+  // VS Code keeps the changes of the view during its save as changes that are not saved; the view saves them after.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await settle();
+  expect(document.getText()).toBe(`Now ${clean}Formatted.\n`);
+  expect(document.saves).toBe(1);
+  expect(document.isDirty).toBe(false);
+  expect(view.savesAsIs(document.uri as never)).toBe(false);
+});
+
+test('keeps the file when VS Code opens the view with the clean text that it read before another extension hid more parts, and shows the clean text of now without changes (R-TEXT-009, R-GEN-012)', async () => {
+  const { CleanView, cleanUriOf } = await import('./cleanView');
+  const { SelectedNotes } = await import('./selectedNotes');
+  const view = new CleanView(() => true, new SelectedNotes());
+  view.register();
+  const marker = '<!-- toc -->';
+  const marked = text.replace('The next paragraph.', `${marker}The next paragraph.`);
+  const real = fake.open(marked);
+  const uri = cleanUriOf(real.uri as never);
+  // VS Code reads the clean text; the other extension registers its markers before VS Code opens the document.
+  const read = new TextDecoder().decode(await view.readFile(uri));
+  expect(read).toBe(`${clean.replace('The next', `${marker}The next`)}`);
+  view.registerHiddenMarkers((lines) => lines.flatMap((line, index) => (line.startsWith(marker) ? [{ line: index, start: 0, end: marker.length }] : [])));
+  await settle();
+  const document = new FakeDocument(uri as never, read);
+  fake.documents.push(document);
+  fake.show(document, { viewColumn: 1 });
+  fake.fire('open', document);
+  await settle();
+  await settle();
+  expect(real.text).toBe(marked);
+  expect(real.isDirty).toBe(false);
+  expect(document.getText()).toBe(clean);
+  expect(document.isDirty).toBe(false);
+  // A text of its own, for example the changes that VS Code kept from the last session, goes into the file.
+  const other = fake.open(text, '/folder/b.md');
+  const otherUri = cleanUriOf(other.uri as never);
+  await view.readFile(otherUri);
+  const kept = new FakeDocument(otherUri as never, `Now ${clean}`);
+  fake.documents.push(kept);
+  fake.fire('open', kept);
+  await settle();
+  await settle();
+  expect(other.text.startsWith('Now The agents')).toBe(true);
 });
 
 test('shows the highlight of the selected note strong, also while the highlights are hidden, and the others dimmed', async () => {

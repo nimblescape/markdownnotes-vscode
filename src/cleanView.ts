@@ -196,10 +196,22 @@ interface Mirror {
    */
   refused?: Array<{ text: string; clean: string }>;
   /**
-   * formatted is the clean text that "Format Document" or the format of a save gives the clean document. The change that
-   * gives it writes the generated parts, which the formatter keeps current.
+   * formatted is the formatted text of the file of "Format Document" of the view, with its clean text. The change that
+   * gives the view this clean text takes the formatted text as it is, with the generated parts that the formatter keeps
+   * current and the hidden parts.
    */
-  formatted?: string;
+  formatted?: { clean: string; text: string };
+  /**
+   * served holds the last clean texts that VS Code read from the file system of the view. VS Code may open the clean
+   * document with such a text after the projection changed, for example when another extension registered the parts
+   * that it hides after VS Code read the text: the view then shows the clean text of now, and the file stays.
+   */
+  served?: string[];
+  /**
+   * withChanges tells whether the save of the view that runs now gives the file the changes before its save, the format
+   * and the comment of the format: not an automatic save after a delay, and not "Save without Formatting".
+   */
+  withChanges?: boolean;
 }
 
 /** Entry is a clean text of the history of a view, with the text of its file and the options of its projection. */
@@ -217,6 +229,9 @@ const entryOf = (projection: Projection): Entry => ({ clean: projection.clean, t
 
 /** historySize is the number of the texts that the history of a view keeps. */
 const historySize = 200;
+
+/** servedSize is the number of the clean texts that VS Code read, which a view keeps (Mirror.served). */
+const servedSize = 8;
 
 /** selectTime is the time in milliseconds in which select waits for the text editor of a file or its view. */
 const selectTime = 2000;
@@ -586,21 +601,57 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * formats tells the view the edits of the formatter for a clean document, from "Format Document" or the format of a
-   * save: the change that gives their text may write the generated parts (R-GEN-016).
+   * fileOf returns the open document of the file of a clean document.
    * @param document - The clean document.
-   * @param edits - The edits of the formatter.
    */
-  formats(document: vscode.TextDocument, edits: readonly vscode.TextEdit[]): void {
+  fileOf(document: vscode.TextDocument): vscode.TextDocument | undefined {
     const mirror = this.ready.get(document.uri.toString());
-    if (!mirror || edits.length === 0) {
-      return;
+    return mirror && vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === mirror.file.toString());
+  }
+
+  /**
+   * savesWithChanges tells the view that its next save gives the file the changes before its save (R-FMT-001), and
+   * returns whether it does: not for a view that VS Code saves as it is (savesAsIs).
+   * @param document - The clean document.
+   */
+  savesWithChanges(document: vscode.TextDocument): boolean {
+    const mirror = this.ready.get(document.uri.toString());
+    if (!mirror || this.asIs.has(document.uri.toString())) {
+      return false;
     }
-    let text = document.getText();
-    for (const edit of [...edits].sort((a, b) => document.offsetAt(b.range.start) - document.offsetAt(a.range.start))) {
-      text = text.slice(0, document.offsetAt(edit.range.start)) + edit.newText + text.slice(document.offsetAt(edit.range.end));
+    mirror.withChanges = true;
+    return true;
+  }
+
+  /**
+   * formatOf returns the edits of "Format Document" of a clean document (R-FMT-001): the formatter formats the text of
+   * its file, with the hidden parts that the clean text lacks, and the edits change the clean text into the clean
+   * text of the formatted file. The change that gives this clean text takes the formatted file as it is, also its
+   * generated parts (R-GEN-016). A format that changes only hidden parts goes into the file at once. A view whose text
+   * differs from the clean text of its file, for example during a write, gets no edits.
+   * @param document - The clean document.
+   * @param format - Returns the formatted text of a file.
+   */
+  formatOf(document: vscode.TextDocument, format: (text: string, file: vscode.Uri) => string): vscode.TextEdit[] {
+    const mirror = this.ready.get(document.uri.toString());
+    if (!mirror || document.getText() !== mirror.projection.clean) {
+      return [];
     }
-    mirror.formatted = text;
+    const text = format(mirror.model, mirror.file);
+    if (text === mirror.model) {
+      return [];
+    }
+    const projection = project(text, editOptions(mirror.projection));
+    if (projection.clean === mirror.projection.clean) {
+      mirror.model = text;
+      mirror.projection = projection;
+      mirror.history = [...mirror.history, entryOf(projection)].slice(-historySize);
+      this.writeReal(mirror);
+      return [];
+    }
+    mirror.formatted = { clean: projection.clean, text };
+    const change = replacement(mirror.projection.clean, projection.clean);
+    return [vscode.TextEdit.replace(new vscode.Range(document.positionAt(change.start), document.positionAt(change.end)), change.text)];
   }
 
   /** blocksChanged writes each view anew after a change of the finders of hidden blocks or markers, and switches the text editors. */
@@ -609,9 +660,27 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       mirror.typing = undefined;
       mirror.projection = project(mirror.model, this.optionsOf(mirror.file));
       mirror.history = [entryOf(mirror.projection)];
-      void this.writeClean(vscode.Uri.parse(key), mirror);
+      void this.rewrite(vscode.Uri.parse(key), mirror);
     }
     this.switchLater();
+  }
+
+  /**
+   * rewrite writes the clean text of a view anew after a change of its projection, which leaves its file as it is: a
+   * view of a file without changes keeps no changes either (followSave).
+   * @param uri - The URI of the clean document.
+   * @param mirror - The link of the clean document.
+   */
+  private async rewrite(uri: vscode.Uri, mirror: Mirror): Promise<void> {
+    try {
+      await this.writeClean(uri, mirror);
+      const real = vscode.workspace.textDocuments.find((document) => document.uri.toString() === mirror.file.toString());
+      if (real) {
+        await this.followSave(real);
+      }
+    } catch (error: unknown) {
+      this.log.appendLine(`${new Date().toISOString()} ${String(error)}`);
+    }
   }
 
   /** register registers the file system, the command and the listeners of the view, and makes the text editors of files with notes the view. */
@@ -1097,15 +1166,22 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
 
   /**
    * opened takes a clean document that VS Code opened with a text of its own, for example the changes of the last
-   * session that it kept: they go into the file as one change.
+   * session that it kept: they go into the file as one change. A clean text that VS Code read before is no change.
    * @param document - The document.
    */
   private opened(document: vscode.TextDocument): void {
     const mirror = this.ready.get(document.uri.toString());
-    if (mirror && document.getText() !== mirror.projection.clean) {
-      this.takeText(mirror, document.getText());
-      this.loadRules(document.uri, mirror);
+    if (!mirror || document.getText() === mirror.projection.clean) {
+      return;
     }
+    if (mirror.served?.includes(document.getText())) {
+      // VS Code read the clean text before the projection changed, for example before another extension registered
+      // the parts that it hides: no change of the user, so the file stays, and the view shows the clean text of now.
+      void this.rewrite(document.uri, mirror);
+      return;
+    }
+    this.takeText(mirror, document.getText());
+    this.loadRules(document.uri, mirror);
   }
 
   /**
@@ -1257,10 +1333,20 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       this.decorateAll();
       return;
     }
-    let { model, projection, typing } = mirror;
-    // The format writes the generated parts; an edit of the user keeps them.
-    const formatting = mirror.formatted === document.getText();
+    const formatted = mirror.formatted;
     mirror.formatted = undefined;
+    if (formatted?.clean === document.getText()) {
+      // "Format Document": the formatted file as it is, with its hidden parts and the generated parts that it writes.
+      mirror.typing = undefined;
+      mirror.model = formatted.text;
+      mirror.projection = project(formatted.text, editOptions(mirror.projection));
+      mirror.history = [...mirror.history, entryOf(mirror.projection)].slice(-historySize);
+      this.writeReal(mirror);
+      this.loadRules(document.uri, mirror);
+      this.decorateAll();
+      return;
+    }
+    let { model, projection, typing } = mirror;
     // A slash command of another extension may write hidden tags (`command`).
     const commanded = this.commands.has(document.uri.toString());
     let refusal: string | undefined;
@@ -1273,12 +1359,12 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       if (result.way !== 'direct') {
         this.log.appendLine(`${new Date().toISOString()} ${result.way}: ${JSON.stringify(clean.slice(start, end))} → ${JSON.stringify(change.text)} at ${start}`);
       }
-      if (!formatting && !keepsGenerated(model, result.text, this.generatedOf(model))) {
+      if (!keepsGenerated(model, result.text, this.generatedOf(model))) {
         refusal = generatedReadOnly;
         break;
       }
       const next = project(result.text, editOptions(projection));
-      if (!formatting && !commanded && hidesTyped(result, change.text, next)) {
+      if (!commanded && hidesTyped(result, change.text, next)) {
         refusal = tagByHand;
         break;
       }
@@ -1290,8 +1376,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       const from = continues ? Math.min(typing!.from, start) : start;
       typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(projection, after) ? { from, to: after } : undefined;
     }
-    // The format may also write the front matter, as it writes the generated parts.
-    if (refusal === undefined && !formatting && !keepsRules(mirror.model, model, mirror.rules)) {
+    if (refusal === undefined && !keepsRules(mirror.model, model, mirror.rules)) {
       refusal = frontMatterKept;
     }
     if (refusal !== undefined) {
@@ -1527,12 +1612,16 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     if (resource) {
       return fromFile(uri, () => vscode.workspace.fs.readFile(resource));
     }
-    return new TextEncoder().encode((await this.mirrorOf(uri)).projection.clean);
+    const mirror = await this.mirrorOf(uri);
+    mirror.served = [...(mirror.served ?? []).filter((text) => text !== mirror.projection.clean), mirror.projection.clean].slice(-servedSize);
+    return new TextEncoder().encode(mirror.projection.clean);
   }
 
   /**
    * writeFile saves the file of a clean document: VS Code writes the clean text when the user saves the view. A text
-   * that differs from the clean text of the model goes into the file as one change first. A file that the clean URI
+   * that differs from the clean text of the model goes into the file as one change first. The file gets the changes
+   * before its save, the format and the comment of the format, only with a save of the view that ran them
+   * (savesWithChanges); the format formatted the view before. A file that the clean URI
    * names as it is (resourceOf) does not change. A view that follows a file without changes (followSave) leaves the
    * file as it is, also when it changed again since.
    * @param uri - The URI of the clean document.
@@ -1543,6 +1632,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       throw vscode.FileSystemError.NoPermissions('The clean editing view changes only Markdown files.');
     }
     const mirror = await this.mirrorOf(uri);
+    const withChanges = mirror.withChanges === true;
+    mirror.withChanges = false;
     if (this.asIs.has(uri.toString())) {
       mirror.mtime = Date.now();
       return;
@@ -1553,13 +1644,54 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     }
     await mirror.queue;
     const real = await vscode.workspace.openTextDocument(mirror.file);
-    await real.save();
+    const before = real.getText();
+    // An automatic save of the view after a delay, or "Save without Formatting", saves the file as it is too.
+    const file = mirror.file.toString();
+    const asIs = !withChanges && !this.asIs.has(file);
+    if (asIs) {
+      this.asIs.add(file);
+    }
+    try {
+      await real.save();
+    } finally {
+      if (asIs) {
+        this.asIs.delete(file);
+      }
+    }
     mirror.mtime = Date.now();
-    // The formatter can change the file on its save; the clean document follows after its own save.
-    if (real.getText() !== mirror.model) {
-      mirror.model = real.getText();
-      mirror.projection = project(mirror.model, editOptions(mirror.projection));
-      setTimeout(() => void this.writeClean(uri, mirror).then(() => vscode.workspace.textDocuments.find((document) => document.uri.toString() === uri.toString())?.save()), 0);
+    if (real.getText() !== before) {
+      // The format of the save of the file changed it (R-FMT-001). The change may already be in the model, written into
+      // the clean document during its save, which then keeps it as a change that is not saved.
+      if (real.getText() !== mirror.model) {
+        mirror.model = real.getText();
+        mirror.projection = project(mirror.model, editOptions(mirror.projection));
+        mirror.history = [entryOf(mirror.projection)];
+      }
+      setTimeout(() => void this.followFormat(uri, mirror).catch((error: unknown) => this.log.appendLine(`${new Date().toISOString()} ${String(error)}`)), 0);
+    }
+  }
+
+  /**
+   * followFormat brings a clean document after its save to the clean text of its file, which the format of the save of
+   * the file changed, and saves the document as it is then: the view of a file without changes has no changes either,
+   * and its tab shows no dot (savesAsIs).
+   * @param uri - The URI of the clean document.
+   * @param mirror - The link of the clean document.
+   */
+  private async followFormat(uri: vscode.Uri, mirror: Mirror): Promise<void> {
+    await this.writeClean(uri, mirror);
+    await mirror.queue;
+    const key = uri.toString();
+    const view = vscode.workspace.textDocuments.find((document) => document.uri.toString() === key);
+    const real = vscode.workspace.textDocuments.find((document) => document.uri.toString() === mirror.file.toString());
+    if (!view?.isDirty || real?.isDirty || real?.getText() !== mirror.model || view.getText() !== mirror.projection.clean) {
+      return;
+    }
+    this.asIs.add(key);
+    try {
+      await view.save();
+    } finally {
+      this.asIs.delete(key);
     }
   }
 

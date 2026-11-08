@@ -238,6 +238,67 @@ describe('nimblescape Markdown Notes', () => {
     assert.equal(vscode.window.activeTextEditor?.document, real);
   });
 
+  it('formats the file, not the clean text, on a save of the view: the hidden parts stay once, and the view has no changes after the save (R-TEXT-009, R-FMT-001)', async () => {
+    // Another extension hides the anchors after a space, as Markdown Paper hides the anchors of its captions and entries.
+    const anchor = / <a id="[^"]*"><\/a>/;
+    const markers = (await api()).getAPI(1)!.registerHiddenMarkers({
+      find: (lines) => lines.flatMap((line, index) => {
+        const found = anchor.exec(line);
+        return found ? [{ line: index, start: found.index + 1, end: found.index + found[0].length }] : [];
+      }),
+    });
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    const figure = 'Figure 1: A cat <a id="fig-cat"></a>\n\n![A cat](cat.png)\n\nSee [Figure 1](#fig-cat).\n\n';
+    fs.writeFileSync(file.fsPath, `${figure}${note}`);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    assert.ok(view.document.getText().startsWith('Figure 1: A cat \n'), 'the view hides the anchor of the caption');
+    // A paragraph over two lines, which the format writes on one line.
+    const more = view.document.positionAt(view.document.getText().indexOf('More.'));
+    await view.edit((edit) => edit.insert(more, 'Even\n'));
+    const real = await waitFor(() => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes('Even\nMore.')), 'the change in the file');
+    assert.ok(await view.document.save(), 'the save of the view');
+    // The format writes the paragraph on one line and the start marker of the first note, and keeps the one anchor.
+    const saved = `${figure}${note.replace('More.', 'Even More.').replace('The text[^note-aaaa]', '<wbr><!--[note-aaaa-->The text[^note-aaaa]')}`;
+    assert.equal(fs.readFileSync(file.fsPath, 'utf8'), saved, 'the file on disk, formatted once with its anchor');
+    assert.ok(view.document.getText().includes('\nEven More.\n'), 'the view formatted before its save');
+    assert.equal(view.document.isDirty, false);
+    assert.equal(real.getText(), saved);
+    assert.equal(real.isDirty, false);
+    // "Format Document" of the view formats the file too, and takes it as it is.
+    await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('Even More.')), 'And\n'));
+    await waitFor(() => (real.getText().includes('And\nEven More.') ? true : undefined), 'the second change in the file');
+    await vscode.commands.executeCommand('editor.action.formatDocument');
+    await waitFor(() => (real.getText() === saved.replace('Even More.', 'And Even More.') ? true : undefined), 'the formatted file');
+    assert.ok(view.document.getText().includes('\nAnd Even More.\n'));
+    assert.ok(await view.document.save(), 'the second save of the view');
+    assert.equal(fs.readFileSync(file.fsPath, 'utf8'), saved.replace('Even More.', 'And Even More.'));
+    markers.dispose();
+  });
+
+  it('shows the parts that a step of another extension writes on the save of the file in the view, which then has no changes (R-TEXT-009, R-GEN-012)', async () => {
+    // The step writes the number of the headings into a line, as Markdown Paper writes its generated lists.
+    const step = {
+      applies: (lines: readonly string[]) => lines.some((line) => line.startsWith('Headings: ')),
+      format: (lines: readonly string[]) => lines.map((line) => (line.startsWith('Headings: ') ? `Headings: ${lines.filter((each) => each.startsWith('#')).length}` : line)),
+    };
+    const registration = (await api()).getAPI(1)!.registerFormatStep(step);
+    try {
+      const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+      fs.writeFileSync(file.fsPath, `Headings: 1\n\n${note}`);
+      await vscode.commands.executeCommand('vscode.open', file);
+      const view = await viewOf(file);
+      await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('More.')), '## Next\n\n'));
+      await waitFor(() => (vscode.workspace.textDocuments.some((document) => document.uri.toString() === file.toString() && document.getText().includes('## Next')) ? true : undefined), 'the change in the file');
+      assert.ok(await view.document.save(), 'the save of the view');
+      assert.ok(fs.readFileSync(file.fsPath, 'utf8').startsWith('Headings: 2\n'), 'the file on disk with the part of the step');
+      assert.ok(view.document.getText().startsWith('Headings: 2\n'), 'the view with the part of the step');
+      assert.equal(view.document.isDirty, false);
+    } finally {
+      registration.dispose();
+    }
+  });
+
   it('edits the front matter in the clean editing view as text, and with the rules of another extension keeps the keys of the schema and the read-only keys, with a warning, its quick fix and the suggestions of a choice (R-TEXT-009, decision 75)', async () => {
     const registration = (await api()).getAPI(1)!.registerFrontMatterSchema({ schemaOf: (_file, text) => (text.includes('layout: pht/thesis') ? { schema: paperSchema } : undefined) });
     try {
