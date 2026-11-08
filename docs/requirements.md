@@ -981,6 +981,20 @@ file at once, and keeps each note at its text:
   ([R-GEN-016](#r-gen-016)). "Format Document" of the view writes the
   parts too. No such part lies in the front matter, whose own rules stand
   above.
+- The tags that the view hides come only from the slash commands and the
+  formatter ([decision 78](#decisions)): the markup of the notes, the
+  anchors of the figures, tables and sections, the markers of the values of
+  the front matter, the comments of the listings, the comment of the format,
+  and the markers and blocks of other extensions, such as the start marker
+  of `/research` and the database of the sources of nimblescape Markdown
+  Paper. Each tag in a comment that a tool writes is hidden; a comment that
+  the user writes stays in the text. Text typed or pasted that the view
+  would hide as such a tag, such as an anchor typed after a caption, goes
+  back as an edit of a generated part does, and the status bar names the
+  slash commands. A slash command of another extension may write hidden
+  tags through the text editor of the view ([R-GEN-012](#r-gen-012)). Text
+  that only shows hidden parts, such as a fence that opens a code block,
+  goes into the file. "Open File with Markup" edits the tags by hand.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -3587,6 +3601,16 @@ requirements above follow them.
     context menu, as in the context menu of the text editor, and opens the
     editor of the new note in the side view, as the button above the selected
     text does. The other choice was the button above the selected text only.
+78. **The tags that the clean editing view hides come only from slash
+    commands** ([R-TEXT-009](#r-text-009)): in the clean editing view each
+    generated part is read-only ([decision 74](#decisions)), each tag in a
+    comment that a tool writes is hidden, and the user adds the tags only
+    with the slash commands, for example `/note`, `/figure`, `/listing`,
+    `/ref` and `/cite` of nimblescape Markdown Paper, or the formatter writes
+    them. An edit that types or pastes such a tag goes back. In the editor of
+    a whole file, typed text is always text, so it has the same rule
+    ([decision 68](#decisions)). The other choice was to take a typed tag
+    into the file and hide it after the edit.
 
 ---
 

@@ -226,7 +226,9 @@ The first version.
   with quick fixes, and the values of a choice are the suggestions after its
   key. The parts that the formatter writes, such as the number of a caption,
   the text of a reference, the code block of a listing and the parts that
-  other extensions name, are read-only in the view as in the editor. A paper
+  other extensions name, are read-only in the view as in the editor. The
+  tags that the view hides come only from the slash commands and the
+  formatter: a tag that the user types or pastes goes back. A paper
   of nimblescape Markdown Paper,
   a file whose front matter has the key `layout`, opens in the view also
   without notes.

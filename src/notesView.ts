@@ -148,6 +148,8 @@ export interface CleanMirror {
   toClean(real: vscode.Uri, position: vscode.Position): vscode.Position | undefined;
   /** settled waits until the changes of a clean document are in the document of its file. */
   settled?(document: vscode.Uri): Promise<void>;
+  /** command runs a slash command of another extension in a clean document, whose edits may write hidden tags. */
+  command?<T>(document: vscode.Uri, run: () => T | Thenable<T>): Promise<T>;
 }
 
 /** NotesView is the provider of the side view. */

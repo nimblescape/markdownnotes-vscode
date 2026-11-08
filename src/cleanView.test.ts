@@ -374,6 +374,37 @@ test('lets the format of the view write the generated parts, and keeps the parts
   expect(real.text).toContain('See [Figure 1](#fig-cat) and the last part.');
 });
 
+test('takes back a tag that the view hides when the user types or pastes it, and lets a slash command of another extension write one (R-TEXT-009, decision 78)', async () => {
+  const { tagByHand } = await import('./cleanView');
+  const { view, real, document } = await opened(figured);
+  document.isDirty = true;
+  // An anchor typed at the end of a caption, and the comment of a listing pasted before a code block.
+  const caption = document.text.indexOf('A cat\n');
+  typeIn(document, caption + 'A cat'.length, caption + 'A cat'.length, '<a id="fig-other"></a>');
+  await settle();
+  expect(real.text).toBe(figured);
+  expect(document.getText().startsWith('Figure 1: A cat\n')).toBe(true);
+  expect(fake.statusMessages).toEqual([tagByHand]);
+  const see = document.text.indexOf('See [');
+  typeIn(document, see, see, '<!-- listing: ../src/a.ts -->\n\n```ts\nconst a = 1;\n```\n\n');
+  await settle();
+  expect(real.text).toBe(figured);
+  expect(fake.statusMessages).toEqual([tagByHand, tagByHand]);
+  // A comment of the user, which the view shows, and a fence that opens a code block go into the file.
+  typeIn(document, see, see, '<!-- A comment -->\n\n');
+  await settle();
+  expect(real.text).toContain('<!-- A comment -->\n\nSee [Figure 1]');
+  expect(fake.statusMessages).toHaveLength(2);
+  // The same anchor, written by a slash command of another extension, goes into the file.
+  const end = document.text.indexOf('A cat\n') + 'A cat'.length;
+  await view.command(document.uri as never, async () => {
+    typeIn(document, end, end, '<a id="fig-other"></a>');
+    await settle();
+  });
+  expect(real.text.startsWith('Figure 1: A cat<a id="fig-other"></a><a id="fig-cat"></a>\n')).toBe(true);
+  expect(fake.statusMessages).toHaveLength(2);
+});
+
 test('saves the file for a save of the view, with each note', async () => {
   const { view, real, document } = await opened();
   typeIn(document, 0, 0, 'Now ');
