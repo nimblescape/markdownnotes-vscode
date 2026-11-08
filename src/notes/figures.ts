@@ -38,6 +38,7 @@
  */
 
 import type { Token } from 'markdown-it';
+import { frontMatterEnd } from './doctype';
 import { readFootnotes } from './footnotes';
 import { parse, readNotes } from './notes';
 import { noteCloseType, noteOpenType } from './syntax';
@@ -426,8 +427,9 @@ export function numberLinks(lines: readonly string[]): string[] {
  * numberPlaces returns the places of the numbers that the formatter writes
  * ([R-XREF-001](../../docs/requirements.md#r-xref-001), [R-XREF-002](../../docs/requirements.md#r-xref-002)), each by
  * its line and its start and end in the line: the number of each caption of a figure, a table and a listing, and the
- * text of each link whose number the formatter writes, between its square brackets. The clean editing view keeps them
- * read-only ([R-TEXT-009](../../docs/requirements.md#r-text-009)).
+ * text of each link whose number the formatter writes, between its square brackets, outside the front matter, whose
+ * values the clean editing view edits by its own rules. The clean editing view keeps them read-only
+ * ([R-TEXT-009](../../docs/requirements.md#r-text-009)).
  * @param lines - The lines of the text.
  */
 export function numberPlaces(lines: readonly string[]): { line: number; start: number; end: number }[] {
@@ -449,8 +451,9 @@ export function numberPlaces(lines: readonly string[]): { line: number; start: n
     return places;
   }
   const code = codeLines(lines);
+  const front = frontMatterEnd(lines);
   lines.forEach((line, index) => {
-    if (code.has(index) || !line.includes('](#')) {
+    if (index < front || code.has(index) || !line.includes('](#')) {
       return;
     }
     const spans = codeSpans(line);

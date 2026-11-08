@@ -930,8 +930,9 @@ file at once, and keeps each note at its text:
   whole file ([R-TEXT-010](#r-text-010), [decision 74](#decisions)): the
   number of each caption, the text of each reference to a figure, a table, a
   listing or a section between its square brackets, the code block of each
-  listing, each value of the front matter in the text whose key the front
-  matter has ([R-XREF-004](#r-xref-004)), and the parts that other
+  listing, each value of the front matter that the formatter copies into
+  the text after the front matter, between its hidden markers, whose key
+  the front matter has ([R-XREF-004](#r-xref-004)), and the parts that other
   extensions name through the API ([R-GEN-012](#r-gen-012)), such as the
   citations, the entries of the reference list and the generated lists of
   nimblescape Markdown Paper. Text typed into such a part, also at the edge
@@ -943,7 +944,8 @@ file at once, and keeps each note at its text:
   after a block, such as the code block of a listing. The user changes a
   part through what it comes from, and the save writes it again
   ([R-GEN-016](#r-gen-016)). "Format Document" of the view writes the
-  parts too.
+  parts too. No such part lies in the front matter, whose own rules stand
+  above.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
