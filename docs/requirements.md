@@ -2019,7 +2019,14 @@ opens the side view, and "Add Note" above selected text
   the page of the preview again for each change of the selected note, and
   Markdown Paper hides the content until the new pages show; the request to
   scroll waits for the pages, which Markdown Paper shows at the place of the
-  pages of before.
+  pages of before, and for the load of the page, because a smooth scroll that
+  starts before does not move the page.
+- When only the selected note changed, Markdown Paper shows the pages of
+  before again at once, without a new layout. These pages keep the
+  attributes of the state of the notes of before (`data-selected`,
+  `data-reveal`, `data-deselect`, `data-hidden`); the script copies these
+  attributes from the ends in the content of VS Code to the ends on the
+  pages, by their `data-selection`.
 - The frame of a selected highlight covers only the text area of each page,
   `.pagedjs_page_content`: a highlight over two pages leaves out the
   margins, the footer and the header between them.
