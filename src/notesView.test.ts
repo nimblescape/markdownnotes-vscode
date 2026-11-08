@@ -591,7 +591,7 @@ test('the view follows the active tab that shows a Markdown file in the mode "Ma
   expect(view.state().threads).toHaveLength(1);
 });
 
-test('a click into the highlight of a note selects it, opens the view and scrolls it to the thread, as a double click does; the keyboard, a drag and the note itself do not (R-SIDE-007, decision 85)', async () => {
+test('a click into the highlight of a note selects it, opens the view and scrolls it to the thread, as a double click does; the keyboard, a drag and the note itself do not (R-SIDE-007, decision 86)', async () => {
   const text = 'The agents <!--[note-aaaa-->change\nthe work[^note-aaaa] of teams.\n\n[^note-aaaa]: **hannes** · 2026-10-28 10:15+01:00\n\n    Which?\n';
   const { editor, view } = await start(text);
   /**

@@ -911,7 +911,7 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
     }
   };
   // A click on the place of the cursor changes no selection, so the page reports the cursor for such a click itself: a
-  // click on the highlight of the selected note scrolls the side view to its thread again (decision 85).
+  // click on the highlight of the selected note scrolls the side view to its thread again (decision 86).
   let clicked = false;
   const onSelection = ({ transaction }: { transaction: Transaction }) => {
     const mouse = transaction.getMeta('pointer') === true;

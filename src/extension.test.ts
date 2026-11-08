@@ -450,7 +450,7 @@ test('the button of the side view closes the secondary side bar, and the button 
   expect(fake.calls.at(-1)).toEqual({ command: focus, args: [] });
 });
 
-test('a link of a click on a highlight of the preview opens the side view at its note and keeps the focus in the preview, and the link of a double click gives the focus to the view, for an open Markdown document or one of the workspace only (decision 85)', async () => {
+test('a link of a click on a highlight of the preview opens the side view at its note and keeps the focus in the preview, and the link of a double click gives the focus to the view, for an open Markdown document or one of the workspace only (decision 86)', async () => {
   const document = fake.open(note);
   const { extension } = await fake.activate();
   const view = fake.resolveView(notesViewId);

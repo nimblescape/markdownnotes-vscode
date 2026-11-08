@@ -180,7 +180,7 @@ place only, the side view ([R-SIDE-001](#r-side-001),
   that the note is about, also while the side view is closed
   ([R-GEN-011](#r-gen-011)), and a click on a highlight selects its note,
   opens the side view and scrolls it to the note
-  ([R-SIDE-007](#r-side-007), [decision 85](#decisions)).
+  ([R-SIDE-007](#r-side-007), [decision 86](#decisions)).
 
 The side view shows the whole text of a note also as the file holds it, in
 its text view ([R-SIDE-002](#r-side-002)). The settings `showNotesIn`,
@@ -627,7 +627,7 @@ note ([R-EDIT-003](#r-edit-003)).
 - A click with the mouse on a highlight in the text editor, in the preview
   or in the editor of a whole file ([R-TEXT-010](#r-text-010)), also on a
   hidden highlight, selects its note, opens the side view and scrolls it to
-  the note ([R-SIDE-007](#r-side-007), [decision 85](#decisions)). The
+  the note ([R-SIDE-007](#r-side-007), [decision 86](#decisions)). The
   cursor stays in the text.
 
 This is [decision 6](#decisions), with [decision 16](#decisions) and
@@ -1674,7 +1674,7 @@ selection that the view and the text share ([decision 25](#decisions)):
   ([R-TEXT-010](#r-text-010)), also opens the view and scrolls it to the
   thread, also to a thread that was selected before, after the user
   scrolled the view; the focus stays in the text
-  ([R-NOTE-006](#r-note-006), [decision 85](#decisions)). The view opens
+  ([R-NOTE-006](#r-note-006), [decision 86](#decisions)). The view opens
   300 milliseconds after the click, the time of a double click, and only
   while a thread is still selected: the view makes the editors narrower,
   which moves their text, and the second click of a double click must find
@@ -1979,7 +1979,7 @@ icon.
 **Click selects the note.** A click on a highlight, also on a hidden one
 under the pointer, selects its note ([R-SIDE-001](#r-side-001)), opens the
 side view and scrolls it to the note, and the focus stays in the preview
-([R-SIDE-007](#r-side-007), [decision 85](#decisions)). A double click on it
+([R-SIDE-007](#r-side-007), [decision 86](#decisions)). A double click on it
 also gives the focus to the side view, where the user can edit and answer
 the note. The second click of the double click selects no word, and the
 double click does not open the text editor. A click
@@ -3290,7 +3290,7 @@ requirements above follow them.
 29. **A double click opens the side view** ([R-SIDE-007](#r-side-007),
     [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006)): a click on a
     highlight, in the text editor or in the preview, only selects its note
-    (replaced by [decision 85](#decisions): a click opens the side view);
+    (replaced by [decision 86](#decisions): a click opens the side view);
     a double click on it opens the side view, and in the preview does not
     open the text editor. The cursor that leaves the highlight of the
     selected note deselects it, and each thread that is not selected is
@@ -3781,7 +3781,7 @@ requirements above follow them.
     `/alert` inserts an alert in both editors, and in the text editor the
     marker stays text. The other choice was the marker as text while the
     cursor is in the first line of the alert.
-85. **A click on a highlight opens the side view** ([R-SIDE-007](#r-side-007),
+86. **A click on a highlight opens the side view** ([R-SIDE-007](#r-side-007),
     [R-NOTE-006](#r-note-006), [R-PREV-003](#r-prev-003),
     [R-TEXT-010](#r-text-010)): a click with the mouse on a highlight, in the
     views "Text Editor", "Markdown Preview" and "Markdown Editor", also in
