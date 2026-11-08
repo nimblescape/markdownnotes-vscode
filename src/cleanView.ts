@@ -42,7 +42,7 @@
 import * as vscode from 'vscode';
 import { registerFrontMatterEditing } from './frontMatterEditing';
 import { highlightStyles } from './noteEditor';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, hidesTyped, isPaperDocument, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
 import { frontMatterEnd } from './notes/doctype';
 import { type FrontMatterRules, keepsRules } from './notes/frontMatterRules';
 import { colorIndexOf, noteColors } from './notes/colors';
@@ -63,6 +63,13 @@ export const frontMatterKept = 'The keys of the schema of the front matter and t
  * as the number of a caption or the text of a reference.
  */
 export const generatedReadOnly = 'The formatter writes this part, so it is read-only in the clean editing view. Change what it comes from, and the save writes it again.';
+
+/**
+ * tagByHand is the message of the status bar after an edit that typed or pasted a tag that the clean editing view
+ * hides, such as an anchor or the comment of a listing: the hidden tags come only from the slash commands and the
+ * formatter.
+ */
+export const tagByHand = 'The clean editing view hides this tag, so only a slash command, such as /note, /figure, /listing or /ref, or the formatter writes it. "Open File with Markup" shows the tags.';
 
 /** FrontMatterSchemas gives the clean editing view the rules of the front matter of a file (decision 75). */
 export interface FrontMatterSchemas {
@@ -295,6 +302,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly mirrors = new Map<string, Promise<Mirror>>();
   /** ready holds the link of each clean document after it opened, by its URI. */
   private readonly ready = new Map<string, Mirror>();
+  /** commands counts the slash commands of other extensions that run in each clean document now, by its URI. */
+  private readonly commands = new Map<string, number>();
   /** markup holds the files that "Open File with Markup" opened, by their URIs: they stay as they are until their tabs close. */
   private readonly markup = new Set<string>();
   /** opening holds the files that "Open File with Markup" opens now, by their URIs, before they have tabs. */
@@ -392,6 +401,31 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     const key = document.toString();
     const mirror = this.ready.get(key) ?? (await this.mirrors.get(key));
     await mirror?.queue;
+  }
+
+  /**
+   * command runs a slash command of another extension in a clean document: while it runs, its edits may write the tags
+   * that the view hides, such as the start marker of `/research` of nimblescape Markdown Paper, which an edit of the
+   * user may not type ([R-TEXT-009](../docs/requirements.md#r-text-009)).
+   * @param document - The URI of the clean document.
+   * @param run - The command.
+   */
+  async command<T>(document: vscode.Uri, run: () => T | Thenable<T>): Promise<T> {
+    const key = document.toString();
+    this.commands.set(key, (this.commands.get(key) ?? 0) + 1);
+    try {
+      return await run();
+    } finally {
+      // VS Code can tell the change of the last edit after the edit is done.
+      setTimeout(() => {
+        const left = (this.commands.get(key) ?? 1) - 1;
+        if (left > 0) {
+          this.commands.set(key, left);
+        } else {
+          this.commands.delete(key);
+        }
+      }, 0);
+    }
   }
 
   /**
@@ -1227,7 +1261,9 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     // The format writes the generated parts; an edit of the user keeps them.
     const formatting = mirror.formatted === document.getText();
     mirror.formatted = undefined;
-    let generated = true;
+    // A slash command of another extension may write hidden tags (`command`).
+    const commanded = this.commands.has(document.uri.toString());
+    let refusal: string | undefined;
     for (const change of event.contentChanges) {
       const clean = projection.clean;
       const start = offsetIn(clean, change.range.start);
@@ -1238,11 +1274,16 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         this.log.appendLine(`${new Date().toISOString()} ${result.way}: ${JSON.stringify(clean.slice(start, end))} → ${JSON.stringify(change.text)} at ${start}`);
       }
       if (!formatting && !keepsGenerated(model, result.text, this.generatedOf(model))) {
-        generated = false;
+        refusal = generatedReadOnly;
+        break;
+      }
+      const next = project(result.text, editOptions(projection));
+      if (!formatting && !commanded && hidesTyped(result, change.text, next)) {
+        refusal = tagByHand;
         break;
       }
       model = result.text;
-      projection = project(result.text, editOptions(projection));
+      projection = next;
       // Text typed into the end of a highlight, also over its last word, or deleted there while typing: the next
       // letters stay in it.
       const after = start + change.text.length;
@@ -1250,8 +1291,11 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(projection, after) ? { from, to: after } : undefined;
     }
     // The format may also write the front matter, as it writes the generated parts.
-    if (!generated || !(formatting || keepsRules(mirror.model, model, mirror.rules))) {
-      this.refuse(mirror, event, generated ? frontMatterKept : generatedReadOnly);
+    if (refusal === undefined && !formatting && !keepsRules(mirror.model, model, mirror.rules)) {
+      refusal = frontMatterKept;
+    }
+    if (refusal !== undefined) {
+      this.refuse(mirror, event, refusal);
       return;
     }
     mirror.model = model;
@@ -1293,8 +1337,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * refuse takes back an edit of a clean document that breaks the rules of its front matter (decision 75) or changes a
-   * generated part, which is read-only in the view: the edit goes back as a whole, the file stays as it is, the view of
+   * refuse takes back an edit of a clean document that breaks the rules of its front matter (decision 75), changes a
+   * generated part, which is read-only in the view, or types a tag that the view hides: the edit goes back as a whole, the file stays as it is, the view of
    * a file without changes has no changes either, and the status bar says why. An Undo that brings back such an edit
    * undoes the edit too, so that Undo goes on with the edits before it.
    * @param mirror - The link of the clean document.

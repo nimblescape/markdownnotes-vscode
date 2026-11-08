@@ -917,7 +917,9 @@ export class SlashCommands implements vscode.CompletionItemProvider {
     }
     const at = editor.selection.active;
     try {
-      await command.run(editor, restored ?? new vscode.Range(at, at));
+      const run = () => command.run(editor, restored ?? new vscode.Range(at, at));
+      // In the clean editing view, only the edits of a slash command may write the tags that the view hides.
+      await (this.mirror?.command ? this.mirror.command(uri, run) : run());
     } catch (error) {
       void vscode.window.showErrorMessage(`The slash command ${label} failed: ${error instanceof Error ? error.message : String(error)}`);
     }

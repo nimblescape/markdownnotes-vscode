@@ -455,7 +455,7 @@ describe('nimblescape Markdown Notes', () => {
     await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
   });
 
-  it('runs a slash command of another extension on selected text in the clean editing view, and the view hides the marker that the command writes (R-EDIT-008, R-GEN-012, R-TEXT-009)', async () => {
+  it('runs a slash command of another extension on selected text in the clean editing view, and the view hides the marker that the command writes and takes back the marker typed by hand (R-EDIT-008, R-GEN-012, R-TEXT-009, decision 78)', async () => {
     const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
     fs.writeFileSync(file.fsPath, note.replace('\nMore.\n', '\nAgents change the work.\n'));
     await vscode.commands.executeCommand('vscode.open', file);
@@ -487,6 +487,12 @@ describe('nimblescape Markdown Notes', () => {
       const real = await waitFor(() => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString() && document.getText().includes(marker)), 'the marker in the file');
       assert.ok(real.getText().includes('\nAgents <wbr><!--[research-->change the work (RESEARCH).\n'), real.getText());
       await waitFor(() => (view.document.getText().includes('\nAgents change the work (RESEARCH).\n') ? true : undefined), 'the hidden marker in the view');
+      // The same marker typed by hand goes back: the hidden tags come only from the slash commands (decision 78).
+      const before = real.getText();
+      await view.edit((edit) => edit.insert(view.document.positionAt(view.document.getText().indexOf('Title')), marker));
+      await waitFor(() => (view.document.getText().startsWith('# Title\n') ? true : undefined), 'the typed marker back');
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.equal(real.getText(), before);
       await vscode.workspace.saveAll(false);
       await waitFor(() => (real.isDirty ? undefined : true), 'the save of the file');
     } finally {
