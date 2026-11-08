@@ -57,7 +57,18 @@
 // element `.nimblescape-paper-pages` and hides the content itself, and sends
 // the event `nimblescape-paper-rendered` for each new set of pages. The script
 // then finds the highlights and the address of "Add Note" in the pages, which
-// are copies without the listeners of the content.
+// are copies without the listeners of the content. VS Code loads the page of
+// the preview again for each change of the selected note; until the first
+// pages show, the user sees no text, so a request to scroll to the selected
+// note waits for the pages, which Markdown Paper shows at the place of the
+// pages of before.
+//
+// Markdown Paper makes the pages smaller with the CSS property `zoom` when the
+// preview is narrower than a page. The browser of VS Code has no standardized
+// zoom: it gives the rectangles of text in the pages in the coordinates of the
+// pages, smaller by their zoom. The script multiplies them by the zoom before
+// it places the frame of the selected note and the button "Add Note", which
+// stand outside the pages.
 
 // @ts-check
 
@@ -81,6 +92,9 @@
 
   /** pagesSelector finds the pages of nimblescape Markdown Paper, the copies of the content that the user sees. */
   const pagesSelector = '.nimblescape-paper-pages';
+
+  /** paperSelector finds the hidden element of nimblescape Markdown Paper in the content of a paper document. */
+  const paperSelector = '.nimblescape-paper[data-paper]';
 
   /** contentSelector finds the text area of a page of nimblescape Markdown Paper, without its margins, header and footer. */
   const contentSelector = '.pagedjs_page_content';
@@ -175,6 +189,40 @@
     }
     return undefined;
   };
+
+  /**
+   * waitsForPages tells whether the page shows a paper document of nimblescape Markdown Paper whose pages are not there
+   * yet: Markdown Paper hides the content, so the user sees no text.
+   */
+  const waitsForPages = () => document.querySelector(paperSelector) !== null && document.querySelector(pagesSelector) === null;
+
+  /**
+   * scaleOf returns the factor from the rectangles of the text of a node to the coordinates of the window: the zoom of
+   * the elements around the node in a browser without the standardized zoom (no `Element.currentCSSZoom`), such as the
+   * one of VS Code, which gives such rectangles in the coordinates of the zoomed element; else 1.
+   * @param {Node} node
+   */
+  const scaleOf = (node) => {
+    if ('currentCSSZoom' in Element.prototype) {
+      return 1;
+    }
+    let scale = 1;
+    for (let element = elementOf(node); element; element = element.parentElement) {
+      const zoom = Number.parseFloat(getComputedStyle(element).zoom);
+      if (zoom > 0) {
+        scale *= zoom;
+      }
+    }
+    return scale;
+  };
+
+  /**
+   * scaled returns a rectangle in the coordinates of the window: the rectangle times the factor of scaleOf.
+   * @param {{ left: number, top: number, right: number, bottom: number }} rect
+   * @param {number} scale
+   * @returns {{ left: number, top: number, right: number, bottom: number }}
+   */
+  const scaled = (rect, scale) => ({ left: rect.left * scale, top: rect.top * scale, right: rect.right * scale, bottom: rect.bottom * scale });
 
   /** motion returns how the preview scrolls to a note: smoothly, as the side view, unless the system asks for less motion. */
   const motion = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
@@ -285,7 +333,8 @@
     const own = selected ? highlights.get(selected) : undefined;
     frame(own?.range, own?.color ?? '');
     const request = selected?.getAttribute('data-reveal') ?? undefined;
-    if (selected && request !== undefined && request !== revealed) {
+    // The request to scroll waits for the pages of a paper document, so that it scrolls the pages, not the hidden content.
+    if (selected && request !== undefined && request !== revealed && !waitsForPages()) {
       revealed = request;
       (frames.firstElementChild ?? selected).scrollIntoView({ block: 'center', behavior: motion() });
     }
@@ -316,7 +365,8 @@
       const line = lines.get(key);
       lines.set(key, line ? { left: Math.min(line.left, rect.left), top: Math.min(line.top, rect.top), right: Math.max(line.right, rect.right), bottom: Math.max(line.bottom, rect.bottom) } : { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom });
     }
-    for (const line of lines.values()) {
+    const scale = scaleOf(range.commonAncestorContainer);
+    for (const line of [...lines.values()].map((rect) => scaled(rect, scale))) {
       const box = document.createElement('div');
       box.className = `nimblescape-note-frame nimblescape-note-color-${color}`;
       box.style.left = `${line.left - origin.left - 1}px`;
@@ -423,7 +473,7 @@
    * selectedText returns the address of "Add Note" for the selected text of the page, and the rectangles of its lines;
    * or undefined when no text is selected, the text is not in one block, or the page can have no notes. A selection to
    * the start of the next block, as of a triple click, holds the text to the end of its block.
-   * @returns {{ href: string, rects: DOMRect[] } | undefined}
+   * @returns {{ href: string, rects: { left: number, top: number, right: number, bottom: number }[] } | undefined}
    */
   const selectedText = () => {
     const base = [...scope().querySelectorAll(pageSelector)].at(-1)?.getAttribute('data-add');
@@ -458,7 +508,9 @@
     /** @param {string} value */
     const shown = (value) => value.replace(/\u00AD/g, '');
     const query = new URLSearchParams({ line, before: shown(before.toString()), text: shown(text) }).toString();
-    return { href: `${base}&${query}`, rects: [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0) };
+    const scale = scaleOf(range.startContainer);
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0).map((rect) => scaled(rect, scale));
+    return { href: `${base}&${query}`, rects };
   };
 
   /** hideAdd takes the button "Add Note" from the page. */

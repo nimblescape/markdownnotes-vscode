@@ -1857,9 +1857,20 @@ opens the side view, and "Add Note" above selected text
   address of "Add Note" in the pages, which the user sees, and finds them
   again after the event `nimblescape-paper-rendered` of each new set of
   pages.
+- A click on a thread of the side view scrolls the pages to the highlight of
+  its note and shows it selected ([R-SIDE-007](#r-side-007)). VS Code loads
+  the page of the preview again for each change of the selected note, and
+  Markdown Paper hides the content until the new pages show; the request to
+  scroll waits for the pages, which Markdown Paper shows at the place of the
+  pages of before.
 - The frame of a selected highlight covers only the text area of each page,
   `.pagedjs_page_content`: a highlight over two pages leaves out the
   margins, the footer and the header between them.
+- The frame of a selected highlight and the button "Add Note" stand at their
+  text also when the pages are smaller than a page (the CSS property `zoom`
+  of Markdown Paper): the browser of VS Code gives the rectangles of the text
+  in the pages in the coordinates of the pages, so the script multiplies them
+  by the zoom.
 - "Add Note" leaves out the soft hyphens (U+00AD) of the hyphenation of the
   pages, which the Markdown text does not have.
 - The PDF has no notes: the renderer of Markdown Paper makes it without the
