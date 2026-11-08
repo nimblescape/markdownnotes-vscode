@@ -297,6 +297,15 @@ Markdown file with notes without this extension knowing anything of papers:
     a part of a line, and a change of a piece of a part, go back; a change
     that takes a whole block, or a whole part of a line with text around it,
     stays.
+  - `registerFrontMatterSchema({ schemaOf(file, text), onDidChange })`: the
+    rules of the front matter of a file in the clean editing view
+    ([R-TEXT-009](#r-text-009), [decision 75](#decisions)): `schemaOf`
+    returns `{ schema, readOnly }`, the JSON schema (draft 2020-12) of the
+    front matter and the keys whose lines stay as they are besides the keys
+    that the schema marks `readOnly`, or `undefined` when the extension has
+    no rules for the file. `onDidChange` tells that the rules can have
+    changed, for example after a change of a layout. The first extension that
+    gives rules for a file wins.
   - `registerSlashCommand({ label, description, detail, selection, run(editor, range) })`:
     a slash command after the commands of the notes
     ([R-EDIT-008](#r-edit-008)), with the same rules. The label is a slash
@@ -903,47 +912,75 @@ file at once, and keeps each note at its text:
   joined paragraphs take the definitions of the first one after the joined
   block.
 - Undo and Redo bring back the file as it was, with each note at its place.
-- The front matter is read-only ([decision 58](#decisions)): an edit that
-  changes, removes or adds a front matter goes back as a whole, the file
-  keeps its front matter, the view of a file without changes keeps no
-  changes either, and the status bar names "Open File with Markup",
-  where the front matter can be changed. An edit after the closing line of
-  the front matter stays. Undo never brings such an edit back: one Undo goes
-  over it to the edit before it. A change of the front matter from
-  elsewhere, for example by `mp get` of nimblescape Markdown Paper, shows in
-  the view. A new front matter goes back too: a file without one gets it
-  with `mp create` of nimblescape Markdown Paper, or in the text editor of
-  "Open File with Markup".
-- A link above the front matter shows how to change it
-  ([decision 59](#decisions)): "Edit Front Matter" runs the command
-  `nimblescape.markdownPaper.editFrontMatter` of nimblescape Markdown Paper
-  with the URI of the file, which opens its view "Front Matter" in the side
-  bar, a form with one row for each field of the layout. Without that
-  command, the link is "Open File with Markup". The message of the status bar
-  after a refused edit names the link of the form when it exists. As in the
-  form of the front matter of the editor of a whole file
-  ([R-FM-003](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-003)
-  of nimblescape Markdown), the keys of the layout stay in that view: the
-  author changes their values, but does not rename or remove them
-  ([decision 71](#decisions)).
+- The front matter is text in the view, in the format of the file
+  ([decision 58](#decisions)): without rules, an edit of it goes into the
+  file like an edit of the other text. Another extension, such as
+  nimblescape Markdown Paper, gives the rules of the front matter of a file
+  through the API ([R-GEN-012](#r-gen-012), [decision 75](#decisions)): its
+  JSON schema and its read-only keys. With rules, an edit of a YAML front
+  matter changes only the text after a key:
+  - each key of the schema stays at the start of its line, in its order; an
+    empty value keeps its key, and a missing key of the schema can be added
+    once;
+  - each read-only key, such as `layout` and `repos` of a paper, keeps its
+    lines with its value, and no read-only key is added;
+  - the two fences stay;
+  - the other keys, such as the keys of other extensions, change, come and
+    go as text.
+
+  An edit that breaks a rule goes back as a whole, the file stays as it is,
+  the view of a file without changes keeps no changes either, and the status
+  bar says that the keys of the schema and the read-only keys stay. Undo
+  never brings such an edit back: one Undo goes over it to the edit before
+  it. A front matter in TOML or JSON keeps all its lines while it has rules,
+  and every front matter stays as it is until the rules of its file are
+  known. The formatter may change the front matter. A change of the front
+  matter from elsewhere, for example by `mp get` of nimblescape Markdown
+  Paper, shows in the view. The view has no form and no link above the
+  front matter: the editor of a whole file edits the front matter with its
+  form ([R-FM-003](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-003)
+  of nimblescape Markdown, [decision 59](#decisions)).
+- The schema shows each problem of the front matter as a warning in the
+  view ([decision 75](#decisions)): a front matter that does not parse, at
+  the line of the problem; a value that the schema does not allow, at the
+  value; a required key without a value, at its name; and a missing required
+  key, at the first fence. An empty value counts as no value. The light bulb
+  of a problem of a key has its quick fixes: a missing key gets one fix for
+  each value that its schema allows, or one with its default value, or one
+  that adds the key without a value, and the key goes in the order of the
+  schema; a value that the schema does not allow gets one fix for each
+  allowed value; an empty value gets the default value; and a number or yes
+  or no where the schema needs a text gets quotes. The fix with the default
+  value is the preferred one.
+- The schema gives the suggestions of the front matter
+  ([decision 75](#decisions)): a colon or a space after a key of the schema
+  opens the list of its values (the values of `enum`, yes and no, or the
+  default value), and Tab or Enter takes the selected one. On an empty line
+  of the front matter, the list of suggestions (Ctrl+Space) has the keys of
+  the schema that the front matter does not have yet, with their
+  descriptions; a chosen key comes with its values as a choice. A read-only
+  key gets no suggestion.
 - The parts that the formatter writes are read-only, as in the editor of a
   whole file ([R-TEXT-010](#r-text-010), [decision 74](#decisions)): the
   number of each caption, the text of each reference to a figure, a table, a
   listing or a section between its square brackets, the code block of each
-  listing, each value of the front matter in the text whose key the front
-  matter has ([R-XREF-004](#r-xref-004)), and the parts that other
+  listing, each value of the front matter that the formatter copies into
+  the text after the front matter, between its hidden markers, whose key
+  the front matter has ([R-XREF-004](#r-xref-004)), and the parts that other
   extensions name through the API ([R-GEN-012](#r-gen-012)), such as the
   citations, the entries of the reference list and the generated lists of
   nimblescape Markdown Paper. Text typed into such a part, also at the edge
   of a part in a line, such as a digit after the number of a caption, and a
-  change of a piece of a part go back as an edit of the front matter does,
-  and the status bar says that the formatter writes the part. A change that
+  change of a piece of a part go back as an edit that breaks a rule of the
+  front matter does, and the status bar says that the formatter writes the
+  part. A change that
   takes a whole part with text around it, such as the deletion of a
   reference or of a caption, stays, and so do whole lines typed before or
   after a block, such as the code block of a listing. The user changes a
   part through what it comes from, and the save writes it again
   ([R-GEN-016](#r-gen-016)). "Format Document" of the view writes the
-  parts too.
+  parts too. No such part lies in the front matter, whose own rules stand
+  above.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -969,13 +1006,13 @@ A Markdown file with notes, or with the comment of the format, that does not
 open in the editor of a whole file always opens in the view, and so does
 such a paper document of nimblescape Markdown Paper, a
 Markdown file whose YAML front matter has the key `layout`, also without
-notes, so that the front matter of every paper is read-only
+notes, so that the rules of the front matter of every paper apply
 ([decision 61](#decisions)). The view opens from the Explorer, a search, a link, the tabs of the last
 session, and when a file gets its first note. The text editor of such a file
 is always the view, also when the file opens in the editor of a whole file
 ([R-TEXT-010](#r-text-010)): the button "Open Text Editor to the Side" and
 "Reopen Editor With" of VS Code open the view, so that each text editor keeps
-the front matter read-only and the markup hidden
+the rules of the front matter and the markup hidden
 ([decision 72](#decisions)). While the editor of a whole file shows the
 file too, both change the same file: a save of the file in the editor saves
 the view too, so that the view has no changes that are not saved, and a
@@ -1040,7 +1077,7 @@ extensions work as for the text editor.
   the text editor of the file to the side, with the selection of the editor:
   for a file with notes, with the comment of the format, or a paper
   document, the clean editing view ([R-TEXT-009](#r-text-009),
-  [decision 72](#decisions)), with the front matter read-only and the
+  [decision 72](#decisions)), with the rules of the front matter and the
   markup of the notes and the other hidden parts hidden.
   The buttons of the side view and of the highlights
   ([R-GEN-011](#r-gen-011)) are in the title of the editor too.
@@ -1846,7 +1883,7 @@ on the text outside the highlights while a note is selected deselects it
 on a link in the highlight, for example a citation, selects the note as well,
 as a click on a link in the views "Text Editor" and "Markdown Editor" puts
 the cursor into the note; Ctrl+click (Cmd+click on macOS) opens the link
-([decision 75](#decisions)). A click on a link outside the highlights, a click
+([decision 76](#decisions)). A click on a link outside the highlights, a click
 on a button in the highlight, a click that ends a selection of text, and a
 double click on other text, which opens the text editor, do what they always
 do.
@@ -1902,7 +1939,10 @@ With…" and the buttons in the title of the editor change the view:
   a paper document, Markdown Paper shows the pages of its layout. It
   renders with the markdown-it plugin, the styles and the script of the
   extension, as the preview to the side does ([R-PREV-001](#r-prev-001) to
-  [R-PREV-005](#r-prev-005)). Its title has the button "Reopen as source
+  [R-PREV-005](#r-prev-005)). It shows no front matter, with the default
+  `hide` of the setting `markdown.previewFrontMatter` of VS Code: the Text
+  Editor and the Markdown Editor edit the front matter
+  ([decision 59](#decisions)). Its title has the button "Reopen as source
   file" of VS Code, which opens the Text Editor, and the button "Reopen in
   Markdown Editor".
 - **Markdown Editor** (the editor of a whole file of the extension,
@@ -3344,25 +3384,26 @@ requirements above follow them.
     nimblescape Markdown Paper does. The other choices were bare clones in
     a cache folder of the user with only the files in the project, and the
     files read from that cache outside the workspace.
-58. **The front matter is read-only in the clean editing view**
-    ([R-TEXT-009](#r-text-009)): the front matter is no free text; its keys
-    are the fields of the layout of the paper and its values belong to the
-    file, so the layout and the front matter stay together. In the clean
-    editing view, the whole front matter is read-only: an edit of it goes
-    back, and Undo goes over such an edit. The front matter changes with the
-    commands of nimblescape Markdown Paper and in the text editor of "Open
-    File with Markup". A new front matter in the view goes back too
-    (confirmed on 2026-11-02). The other choices were only the keys `layout`
-    and `repos` read-only, and a front matter that the view edits as text.
-59. **The form of the front matter is a view of Markdown Paper in the side
-    bar** ([R-TEXT-009](#r-text-009)): nimblescape Markdown Paper builds the
-    form, because it reads the fields of the layout from `layout.json`. Its
-    view "Front Matter" in the side bar always shows the form of the paper
-    in the active editor, also of the clean editing view. Markdown Notes
-    shows the link "Edit Front Matter" above the read-only front matter,
-    which opens and focuses the view. The other choices were a form beside
-    the editor, and a second tab of the Notes view, for which Markdown Notes
-    would read the fields of the layout from Markdown Paper.
+58. **The front matter is text in the clean editing view, with the rules of
+    its schema** ([R-TEXT-009](#r-text-009)): the clean editing view is a
+    text editor and keeps the format of the file, so the front matter is text
+    there. Its rules decide how the text changes: the keys of the schema stay
+    at the start of their lines and only the text after a key changes, the
+    read-only keys such as `layout` and `repos` of a paper keep their lines,
+    an empty value keeps its key, and a missing key of the schema can be
+    added. A front matter without rules changes like the other text. The
+    other choices were the whole front matter read-only, and a form in the
+    view.
+59. **The front matter stays in the page of each editor**
+    ([R-TEXT-009](#r-text-009)): the editor of a whole file edits the front
+    matter with its form at the top of the page, and the clean editing view
+    edits it as text with the rules of its schema. There is no form in the
+    side bar and no link above the front matter. The Markdown preview of a
+    file with notes or of a paper does not show the front matter
+    ([R-PREV-006](#r-prev-006)). The other
+    choice was the view "Front Matter" of nimblescape Markdown Paper in the
+    side bar, which the link "Edit Front Matter" above the front matter
+    opened.
 60. **The rev decides whether a clone takes new snippets**
     ([R-CODE-006](#r-code-006)): with a reference to a branch, the author
     adds snippets to the other repository while writing the paper, so `mp
@@ -3376,9 +3417,9 @@ requirements above follow them.
     ([R-TEXT-009](#r-text-009)): a Markdown file whose YAML front matter has
     the key `layout`, the mark of a paper document of nimblescape Markdown
     Paper, opens in the clean editing view also without notes, so that the
-    front matter of every paper is read-only. The other choice was the view
-    only for files with notes, where a paper without notes kept an editable
-    front matter in its own text editor.
+    rules of the front matter of every paper apply. The other choice was the
+    view only for files with notes, where a paper without notes kept a front
+    matter without rules in its own text editor.
 62. **The files of a clone stay editable, and a clone opens in a new
     window** ([R-CODE-006](#r-code-006)): the author changes another
     repository in the window of its clone, and a default of the VS Code
@@ -3468,18 +3509,18 @@ requirements above follow them.
     editor of a whole file, also in the mode "Edit keys", a key that the
     schema names, for example a field of the layout of a paper, has no
     input for its name and no button that removes it; the author changes
-    its value. The view "Front Matter" of nimblescape Markdown Paper, the
-    form of the clean editing view, does the same. Only the other keys get
-    a new name or go. The other choice was to rename and remove every key in
-    the mode "Edit keys".
+    its value. Only the other keys get a new name or go. The clean editing
+    view keeps the keys of the schema in the same way
+    ([decision 58](#decisions)). The other choice was to rename and remove
+    every key in the mode "Edit keys".
 72. **The text editor is always the clean editing view**
     ([R-TEXT-009](#r-text-009), [R-TEXT-010](#r-text-010)): the text
     editor of a Markdown file with notes, with the comment of the format, or
     of a paper document is the clean editing view, also when the file opens
     in the editor of a whole file, for example after "Open Text Editor to
-    the Side" or "Reopen Editor With". So each text editor keeps the front
-    matter read-only and the markup of the notes and the other hidden parts
-    hidden, as the editor does. Only "Open File with Markup" shows the file
+    the Side" or "Reopen Editor With". So each text editor keeps the rules
+    of the front matter and the markup of the notes and the other hidden
+    parts hidden, as the editor does. Only "Open File with Markup" shows the file
     with its markup. The other choice was the text of the file with its
     markup beside the editor.
 73. **The three views of a Markdown file** ([R-PREV-006](#r-prev-006),
@@ -3502,10 +3543,22 @@ requirements above follow them.
     citations, the reference list and the generated lists of nimblescape
     Markdown Paper, are read-only in the clean editing view, as in the
     editor of a whole file ([decision 68](#decisions)). An edit of such a
-    part goes back as an edit of the front matter does. The other choice was
+    part goes back as an edit that breaks a rule of the front matter does.
+    The other choice was
     to keep these parts editable in the view and let the format on save
     write them again.
-75. **A click on a link in a highlight of the preview selects the note**
+75. **The schema of the front matter comes from another extension, and
+    checks, fixes and completes the front matter in the clean editing view**
+    ([R-TEXT-009](#r-text-009), [R-GEN-012](#r-gen-012)): nimblescape
+    Markdown Paper knows the layout of a paper, so it gives the JSON schema
+    of its front matter and its read-only keys through
+    `registerFrontMatterSchema` of the API. The view shows each problem
+    against the schema as a warning with its quick fixes, such as a missing
+    key with each allowed value or a value of a choice, and the schema gives
+    the suggestions of the keys and of the values of a choice, which Tab
+    takes. The other choices were the warnings of Markdown Paper on the file
+    only, and a schema that Markdown Notes reads from the layout itself.
+76. **A click on a link in a highlight of the preview selects the note**
     ([R-PREV-003](#r-prev-003)): a click on a link in the highlight of a
     note in the Markdown preview, for example on a citation, selects the
     note, as in the views "Text Editor" and "Markdown Editor"; Ctrl+click

@@ -247,38 +247,68 @@ test('hides the definitions of the standard footnotes while the side view shows 
   expect(real.text).toContain('[^2]: Typed.\n');
 });
 
-test('keeps the front matter read-only: an edit of it goes back with a message, and the link above it opens the file itself or the form of Markdown Paper (R-TEXT-009)', async () => {
-  const { cleanCommands, frontMatterInForm, frontMatterReadOnly, paper } = await import('./cleanView');
-  const titled = `---\ntitle: A paper\n---\n\n${text}`;
-  const { real, document } = await opened(titled);
+/** paperSchema is the schema of the front matter of a paper: the key layout read-only, and the key kind a required choice. */
+const paperSchema = {
+  type: 'object',
+  properties: { layout: { type: 'string', readOnly: true }, title: { type: 'string' }, kind: { type: 'string', enum: ['Bachelor', 'Master'], default: 'Bachelor' } },
+  required: ['layout', 'title', 'kind'],
+};
+
+test('edits the front matter as text, and with the rules of another extension keeps the keys of the schema and the read-only keys, with problems, quick fixes and suggestions (R-TEXT-009, decision 75)', async () => {
+  const { frontMatterKept } = await import('./cleanView');
+  const titled = `---\nlayout: pht/thesis\ntitle: A paper\n---\n\n${text}`;
+  const { view, real, document } = await opened(titled);
   // VS Code reads the clean text anew from the file system of the view when it has no tab and no changes.
   document.isDirty = true;
+  // Without rules, the front matter is text like the rest, and has no link above it.
   const start = document.text.indexOf('A paper');
   typeIn(document, start, start, 'The ');
   await settle();
-  expect(document.getText()).toBe(`---\ntitle: A paper\n---\n\n${clean}`);
-  expect(real.text).toBe(titled);
-  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
-  // An edit after the closing line goes into the file.
-  const next = document.text.indexOf('The next');
-  typeIn(document, next, next, 'Now ');
+  expect(real.text.startsWith('---\nlayout: pht/thesis\ntitle: The A paper\n---\n')).toBe(true);
+  expect(fake.statusMessages).toEqual([]);
+  expect(fake.codeLenses).toEqual([]);
+  // The rules of another extension, for the file of the view.
+  let asked: string | undefined;
+  view.registerFrontMatterSchema({
+    schemaOf: (file) => {
+      asked = file.toString();
+      return Promise.resolve({ schema: paperSchema });
+    },
+  });
   await settle();
-  expect(real.text).toContain('\nNow The next paragraph.\n');
-  expect(real.text.startsWith('---\ntitle: A paper\n---\n')).toBe(true);
-  // The link above the front matter: without Markdown Paper "Open File with Markup", with its form "Edit Front Matter".
-  const lenses = async () =>
-    (await Promise.all(fake.codeLenses.map((provider) => provider.provideCodeLenses(document)))).flat().map((lens) => [lens.range.start.line, lens.command?.title, lens.command?.command, lens.command?.arguments?.map(String)]);
-  expect(await lenses()).toEqual([[0, 'Open File with Markup', cleanCommands.openWithMarkup, undefined]]);
-  fake.extensions.set(paper.extension, { packageJSON: { contributes: { commands: [{ command: paper.editFrontMatter }] } } });
-  expect(await lenses()).toEqual([[0, 'Edit Front Matter', paper.editFrontMatter, [real.uri.toString()]]]);
-  // An edit that removes the front matter goes back too, and the message names the form.
-  typeIn(document, 0, document.text.indexOf('The agents'), '');
+  expect(asked).toBe(real.uri.toString());
+  // An edit of a key of the schema, or of the value of a read-only key, goes back with a message.
+  const key = document.text.indexOf('title:');
+  typeIn(document, key, key, 'sub');
   await settle();
-  expect(document.getText().startsWith('---\ntitle: A paper\n---\n\nThe agents')).toBe(true);
-  expect(fake.statusMessages.at(-1)).toBe(frontMatterInForm);
-  // A clean text without a front matter has no link.
-  const plain = new FakeDocument(document.uri, clean);
-  expect((await Promise.all(fake.codeLenses.map((provider) => provider.provideCodeLenses(plain)))).flat()).toEqual([]);
+  const layout = document.text.indexOf('thesis');
+  typeIn(document, layout, layout + 'thesis'.length, 'concept');
+  await settle();
+  expect(document.getText().startsWith('---\nlayout: pht/thesis\ntitle: The A paper\n---\n')).toBe(true);
+  expect(real.text.startsWith('---\nlayout: pht/thesis\ntitle: The A paper\n---\n')).toBe(true);
+  expect(fake.statusMessages).toEqual([frontMatterKept, frontMatterKept]);
+  // The text after a key goes into the file.
+  const title = document.text.indexOf('The A paper');
+  typeIn(document, title, title + 'The A paper'.length, 'A plan');
+  await settle();
+  expect(real.text.startsWith('---\nlayout: pht/thesis\ntitle: A plan\n---\n')).toBe(true);
+  // The missing key shows as a warning at the first fence, and its quick fixes add it with a value of the choice.
+  const problems = fake.diagnostics.get(document.uri.toString()) ?? [];
+  expect(problems.map((problem) => [problem.range.start.line, problem.message, problem.severity, problem.source])).toEqual([[0, '"kind": A value is required.', 1, 'Markdown Notes']]);
+  const actions = fake.actionsAt(document, new FakeRange(0, 0, 0, 0));
+  expect(actions.map((action) => [action.title, action.isPreferred])).toEqual([
+    ['Add "kind: Bachelor"', true],
+    ['Add "kind: Master"', false],
+  ]);
+  const [fix] = actions[0].edit!.replacements;
+  typeIn(document, document.offsetAt(fix.range.start), document.offsetAt(fix.range.end), fix.text);
+  await settle();
+  expect(real.text.startsWith('---\nlayout: pht/thesis\ntitle: A plan\nkind: Bachelor\n---\n')).toBe(true);
+  expect(fake.diagnostics.get(document.uri.toString())).toEqual([]);
+  // After a key with a choice, its values are the suggestions, which a colon or a space opens.
+  const after = document.text.indexOf('kind: ') + 'kind: '.length;
+  expect(fake.complete(document, document.positionAt(after)).map((item) => item.label)).toEqual(['Bachelor', 'Master']);
+  expect(fake.completions.get('scheme:markdownnotes')?.[0].triggers).toEqual([':', ' ']);
 });
 
 /** figured is a file with notes, a figure with the number of its caption and a reference to it. */
@@ -414,22 +444,24 @@ test('selects a range of a file without notes in its own text editor, which stay
   expect(editor.selection.active).toEqual(real.positionAt(13));
 });
 
-test('shows a paper document without notes as the view too, with its front matter read-only (R-TEXT-009, decision 61)', async () => {
-  const { frontMatterReadOnly } = await import('./cleanView');
+test('shows a paper document without notes as the view too, with the rules of its front matter (R-TEXT-009, decision 61)', async () => {
+  const { frontMatterKept } = await import('./cleanView');
   const paperText = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text without notes.\n';
-  const { real, tab } = await inEditor({ content: paperText });
+  const { view, real, tab } = await inEditor({ content: paperText });
+  view.registerFrontMatterSchema({ schemaOf: () => ({ schema: paperSchema }) });
+  await settle();
   const [editor] = fake.editors;
   expect(editor.document.uri.scheme).toBe('markdownnotes');
   expect(editor.document.getText()).toBe(paperText);
   expect(fake.closedTabs).toEqual([tab]);
   const document = editor.document as unknown as FakeDocument;
   document.isDirty = true;
-  const start = document.text.indexOf('A paper');
-  typeIn(document, start, start, 'The ');
+  const start = document.text.indexOf('pht/thesis');
+  typeIn(document, start, start, 'my/');
   await settle();
   expect(document.getText()).toBe(paperText);
   expect(real.text).toBe(paperText);
-  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
+  expect(fake.statusMessages).toEqual([frontMatterKept]);
   const next = document.text.indexOf('A text');
   typeIn(document, next, next, 'Now ');
   await settle();
@@ -543,10 +575,12 @@ test('brings the file back to its text on disk when the view closes without a sa
   expect(fake.closedTabs).toContain(behind);
 });
 
-test('shows the text editor of a file beside the editor of a whole file as the view too, with the markup hidden and the front matter read-only (R-TEXT-009, decision 72)', async () => {
-  const { frontMatterReadOnly } = await import('./cleanView');
-  const frontMatter = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\n';
-  const { real, tab, custom } = await inEditor({ content: frontMatter + text, rendered: true });
+test('shows the text editor of a file beside the editor of a whole file as the view too, with the markup hidden and the rules of the front matter (R-TEXT-009, decision 72)', async () => {
+  const { frontMatterKept } = await import('./cleanView');
+  const frontMatter = '---\nlayout: pht/thesis\ntitle: A paper\nkind: Master\n---\n\n';
+  const { view, real, tab, custom } = await inEditor({ content: frontMatter + text, rendered: true });
+  view.registerFrontMatterSchema({ schemaOf: () => ({ schema: paperSchema }) });
+  await settle();
   const [editor] = fake.editors;
   expect(editor.document.uri.scheme).toBe('markdownnotes');
   expect(editor.document.getText()).toBe(frontMatter + clean);
@@ -554,12 +588,12 @@ test('shows the text editor of a file beside the editor of a whole file as the v
   expect(fake.closedTabs).toEqual([tab]);
   expect(fake.tabGroups[1].tabs).toEqual([custom]);
   const document = editor.document as unknown as FakeDocument;
-  const start = document.text.indexOf('A paper');
+  const start = document.text.indexOf('title:');
   typeIn(document, start, start, 'The ');
   await settle();
   expect(document.getText()).toBe(frontMatter + clean);
   expect(real.text).toBe(frontMatter + text);
-  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
+  expect(fake.statusMessages).toEqual([frontMatterKept]);
   // The edit that went back leaves no changes that are not saved.
   expect(real.isDirty).toBe(false);
   expect(document.isDirty).toBe(false);

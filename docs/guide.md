@@ -452,19 +452,32 @@ into the file at once, and each note stays at its text:
 - A paragraph break inside a highlight ends the highlight there, and the note
   moves after the paragraph of its highlight.
 - Undo and Redo bring back the file as it was, with each note at its place.
-- The front matter at the top of the file is read-only in the view: an edit
-  of it goes back at once, leaves no changes to save, and the status bar
-  says so. Change the front
-  matter with the link above it: "Edit Front Matter" opens the form of
-  nimblescape Markdown Paper in the side bar; without Markdown Paper, the
-  link is "Open File with Markup". The commands of Markdown Paper, such as
-  `mp get`, change it too. Text after the
-  closing `---` can be edited as usual, and Undo goes over an edit that went
-  back.
+- The front matter at the top of the file is text in the view. For a paper,
+  nimblescape Markdown Paper gives its schema: the keys of the layout stay
+  at the start of their lines, and you change the text after a key; the
+  lines of `layout` and `repos` stay as they are. An empty value keeps its
+  key. An edit that would change a key of the schema or a read-only line
+  goes back at once, leaves no changes to save, and the status bar says so;
+  Undo goes over it. You can add a missing key of the layout, and add,
+  change and remove the other keys.
+- The front matter shows its problems against the schema as warnings, for
+  example a missing required key at the first `---`, or a value that is not
+  one of the values of the layout. The light bulb has the quick fixes: add
+  the missing key with one of its values, or change a value to one of the
+  allowed values.
+- After a key with a fixed set of values, such as the kind of a thesis, a
+  colon or a space opens the list of its values, and Tab or Enter takes the
+  selected one. On an empty line of the front matter, Ctrl+Space lists the
+  missing keys of the layout, and a chosen key comes with its values to
+  choose from.
+- The view has no form of the front matter: the editor of rendered Markdown
+  has it at the top of the page. The commands of Markdown Paper, such as
+  `mp get`, change the front matter too.
 - The parts that the formatter writes are read-only in the view too, as in
   the editor of rendered Markdown: the number of a caption, the text of a
   reference between its square brackets, the code block of a listing, a
-  value of the front matter in the text, and the parts of nimblescape
+  value of the front matter that the formatter copies into the text below
+  the front matter, and the parts of nimblescape
   Markdown Paper, such as its citations, the entries of its reference list
   and its generated lists. An edit inside such a part, also a digit typed
   right after the number of a caption, goes back, and the status bar says
