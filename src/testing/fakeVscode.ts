@@ -297,6 +297,14 @@ export class FakeTabInputText {
   constructor(readonly uri: FakeUri) {}
 }
 
+/** FakeTabInputCustom stands for a vscode.TabInputCustom: the input of a tab of a custom editor. */
+export class FakeTabInputCustom {
+  constructor(
+    readonly uri: FakeUri,
+    readonly viewType: string,
+  ) {}
+}
+
 /** FakeTab stands for a vscode.Tab. */
 export interface FakeTab {
   input: unknown;
@@ -755,6 +763,7 @@ export class Fake {
       FoldingRangeKind: { Comment: 1 },
       TextEditorRevealType: { InCenter: 1, InCenterIfOutsideViewport: 2, AtTop: 3 },
       TabInputText: FakeTabInputText,
+      TabInputCustom: FakeTabInputCustom,
       ViewColumn: { Active: -1, Beside: -2, One: 1, Two: 2 },
       TextEditorSelectionChangeKind: { Keyboard: 1, Mouse: 2, Command: 3 },
       OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
@@ -1159,7 +1168,7 @@ export class Fake {
       group = { viewColumn: panel.viewColumn, tabs: [] };
       this.tabGroups.push(group);
     }
-    const tab = { input: { viewType, uri: document.uri }, isPreview: false };
+    const tab = { input: new FakeTabInputCustom(document.uri, viewType), isPreview: false };
     group.tabs.push(tab);
     group.activeTab = tab;
     await this.customEditors.get(viewType)!.resolveCustomTextEditor(document, panel);

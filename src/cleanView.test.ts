@@ -18,7 +18,7 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import type { CleanView } from './cleanView';
 import type { SelectedNotes } from './selectedNotes';
-import { Fake, FakeDocument, FakeEditor, type FakePosition, FakeRange, FakeSelection, type FakeSnippetString, type FakeTab, FakeTabInputText, FakeUri, settle } from './testing/fakeVscode';
+import { Fake, FakeDocument, FakeEditor, type FakePosition, FakeRange, FakeSelection, type FakeSnippetString, type FakeTab, FakeTabInputCustom, FakeTabInputText, FakeUri, settle } from './testing/fakeVscode';
 
 vi.mock('vscode', () => ({}));
 
@@ -76,9 +76,10 @@ async function opened(file = text, showsFootnotes?: () => boolean): Promise<{ vi
 /**
  * inEditor shows a file in a visible text editor of the first group with its tab, as VS Code opens a file of the
  * Explorer, starts the clean view, and waits until it took the text editor.
- * @param options - The cursor in the file, the text of the file, its changes that are not saved, and the input of its tab.
+ * @param options - The cursor in the file, the text of the file, its changes that are not saved, the input of its tab,
+ * and whether the editor of a whole file shows the file in the second group, as after "Open Text Editor to the Side".
  */
-async function inEditor(options: { offset?: number; content?: string; dirty?: boolean; input?: (uri: unknown) => unknown } = {}) {
+async function inEditor(options: { offset?: number; content?: string; dirty?: boolean; input?: (uri: unknown) => unknown; rendered?: boolean } = {}) {
   const { CleanView } = await import('./cleanView');
   const { SelectedNotes } = await import('./selectedNotes');
   const content = options.content ?? text;
@@ -91,11 +92,15 @@ async function inEditor(options: { offset?: number; content?: string; dirty?: bo
   fake.editors.push(editor);
   fake.activeEditor = editor;
   fake.tabGroups.push({ viewColumn: 1, tabs: [tab], activeTab: tab });
+  const custom: FakeTab = { input: new FakeTabInputCustom(real.uri, 'nimblescape.markdownNotes.editor') };
+  if (options.rendered) {
+    fake.tabGroups.push({ viewColumn: 2, tabs: [custom], activeTab: custom });
+  }
   const view = new CleanView(() => true, new SelectedNotes());
   view.register();
   await settle();
   await settle();
-  return { view, real, tab };
+  return { view, real, tab, custom };
 }
 
 /**
@@ -424,15 +429,89 @@ test('brings the file back to its text on disk when the view closes without a sa
   let reverting: boolean | undefined;
   const save = real.save.bind(real);
   real.save = () => {
-    reverting = view.reverts(real.uri as never);
+    reverting = view.savesAsIs(real.uri as never);
     return save();
   };
   await closeView(document);
   expect(real.text).toBe(text);
   expect(real.saves).toBe(1);
   expect(reverting).toBe(true);
-  expect(view.reverts(real.uri as never)).toBe(false);
+  expect(view.savesAsIs(real.uri as never)).toBe(false);
   expect(fake.closedTabs).toContain(behind);
+});
+
+test('shows the text editor of a file beside the editor of a whole file as the view too, with the markup hidden and the front matter read-only (R-TEXT-009, decision 71)', async () => {
+  const { frontMatterReadOnly } = await import('./cleanView');
+  const frontMatter = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\n';
+  const { real, tab, custom } = await inEditor({ content: frontMatter + text, rendered: true });
+  const [editor] = fake.editors;
+  expect(editor.document.uri.scheme).toBe('markdownnotes');
+  expect(editor.document.getText()).toBe(frontMatter + clean);
+  expect(fake.shown.at(-1)?.options).toMatchObject({ viewColumn: 1 });
+  expect(fake.closedTabs).toEqual([tab]);
+  expect(fake.tabGroups[1].tabs).toEqual([custom]);
+  const document = editor.document as unknown as FakeDocument;
+  const start = document.text.indexOf('A paper');
+  typeIn(document, start, start, 'The ');
+  await settle();
+  expect(document.getText()).toBe(frontMatter + clean);
+  expect(real.text).toBe(frontMatter + text);
+  expect(fake.statusMessages).toEqual([frontMatterReadOnly]);
+  // The edit that went back leaves no changes that are not saved.
+  expect(real.isDirty).toBe(false);
+  expect(document.isDirty).toBe(false);
+});
+
+test('keeps the changes in the file when the view closes without a save while the editor of a whole file shows the file (decision 71)', async () => {
+  const { real } = await inEditor({ rendered: true });
+  const document = fake.editors[0].document;
+  typeIn(document, 0, 0, 'Now ');
+  await settle();
+  await closeView(document);
+  expect(real.text.startsWith('Now The agents')).toBe(true);
+  expect(real.isDirty).toBe(true);
+  expect(real.saves).toBe(0);
+});
+
+test('saves the view as it is after a save of its file elsewhere, for example in the editor of a whole file, so that the view has no changes that are not saved (decision 71)', async () => {
+  const { view, real } = await inEditor({ rendered: true });
+  const document = fake.editors[0].document as unknown as FakeDocument;
+  // The editor of a whole file changes the file; the view shows the change.
+  await fake.applyEdit(Object.assign(new (fake.api.WorkspaceEdit as new () => object)(), { replacements: [{ uri: real.uri, range: new FakeRange(0, 0, 0, 0), text: 'Now ' }] }) as never);
+  await settle();
+  expect(document.getText()).toBe(`Now ${clean}`);
+  expect(document.isDirty).toBe(true);
+  let asIs: boolean | undefined;
+  const save = document.save.bind(document);
+  document.save = () => {
+    asIs = view.savesAsIs(document.uri as never);
+    return save();
+  };
+  // A save of a file with changes that are not saved leaves the view as it is.
+  fake.fire('save', real);
+  await settle();
+  expect(document.saves).toBe(0);
+  await real.save();
+  fake.fire('save', real);
+  await settle();
+  expect(document.saves).toBe(1);
+  expect(document.isDirty).toBe(false);
+  expect(asIs).toBe(true);
+  expect(view.savesAsIs(document.uri as never)).toBe(false);
+  // VS Code writes the view for its save: the file stays as it is, also when it changed again since.
+  await fake.applyEdit(Object.assign(new (fake.api.WorkspaceEdit as new () => object)(), { replacements: [{ uri: real.uri, range: new FakeRange(0, 0, 0, 0), text: 'And ' }] }) as never);
+  await settle();
+  const saves = real.saves;
+  document.save = async () => {
+    await view.writeFile(document.uri as never, new TextEncoder().encode(`Now ${clean}`));
+    return save();
+  };
+  await real.save();
+  real.isDirty = false;
+  fake.fire('save', real);
+  await settle();
+  expect(real.saves).toBe(saves + 1);
+  expect(real.text.startsWith('And Now The agents')).toBe(true);
 });
 
 test('keeps the changes of a closed view in the file that "Open File with Markup" shows', async () => {

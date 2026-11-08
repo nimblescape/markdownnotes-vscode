@@ -355,9 +355,9 @@ export function activate(context: vscode.ExtensionContext): Api {
    * @param document - The URI of the document, or undefined for the settings of the window.
    */
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
-  const editor = new NoteEditor(store, showsHighlights, selected);
+  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
+  const editor = new NoteEditor(store, showsHighlights, selected, (shown) => clean.becomesView(shown));
   const rendered = new RenderedEditors(context.extensionUri, readSettings, selected, () => vscode.commands.executeCommand(viewCommands.newNote));
-  const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes, (document) => rendered.opens(document));
   store.waitBeforeWrites((uri) => clean.switchedOf(uri));
   const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, store, githubLogin, renderMarkdown, readSettings, selected, clean);
@@ -381,8 +381,9 @@ export function activate(context: vscode.ExtensionContext): Api {
    */
   const saveChangesOf = (document: vscode.TextDocument): SaveChanges => {
     const settings = readSettings(document.uri);
-    if (clean.reverts(document.uri)) {
-      // The file goes back to its text on disk after its clean editing view closed without a save.
+    if (clean.savesAsIs(document.uri)) {
+      // The file goes back to its text on disk after its clean editing view closed without a save, or the view follows
+      // a save of its file elsewhere.
       return { format: false, comment: false };
     }
     const notes = store.notesOf(document).length > 0;

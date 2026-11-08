@@ -190,11 +190,15 @@ export class NoteEditor implements vscode.Disposable {
    * @param store - The store of the notes, which read the notes of each document and tell their changes.
    * @param showsHighlights - Tells whether the highlights of a document show: the setting showHighlights is on.
    * @param selected - The selected note of each document, whose highlight has the strong color.
+   * @param becomesView - Tells whether a text editor becomes the clean editing view
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009)): its notes do not collapse, because the command of the fold
+   * would act on the view, which takes its place.
    */
   constructor(
     private readonly store: NoteStore,
     private readonly showsHighlights: (document: vscode.Uri) => boolean,
     private readonly selected: SelectedNotes,
+    private readonly becomesView: (editor: vscode.TextEditor) => boolean = () => false,
   ) {}
 
   /** register registers the folding, the commands of the keys and the listeners, and decorates the visible editors. */
@@ -615,7 +619,7 @@ export class NoteEditor implements vscode.Disposable {
    * @param editor - The active text editor, or undefined.
    */
   private collapseOnce(editor: vscode.TextEditor | undefined): void {
-    if (!editor || !isNoteDocument(editor.document)) {
+    if (!editor || !isNoteDocument(editor.document) || this.becomesView(editor)) {
       return;
     }
     const key = editor.document.uri.toString();

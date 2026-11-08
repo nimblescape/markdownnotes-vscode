@@ -180,7 +180,9 @@ The first version.
   Markdown file: the text as it reads, without the markup of the notes,
   which stay in the file byte for byte, with the highlights in their colors,
   the side view at its cursor, "Comment" in the format bar over the selected
-  text, which adds a note, and "Open Text Editor to the Side" in the title.
+  text, which adds a note, and "Open Text Editor to the Side" in the title,
+  which opens the clean editing view for a file with notes and for a
+  paper.
   The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
   that open in it: `all` (the default), `notesAndPapers` or `none`. The
   editor hides the anchors of the figures, the tables, the listings and the
@@ -206,7 +208,8 @@ The first version.
 - The clean editing view: a Markdown file with notes that does not open in
   the editor of rendered Markdown opens in a text editor of its text without
   the notes markup, which behaves as in a file without
-  notes; the extension writes each change into the file and keeps each note
+  notes, and the text editor of such a file beside the editor is the view
+  too; the extension writes each change into the file and keeps each note
   at its text, also for Undo, and the save of the view saves the file. Its
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in

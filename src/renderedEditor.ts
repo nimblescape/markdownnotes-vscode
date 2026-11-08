@@ -10,7 +10,8 @@
  * connects its page to the document, so that the file stays a text document of VS Code. The setting `renderedEditor`
  * chooses the files that open in it: every Markdown file (`all`), the files with notes or with the comment of the format
  * and the paper documents (`notesAndPapers`), or none; every other file opens in the text editor. The button "Open Text
- * Editor to the Side" in the title of the editor opens the text of the file with its markup.
+ * Editor to the Side" in the title of the editor opens the text editor of the file, which is the clean editing view for
+ * a file with notes and for a paper document ([R-TEXT-009](../docs/requirements.md#r-text-009), decision 71).
  *
  * The module connects the plugin of each editor to the extension (src/notes/editorMessages.ts): the selection of the
  * editor, as places in the text of the file, goes to the side view, which selects the thread at the cursor and adds a
