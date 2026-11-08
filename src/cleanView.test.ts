@@ -346,6 +346,26 @@ test('keeps the generated parts read-only: an edit of the number of a caption or
   expect(fake.statusMessages).toHaveLength(3);
 });
 
+test('marks the read-only parts with the gray background of the theme and the reason in their hover: the generated parts, and the parts of the front matter that its rules keep (R-TEXT-009, decision 80)', async () => {
+  const { frontMatterKept, generatedReadOnly, readOnlyColors } = await import('./cleanView');
+  const { view, document, editor } = await opened(`---\nlayout: pht/thesis\ntitle: A paper\n---\n\n${figured}`);
+  /** marked returns the texts with the decoration of read-only parts, of parts of lines or of whole lines, with their hovers. */
+  const marked = (wholeLine: boolean): string[] =>
+    [...editor.decorations]
+      .filter(([type]) => {
+        const options = (type as { options: { backgroundColor?: { id: string }; isWholeLine?: boolean } }).options;
+        return options.backgroundColor?.id === readOnlyColors.background && options.isWholeLine === wholeLine;
+      })
+      .flatMap(([, ranges]) => ranges.map((range) => `${document.getText('range' in range ? range.range : range)} | ${String(((range as { hoverMessage?: { value: string } }).hoverMessage)?.value)}`));
+  expect(marked(false)).toEqual([`1 | ${generatedReadOnly}`, `Figure 1 | ${generatedReadOnly}`]);
+  expect(marked(true)).toEqual([]);
+  // With the rules of another extension: the fences, the keys of the schema and the lines of the read-only keys.
+  view.registerFrontMatterSchema({ schemaOf: () => Promise.resolve({ schema: paperSchema }) });
+  await settle();
+  expect(marked(false)).toEqual([`1 | ${generatedReadOnly}`, `Figure 1 | ${generatedReadOnly}`, `title: | ${frontMatterKept}`]);
+  expect(marked(true)).toEqual([`--- | ${frontMatterKept}`, `--- | ${frontMatterKept}`, `layout: pht/thesis | ${frontMatterKept}`]);
+});
+
 test('formats the text of the file for "Format Document" of the view, with its hidden parts, and takes the formatted file as it is (R-TEXT-009, R-FMT-001)', async () => {
   const { generatedReadOnly } = await import('./cleanView');
   const stale = figured.replace('Figure 1: A cat', 'Figure 3: A cat');

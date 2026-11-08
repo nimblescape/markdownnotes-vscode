@@ -486,6 +486,15 @@ into the file at once, and each note stays at its text:
   You change a part through what it comes from, for example the caption,
   the heading, the source file or the front matter, and the save writes it
   again. "Format Document" in the view writes the parts too.
+- The read-only parts have a gray background, in the view and in the editor
+  of rendered Markdown: the parts that the formatter writes, such as the
+  table of contents of a paper, and in the front matter of a paper the
+  `---` lines, the keys of the layout and the lines of `layout` and
+  `repos`. The pointer on a part shows why it is read-only. The themes of
+  high contrast add a dotted frame. To change the colors, set
+  `nimblescapeMarkdownNotes.readOnlyBackground` and
+  `nimblescapeMarkdownNotes.readOnlyBorder` in
+  `workbench.colorCustomizations`.
 - The tags that the view hides come only from the slash commands, such as
   `/note`, `/figure`, `/listing` and `/ref`, the slash commands of other
   extensions, such as `/cite` and `/research` of Markdown Paper, and the

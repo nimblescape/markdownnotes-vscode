@@ -11,7 +11,8 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { type FrontMatterRules, frontMatterCompletions, frontMatterIssues, keepsRules, keyLinesOf, scalarOf } from './frontMatterRules';
+import { rangesOf } from './generated';
+import { type FrontMatterRules, frontMatterCompletions, frontMatterIssues, keepsRules, keyLinesOf, readOnlyParts, scalarOf } from './frontMatterRules';
 
 /** rules are the rules of a paper as nimblescape Markdown Paper gives them: layout read-only, repos read-only, a choice and a required key. */
 const rules: FrontMatterRules = {
@@ -99,6 +100,23 @@ describe('an edit of the front matter', () => {
     expect(keepsRules(paper, replaced(paper, 'layout: pht/thesis\n', ''), null)).toBe(true);
     expect(keepsRules(paper, replaced(paper, 'title: A paper', 'title: The plan'), undefined)).toBe(false);
     expect(keepsRules(paper, replaced(paper, 'Text.', 'More text.'), undefined)).toBe(true);
+  });
+});
+
+describe('the read-only parts of the front matter', () => {
+  /** shown returns the text of each read-only part of a text, a block as its lines. */
+  const shown = (text: string, given: FrontMatterRules | null | undefined): string[] => rangesOf(text, readOnlyParts(text, given)).map((range) => text.slice(range.from, range.to));
+
+  test('are the fences, each key of the schema up to its colon, and the lines of each read-only key with its value', () => {
+    expect(shown(paper, rules)).toEqual(['---', '---', 'layout: pht/thesis', 'title:', 'kind:', 'repos:\n  app: https://github.com/a/app']);
+  });
+
+  test('are the whole front matter in TOML, and none without rules, while the rules load, or without a front matter', () => {
+    const toml = ['+++', 'title = "A paper"', '+++', '', 'Text.'].join('\n');
+    expect(shown(toml, rules)).toEqual(['+++\ntitle = "A paper"\n+++']);
+    expect(shown(paper, null)).toEqual([]);
+    expect(shown(paper, undefined)).toEqual([]);
+    expect(shown('Text.', rules)).toEqual([]);
   });
 });
 

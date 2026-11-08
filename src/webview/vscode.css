@@ -28,6 +28,8 @@ markdown.css, so that these values win over its defaults for the light and the d
   --nsmd-raw-foreground: var(--vscode-descriptionForeground);
   --nsmd-surface: var(--vscode-editorWidget-background);
   --nsmd-hover: var(--vscode-toolbar-hoverBackground);
+  /* The read-only parts have the same color as in the text editor (R-TEXT-009): a color that the extension contributes. */
+  --nsmd-readonly: var(--vscode-nimblescapeMarkdownNotes-readOnlyBackground, rgba(128, 128, 128, 0.15));
   --nsmd-active: var(--vscode-inputOption-activeBackground);
   --nsmd-shadow: 0 4px 16px var(--vscode-widget-shadow);
   --nsmd-mark: var(--vscode-textPreformat-foreground);
@@ -46,6 +48,16 @@ markdown.css, so that these values win over its defaults for the light and the d
   --nsmd-font-size: var(--nsmd-preview-font-size, 14px);
   --nsmd-line-height: var(--nsmd-preview-line-height, 1.6);
   --nsmd-code-font-family: var(--vscode-editor-font-family);
+}
+
+/*
+The read-only parts (R-TEXT-009) have the dotted frame of the text editor, which only the themes of high contrast show
+by default. The selector has no weight, so that the frame of a selected block wins.
+*/
+
+:where(.nsmd-editor .ProseMirror .nsmd-generated, .nsmd-editor .ProseMirror .nsmd-generated-block, .nsmd-editor .nsmd-fm-static) {
+  outline: 1px dotted var(--vscode-nimblescapeMarkdownNotes-readOnlyBorder, transparent);
+  outline-offset: -1px;
 }
 
 /*
