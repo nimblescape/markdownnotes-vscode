@@ -287,6 +287,16 @@ Markdown file with notes without this extension knowing anything of papers:
     that the view writes anew keeps it at its text. A marker that a command
     writes into the view goes into the file and out of the view. A file
     with such a marker opens in the view too.
+  - `registerGeneratedParts({ find(lines) })`: the parts of a file that a
+    format step of the other extension writes, which the clean editing view
+    keeps read-only ([R-TEXT-009](#r-text-009)): parts of a line, each by
+    its line and its start and end in the line, such as the text of a
+    citation between its square brackets, and blocks of whole lines, each by
+    its first and its last line, such as an entry of the reference list or a
+    generated list with its markers. Text typed into a part or at the edge of
+    a part of a line, and a change of a piece of a part, go back; a change
+    that takes a whole block, or a whole part of a line with text around it,
+    stays.
   - `registerSlashCommand({ label, description, detail, selection, run(editor, range) })`:
     a slash command after the commands of the notes
     ([R-EDIT-008](#r-edit-008)), with the same rules. The label is a slash
@@ -916,6 +926,24 @@ file at once, and keeps each note at its text:
   of nimblescape Markdown), the keys of the layout stay in that view: the
   author changes their values, but does not rename or remove them
   ([decision 71](#decisions)).
+- The parts that the formatter writes are read-only, as in the editor of a
+  whole file ([R-TEXT-010](#r-text-010), [decision 74](#decisions)): the
+  number of each caption, the text of each reference to a figure, a table, a
+  listing or a section between its square brackets, the code block of each
+  listing, each value of the front matter in the text whose key the front
+  matter has ([R-XREF-004](#r-xref-004)), and the parts that other
+  extensions name through the API ([R-GEN-012](#r-gen-012)), such as the
+  citations, the entries of the reference list and the generated lists of
+  nimblescape Markdown Paper. Text typed into such a part, also at the edge
+  of a part in a line, such as a digit after the number of a caption, and a
+  change of a piece of a part go back as an edit of the front matter does,
+  and the status bar says that the formatter writes the part. A change that
+  takes a whole part with text around it, such as the deletion of a
+  reference or of a caption, stays, and so do whole lines typed before or
+  after a block, such as the code block of a listing. The user changes a
+  part through what it comes from, and the save writes it again
+  ([R-GEN-016](#r-gen-016)). "Format Document" of the view writes the
+  parts too.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -1075,7 +1103,8 @@ extensions work as for the text editor.
   matter
   ([R-FM-007](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-007)).
   The user changes a part through what it comes from, and the formatter
-  writes it again on save. Text typed
+  writes it again on save. The clean editing view keeps the same parts
+  read-only ([R-TEXT-009](#r-text-009)). Text typed
   after the anchor at the end of a caption or a heading goes before the
   anchor, an anchor stays at the end of its caption or heading when an edit
   replaces the text before it, and the comment of a listing goes with its
@@ -3457,6 +3486,17 @@ requirements above follow them.
     and names its own editor "Markdown Editor". The other choice was the
     list with the visual editor of VS Code as "Markdown Editor" and the
     editor of the extension as a fourth entry "nimblescape Markdown Notes".
+74. **The generated parts are read-only in the clean editing view**
+    ([R-TEXT-009](#r-text-009), [R-GEN-012](#r-gen-012)): the number of
+    each caption, the text of each reference, the code block of each
+    listing, each value of the front matter in the text, and the parts that
+    other extensions name with `registerGeneratedParts`, such as the
+    citations, the reference list and the generated lists of nimblescape
+    Markdown Paper, are read-only in the clean editing view, as in the
+    editor of a whole file ([decision 68](#decisions)). An edit of such a
+    part goes back as an edit of the front matter does. The other choice was
+    to keep these parts editable in the view and let the format on save
+    write them again.
 
 ---
 

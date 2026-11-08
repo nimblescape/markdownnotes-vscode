@@ -259,13 +259,31 @@ export function changesOnSave(document: vscode.TextDocument, reason: vscode.Text
  * @param extension - The identifier of this extension, the default formatter of Markdown.
  * @param wanted - Returns the changes that the settings of the extension and the notes of a document ask for.
  * @param steps - The steps of the formatter of other extensions.
+ * @param formats - Gets the edits of the formatter for a document before VS Code applies them, so that the clean
+ * editing view lets the format write the generated parts.
  */
-export const registerFormatter = (extension: string, wanted: (document: vscode.TextDocument) => SaveChanges, steps?: FormatSteps): vscode.Disposable[] => [
-  vscode.languages.registerDocumentFormattingEditProvider({ language: 'markdown' }, { provideDocumentFormattingEdits: (document) => formatEdits(document, steps) }),
+export const registerFormatter = (
+  extension: string,
+  wanted: (document: vscode.TextDocument) => SaveChanges,
+  steps?: FormatSteps,
+  formats: (document: vscode.TextDocument, edits: readonly vscode.TextEdit[]) => void = () => undefined,
+): vscode.Disposable[] => [
+  vscode.languages.registerDocumentFormattingEditProvider(
+    { language: 'markdown' },
+    {
+      provideDocumentFormattingEdits: (document) => {
+        const edits = formatEdits(document, steps);
+        formats(document, edits);
+        return edits;
+      },
+    },
+  ),
   vscode.workspace.onWillSaveTextDocument((event) => {
     const changes = changesOnSave(event.document, event.reason, extension, wanted);
     if (changes.format || changes.comment) {
-      event.waitUntil(Promise.resolve(saveEdits(event.document, changes, steps)));
+      const edits = saveEdits(event.document, changes, steps);
+      formats(event.document, edits);
+      event.waitUntil(Promise.resolve(edits));
     }
   }),
 ];
