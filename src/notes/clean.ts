@@ -707,23 +707,9 @@ const frontMatterOf = (text: string): string[] => {
 };
 
 /**
- * keepsFrontMatter tells whether an edit of a file keeps its front matter as it is: the same lines with the same
- * fences, or no front matter before and after the edit. The front matter is read-only in the clean editing view
- * ([R-TEXT-009](../../docs/requirements.md#r-text-009)), so an edit that changes, removes or adds a front matter goes
- * back.
- * @param before - The text of the file before the edit.
- * @param after - The text of the file after the edit.
- */
-export const keepsFrontMatter = (before: string, after: string): boolean => {
-  const kept = frontMatterOf(before);
-  const changed = frontMatterOf(after);
-  return kept.length === changed.length && kept.every((line, index) => line === changed[index]);
-};
-
-/**
  * isPaperDocument tells whether a text is a paper document of nimblescape Markdown Paper: its YAML front matter has the
- * key `layout`. A paper document opens in the clean editing view also without notes, so that its front matter is
- * read-only there ([R-TEXT-009](../../docs/requirements.md#r-text-009), decision 61).
+ * key `layout`. A paper document opens in the clean editing view also without notes, so that the rules of its front
+ * matter apply there ([R-TEXT-009](../../docs/requirements.md#r-text-009), decision 61).
  * @param text - The text of a file.
  */
 export const isPaperDocument = (text: string): boolean => {

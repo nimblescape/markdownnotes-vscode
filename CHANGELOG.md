@@ -218,13 +218,16 @@ The first version.
   at its text, also for Undo, and the save of the view saves the file. Its
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in
-  the Command Palette opens the file itself. The front matter is read-only in
-  the view: an edit of it goes back, and Undo goes over it. The parts that
-  the formatter writes, such as the number of a caption, the text of a
-  reference, the code block of a listing and the parts that other extensions
-  name, are read-only in the view as in the editor. The link "Edit
-  Front Matter" above it opens the form of nimblescape Markdown Paper, or
-  "Open File with Markup" without it. A paper of nimblescape Markdown Paper,
+  the Command Palette opens the file itself. The front matter is text in the
+  view; with the schema that another extension gives through
+  `registerFrontMatterSchema`, such as nimblescape Markdown Paper, the keys of
+  the schema and the read-only keys stay, an edit that changes them goes back
+  and Undo goes over it, the problems against the schema show as warnings
+  with quick fixes, and the values of a choice are the suggestions after its
+  key. The parts that the formatter writes, such as the number of a caption,
+  the text of a reference, the code block of a listing and the parts that
+  other extensions name, are read-only in the view as in the editor. A paper
+  of nimblescape Markdown Paper,
   a file whose front matter has the key `layout`, opens in the view also
   without notes.
 - The text editor of the file itself, for example in the view of the changes
@@ -308,7 +311,9 @@ The first version.
   at the end of a file and `registerHiddenMarkers` for markers in its lines
   that the clean editing view leaves out, `registerGeneratedParts` for the
   parts that its format step writes, which the clean editing view keeps
-  read-only, and `registerSlashCommand` for a
+  read-only, `registerFrontMatterSchema` for the schema and the read-only keys
+  of the front matter of a file in the clean editing view, and
+  `registerSlashCommand` for a
   slash command, also one on selected text.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,

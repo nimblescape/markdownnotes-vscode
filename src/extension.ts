@@ -38,7 +38,7 @@ import type { PluginPanelChannel } from './adapter/editor';
 import type MarkdownIt from 'markdown-it';
 import * as vscode from 'vscode';
 import { AddNoteAction } from './addNoteAction';
-import { CleanView, fileOf } from './cleanView';
+import { CleanView, fileOf, type FrontMatterSchemas } from './cleanView';
 import { FootnoteActions, registerRenumber } from './footnoteActions';
 import { type FormatStep, FormatSteps, registerFormatter, type SaveChanges } from './formatter';
 import { keptCurrent } from './format/format';
@@ -165,6 +165,15 @@ export interface ApiV1 {
    * @param markers - The finder of the markers.
    */
   registerHiddenMarkers(markers: HiddenMarkers): vscode.Disposable;
+  /**
+   * registerFrontMatterSchema gives the clean editing view the rules of the front matter of a file
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009), decision 75): its JSON schema and its read-only keys. In the
+   * view, the keys of the schema and the read-only keys with their values stay as they are, and the schema gives the
+   * problems, the quick fixes and the suggestions of the front matter. The first extension that gives rules for a file
+   * wins.
+   * @param schemas - Gives the rules of the front matter of a file.
+   */
+  registerFrontMatterSchema(schemas: FrontMatterSchemas): vscode.Disposable;
   /**
    * registerGeneratedParts makes the clean editing view keep the parts of a file that the format step of the other
    * extension writes read-only ([R-TEXT-009](../docs/requirements.md#r-text-009)).
@@ -394,6 +403,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     registerFormatStep: (step) => steps.register(step),
     registerHiddenBlocks: (blocks) => clean.registerHiddenBlocks((lines) => blocks.find(lines)),
     registerHiddenMarkers: (markers) => clean.registerHiddenMarkers((lines) => markers.find(lines)),
+    registerFrontMatterSchema: (schemas) => clean.registerFrontMatterSchema(schemas),
     registerGeneratedParts: (parts) => clean.registerGeneratedParts((lines) => parts.find(lines)),
     registerSlashCommand: (command) => slash.add(command),
     registerEditorPlugin: (name, connect) => rendered.addPlugin(name, connect),
