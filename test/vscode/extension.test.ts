@@ -766,7 +766,7 @@ describe('the editor of a whole file (R-TEXT-010)', () => {
     return { file, input };
   }
 
-  it('opens every Markdown file in the editor by default, and "Open Text Editor to the Side" opens the clean editing view of a file with notes beside it (decision 71)', async () => {
+  it('opens every Markdown file in the editor by default, and "Open Text Editor to the Side" opens the clean editing view of a file with notes beside it (decision 72)', async () => {
     await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
     const { file, input } = await opened(note);
     assert.ok(input instanceof vscode.TabInputCustom, 'the custom editor');
@@ -788,7 +788,7 @@ describe('the editor of a whole file (R-TEXT-010)', () => {
     assert.ok(plain.input instanceof vscode.TabInputCustom, 'the custom editor of a file without notes');
   });
 
-  it('keeps the front matter of a paper read-only in the text editor beside the editor, and saves the view after a save of the file in the editor (decision 71)', async () => {
+  it('keeps the front matter of a paper read-only in the text editor beside the editor, and saves the view after a save of the file in the editor (decision 72)', async () => {
     await settings().update('renderedEditor', undefined, vscode.ConfigurationTarget.Global);
     const paper = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text.\n';
     const { file } = await opened(paper);

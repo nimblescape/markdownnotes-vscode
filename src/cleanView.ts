@@ -25,7 +25,7 @@
  * (decision 61): each text editor of such a file that shows becomes the view,
  * in its group and at its place of the cursor, also the text editor of a file
  * that opens in the editor of a whole file, for example with "Open Text Editor
- * to the Side" (decision 71). The command "Open File with Markup" opens the
+ * to the Side" (decision 72). The command "Open File with Markup" opens the
  * file itself, for example for a conflict of git in a note; that file stays as
  * it is until its tab closes.
  */
@@ -697,7 +697,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    * switchable tells whether the text editor of a document becomes the view: a Markdown file with notes, with the
    * comment of the format, or a paper document, that the extension can change. The text editor of a file that opens in
    * the editor of a whole file becomes the view too, for example after "Open Text Editor to the Side" or "Reopen Editor
-   * With", so that each text editor of such a file keeps the front matter read-only and the markup hidden (decision 71).
+   * With", so that each text editor of such a file keeps the front matter read-only and the markup hidden (decision 72).
    * @param document - The document.
    */
   private switchable(document: vscode.TextDocument): boolean {

@@ -213,7 +213,7 @@ test.each([
   ['all, the default', undefined],
   ['notesAndPapers', 'notesAndPapers'],
   ['none', 'none'],
-])('the text editor of a file with notes is the clean editing view with the value %s of the setting renderedEditor, also beside the editor of a whole file (R-TEXT-009, decision 71)', async (_name, files) => {
+])('the text editor of a file with notes is the clean editing view with the value %s of the setting renderedEditor, also beside the editor of a whole file (R-TEXT-009, decision 72)', async (_name, files) => {
   if (files) {
     fake.settings.set('workspace', { renderedEditor: files });
   }

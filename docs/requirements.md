@@ -907,7 +907,12 @@ file at once, and keeps each note at its text:
   with the URI of the file, which opens its view "Front Matter" in the side
   bar, a form with one row for each field of the layout. Without that
   command, the link is "Open File with Markup". The message of the status bar
-  after a refused edit names the link of the form when it exists.
+  after a refused edit names the link of the form when it exists. As in the
+  form of the front matter of the editor of a whole file
+  ([R-FM-003](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-003)
+  of nimblescape Markdown), the keys of the layout stay in that view: the
+  author changes their values, but does not rename or remove them
+  ([decision 71](#decisions)).
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -940,7 +945,7 @@ is always the view, also when the file opens in the editor of a whole file
 ([R-TEXT-010](#r-text-010)): the button "Open Text Editor to the Side" and
 "Reopen Editor With" of VS Code open the view, so that each text editor keeps
 the front matter read-only and the markup hidden
-([decision 71](#decisions)). While the editor of a whole file shows the
+([decision 72](#decisions)). While the editor of a whole file shows the
 file too, both change the same file: a save of the file in the editor saves
 the view too, so that the view has no changes that are not saved, and a
 close of the view without a save keeps the changes of the file in the
@@ -995,12 +1000,12 @@ extensions work as for the text editor.
   editing view, which stays beside the editor ([decision 67](#decisions)).
   "Reopen Editor With" of VS Code always offers the text editor, which is
   the clean editing view for a file with notes, with the comment of the
-  format, or a paper document ([decision 71](#decisions)).
+  format, or a paper document ([decision 72](#decisions)).
 - The button "Open Text Editor to the Side" in the title of the editor opens
   the text editor of the file to the side, with the selection of the editor:
   for a file with notes, with the comment of the format, or a paper
   document, the clean editing view ([R-TEXT-009](#r-text-009),
-  [decision 71](#decisions)), with the front matter read-only and the
+  [decision 72](#decisions)), with the front matter read-only and the
   markup of the notes and the other hidden parts hidden.
   The buttons of the side view and of the highlights
   ([R-GEN-011](#r-gen-011)) are in the title of the editor too.
@@ -3329,7 +3334,7 @@ requirements above follow them.
     notes that the setting `renderedEditor` does not open in the editor
     opens in the clean editing view, and the text editor of a file that
     opens in the editor is the clean editing view too
-    ([decision 71](#decisions)). It is the view to learn Markdown,
+    ([decision 72](#decisions)). It is the view to learn Markdown,
     because it shows the Markdown text as the file writes it. The other
     choice was to remove the clean editing view.
 68. **The same functions in both editors** ([R-TEXT-009](#r-text-009),
@@ -3353,7 +3358,16 @@ requirements above follow them.
     that keeps the notes of the open documents is `NoteStore` in
     `src/noteStore.ts`. The behavior does not change. The other choice was
     one module of 1,285 lines and the name `NoteThreads` of an earlier design.
-71. **The text editor is always the clean editing view**
+71. **The keys of the schema stay in the form of the front matter**
+    ([R-TEXT-009](#r-text-009)): in the form of the front matter of the
+    editor of a whole file, also in the mode "Edit keys", a key that the
+    schema names, for example a field of the layout of a paper, has no
+    input for its name and no button that removes it; the author changes
+    its value. The view "Front Matter" of nimblescape Markdown Paper, the
+    form of the clean editing view, does the same. Only the other keys get
+    a new name or go. The other choice was to rename and remove every key in
+    the mode "Edit keys".
+72. **The text editor is always the clean editing view**
     ([R-TEXT-009](#r-text-009), [R-TEXT-010](#r-text-010)): the text
     editor of a Markdown file with notes, with the comment of the format, or
     of a paper document is the clean editing view, also when the file opens

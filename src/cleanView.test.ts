@@ -440,7 +440,7 @@ test('brings the file back to its text on disk when the view closes without a sa
   expect(fake.closedTabs).toContain(behind);
 });
 
-test('shows the text editor of a file beside the editor of a whole file as the view too, with the markup hidden and the front matter read-only (R-TEXT-009, decision 71)', async () => {
+test('shows the text editor of a file beside the editor of a whole file as the view too, with the markup hidden and the front matter read-only (R-TEXT-009, decision 72)', async () => {
   const { frontMatterReadOnly } = await import('./cleanView');
   const frontMatter = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\n';
   const { real, tab, custom } = await inEditor({ content: frontMatter + text, rendered: true });
@@ -462,7 +462,7 @@ test('shows the text editor of a file beside the editor of a whole file as the v
   expect(document.isDirty).toBe(false);
 });
 
-test('keeps the changes in the file when the view closes without a save while the editor of a whole file shows the file (decision 71)', async () => {
+test('keeps the changes in the file when the view closes without a save while the editor of a whole file shows the file (decision 72)', async () => {
   const { real } = await inEditor({ rendered: true });
   const document = fake.editors[0].document;
   typeIn(document, 0, 0, 'Now ');
@@ -473,7 +473,7 @@ test('keeps the changes in the file when the view closes without a save while th
   expect(real.saves).toBe(0);
 });
 
-test('saves the view as it is after a save of its file elsewhere, for example in the editor of a whole file, so that the view has no changes that are not saved (decision 71)', async () => {
+test('saves the view as it is after a save of its file elsewhere, for example in the editor of a whole file, so that the view has no changes that are not saved (decision 72)', async () => {
   const { view, real } = await inEditor({ rendered: true });
   const document = fake.editors[0].document as unknown as FakeDocument;
   // The editor of a whole file changes the file; the view shows the change.
