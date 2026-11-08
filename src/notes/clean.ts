@@ -419,6 +419,8 @@ export interface Result {
    * the caller takes the new file and writes its clean text anew.
    */
   way: 'direct' | 'rebuilt' | 'none';
+  /** at is the offset of the new text in the new file, when the edit keeps the hidden parts in their order. */
+  at?: number;
 }
 
 /**
@@ -487,16 +489,39 @@ export function applyClean(projection: Projection, start: number, end: number, i
   const places = [...Array(kept.length + 1).keys()].sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred) || a - b);
   const options = editOptions(projection);
   for (const place of places) {
-    const candidate = prefix + pieces.slice(0, place).join('') + insert + pieces.slice(place).join('') + suffix;
+    const before = prefix + pieces.slice(0, place).join('');
+    const candidate = before + insert + pieces.slice(place).join('') + suffix;
     if (project(candidate, options).clean === expected) {
-      return { text: candidate, way: 'direct' };
+      return { text: candidate, way: 'direct', at: before.length };
     }
   }
   const rebuilt = rebuild(projection, start, end, insert);
   if (rebuilt !== undefined && project(rebuilt, options).clean === expected) {
     return { text: rebuilt, way: 'rebuilt' };
   }
-  return { text: prefix + pieces.slice(0, preferred).join('') + insert + pieces.slice(preferred).join('') + suffix, way: 'none' };
+  const before = prefix + pieces.slice(0, preferred).join('');
+  return { text: before + insert + pieces.slice(preferred).join('') + suffix, way: 'none', at: before.length };
+}
+
+/**
+ * hidesTyped tells whether an edit of the clean text hides text that it types or pastes: a character of the new text,
+ * other than a space or a line break, lies in a hidden part of the new file. Such text is a tag that the clean text
+ * leaves out, for example an anchor `<a id="tab-x"></a>`, the markers of a value of the front matter, the comment of
+ * a listing, or a marker or a block of another extension. The clean editing view takes such an edit back, because the
+ * hidden tags come only from the slash commands and the formatter
+ * ([R-TEXT-009](../../docs/requirements.md#r-text-009)). Text that only shows other text, such as a fence that opens a
+ * code block, hides nothing.
+ * @param result - The result of the edit, from `applyClean`.
+ * @param insert - The new text of the edit.
+ * @param after - The projection of the new file.
+ */
+export function hidesTyped(result: Result, insert: string, after: Projection): boolean {
+  if (result.way !== 'none' || result.at === undefined || insert.trim() === '') {
+    return false;
+  }
+  const from = result.at;
+  const to = from + insert.length;
+  return after.hidden.some((part) => part.start < to && part.end > from && /\S/.test(after.text.slice(Math.max(from, part.start), Math.min(to, part.end))));
 }
 
 /**

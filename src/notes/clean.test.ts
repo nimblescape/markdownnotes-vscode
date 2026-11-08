@@ -17,7 +17,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, isPaperDocument, labelsOf, type MarkerFinder, project, rebuild } from './clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, hidesTyped, isPaperDocument, labelsOf, type MarkerFinder, project, rebuild } from './clean';
 import { keepsRules } from './frontMatterRules';
 
 /** example is the example of the notes in the documents, with the comment of the format and three notes. */
@@ -558,5 +558,48 @@ describe('the listings of code', () => {
     const line = edit(listed, 'Listing: Reading the fields', 'Listing: Reading the fields'.length, 'Listing: Parsing');
     expect(line.clean).toBe(line.expected);
     expect(line.text).toContain('\nListing: Parsing<a id="lst-reading-fields"></a>\n\n<!-- listing: ../src/fields.ts#read-fields -->\n');
+  });
+});
+
+describe('a tag typed in the clean text', () => {
+  /** sources finds the database at the end of a file, as nimblescape Markdown Paper does. */
+  const sources: BlockFinder = (lines) => {
+    const first = lines.findIndex((line) => line.startsWith('<!-- nimblescape-sources'));
+    const last = first < 0 ? -1 : lines.findIndex((line, index) => index > first && line.trim() === '-->');
+    return last < 0 ? [] : [{ first, last }];
+  };
+  /** markers finds the whole lines `<!-- toc -->` and `<!-- /toc -->`, as nimblescape Markdown Paper does. */
+  const markers: MarkerFinder = (lines) => lines.flatMap((line, index) => (/^<!-- \/?toc -->$/.test(line) ? [{ line: index, start: 0, end: line.length }] : []));
+  /** file is a caption with its anchor, a paragraph and the database. */
+  const file = 'Table 1: Grades<a id="tab-grades"></a>\n\n| Grade |\n| --- |\n| 1 |\n\nSee the table.\n\n<!-- nimblescape-sources\n{"id":"a"}\n-->\n';
+  /**
+   * typed returns whether an edit that types a text at the first place of another text of the clean text hides text
+   * that it types.
+   */
+  const typed = (at: string, insert: string, after = false, base = file): boolean => {
+    const projection = project(base, { blocks: sources, markers });
+    const start = projection.clean.indexOf(at) + (after ? at.length : 0);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const result = applyClean(projection, start, start, insert);
+    return hidesTyped(result, insert, project(result.text, editOptions(projection)));
+  };
+
+  test('is hidden: an anchor, the markers of a value of the front matter, the comment of a listing and a marker or a block of another extension (R-TEXT-009, decision 78)', () => {
+    expect(typed('Grades', '<a id="tab-x"></a>', true)).toBe(true);
+    expect(typed('the table', '<wbr><!--{title}-->A paper<!--{/title}--> ')).toBe(true);
+    expect(typed('See', '<!-- listing: ../src/a.ts -->\n\n```ts\nconst a = 1;\n```\n\n')).toBe(true);
+    expect(typed('See', '<!-- toc -->\n- [1 Methods](#methods)\n<!-- /toc -->\n\n')).toBe(true);
+    // A database typed after the one of the file shows: the finder hides the first one.
+    const bare = file.slice(0, file.indexOf('\n<!-- nimblescape-sources'));
+    expect(typed('the table.', '\n\n<!-- nimblescape-sources\n{"id":"b"}\n-->', true, bare)).toBe(true);
+    expect(typed('the table.', '\n\n<!-- nimblescape-sources\n{"id":"b"}\n-->', true)).toBe(false);
+  });
+
+  test('that the clean text shows hides nothing: text, a comment of the user, a fence that opens a code block, and blank lines at the end (R-TEXT-009)', () => {
+    expect(typed('See', 'Now ')).toBe(false);
+    expect(typed('See', '<!-- A comment -->\n\n')).toBe(false);
+    expect(typed('See', '```\n')).toBe(false);
+    expect(typed('the table.', '\n\n', true)).toBe(false);
+    expect(typed('the table.', '\n\nAt the end.', true)).toBe(false);
   });
 });
