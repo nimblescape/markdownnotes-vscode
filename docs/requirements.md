@@ -1173,7 +1173,7 @@ extensions work as for the text editor.
   the number of a caption, the text of a reference to a figure, a table, a
   listing or a section, and the code block of a listing and the cite of its
   source after its caption. Ctrl+click (Cmd+click on macOS) on a reference
-  goes to its target. The editor of nimblescape Markdown itself hides the
+  goes to its target, and Go Back returns ([R-TEXT-011](#r-text-011)). The editor of nimblescape Markdown itself hides the
   markers of the values of the front matter ([R-XREF-004](#r-xref-004)) and
   keeps a value with its markers read-only when the front matter has its
   key, with Ctrl+click to the input of the key in the form of the front
@@ -1204,6 +1204,68 @@ nimblescape Markdown,
 Ctrl+click on text that is no reference selects its block, as in other
 editors of rendered text; the next typed text replaces the block, and Undo
 brings it back.
+
+### R-TEXT-011
+
+**Jumps in the file and the way back.** In each of the three views of a
+Markdown file ([R-PREV-006](#r-prev-006)), a link to a place of the file
+itself goes to that place, and Go Back returns to the place of the link
+([decision 85](#decisions)):
+
+- The links are a link `[text](#id)` to the anchor of HTML with that ID or
+  name, for example the anchor of a caption of a figure, a table or a
+  listing or of a section ([R-XREF-001](#r-xref-001)), or of an entry of
+  the reference list of nimblescape Markdown Paper, else to the
+  heading with that GitHub ID, also the second heading with the same text
+  with the suffix `-1`; a footnote reference, which goes to its definition;
+  and the label of a footnote definition, which goes to its first
+  reference. A footnote goes there where the view shows its definition:
+  while the side view shows the standard footnotes
+  ([R-FOOT-001](#r-foot-001)), the clean editing view hides their
+  definitions, as those of the notes, and the cursor on a reference selects
+  the footnote in the side view. The entries of a table of contents and of the lists of
+  figures, tables and listings, the cross references and the citations are
+  such links. A link in code is text.
+- **Text Editor:** Ctrl+click (Cmd+click on macOS) on a link goes to its
+  target, in the clean editing view ([R-TEXT-009](#r-text-009)) and in the
+  text editor of a file. The extension gives the link of the whole link
+  text, with the target in the file itself, so that VS Code opens it as a
+  navigation, as a link to a heading of its Markdown extension: Go Back and
+  Go Forward of VS Code return through the places, with their keys, the
+  buttons in the title bar of VS Code and the back and forward buttons of
+  the mouse. In the clean editing view, a link to an anchor that the view
+  hides goes to the start of the line of the anchor, for example of its
+  caption.
+- **Markdown Editor:** Ctrl+click on a link goes to its target, and
+  Ctrl+click on a reference of the plugin of the figures goes to what it
+  names ([R-TEXT-010](#r-text-010)); the editor keeps the place of the
+  link (the jumps of the editor of nimblescape Markdown,
+  [R-EDIT-014](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-014)).
+  Go Back and Go Forward return through the places, with the keys of Go
+  Back and Go Forward of VS Code, with the back and forward buttons of the
+  mouse, and with the buttons "Go Back" and "Go Forward" in the toolbar of
+  the editor, which show after the first jump.
+- **Markdown Preview:** a click on a link that moves the preview keeps the
+  place before the click (the way back in a rendered page of nimblescape
+  Markdown,
+  [R-REN-004](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-ren-004)),
+  also in the pages of a paper document of Markdown Paper. Go Back and Go
+  Forward return through the places, with the keys of VS Code, with the
+  back and forward buttons of the mouse, and with the buttons "Back" and
+  "Forward" at the bottom right of the preview, which show while there is
+  a place in their direction. The places belong to the file of the preview
+  and stay when VS Code loads the preview again, for example for a change
+  of the selected note.
+
+The keys of Go Back and Go Forward of VS Code are Ctrl+Alt+- and
+Ctrl+Shift+- on Linux, Alt+Left and Alt+Right on Windows, and Ctrl+- and
+Ctrl+Shift+- on macOS, and the keys Browser Back and Browser Forward on
+each platform. In the Markdown Editor and in the preview, a key without a
+place in its direction goes on to VS Code, which goes back to the editor of
+before. Limits: the buttons Go Back and Go Forward in the title bar of
+VS Code use the history of VS Code, which holds no place inside the
+Markdown Editor or the preview, and on Windows VS Code takes the back and
+forward buttons of the mouse for its history in every view.
 
 ### R-VIEW-001
 
@@ -2092,6 +2154,8 @@ The title of each view also has the buttons "Show or Hide Notes"
   editing view is the editor of its file.
 - In each view, the side view follows the file, and a click on a thread
   keeps the view ([R-SIDE-007](#r-side-007)).
+- In each view, a link to a place of the file goes there, and Go Back
+  returns to the link ([R-TEXT-011](#r-text-011)).
 
 ### R-PREV-007
 
@@ -3789,6 +3853,16 @@ requirements above follow them.
     shows its icon cut out of a filled square; a click on it keeps the
     view. The other choice was only the buttons of the two other views,
     which moved the buttons from view to view.
+85. **The way back after a jump in all three views**
+    ([R-TEXT-011](#r-text-011)): a link to a place of the file itself, such
+    as an entry of a table of contents, a cross reference, a citation or a
+    footnote, goes there in the Text Editor, the Markdown Preview and the
+    Markdown Editor, and Go Back returns to the link. The Text Editor uses
+    the history of VS Code itself. The Markdown Editor and the preview are
+    pages of their own, whose places the history of VS Code does not hold,
+    so they keep their places themselves, go back and forward with the keys
+    of Go Back and Go Forward of VS Code and the buttons of the mouse, and
+    show buttons for it. A key without a place goes on to VS Code.
 
 ---
 
