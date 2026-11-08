@@ -492,7 +492,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     vscode.window.registerWebviewViewProvider(notesViewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerUriHandler({ handleUri: (uri) => openFromLink(uri, view) }),
     vscode.commands.registerCommand(previewAddCommand, (menu: unknown) => addFromPreviewMenu(menu, view)),
-    ...registerFormatter(extensionId, saveChangesOf, steps, (document, edits) => clean.formats(document, edits)),
+    ...registerFormatter(extensionId, saveChangesOf, steps, clean),
     new AddNoteAction(store, viewCommands.newNote, clean).register(),
     ...slash.register(),
     ...new Snippets(clean).register(),
