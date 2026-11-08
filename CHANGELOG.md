@@ -30,9 +30,9 @@ The first version.
   `nimblescape.markdownNotes.showHighlights`, leave the side view as it is,
   and deselect the selected note.
   A hidden highlight shows while the pointer is on it. A click on a highlight
-  selects its note, and a double click opens the side view. The highlight of
-  the selected note is strong with a frame, and the other highlights are
-  dimmed; a click outside the highlights, or the cursor that leaves the
+  selects its note, opens the side view and scrolls it to the note. The
+  highlight of the selected note is strong with a frame, and the other
+  highlights are dimmed; a click outside the highlights, or the cursor that leaves the
   highlight, deselects the note.
 - The side view "Notes" is the only place of the text of the notes. It
   lists the threads of the active Markdown file, also in the modes "Markdown

@@ -179,8 +179,8 @@ place only, the side view ([R-SIDE-001](#r-side-001),
 - The text editor and the preview show the highlight of each note, the text
   that the note is about, also while the side view is closed
   ([R-GEN-011](#r-gen-011)), and a click on a highlight selects its note,
-  and a double click on it opens the side view ([R-SIDE-007](#r-side-007),
-  [decision 29](#decisions)).
+  opens the side view and scrolls it to the note
+  ([R-SIDE-007](#r-side-007), [decision 86](#decisions)).
 
 The side view shows the whole text of a note also as the file holds it, in
 its text view ([R-SIDE-002](#r-side-002)). The settings `showNotesIn`,
@@ -624,10 +624,11 @@ note ([R-EDIT-003](#r-edit-003)).
     (Ctrl+Backspace and Ctrl+Delete, on macOS Alt) the word there. No key
     deletes a part of a marker. Other edits of the file, for example "Find
     and Replace", still change the text as it is.
-- A click with the mouse on a highlight in the text editor or in the
-  preview, also on a hidden highlight, selects its note, and a double click
-  on it opens the side view ([decision 29](#decisions)). In the text editor
-  the cursor stays in the text.
+- A click with the mouse on a highlight in the text editor, in the preview
+  or in the editor of a whole file ([R-TEXT-010](#r-text-010)), also on a
+  hidden highlight, selects its note, opens the side view and scrolls it to
+  the note ([R-SIDE-007](#r-side-007), [decision 86](#decisions)). The
+  cursor stays in the text.
 
 This is [decision 6](#decisions), with [decision 16](#decisions) and
 [decision 17](#decisions).
@@ -1132,6 +1133,9 @@ extensions work as for the text editor.
   ([R-SIDE-007](#r-side-007)).
 - The side view follows the selection of the editor as of a text editor
   ([R-SIDE-002](#r-side-002)): the cursor in a highlight selects its thread,
+  a click on a highlight opens the side view and scrolls it to the thread,
+  also a click on the place of the cursor, which the page reports though
+  the selection stays the same ([R-SIDE-007](#r-side-007)),
   and "Add Note" adds a note to the selected text
   ([R-EDIT-006](#r-edit-006)). The button "Comment" of the format bar over
   the selected text adds a note too. A click on a thread in the side view
@@ -1697,8 +1701,9 @@ selection that the view and the text share ([decision 25](#decisions)):
 - **A list that scrolls freely:** the view lists the threads in the order of
   the file, in the text editor and in the Markdown preview alike, and the
   user scrolls it on its own, smoothly, to find a note. The view scrolls
-  itself only when the selected thread changes: the selected thread scrolls
-  to the top of the view ([R-SIDE-001](#r-side-001)). A hidden view cannot
+  itself only when the selected thread changes and for a click on a
+  highlight: the selected thread scrolls to the top of the view
+  ([R-SIDE-001](#r-side-001)). A hidden view cannot
   scroll: when the selected thread changed while the view was hidden, the
   view scrolls to it when it shows again. It does not follow the scrolling
   of the text editor or of the preview. The editor of a new note stands at
@@ -1728,16 +1733,29 @@ selection that the view and the text share ([decision 25](#decisions)):
     selects the text of the highlight.
 
   A move of the cursor into a highlight selects its thread, also with the
-  keys, and the view scrolls to it; a double click on a highlight opens the
-  view ([R-NOTE-006](#r-note-006), [decision 29](#decisions)). VS Code tells
-  an extension no double click: the extension reads one from the second
-  click, which selects the word at the cursor of the first one. A first
-  click on the place of the cursor changes nothing, so VS Code reports only
-  the word, also long after the click that put the cursor there. In the
-  clean editing view, the cursor at the start of a highlight is in the
-  highlight. The position of the cursor, not only its line, names the note,
-  because the highlights of several notes can share a line; of several
-  highlights at the position, the one that starts last is the note.
+  keys, and the view scrolls to it. A click with the mouse on a highlight, in
+  the text editor, in the preview and in the editor of a whole file
+  ([R-TEXT-010](#r-text-010)), also opens the view and scrolls it to the
+  thread, also to a thread that was selected before, after the user
+  scrolled the view; the focus stays in the text
+  ([R-NOTE-006](#r-note-006), [decision 86](#decisions)). The view opens
+  300 milliseconds after the click, the time of a double click, and only
+  while a thread is still selected: the view makes the editors narrower,
+  which moves their text, and the second click of a double click must find
+  the text where the first click found it. A double click on a highlight
+  opens the view too. VS Code tells an extension no double click: the
+  extension reads one from the second click, which selects the word at the
+  cursor of the first one. A first click on the place of the cursor changes
+  nothing, so VS Code reports only the word, also long after the click that
+  put the cursor there. The editor of a whole file waits 50 milliseconds
+  for the last selection of the keys in a quick series, but a click of the
+  mouse counts at once when the next selection comes, so that the first
+  click of a double click is not lost. A drag of the mouse that selects
+  text and the keys open no view. In the clean editing view, the cursor at
+  the start of a highlight is in the highlight. The position of the cursor,
+  not only its line, names the note, because the highlights of several notes
+  can share a line; of several highlights at the position, the one that
+  starts last is the note.
 - **Deselect:** a click with the mouse into the text outside the highlights,
   in the text editor or in the preview ([R-PREV-003](#r-prev-003)),
   deselects the selected note; the cursor that leaves the highlight of the
@@ -2023,10 +2041,12 @@ icon.
 ### R-PREV-003
 
 **Click selects the note.** A click on a highlight, also on a hidden one
-under the pointer, selects its note ([R-SIDE-001](#r-side-001)), and a
-double click on it opens the side view ([decision 29](#decisions)), where
-the user can edit and answer the note. The second click of the double click
-selects no word, and the double click does not open the text editor. A click
+under the pointer, selects its note ([R-SIDE-001](#r-side-001)), opens the
+side view and scrolls it to the note, and the focus stays in the preview
+([R-SIDE-007](#r-side-007), [decision 86](#decisions)). A double click on it
+also gives the focus to the side view, where the user can edit and answer
+the note. The second click of the double click selects no word, and the
+double click does not open the text editor. A click
 on the text outside the highlights while a note is selected deselects it
 ([R-SIDE-007](#r-side-007)). The page of the preview stays as it is. A click
 on a link in the highlight, for example a citation, selects the note as well,
@@ -2203,8 +2223,8 @@ Built in step 40.
 **The notes in the pages of a paper.** nimblescape Markdown Paper shows the
 pages of a paper document in the Markdown preview of VS Code, and the
 functions of the notes work in the pages as in the preview of any other
-file: the highlights, the click that selects a note, the double click that
-opens the side view, and "Add Note" above selected text and in the context
+file: the highlights, the click that selects a note and opens the side
+view, the double click, and "Add Note" above selected text and in the context
 menu ([R-PREV-001](#r-prev-001) to [R-PREV-008](#r-prev-008)).
 
 - The script of Markdown Paper copies the content of the preview into its
@@ -3354,7 +3374,8 @@ requirements above follow them.
     that the highlights show only while the side view is open.
 29. **A double click opens the side view** ([R-SIDE-007](#r-side-007),
     [R-PREV-003](#r-prev-003), [R-NOTE-006](#r-note-006)): a click on a
-    highlight, in the text editor or in the preview, only selects its note;
+    highlight, in the text editor or in the preview, only selects its note
+    (replaced by [decision 86](#decisions): a click opens the side view);
     a double click on it opens the side view, and in the preview does not
     open the text editor. The cursor that leaves the highlight of the
     selected note deselects it, and each thread that is not selected is
@@ -3863,6 +3884,17 @@ requirements above follow them.
     so they keep their places themselves, go back and forward with the keys
     of Go Back and Go Forward of VS Code and the buttons of the mouse, and
     show buttons for it. A key without a place goes on to VS Code.
+86. **A click on a highlight opens the side view** ([R-SIDE-007](#r-side-007),
+    [R-NOTE-006](#r-note-006), [R-PREV-003](#r-prev-003),
+    [R-TEXT-010](#r-text-010)): a click with the mouse on a highlight, in the
+    views "Text Editor", "Markdown Preview" and "Markdown Editor", also in
+    the pages of a paper, selects its note, opens the side view and scrolls
+    it to the thread of the note, also when the note was selected before;
+    the focus stays in the text. The side view opens after the time of a
+    double click, so that the second click of a double click finds its
+    text. A drag of the mouse and the keys only select the note. This
+    replaces the first rule of [decision 29](#decisions). The other choice
+    was to keep the double click as the only way to open the side view.
 
 ---
 

@@ -28,10 +28,12 @@
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)).
  *
  * The highlights show while the setting `showHighlights` is on, also while the
- * side view is closed; a click on a highlight selects its note, and a double
- * click opens the side view. The context key highlightsContext tells the menus
- * whether they show: the title of the editors has "Hide Highlights" then, and
- * else "Show Highlights", which turns the setting on.
+ * side view is closed; a click on a highlight selects its note, opens the side
+ * view and scrolls it to the note ([decision 86](../docs/requirements.md#decisions)),
+ * and a double click in the preview also gives the focus to the side view. The
+ * context key highlightsContext tells the menus whether they show: the title
+ * of the editors has "Hide Highlights" then, and else "Show Highlights", which
+ * turns the setting on.
  */
 
 import type { PluginPanelChannel } from './adapter/editor';
@@ -64,12 +66,16 @@ import { checkedSettings, type Settings, settingsSection } from './settings';
 /** extensionId is the identifier of the extension: the publisher and the name of the manifest. */
 export const extensionId = 'nimblescape.nimblescape-markdownnotes';
 
-/** openPath is the path of the links that select a note and open the side view, for a double click on its highlight. */
+/**
+ * openPath is the path of the links that select a note, open the side view and give it the focus, for a double click on
+ * its highlight.
+ */
 export const openPath = '/open';
 
 /**
- * selectPath is the path of the links of the preview that select a note and leave the side view as it is, for a click on
- * its highlight: the script of the preview takes the link of the highlight with this path.
+ * selectPath is the path of the links of the preview that select a note, open the side view and scroll it to the note,
+ * and keep the focus in the preview, for a click on its highlight (decision 86): the script of the preview takes the link
+ * of the highlight with this path.
  */
 export const selectPath = '/select';
 

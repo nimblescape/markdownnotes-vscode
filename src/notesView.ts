@@ -51,10 +51,12 @@
  * the note of the selected thread in a strong color and with a frame
  * ([src/selectedNotes.ts](selectedNotes.ts)).
  *
- * A click with the mouse on a highlight in the text editor selects its thread
- * and opens the view when it is closed. A click on a thread while the Markdown
- * preview shows the file and no text editor does keeps the preview, which
- * scrolls to the note.
+ * A click with the mouse on a highlight, in the text editor, the Markdown
+ * preview and the editor of a whole file, selects its thread, opens the view
+ * when it is closed and scrolls the view to the thread, while the focus stays
+ * in the text ([decision 86](../docs/requirements.md#decisions)). A click on a
+ * thread while the Markdown preview shows the file and no text editor does
+ * keeps the preview, which scrolls to the note.
  *
  * "Add Note" of the Markdown preview opens the editor of a new note for the
  * text that the user selected in the preview
@@ -91,6 +93,13 @@ import { renderedEditor } from './renderedEditor';
 import { showAt } from './scrolling';
 import type { SelectedNotes } from './selectedNotes';
 import type { Settings } from './settings';
+
+/**
+ * openDelay is the time in milliseconds after which a click on a highlight opens the hidden view. The view makes the
+ * editors narrower, which moves their text, so it opens after the time of a double click: the second click of a double
+ * click finds the text where the first click found it.
+ */
+export const openDelay = 300;
 
 /** wordCharacter matches a letter, a digit or an underscore: a character of a word that a double click selects. */
 const wordCharacter = /[\p{L}\p{N}_]/u;
@@ -160,10 +169,12 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   /** selected is the identifier of the selected thread. */
   private selected: string | undefined;
   /**
-   * scrollPending tells whether the selected thread changed while the view was hidden: the hidden view cannot scroll,
-   * so it scrolls to the thread when it shows again.
+   * scrollPending tells whether the selected thread changed while the view was hidden, or a click on a highlight opens
+   * the view: the hidden view cannot scroll, so it scrolls to the thread when it shows again.
    */
   private scrollPending = false;
+  /** openTimer waits for openDelay after a click on a highlight before it opens the hidden view. */
+  private openTimer: ReturnType<typeof setTimeout> | undefined;
   /** lines holds the line of the cursor of each document, by its URI. */
   private readonly lines = new Map<string, number>();
   /** atCursor holds the identifier of the thread of the note at the cursor of each document, by its URI. */
@@ -290,15 +301,19 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
   }
 
   /**
-   * choose selects the note at a line of a document, for a click on its highlight in the preview, and leaves the view
-   * closed when it is closed.
+   * choose selects the note at a line of a document, for a click on its highlight in the preview, opens the view and
+   * scrolls it to the thread of the note; the focus stays in the preview (decision 86).
    * @param document - The URI of the document.
    * @param line - The index of a line of the note.
    */
   async choose(document: vscode.Uri, line: number): Promise<void> {
     this.document = document;
-    this.select(document, this.store.entryAt(document, { line, character: 0 })?.id ?? this.selected);
+    const entry = this.store.entryAt(document, { line, character: 0 });
+    this.select(document, entry?.id ?? this.selected);
     await this.refresh();
+    if (entry) {
+      this.openAtThread();
+    }
   }
 
   /**
@@ -633,7 +648,8 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    * editor, for example the preview, keeps the document of the view. The selected note stays selected while the cursor
    * is in it, and the cursor that leaves it deselects it; a click with the mouse outside the notes deselects the
    * selected note. A move of the cursor with the keys outside the notes keeps a note that the user chose in the view. A
-   * double click on the highlight of the selected note opens the view.
+   * click on a highlight, and a double click on it, of which VS Code may report only the second click, open the view
+   * and scroll it to the thread (decision 86).
    * @param editor - The text editor, or undefined.
    * @param click - Whether a click with the mouse moved the cursor.
    */
@@ -665,15 +681,18 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     const left = this.atCursor.get(document.toString()) === this.selected && this.selected !== undefined;
     this.atCursor.set(document.toString(), selected);
     this.document = document;
+    let refreshed: Promise<void> = Promise.resolve();
     if (changed || (selected !== undefined && selected !== this.selected) || ((click || left) && selected === undefined && this.selected !== undefined)) {
       this.select(document, selected);
-      void this.refresh();
+      refreshed = this.refresh();
     } else {
       void this.view?.webview.postMessage(this.lineMessage(document, line));
     }
     const inSelection = entry?.note.selection !== undefined && !(entry.note.start.line <= active.line && active.line <= entry.note.end.line);
-    if (doubleClick && inSelection) {
-      void this.open();
+    // A click puts the cursor into the highlight; a drag of the mouse selects text, and opens nothing.
+    const cursor = editor.selection.isEmpty ?? true;
+    if (inSelection && (doubleClick || (click && cursor))) {
+      void refreshed.then(() => this.openAtThread());
     }
   }
 
@@ -685,6 +704,30 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
    */
   private lineMessage(document: vscode.Uri, line: number): { type: 'line'; line: number; highlight: string | undefined; footnotePlace?: string } {
     return { type: 'line', line, highlight: this.highlightOf(document), ...(this.footnoteEditor ? { footnotePlace: this.footnotePlaceOf(document) } : {}) };
+  }
+
+  /**
+   * openAtThread scrolls the view to the selected thread for a click on a highlight, also to a thread that was selected
+   * before, after the user scrolled the view, and opens the hidden view after openDelay, while a thread is still selected
+   * (decision 86). The focus stays in the text.
+   */
+  private openAtThread(): void {
+    clearTimeout(this.openTimer);
+    this.openTimer = undefined;
+    if (this.visible) {
+      void this.view?.webview.postMessage({ type: 'scroll' });
+      return;
+    }
+    this.openTimer = setTimeout(() => {
+      this.openTimer = undefined;
+      if (this.visible) {
+        void this.view?.webview.postMessage({ type: 'scroll' });
+      } else if (this.selected !== undefined) {
+        // A hidden view cannot scroll: it scrolls to the thread when it shows.
+        this.scrollPending = true;
+        void this.open();
+      }
+    }, openDelay);
   }
 
   /**
@@ -1014,8 +1057,9 @@ export class NotesView implements vscode.WebviewViewProvider, vscode.Disposable 
     }
   }
 
-  /** dispose removes the listeners of the view. */
+  /** dispose removes the listeners of the view, and the timer of a click that opens it. */
   dispose(): void {
+    clearTimeout(this.openTimer);
     for (const registration of this.registrations) {
       registration.dispose();
     }

@@ -11,6 +11,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { highlightCommands } from './extension';
 import { extensionMessage, pageMessage, pluginName } from './notes/editorMessages';
 import { notesViewId, viewCommands } from './notesViewProtocol';
+import { openDelay } from './notesView';
 import { opensIn, renderedEditor, selectionDelay } from './renderedEditor';
 import { Fake, type FakePanel, type FakeView, FakeUri, marked, settle } from './testing/fakeVscode';
 
@@ -169,6 +170,30 @@ test('the side view follows the selection of the editor: the cursor in a highlig
   // A selection beyond the end of the text, for example while a change is on its way, stays in the text.
   await select(panel, text.length + 40);
   expect(selected(view)).toBeUndefined();
+});
+
+test('a click on a highlight of the editor opens the side view at its thread, also the first click of a quick double click, which is not lost in the series (R-TEXT-010, decision 86)', async () => {
+  const { panel, view } = await open();
+  const [first] = view.state().threads;
+  view.visible = false;
+  // The page reports the first click as the cursor and the second click as the word around it, within the delay.
+  const start = at('agents');
+  await page(panel, { type: 'selection', anchor: start + 2, head: start + 2, mouse: true });
+  await page(panel, { type: 'selection', anchor: start, head: start + 'agents'.length, mouse: true });
+  vi.advanceTimersByTime(selectionDelay);
+  await settle();
+  vi.advanceTimersByTime(openDelay);
+  await settle();
+  expect(selected(view)).toBe(first.id);
+  expect(view.shows).toBe(1);
+  // In the open view, the click scrolls the view to the thread again; a drag of the mouse opens nothing.
+  await select(panel, start + 3);
+  expect(view.messages.filter((message) => message.type === 'scroll').length).toBeGreaterThanOrEqual(2);
+  view.visible = false;
+  await select(panel, start + 1, start + 4);
+  vi.advanceTimersByTime(openDelay);
+  await settle();
+  expect(view.shows).toBe(1);
 });
 
 test('"Comment" of the format bar and "Add Note" open the editor of a new note for the selected text of the editor (R-TEXT-010, R-EDIT-006)', async () => {
