@@ -885,8 +885,8 @@ const slashConnections = new WeakMap<Editor, SlashConnection>();
 
 /**
  * activate connects the plugin in an editor to its part in the extension, when the platform has a channel for it: it
- * reports the selection of the editor as places in the text of the file, and takes the selected note and whether the
- * highlights show (src/notes/editorMessages.ts).
+ * reports the selection of the editor as places in the text of the file, also for a click that leaves the cursor where
+ * it is, and takes the selected note and whether the highlights show (src/notes/editorMessages.ts).
  * @param editor - The editor.
  * @param host - The API of the platform.
  * @returns What to dispose.
@@ -910,10 +910,30 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
       channel.post(message);
     }
   };
-  const onSelection = ({ transaction }: { transaction: Transaction }) => report(transaction.getMeta('pointer') === true);
+  // A click on the place of the cursor changes no selection, so the page reports the cursor for such a click itself: a
+  // click on the highlight of the selected note scrolls the side view to its thread again (decision 83).
+  let clicked = false;
+  const onSelection = ({ transaction }: { transaction: Transaction }) => {
+    const mouse = transaction.getMeta('pointer') === true;
+    clicked ||= mouse;
+    report(mouse);
+  };
   const onFocus = () => report(false);
+  const onPress = (event: MouseEvent) => {
+    if (event.button === 0) {
+      clicked = false;
+    }
+  };
+  const onClick = (event: MouseEvent) => {
+    if (event.button === 0 && event.detail === 1 && !clicked && tiptap.state.selection.empty) {
+      report(true);
+    }
+  };
   tiptap.on('selectionUpdate', onSelection);
   tiptap.on('focus', onFocus);
+  const dom = tiptap.view.dom;
+  dom.addEventListener('mousedown', onPress, true);
+  dom.addEventListener('click', onClick);
   const stop = channel.onMessage((value) => {
     const message = extensionMessage(value);
     if (message?.type === 'select') {
@@ -931,6 +951,8 @@ function activate(editor: PluginEditor, host: PluginHost): (() => void) | undefi
   return () => {
     tiptap.off('selectionUpdate', onSelection);
     tiptap.off('focus', onFocus);
+    dom.removeEventListener('mousedown', onPress, true);
+    dom.removeEventListener('click', onClick);
     stop();
     channels.delete(tiptap);
     slashConnections.delete(tiptap);

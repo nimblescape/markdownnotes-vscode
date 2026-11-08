@@ -23,6 +23,7 @@ import { footnoteCommands, footnotesContext, highlightCommands, highlightsContex
 import { renumberCommand } from './footnoteActions';
 import { footnoteCodes } from './notes/checks';
 import { deleteCommands } from './noteEditor';
+import { openDelay } from './notesView';
 import { notesViewId, viewCommands } from './notesViewProtocol';
 import { publishCommands } from './publish';
 import { renderedEditor } from './renderedEditor';
@@ -449,7 +450,7 @@ test('the button of the side view closes the secondary side bar, and the button 
   expect(fake.calls.at(-1)).toEqual({ command: focus, args: [] });
 });
 
-test('a link of a double click on a highlight of the preview opens the side view at its note, and the link of a click only selects it, for an open Markdown document or one of the workspace only', async () => {
+test('a link of a click on a highlight of the preview opens the side view at its note and keeps the focus in the preview, and the link of a double click gives the focus to the view, for an open Markdown document or one of the workspace only (decision 83)', async () => {
   const document = fake.open(note);
   const { extension } = await fake.activate();
   const view = fake.resolveView(notesViewId);
@@ -459,10 +460,18 @@ test('a link of a double click on a highlight of the preview opens the side view
     await fake.uriHandler!.handleUri(uri);
     await settle();
   };
-  // The link of a click selects the note and leaves the view as it is.
+  // The link of a click selects the note, opens the hidden view, which scrolls to the thread when it shows, and keeps
+  // the focus in the preview; in the open view, it scrolls to the thread again.
+  view.visible = false;
   await handle(link(document.uri.toString(), '5', extension.selectPath));
+  vi.advanceTimersByTime(openDelay);
+  await settle();
   expect(fake.executed.filter((command) => command === focus)).toHaveLength(0);
+  expect(view.shows).toBe(1);
   expect(view.state()).toMatchObject({ file: 'a.md', selected: view.state().threads[0].id });
+  await handle(link(document.uri.toString(), '5', extension.selectPath));
+  expect(view.shows).toBe(1);
+  expect(view.messages.filter((message) => message.type === 'scroll')).toHaveLength(2);
   await view.send({ type: 'deselect' });
   await settle();
   expect(view.state().selected).toBeUndefined();

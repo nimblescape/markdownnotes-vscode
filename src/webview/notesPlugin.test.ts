@@ -508,3 +508,39 @@ describe('the slash commands of Notes in the editor of a whole file (R-EDIT-008,
     expect(editor.tiptap.state.doc.textBetween(editor.tiptap.state.selection.from, editor.tiptap.state.selection.from + 5)).toBe(' more');
   });
 });
+
+describe('the selection of the editor of a whole file for the side view (R-TEXT-010, decision 83)', () => {
+  it('report a click of the mouse that leaves the cursor where it is, so that a click on the highlight of the selected note scrolls the side view to its thread again', () => {
+    const sent: PageMessage[] = [];
+    const element = document.createElement('div');
+    document.body.append(element);
+    const editor = new MarkdownEditor(element, {
+      source: new TextSource('The <wbr><!--[note-aaaa-->agents[^note-aaaa] change.\n\n[^note-aaaa]: **ann** · 2026-10-28 10:15+01:00\n\n    A\n'),
+      plugins: [createNotesPlugin({})],
+      host: { platform: 'vscode', channel: () => ({ post: (message) => sent.push(message as PageMessage), onMessage: () => () => undefined }) },
+    });
+    editors.push(editor);
+    const { view } = editor.tiptap;
+    const at = positionOf(editor, 'agents') + 2;
+    const click = (detail: number, move: boolean) => {
+      view.dom.dispatchEvent(new MouseEvent('mousedown', { button: 0, detail, bubbles: true }));
+      if (move) {
+        view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, at)).setMeta('pointer', true));
+      }
+      view.dom.dispatchEvent(new MouseEvent('click', { button: 0, detail, bubbles: true }));
+    };
+    click(1, true);
+    const selections = () => sent.filter((message) => message.type === 'selection');
+    expect(selections()).toHaveLength(1);
+    expect(selections()[0]).toMatchObject({ mouse: true });
+    // A click on the place of the cursor: the page reports the cursor once more.
+    click(1, false);
+    expect(selections()).toHaveLength(2);
+    expect(selections()[1]).toEqual(selections()[0]);
+    // The second click of a double click, and a click that selects text, report only their selection.
+    click(2, false);
+    select(editor, at, at + 2);
+    click(1, false);
+    expect(selections()).toHaveLength(3);
+  });
+});

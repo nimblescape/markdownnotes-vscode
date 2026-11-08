@@ -94,9 +94,9 @@ describes each step and where its protection ends.
   of its note, with a good contrast, also while the side view is closed. The
   buttons "Hide Highlights" and "Show Highlights" in the title of the editor
   hide and show them; a hidden highlight shows while the pointer is on it. A click on
-  a highlight selects its note, and a double click opens the side view. The
-  highlight of the selected note is strong, with a frame, and the other
-  highlights are dimmed.
+  a highlight selects its note, opens the side view and scrolls it to the
+  note. The highlight of the selected note is strong, with a frame, and the
+  other highlights are dimmed.
 - **Colors.** Every note has the same color, until you give it one of six
   colors. The start marker keeps the color, for example
   `<wbr><!--[note-7k2q green-->`.
@@ -258,10 +258,10 @@ you add or answer a note. In the side view "Notes":
 | Hide the notes from other viewers | Click the eye in the title of the side view. Click it again to show them. |
 | Copy the text without notes | Click "…" in the title of the side view, then "Copy without Notes" or "Save Copy without Notes". |
 
-In the text editor or in the Markdown preview (Ctrl+K V opens it to the
-side), click a highlight to select its note, and double-click it to open the
-note in the side view. In the preview,
-VS Code may ask once whether the extension may open the link.
+In the text editor, in the Markdown preview (Ctrl+K V opens it to the side)
+or in the Markdown Editor, click a highlight to select its note and to see it
+in the side view, which opens and scrolls to the note. In the preview, VS Code
+may ask once whether the extension may open the link.
 
 The first time you add or answer a note, VS Code asks you to sign in with
 GitHub. On macOS, use Cmd instead of Ctrl. The

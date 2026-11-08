@@ -244,6 +244,11 @@ export class RenderedEditors implements vscode.Disposable {
         this.post(connection, { type: 'highlights', show: this.settingsOf(channel.document.uri).showHighlights });
         this.post(connection, { type: 'select', label: this.selected.labelOf(channel.document.uri), reveal: false });
       } else if (message?.type === 'selection') {
+        // Only the last selection of the keys in a quick series counts, but a click of the mouse counts at once when the
+        // next selection comes: the first click of a double click puts the cursor that names its word (decision 83).
+        if (connection.pending?.mouse) {
+          this.take(connection);
+        }
         clearTimeout(connection.pending?.timer);
         // The change of the text before the selection reaches the document a moment after the message.
         connection.pending = { anchor: message.anchor, head: message.head, mouse: message.mouse, timer: setTimeout(() => this.take(connection), selectionDelay) };

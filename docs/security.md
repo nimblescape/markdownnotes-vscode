@@ -51,7 +51,8 @@ links to its details.
   plugin for the preview; you can disable or uninstall it.
 - **Links of the preview.** A click on the highlight of a note opens a link
   `vscode://nimblescape.nimblescape-markdownnotes/select?document=…&line=…`,
-  and a double click a link with the path `/open`.
+  which selects the note and opens the side view, and a double click a link
+  with the path `/open`, which also puts the focus into the side view.
   The extension opens only a Markdown file that is open or that belongs to
   the workspace, and only shows its notes. See
   [Links to the extension](#links-to-the-extension).

@@ -22,9 +22,10 @@
 // with the CSS `display: contents` around the slot of the content, so the page
 // shows and works as before. The link has an address only for the time of a
 // click: when the user presses the mouse button on a highlight, also a hidden
-// one, the address of its end (data-href) with the path that only selects the
-// note (R-PREV-003); for the second press of a double click on a highlight, the
-// address itself, which also opens the side view; on the text outside a
+// one, the address of its end (data-href) with the path that selects the note
+// and opens the side view with the focus in the preview (R-PREV-003); for the
+// second press of a double click on a highlight, the address itself, which
+// also gives the focus to the side view; on the text outside a
 // highlight while a note is selected, the address that deselects the note. The
 // second press of a double click on a highlight selects no word, and its double
 // click does not open the text editor, as a double click on other text does.
@@ -499,8 +500,9 @@
   const menuAddKey = 'nimblescapeNotesAdd';
 
   /**
-   * selectLink returns the address that only selects the note of the address of the end of a highlight, which also
-   * opens the side view.
+   * selectLink returns the address of a click on a highlight from the address of the end of the highlight, which a double
+   * click opens: the click selects the note and opens the side view with the focus in the preview, the double click also
+   * gives the focus to the side view (decision 83).
    * @param {string} href - The address of the end of the highlight.
    */
   const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes)\/open(?=\?|$)/, '$1/select');
@@ -712,8 +714,8 @@
       const end = highlightAt(event.clientX, event.clientY);
       const href = end?.getAttribute('data-href');
       if (event.detail > 1) {
-        // The second press of a double click on a highlight opens the side view and selects no word; on other text it
-        // opens no address, so that the double click opens the text editor.
+        // The second press of a double click on a highlight gives the focus to the side view and selects no word; on
+        // other text it opens no address, so that the double click opens the text editor.
         if (href) {
           event.preventDefault();
           arm(href, 'open', text);
@@ -764,7 +766,7 @@
     },
     true,
   );
-  // A double click on a highlight opens the side view, not the text editor as the preview does for other text.
+  // A double click on a highlight goes to the side view, not to the text editor as the preview does for other text.
   window.addEventListener(
     'dblclick',
     (event) => {
