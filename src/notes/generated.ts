@@ -86,11 +86,33 @@ function changesOf(from: string, to: string): Change[] {
   return [change(startFirst, sameEnd(most - startFirst)), change(sameStart(most - endFirst), endFirst)];
 }
 
-/** Range is a generated part as a range of the text: from its start to its end, and whether it is a block of whole lines. */
-interface Range {
+/** PartRange is a generated part as a range of the text: from its start to its end, and whether it is a block of whole lines. */
+export interface PartRange {
   from: number;
   to: number;
   lines: boolean;
+}
+
+/**
+ * rangesOf returns the generated parts of a text as ranges of the text; a part outside the text gives none. A block of
+ * whole lines ends before the line break of its last line.
+ * @param text - The text.
+ * @param parts - The generated parts of the text.
+ */
+export function rangesOf(text: string, parts: readonly GeneratedPart[]): PartRange[] {
+  const lines = text.split('\n');
+  const starts = [0];
+  for (const line of lines) {
+    starts.push(starts[starts.length - 1] + line.length + 1);
+  }
+  return parts.flatMap((part): PartRange[] => {
+    if ('first' in part) {
+      return part.first >= 0 && part.first <= part.last && part.last < lines.length ? [{ from: starts[part.first], to: starts[part.last] + lines[part.last].replace(/\r$/, '').length, lines: true }] : [];
+    }
+    return part.line >= 0 && part.line < lines.length && part.start >= 0 && part.start < part.end && part.end <= lines[part.line].length
+      ? [{ from: starts[part.line] + part.start, to: starts[part.line] + part.end, lines: false }]
+      : [];
+  });
 }
 
 /**
@@ -104,7 +126,7 @@ interface Range {
  * @param range - The part.
  * @param text - The old text.
  */
-function keepsRange(change: Change, range: Range, text: string): boolean {
+function keepsRange(change: Change, range: PartRange, text: string): boolean {
   const { start, end } = change;
   if (end < range.from || start > range.to) {
     return true;
@@ -136,18 +158,6 @@ export function keepsGenerated(before: string, after: string, parts: readonly Ge
   if (parts.length === 0 || before === after) {
     return true;
   }
-  const lines = before.split('\n');
-  const starts = [0];
-  for (const line of lines) {
-    starts.push(starts[starts.length - 1] + line.length + 1);
-  }
-  const ranges = parts.flatMap((part): Range[] => {
-    if ('first' in part) {
-      return part.first >= 0 && part.first <= part.last && part.last < lines.length ? [{ from: starts[part.first], to: starts[part.last] + lines[part.last].replace(/\r$/, '').length, lines: true }] : [];
-    }
-    return part.line >= 0 && part.line < lines.length && part.start >= 0 && part.start < part.end && part.end <= lines[part.line].length
-      ? [{ from: starts[part.line] + part.start, to: starts[part.line] + part.end, lines: false }]
-      : [];
-  });
+  const ranges = rangesOf(before, parts);
   return changesOf(before, after).some((change) => ranges.every((range) => keepsRange(change, range, before)));
 }
