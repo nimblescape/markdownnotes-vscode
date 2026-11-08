@@ -112,6 +112,12 @@ export const captionStart = new RegExp(String.raw`^(${captionWords})(?:([ \t]+)(
 /** captionHead matches the word and the number of a caption at the start of its first line, after the marks of quotes. */
 const captionHead = new RegExp(String.raw`^((?:[ \t]*>)*[ \t]*)(${captionWords})(?:[ \t]+\d+)?[ \t]*:`);
 
+/**
+ * captionNumber matches the word of a caption at the start of its first line, after the marks of quotes, with the white
+ * space after it, and then its number before the colon.
+ */
+const captionNumber = new RegExp(String.raw`^((?:[ \t]*>)*[ \t]*(?:${captionWords})[ \t]+)(\d+)(?=[ \t]*:)`);
+
 /** prefixes are the prefixes of the names of the anchors of each kind. */
 const prefixes: Record<ItemKind, string> = { figure: 'fig', table: 'tab', listing: 'lst', section: 'sec' };
 
@@ -304,6 +310,9 @@ const numberedText = String.raw`([^[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)`;
 /** linkSearch matches a link to a place of the file with a word and a number as its text, such as `[Table 1](#tab-x)`. */
 const linkSearch = new RegExp(String.raw`\[${numberedText}\]\(#([^()\s]+)\)`, 'g');
 
+/** numberedLink tells quickly whether a line can hold a link with a word and a number as its text. */
+const numberedLink = new RegExp(String.raw`\[${numberedText}\]\(#`);
+
 /** numberedLinkText matches the whole text of a link with a word and a number, such as `Table 1`, with the word. */
 export const numberedLinkText = new RegExp(`^${numberedText}$`);
 
@@ -411,6 +420,48 @@ export function numberLinks(lines: readonly string[]): string[] {
       return counts ? `[${word}${space}${labelOf(items, target.item)}](#${name})` : whole;
     });
   });
+}
+
+/**
+ * numberPlaces returns the places of the numbers that the formatter writes
+ * ([R-XREF-001](../../docs/requirements.md#r-xref-001), [R-XREF-002](../../docs/requirements.md#r-xref-002)), each by
+ * its line and its start and end in the line: the number of each caption of a figure, a table and a listing, and the
+ * text of each link whose number the formatter writes, between its square brackets. The clean editing view keeps them
+ * read-only ([R-TEXT-009](../../docs/requirements.md#r-text-009)).
+ * @param lines - The lines of the text.
+ */
+export function numberPlaces(lines: readonly string[]): { line: number; start: number; end: number }[] {
+  const captions = lines.some((line) => captionHead.test(line));
+  const links = lines.some((line) => line.includes('](#') && numberedLink.test(line));
+  if (!captions && !links) {
+    return [];
+  }
+  const items = findItems(lines);
+  const places: { line: number; start: number; end: number }[] = [];
+  for (const item of items) {
+    const match = item.head === undefined ? null : captionNumber.exec(lines[item.head]);
+    if (match) {
+      places.push({ line: item.head!, start: match[1].length, end: match[0].length });
+    }
+  }
+  const targets = links ? targetsOf(items) : new Map<string, { item: Item; byId: boolean }>();
+  if (targets.size === 0) {
+    return places;
+  }
+  const code = codeLines(lines);
+  lines.forEach((line, index) => {
+    if (code.has(index) || !line.includes('](#')) {
+      return;
+    }
+    const spans = codeSpans(line);
+    for (const match of line.matchAll(linkSearch)) {
+      const target = targets.get(match[4]);
+      if (target !== undefined && (!target.byId || sectionWords.has(match[1])) && !spans.some(([start, end]) => start <= match.index && match.index < end)) {
+        places.push({ line: index, start: match.index + 1, end: match.index + 1 + match[1].length + match[2].length + match[3].length });
+      }
+    }
+  });
+  return places;
 }
 
 /**
