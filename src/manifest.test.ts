@@ -164,6 +164,9 @@ test('the manifest contributes the commands of the side view, of the highlights,
       renderedEditor.reopenEditor,
       renderedEditor.reopenText,
       renderedEditor.reopenPreview,
+      renderedEditor.textSelected,
+      renderedEditor.previewSelected,
+      renderedEditor.editorSelected,
       renderedEditor.previousChange,
       renderedEditor.nextChange,
     ].sort(),
@@ -206,38 +209,58 @@ test('the editor of a whole file is the default editor of the Markdown files, al
   expect(command).toMatchObject({ title: 'Open Text Editor to the Side', icon: '$(go-to-file)' });
 });
 
-/** toEditor is the condition of the button "Reopen in Markdown Editor": the text editor and the Markdown preview of a Markdown file, and the Markdown Editor of VS Code. */
-const toEditor =
-  "(activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown) || (activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff) || activeCustomEditorId == 'vscode.markdown.editor'";
+/** inText, inPreview and inEditor are the conditions of the three views of a Markdown file: the text editor, the Markdown preview and the editor of a whole file, outside a diff. */
+const inText = 'activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown';
+const inPreview = "activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff";
+const inEditor = `activeCustomEditorId == '${renderedEditor.viewType}' && !${renderedEditor.diffContext}`;
+/** inVsCodeEditor is the condition of the Markdown Editor of VS Code, which "Reopen Editor With…" still offers: it has the buttons of the three views, none selected. */
+const inVsCodeEditor = "activeCustomEditorId == 'vscode.markdown.editor'";
 
-/** fromEditor is the condition of the buttons "Reopen in Text Editor" and "Reopen in Markdown Preview": the editor of a whole file, outside a diff. */
-const fromEditor = `activeCustomEditorId == '${renderedEditor.viewType}' && !${renderedEditor.diffContext}`;
+/** toText, toPreview and toEditor are the conditions of the buttons "Reopen in Text Editor", "Reopen in Markdown Preview" and "Reopen in Markdown Editor": the two other views and the Markdown Editor of VS Code. */
+const toText = `(${inPreview}) || (${inEditor}) || ${inVsCodeEditor}`;
+const toPreview = `(${inText}) || (${inEditor}) || ${inVsCodeEditor}`;
+const toEditor = `(${inText}) || (${inPreview}) || ${inVsCodeEditor}`;
 
-test('a Markdown file has three views, Text Editor, Markdown Preview and Markdown Editor: the list of the editors of VS Code hides the Markdown Editor of VS Code, and the title of each view has the buttons of the two other views (R-VSC-002)', () => {
+test('a Markdown file has three views, Text Editor, Markdown Preview and Markdown Editor: the list of the editors of VS Code hides the Markdown Editor of VS Code, and the title of each view has the buttons of all three views in the same order, the selected one marked (R-VSC-002)', () => {
   expect(manifest.contributes.configurationDefaults['workbench.editor.hiddenEditorTypes']).toEqual(['vscode.markdown.editor']);
-  // VS Code gives the buttons "Open as Preview" in the text editor and "Reopen as source file" in the Markdown preview.
   // The buttons of the views come first in the title, in the order of the list of the editors, before "Run or Debug..."
-  // of VS Code (order -1, title after "Reopen"), so that the buttons of other extensions never push them into the menu
-  // "…" of the title, which takes every button after the eighth (R-PREV-006).
+  // of VS Code (order -1, title after "Reopen" and "Markdown"), so that the buttons of other extensions never push them
+  // into the menu "…" of the title, which takes every button after the eighth (R-PREV-006). Each place has the button
+  // of its view in each view: "Reopen in …" in the two other views, and the button of the selected view in its own.
   expect(manifest.contributes.menus['editor/title']).toEqual(
     expect.arrayContaining([
+      { command: renderedEditor.reopenText, group: 'navigation@-3', when: toText },
+      { command: renderedEditor.textSelected, group: 'navigation@-3', when: inText },
+      { command: renderedEditor.reopenPreview, group: 'navigation@-2', when: toPreview },
+      { command: renderedEditor.previewSelected, group: 'navigation@-2', when: inPreview },
       { command: renderedEditor.reopenEditor, group: 'navigation@-1', when: toEditor },
-      { command: renderedEditor.reopenText, group: 'navigation@-3', when: fromEditor },
-      { command: renderedEditor.reopenPreview, group: 'navigation@-2', when: fromEditor },
+      { command: renderedEditor.editorSelected, group: 'navigation@-1', when: inEditor },
     ]),
   );
   expect(manifest.contributes.menus.commandPalette).toEqual(
     expect.arrayContaining([
+      { command: renderedEditor.reopenText, when: toText },
+      { command: renderedEditor.reopenPreview, when: toPreview },
       { command: renderedEditor.reopenEditor, when: toEditor },
-      { command: renderedEditor.reopenText, when: fromEditor },
-      { command: renderedEditor.reopenPreview, when: fromEditor },
+      // The button of the selected view does nothing, so the list of the commands has it not.
+      { command: renderedEditor.textSelected, when: 'false' },
+      { command: renderedEditor.previewSelected, when: 'false' },
+      { command: renderedEditor.editorSelected, when: 'false' },
     ]),
   );
   const commandOf = (id: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === id);
-  expect(commandOf(renderedEditor.reopenEditor)).toMatchObject({ title: 'Reopen in Markdown Editor', icon: '$(edit)' });
-  // The icons of VS Code for the text and for the preview of a Markdown file.
+  // The icons of VS Code for the text and for the preview of a Markdown file, and the pencil of the editor; the selected
+  // view shows the same icon cut out of a filled square, of the icon font of the extension.
   expect(commandOf(renderedEditor.reopenText)).toMatchObject({ title: 'Reopen in Text Editor', icon: '$(file-code)' });
   expect(commandOf(renderedEditor.reopenPreview)).toMatchObject({ title: 'Reopen in Markdown Preview', icon: '$(preview)' });
+  expect(commandOf(renderedEditor.reopenEditor)).toMatchObject({ title: 'Reopen in Markdown Editor', icon: '$(edit)' });
+  expect(commandOf(renderedEditor.textSelected)).toMatchObject({ title: 'Text Editor (Selected View)', icon: '$(nimblescape-view-text-selected)' });
+  expect(commandOf(renderedEditor.previewSelected)).toMatchObject({ title: 'Markdown Preview (Selected View)', icon: '$(nimblescape-view-preview-selected)' });
+  expect(commandOf(renderedEditor.editorSelected)).toMatchObject({ title: 'Markdown Editor (Selected View)', icon: '$(nimblescape-view-editor-selected)' });
+  // VS Code sorts the buttons of one place by their titles: both titles of the last place come before "Run or Debug...".
+  for (const id of [renderedEditor.reopenEditor, renderedEditor.editorSelected]) {
+    expect(commandOf(id).title.localeCompare('Run or Debug...')).toBeLessThan(0);
+  }
 });
 
 test('a diff with the editor on both sides has the buttons to the previous and to the next change, while the context key of the adapter is true (R-TEXT-010)', () => {
@@ -355,8 +378,11 @@ test('the title of the text editor and of the preview of a Markdown file has the
     { command: usedSnippetCommands.hide, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && ${usedSnippetContexts.shown}` },
     { command: renderedEditor.openText, group: 'navigation', when: `activeCustomEditorId == '${renderedEditor.viewType}'` },
     { command: renderedEditor.reopenEditor, group: 'navigation@-1', when: toEditor },
-    { command: renderedEditor.reopenText, group: 'navigation@-3', when: fromEditor },
-    { command: renderedEditor.reopenPreview, group: 'navigation@-2', when: fromEditor },
+    { command: renderedEditor.reopenText, group: 'navigation@-3', when: toText },
+    { command: renderedEditor.reopenPreview, group: 'navigation@-2', when: toPreview },
+    { command: renderedEditor.textSelected, group: 'navigation@-3', when: inText },
+    { command: renderedEditor.previewSelected, group: 'navigation@-2', when: inPreview },
+    { command: renderedEditor.editorSelected, group: 'navigation@-1', when: inEditor },
     { command: renderedEditor.previousChange, group: 'navigation@1', when: renderedEditor.diffContext },
     { command: renderedEditor.nextChange, group: 'navigation@2', when: renderedEditor.diffContext },
   ]);
@@ -413,8 +439,9 @@ const glyphOf = (font: Buffer, character: number): { glyph: number; size: number
   return { glyph, size: glyph ? offset(glyph + 1) - offset(glyph) : 0 };
 };
 
-test('the buttons of the highlights show a highlighter pen, the buttons of the footnotes a plus with the number 1 and a numbered list, and the form of the notes an eye, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001, R-HIDE-002)', () => {
-  // The highlighter pen is the icon of the highlights (decision 26); the eye is the icon of the hidden notes (R-HIDE-002).
+test('the buttons of the highlights show a highlighter pen, the buttons of the footnotes a plus with the number 1 and a numbered list, the form of the notes an eye, and the selected view its icon in a filled square, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001, R-HIDE-002, R-VSC-002)', () => {
+  // The highlighter pen is the icon of the highlights (decision 26); the eye is the icon of the hidden notes (R-HIDE-002);
+  // the buttons of the three views mark the selected view (decision 83).
   const font = 'resources/notes-icons.ttf';
   const icons = {
     'highlights-show': 0xe001,
@@ -424,6 +451,9 @@ test('the buttons of the highlights show a highlighter pen, the buttons of the f
     'footnotes-hide': 0xe005,
     'notes-shown': 0xe006,
     'notes-hidden': 0xe007,
+    'view-text-selected': 0xe008,
+    'view-preview-selected': 0xe009,
+    'view-editor-selected': 0xe00a,
   };
   expect(manifest.contributes.icons).toEqual(
     Object.fromEntries(
@@ -438,7 +468,7 @@ test('the buttons of the highlights show a highlighter pen, the buttons of the f
     expect(size).toBeGreaterThan(0);
   }
   expect(new Set(glyphs.map(({ glyph }) => glyph)).size).toBe(glyphs.length);
-  for (const image of ['highlighter.svg', 'footnote-add.svg', 'footnotes.svg', 'eye.svg']) {
+  for (const image of ['highlighter.svg', 'footnote-add.svg', 'footnotes.svg', 'eye.svg', 'view-text.svg', 'view-preview.svg', 'view-editor.svg']) {
     expect(read('scripts/icon-font.py')).toContain(`'${image}'`);
     expect(fs.existsSync(path.join(repository, 'resources/icons', image)), image).toBe(true);
   }

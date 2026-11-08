@@ -14,9 +14,11 @@
  * a file with notes and for a paper document ([R-TEXT-009](../docs/requirements.md#r-text-009), decision 72).
  *
  * The editor is the view "Markdown Editor" of the three views of a Markdown file, beside "Text Editor" and "Markdown
- * Preview" (R-VSC-002): the buttons "Reopen in Markdown Editor", "Reopen in Text Editor" and "Reopen in Markdown
- * Preview" in the title of the editor switch between them, and the list of the editors of VS Code names it "Markdown
- * Editor". The view "Markdown Editor" of a document of the clean editing view is the editor of its file.
+ * Preview" (R-VSC-002): the title of each view has the buttons of all three views in this order, the button of the
+ * selected view marked with its icon in a filled square, and the buttons "Reopen in Text Editor", "Reopen in Markdown
+ * Preview" and "Reopen in Markdown Editor" of the two other views switch to them; the list of the editors of VS Code
+ * names it "Markdown Editor". The view "Markdown Editor" of a document of the clean editing view is the editor of its
+ * file.
  *
  * The module connects the plugin of each editor to the extension (src/notes/editorMessages.ts): the selection of the
  * editor, as places in the text of the file, goes to the side view, which selects the thread at the cursor and adds a
@@ -42,9 +44,10 @@ import type { EditorFiles, Settings } from './settings';
 /**
  * renderedEditor names the editor: the type of the custom editor, the commands of the buttons of the title of the
  * editors of a Markdown file (the text editor to the side, and the three views of the file,
- * [R-VSC-002](../docs/requirements.md#r-vsc-002)), and the commands of the buttons to the previous and to the next
- * change in a diff with the editor on both sides ([R-TEXT-010](../docs/requirements.md#r-text-010)), which show while
- * the context key `diffContext` is true.
+ * [R-VSC-002](../docs/requirements.md#r-vsc-002): a button "Reopen in …" for each other view, and a button of the
+ * selected view, which does nothing), and the commands of the buttons to the previous and to the next change in a diff
+ * with the editor on both sides ([R-TEXT-010](../docs/requirements.md#r-text-010)), which show while the context key
+ * `diffContext` is true.
  */
 export const renderedEditor = {
   viewType: 'nimblescape.markdownNotes.editor',
@@ -52,6 +55,9 @@ export const renderedEditor = {
   reopenEditor: 'nimblescape.markdownNotes.reopenInMarkdownEditor',
   reopenText: 'nimblescape.markdownNotes.reopenInTextEditor',
   reopenPreview: 'nimblescape.markdownNotes.reopenInMarkdownPreview',
+  textSelected: 'nimblescape.markdownNotes.textEditorSelected',
+  previewSelected: 'nimblescape.markdownNotes.markdownPreviewSelected',
+  editorSelected: 'nimblescape.markdownNotes.markdownEditorSelected',
   previousChange: 'nimblescape.markdownNotes.previousChange',
   nextChange: 'nimblescape.markdownNotes.nextChange',
   diffContext: 'nimblescape.markdownNotes.editor.diff',
@@ -186,7 +192,12 @@ export class RenderedEditors implements vscode.Disposable {
       // The syntax of the extensions of the Markdown preview of VS Code, for example diagrams and math.
       previewExtensions: (document) => this.settingsOf(document.uri).previewExtensions,
     });
-    return [this.handle, this.selected.onDidChange((document) => this.postSelected(document))];
+    // The button of the selected view keeps its place among the buttons of the three views and marks the view; a click
+    // on it keeps the view (R-VSC-002).
+    const selectedViews = [renderedEditor.textSelected, renderedEditor.previewSelected, renderedEditor.editorSelected].map((command) =>
+      vscode.commands.registerCommand(command, () => undefined),
+    );
+    return [this.handle, ...selectedViews, this.selected.onDidChange((document) => this.postSelected(document))];
   }
 
   /**
