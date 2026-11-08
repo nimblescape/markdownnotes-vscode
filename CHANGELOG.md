@@ -219,7 +219,10 @@ The first version.
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in
   the Command Palette opens the file itself. The front matter is read-only in
-  the view: an edit of it goes back, and Undo goes over it. The link "Edit
+  the view: an edit of it goes back, and Undo goes over it. The parts that
+  the formatter writes, such as the number of a caption, the text of a
+  reference, the code block of a listing and the parts that other extensions
+  name, are read-only in the view as in the editor. The link "Edit
   Front Matter" above it opens the form of nimblescape Markdown Paper, or
   "Open File with Markup" without it. A paper of nimblescape Markdown Paper,
   a file whose front matter has the key `layout`, opens in the view also
@@ -303,7 +306,9 @@ The first version.
   formatter after the steps of the notes, which run again while the steps
   change the text, `registerHiddenBlocks` for blocks
   at the end of a file and `registerHiddenMarkers` for markers in its lines
-  that the clean editing view leaves out, and `registerSlashCommand` for a
+  that the clean editing view leaves out, `registerGeneratedParts` for the
+  parts that its format step writes, which the clean editing view keeps
+  read-only, and `registerSlashCommand` for a
   slash command, also one on selected text.
 - The settings `nimblescape.markdownNotes.showHighlights`,
   `nimblescape.markdownNotes.showFootnotes`,

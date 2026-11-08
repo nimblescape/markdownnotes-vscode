@@ -74,8 +74,9 @@ describes each step and where its protection ends.
   editor shows the highlights of the notes, the side view follows its
   cursor, and "Comment" in the format bar over the selected text adds a
   note. The button "Open Text Editor to the Side" in the title of the editor
-  opens the text editor of the file, which keeps the front matter read-only
-  and the markup of the notes hidden. A Markdown file has three views, "Text
+  opens the text editor of the file, which keeps the front matter and the
+  parts that the formatter writes read-only and the markup of the notes
+  hidden. A Markdown file has three views, "Text
   Editor", "Markdown Preview" and "Markdown Editor", and the title of each
   view has a button for each of the other two. A diff, for example of the changes in Git,
   shows the editor on both sides, with the removed and the new text marked.

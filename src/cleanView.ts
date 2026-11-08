@@ -21,6 +21,12 @@
  * stay as they are, an edit that changes them goes back, and Undo goes over
  * such an edit; the schema gives the problems, the quick fixes and the
  * suggestions of the front matter ([src/frontMatterEditing.ts](frontMatterEditing.ts)).
+ * The parts that the formatter writes are read-only in the same way, as in the editor of
+ * a whole file (decision 74, [src/notes/generated.ts](notes/generated.ts)):
+ * the numbers of the captions, the texts of the references, the code blocks of
+ * the listings, the values of the front matter in the text, and the parts that
+ * other extensions name through the API, such as the citations of nimblescape
+ * Markdown Paper. "Format Document" of the view writes them.
  *
  * A Markdown file with notes always opens in the view, and so does a paper
  * document of nimblescape Markdown Paper (a front matter with the key
@@ -40,6 +46,7 @@ import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, i
 import { frontMatterEnd } from './notes/doctype';
 import { type FrontMatterRules, keepsRules } from './notes/frontMatterRules';
 import { colorIndexOf, noteColors } from './notes/colors';
+import { findGenerated, type GeneratedFinder, type GeneratedPart, keepsGenerated } from './notes/generated';
 import type { SelectedNotes } from './selectedNotes';
 
 /** cleanScheme is the scheme of the documents of the clean editing view. */
@@ -50,6 +57,12 @@ export const cleanCommands = { openWithMarkup: 'nimblescape.markdownNotes.openWi
 
 /** frontMatterKept is the message of the status bar after an edit that went back because it broke the rules of the front matter. */
 export const frontMatterKept = 'The keys of the schema of the front matter and the read-only keys with their values stay as they are. Change the text after a key.';
+
+/**
+ * generatedReadOnly is the message of the status bar after an edit of a generated part in the clean editing view, such
+ * as the number of a caption or the text of a reference.
+ */
+export const generatedReadOnly = 'The formatter writes this part, so it is read-only in the clean editing view. Change what it comes from, and the save writes it again.';
 
 /** FrontMatterSchemas gives the clean editing view the rules of the front matter of a file (decision 75). */
 export interface FrontMatterSchemas {
@@ -170,11 +183,16 @@ interface Mirror {
   rulesFor?: string;
   rulesRun?: number;
   /**
-   * refused holds the clean texts after the edits of the front matter that went back, each with the clean text before
-   * it. VS Code keeps the write of the front matter back as an undo step of its own, so Undo brings such an edit back;
+   * refused holds the clean texts after the edits of the front matter or of a generated part that went back, each with
+   * the clean text before it. VS Code keeps the write back as an undo step of its own, so Undo brings such an edit back;
    * the view then undoes one more step, the edit itself, and comes back to the clean text before it.
    */
   refused?: Array<{ text: string; clean: string }>;
+  /**
+   * formatted is the clean text that "Format Document" or the format of a save gives the clean document. The change that
+   * gives it writes the generated parts, which the formatter keeps current.
+   */
+  formatted?: string;
 }
 
 /** Entry is a clean text of the history of a view, with the text of its file and the options of its projection. */
@@ -327,6 +345,11 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
         return [];
       }
     });
+
+  /** generatedFinders are the finders of the generated parts that other extensions write (R-GEN-012). */
+  private readonly generatedFinders = new Set<GeneratedFinder>();
+  /** generated holds the generated parts of the last text of a file that the view looked at. */
+  private generated: { text: string; parts: readonly GeneratedPart[] } = { text: '', parts: [] };
 
   /**
    * @param showsHighlights - Tells whether the highlights of a file show.
@@ -487,6 +510,63 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
    */
   rulesOf(document: vscode.Uri): FrontMatterRules | undefined {
     return this.ready.get(document.toString())?.rules ?? undefined;
+  }
+
+  /**
+   * registerGeneratedParts makes the view keep the generated parts that a finder of another extension returns read-only
+   * ([R-GEN-012](../docs/requirements.md#r-gen-012), [R-TEXT-009](../docs/requirements.md#r-text-009)): parts of a line or
+   * blocks of whole lines that its format step writes, such as the citations and the reference list of nimblescape
+   * Markdown Paper.
+   * @param finder - Returns the generated parts of the lines of a file.
+   */
+  registerGeneratedParts(finder: GeneratedFinder): vscode.Disposable {
+    this.generatedFinders.add(finder);
+    this.generated = { text: '', parts: [] };
+    return new vscode.Disposable(() => {
+      this.generatedFinders.delete(finder);
+      this.generated = { text: '', parts: [] };
+    });
+  }
+
+  /**
+   * generatedOf returns the generated parts of the text of a file: the parts of the notes and the parts of the finders
+   * of other extensions; a finder that fails gives none.
+   * @param text - The text of the file.
+   */
+  private generatedOf(text: string): readonly GeneratedPart[] {
+    if (this.generated.text !== text || text === '') {
+      const lines = text.split('\n');
+      const parts = [
+        ...findGenerated(lines),
+        ...[...this.generatedFinders].flatMap((finder) => {
+          try {
+            return [...finder(lines)];
+          } catch {
+            return [];
+          }
+        }),
+      ];
+      this.generated = { text, parts };
+    }
+    return this.generated.parts;
+  }
+
+  /**
+   * formats tells the view the edits of the formatter for a clean document, from "Format Document" or the format of a
+   * save: the change that gives their text may write the generated parts (R-GEN-016).
+   * @param document - The clean document.
+   * @param edits - The edits of the formatter.
+   */
+  formats(document: vscode.TextDocument, edits: readonly vscode.TextEdit[]): void {
+    const mirror = this.ready.get(document.uri.toString());
+    if (!mirror || edits.length === 0) {
+      return;
+    }
+    let text = document.getText();
+    for (const edit of [...edits].sort((a, b) => document.offsetAt(b.range.start) - document.offsetAt(a.range.start))) {
+      text = text.slice(0, document.offsetAt(edit.range.start)) + edit.newText + text.slice(document.offsetAt(edit.range.end));
+    }
+    mirror.formatted = text;
   }
 
   /** blocksChanged writes each view anew after a change of the finders of hidden blocks or markers, and switches the text editors. */
@@ -1144,6 +1224,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       return;
     }
     let { model, projection, typing } = mirror;
+    // The format writes the generated parts; an edit of the user keeps them.
+    const formatting = mirror.formatted === document.getText();
+    mirror.formatted = undefined;
+    let generated = true;
     for (const change of event.contentChanges) {
       const clean = projection.clean;
       const start = offsetIn(clean, change.range.start);
@@ -1153,6 +1237,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       if (result.way !== 'direct') {
         this.log.appendLine(`${new Date().toISOString()} ${result.way}: ${JSON.stringify(clean.slice(start, end))} → ${JSON.stringify(change.text)} at ${start}`);
       }
+      if (!formatting && !keepsGenerated(model, result.text, this.generatedOf(model))) {
+        generated = false;
+        break;
+      }
       model = result.text;
       projection = project(result.text, editOptions(projection));
       // Text typed into the end of a highlight, also over its last word, or deleted there while typing: the next
@@ -1161,8 +1249,9 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       const from = continues ? Math.min(typing!.from, start) : start;
       typing = event.contentChanges.length === 1 && (change.text.length > 0 || continues) && endsHighlight(projection, after) ? { from, to: after } : undefined;
     }
-    if (!keepsRules(mirror.model, model, mirror.rules)) {
-      this.refuse(mirror, event);
+    // The format may also write the front matter, as it writes the generated parts.
+    if (!generated || !(formatting || keepsRules(mirror.model, model, mirror.rules))) {
+      this.refuse(mirror, event, generated ? frontMatterKept : generatedReadOnly);
       return;
     }
     mirror.model = model;
@@ -1204,14 +1293,15 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   }
 
   /**
-   * refuse takes back an edit of a clean document that breaks the rules of its front matter (decision 75): the edit goes
-   * back as a whole, the file stays as it is, the view of a file without changes has no changes either, and
-   * the status bar says why. An Undo that brings back such an
-   * edit undoes the edit too, so that Undo goes on with the edits before it.
+   * refuse takes back an edit of a clean document that breaks the rules of its front matter (decision 75) or changes a
+   * generated part, which is read-only in the view: the edit goes back as a whole, the file stays as it is, the view of
+   * a file without changes has no changes either, and the status bar says why. An Undo that brings back such an edit
+   * undoes the edit too, so that Undo goes on with the edits before it.
    * @param mirror - The link of the clean document.
    * @param event - The change.
+   * @param message - The message of the status bar.
    */
-  private refuse(mirror: Mirror, event: vscode.TextDocumentChangeEvent): void {
+  private refuse(mirror: Mirror, event: vscode.TextDocumentChangeEvent, message: string): void {
     const document = event.document;
     const text = document.getText();
     const clean = mirror.projection.clean;
@@ -1228,7 +1318,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       // A typed edit, or its Redo: its undo step comes back to the clean text before it.
       mirror.refused = [...refused, { text, clean }].slice(-historySize);
     }
-    vscode.window.setStatusBarMessage(frontMatterKept, 5000);
+    vscode.window.setStatusBarMessage(message, 5000);
     // A file without changes keeps a view without changes: the edit that went back changed nothing.
     void this.writeClean(document.uri, mirror)
       .then(() => {
