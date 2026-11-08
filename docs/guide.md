@@ -486,6 +486,14 @@ into the file at once, and each note stays at its text:
   You change a part through what it comes from, for example the caption,
   the heading, the source file or the front matter, and the save writes it
   again. "Format Document" in the view writes the parts too.
+- The tags that the view hides come only from the slash commands, such as
+  `/note`, `/figure`, `/listing` and `/ref`, the slash commands of other
+  extensions, such as `/cite` and `/research` of Markdown Paper, and the
+  formatter. Text that you type or paste and that the view would hide as a
+  tag, such as `<a id="tab-grades"></a>` after a caption or the comment of
+  a listing, goes back, and the status bar names the slash commands. Your
+  own comments, such as `<!-- to do -->`, stay in the text. To edit the
+  tags by hand, choose "Open File with Markup".
 - A save of the view saves the file, with the format on save and the comment
   of the format. "Don't Save" at the close of the view brings the file back
   to its text on disk. While the editor of rendered Markdown shows the file
