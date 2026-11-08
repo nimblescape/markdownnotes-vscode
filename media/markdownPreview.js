@@ -29,8 +29,12 @@
 // second press of a double click on a highlight selects no word, and its double
 // click does not open the text editor, as a double click on other text does.
 // The script arms only an address of this extension (ownLink), so that HTML of
-// a file with the same attributes opens no other address with a click. A click
-// on a link of the text, the end of a drag that selects text, and a double
+// a file with the same attributes opens no other address with a click. A link
+// of the text in a highlight, for example a citation, belongs to the note, as
+// in the editors: VS Code opens the address of the first link of the path of a
+// click, so the script gives that link the address for the time of the click,
+// and Ctrl+click (Cmd+click on macOS) opens the link itself. A click on a link
+// outside the highlights, the end of a drag that selects text, and a double
 // click on other text open no address of the script. Chromium sends no click
 // when the element of the press leaves the page before the release, so the
 // script moves no element of the page; and the path of an event, where VS Code
@@ -119,6 +123,12 @@
 
   /** @type {'open' | 'select' | 'deselect' | 'add' | undefined} what the address of the link of the page does. */
   let armed;
+
+  /**
+   * @type {{ link: HTMLAnchorElement, attributes: Map<string, string | null> } | undefined} the link of the text in a
+   * highlight that holds the address of the extension for the time of a click, with its own attributes.
+   */
+  let borrowed;
 
   /** @type {string | undefined} the address of the button "Add Note": the address of the page with the selected text. */
   let addHref;
@@ -444,23 +454,67 @@
   const selectLink = (href) => href.replace(/^([a-z][a-z0-9+.-]*:\/\/nimblescape\.nimblescape-markdownnotes)\/open(?=\?|$)/, '$1/select');
 
   /**
-   * arm gives the link of the page an address of the extension for the time of a click.
+   * arm gives the link of the page, or a link of the text in a highlight, an address of the extension for the time of a
+   * click. VS Code opens the address of the first link of the path of the click, so the link of the text gets the
+   * address itself: without the attribute `data-href`, from which the preview of VS Code opens the address of the
+   * Markdown text, and not draggable, so that a move of the mouse does not drag the address.
    * @param {string} href - The address.
    * @param {'open' | 'select' | 'deselect' | 'add'} kind - What the address does.
+   * @param {HTMLAnchorElement} [text] - The link of the text in a highlight, or none for the link of the page.
    */
-  const arm = (href, kind) => {
-    const link = linkOfPage();
-    if (link && ownLink.test(href)) {
-      link.href = href;
-      armed = kind;
+  const arm = (href, kind, text) => {
+    const link = text ?? linkOfPage();
+    if (!link || !ownLink.test(href)) {
+      return;
     }
+    if (text) {
+      borrowed = { link: text, attributes: new Map(['href', 'data-href', 'draggable'].map((name) => [name, text.getAttribute(name)])) };
+      text.removeAttribute('data-href');
+      text.setAttribute('draggable', 'false');
+    }
+    link.href = href;
+    armed = kind;
   };
 
-  /** disarm takes the address from the link of the page, so that a click opens no address of the script. */
+  /**
+   * disarm takes the address from the link of the page and gives a link of the text its own attributes again, so that a
+   * click opens no address of the script.
+   */
   const disarm = () => {
     pageLink?.removeAttribute('href');
+    if (borrowed) {
+      for (const [name, value] of borrowed.attributes) {
+        if (value === null) {
+          borrowed.link.removeAttribute(name);
+        } else {
+          borrowed.link.setAttribute(name, value);
+        }
+      }
+      borrowed = undefined;
+    }
     armed = undefined;
   };
+
+  /**
+   * textLinkOf returns the link of the text under the pointer whose press belongs to the highlight under it: a link,
+   * for example a citation, in a highlight, pressed without Ctrl (Cmd on macOS), which opens the link. Every other
+   * control, and a link outside the highlights, keeps its click.
+   * @param {Element} target - The element of the event.
+   * @param {MouseEvent} event - The event.
+   * @returns {HTMLAnchorElement | undefined}
+   */
+  const textLinkOf = (target, event) => {
+    const control = target.closest(controlSelector);
+    return control instanceof HTMLAnchorElement && control.hasAttribute('href') && !(event.ctrlKey || event.metaKey) && highlightAt(event.clientX, event.clientY) ? control : undefined;
+  };
+
+  /**
+   * ownsPress tells whether the script may handle the press of the mouse on an element: not on a control, unless it is
+   * a link in a highlight (textLinkOf).
+   * @param {Element} target - The element of the event.
+   * @param {MouseEvent} event - The event.
+   */
+  const ownsPress = (target, event) => !target.closest(controlSelector) || textLinkOf(target, event) !== undefined;
 
   /**
    * elementOf returns the element of a node: the node, or the element that holds it.
@@ -567,7 +621,7 @@
 
   document.addEventListener('mousemove', (event) => {
     const target = targetOf(event);
-    const end = target && !target.closest(controlSelector) && !addButton.contains(target) ? highlightAt(event.clientX, event.clientY) : undefined;
+    const end = target && ownsPress(target, event) && !addButton.contains(target) ? highlightAt(event.clientX, event.clientY) : undefined;
     if (end !== hovered) {
       hovered = end;
       document.documentElement.toggleAttribute('data-nimblescape-highlight', end !== undefined);
@@ -598,9 +652,11 @@
       if (event.button === 0) {
         pressed = true;
       }
-      if (event.button !== 0 || !target || target === document.body || target === document.documentElement || target.closest(controlSelector) || frames.contains(target)) {
+      if (event.button !== 0 || !target || target === document.body || target === document.documentElement || !ownsPress(target, event) || frames.contains(target)) {
         return;
       }
+      // A link in a highlight, for example a citation, selects the note too, as in the editors; Ctrl+click opens it.
+      const text = textLinkOf(target, event);
       const end = highlightAt(event.clientX, event.clientY);
       const href = end?.getAttribute('data-href');
       if (event.detail > 1) {
@@ -608,13 +664,13 @@
         // opens no address, so that the double click opens the text editor.
         if (href) {
           event.preventDefault();
-          arm(href, 'open');
+          arm(href, 'open', text);
         }
         return;
       }
       const deselect = end ? undefined : chosen()?.getAttribute('data-deselect');
       if (href) {
-        arm(selectLink(href), 'select');
+        arm(selectLink(href), 'select', text);
       } else if (deselect) {
         arm(deselect, 'deselect');
       }
@@ -624,7 +680,9 @@
   window.addEventListener(
     'click',
     (event) => {
-      if (!pageLink?.hasAttribute('href') || !event.composedPath().includes(pageLink)) {
+      const path = event.composedPath();
+      const own = (pageLink?.hasAttribute('href') && path.includes(pageLink)) || (borrowed !== undefined && path.includes(borrowed.link));
+      if (!own) {
         return;
       }
       // The page never follows the address itself; VS Code opens it, also after preventDefault. The address goes after
@@ -659,7 +717,7 @@
     'dblclick',
     (event) => {
       const target = targetOf(event);
-      if (event.button === 0 && target && !target.closest(controlSelector) && !addButton.contains(target) && highlightAt(event.clientX, event.clientY)?.getAttribute('data-href')) {
+      if (event.button === 0 && target && ownsPress(target, event) && !addButton.contains(target) && highlightAt(event.clientX, event.clientY)?.getAttribute('data-href')) {
         event.stopImmediatePropagation();
       }
     },

@@ -1808,15 +1808,23 @@ the user can edit and answer the note. The second click of the double click
 selects no word, and the double click does not open the text editor. A click
 on the text outside the highlights while a note is selected deselects it
 ([R-SIDE-007](#r-side-007)). The page of the preview stays as it is. A click
-on a link or a button in the highlight, a click that ends a selection of
-text, and a double click on other text, which opens the text editor, do what
-they always do.
+on a link in the highlight, for example a citation, selects the note as well,
+as a click on a link in the views "Text Editor" and "Markdown Editor" puts
+the cursor into the note; Ctrl+click (Cmd+click on macOS) opens the link
+([decision 74](#decisions)). A click on a link outside the highlights, a click
+on a button in the highlight, a click that ends a selection of text, and a
+double click on other text, which opens the text editor, do what they always
+do.
 
 The Markdown preview lets a page open only some kinds of links, and VS Code
 passes a click to the extension only when the user clicks a link. The script
 of the preview therefore gives the content of the page, for the time of the
 click, a link of the scheme `vscode://` to the extension, without a change of
 the page; VS Code may ask once whether the extension may open such a link.
+VS Code opens the address of the first link of the path of a click, so for a
+click on a link in a highlight the script gives that link the address for the
+time of the click, without the attribute `data-href` of the preview, and gives
+it its own address back after the click.
 The script gives only a link to the extension itself, also when the HTML of
 the document holds an element with the same classes and another address.
 
@@ -3451,6 +3459,14 @@ requirements above follow them.
     and names its own editor "Markdown Editor". The other choice was the
     list with the visual editor of VS Code as "Markdown Editor" and the
     editor of the extension as a fourth entry "nimblescape Markdown Notes".
+74. **A click on a link in a highlight of the preview selects the note**
+    ([R-PREV-003](#r-prev-003)): a click on a link in the highlight of a
+    note in the Markdown preview, for example on a citation, selects the
+    note, as in the views "Text Editor" and "Markdown Editor"; Ctrl+click
+    (Cmd+click on macOS) opens the link. Notes of a paper often lie on
+    citations, so they can be selected in the pages. The other choice was
+    that a click on such a link opens the link, and the note is selected only
+    through the side view.
 
 ---
 

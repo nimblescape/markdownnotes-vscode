@@ -154,3 +154,55 @@ test('the frame of the selected note in the zoomed pages of nimblescape Markdown
   const style = page.document.querySelector('.nimblescape-note-frame')?.getAttribute('style');
   expect(style).toBe('left: 49px; top: 99px; width: 32px; height: 12px;');
 });
+
+/** doi is the address of a citation link in the text of a note. */
+const doi = 'https://doi.org/10.1000/example';
+
+/**
+ * citing opens a page whose note holds a citation link, as the preview of VS Code writes it, and points the caret of
+ * the page into the text of the link (happy-dom has no layout).
+ */
+const citing = () => {
+  const page = start(`<p data-line="2">See ${edges('aaaa', `the study of <a href="${doi}" data-href="${doi}">Singla et al., 2025</a>`)} and <a href="${doi}" data-href="${doi}">another</a>.</p>`);
+  const [inNote, outside] = [...page.document.querySelectorAll('p a')] as unknown as HTMLAnchorElement[];
+  let caret: Node = inNote.firstChild!;
+  Object.assign(page.document, { caretPositionFromPoint: () => ({ offsetNode: caret, offset: 2 }) });
+  /** press presses the mouse on a link, with the caret in its text. */
+  const press = (link: HTMLAnchorElement, init: { ctrlKey?: boolean; metaKey?: boolean } = {}) => {
+    caret = link.firstChild!;
+    link.dispatchEvent(new page.window.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, detail: 1, clientX: 5, clientY: 5, ...init }) as unknown as Event);
+  };
+  /** release releases the mouse on a link and waits until the script took its address back. */
+  const release = async (link: HTMLAnchorElement) => {
+    link.dispatchEvent(new page.window.MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 0 }) as unknown as Event);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  };
+  const attributes = (link: HTMLAnchorElement) => ({ href: link.getAttribute('href'), dataHref: link.getAttribute('data-href'), draggable: link.getAttribute('draggable') });
+  return { ...page, inNote, outside, press, release, attributes };
+};
+
+test('a click on a link in a highlight, for example a citation, selects the note: the link holds the address that selects it for the time of the click (R-PREV-003)', async () => {
+  const page = citing();
+  page.press(page.inNote);
+  // VS Code opens the address of the first link of the path of the click, and the preview opens `data-href` first.
+  expect(page.attributes(page.inNote)).toEqual({ href: open.replace('/open?', '/select?'), dataHref: null, draggable: 'false' });
+  const click = new page.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 1 });
+  page.inNote.dispatchEvent(click as unknown as Event);
+  expect(click.defaultPrevented).toBe(true);
+  await page.release(page.inNote);
+  expect(page.attributes(page.inNote)).toEqual({ href: doi, dataHref: doi, draggable: null });
+});
+
+test('Ctrl+click (Cmd+click on macOS) on a link in a highlight opens the link, and a link outside the highlights keeps its click (R-PREV-003)', async () => {
+  const page = citing();
+  const link = page.document.body.shadowRoot!.querySelector('a')!;
+  for (const init of [{ ctrlKey: true }, { metaKey: true }]) {
+    page.press(page.inNote, init);
+    expect(page.attributes(page.inNote)).toEqual({ href: doi, dataHref: doi, draggable: null });
+    expect(link.hasAttribute('href')).toBe(false);
+    await page.release(page.inNote);
+  }
+  page.press(page.outside);
+  expect(page.attributes(page.outside)).toEqual({ href: doi, dataHref: doi, draggable: null });
+  expect(link.hasAttribute('href')).toBe(false);
+});
