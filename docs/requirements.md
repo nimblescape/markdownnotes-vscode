@@ -1107,8 +1107,9 @@ extensions work as for the text editor.
   format, or a paper document ([decision 72](#decisions)).
 - The editor is the view "Markdown Editor" of the three views of a Markdown
   file ([R-PREV-006](#r-prev-006)): the list of the editors of VS Code
-  names it so, and the buttons "Reopen in Text Editor" and "Reopen in
-  Markdown Preview" in its title switch to the other two views.
+  names it so, and its title has the buttons of the three views, with its
+  own button marked as the selected view; the buttons "Reopen in Text
+  Editor" and "Reopen in Markdown Preview" switch to the other two views.
 - The button "Open Text Editor to the Side" in the title of the editor opens
   the text editor of the file to the side, with the selection of the editor:
   for a file with notes, with the comment of the format, or a paper
@@ -1268,12 +1269,13 @@ example from a button of its own.
 
 The buttons of the three views of a Markdown file
 ([R-PREV-006](#r-prev-006)) are commands of the adapter too: "Reopen in
-Markdown Editor" in the text editor and in the Markdown preview, and
-"Reopen in Text Editor" and "Reopen in Markdown Preview" in the editor.
-Each one opens the file of the active editor in the other view, in the
-place of the active editor, with the command `reopenActiveEditorWith` of VS
-Code, which the list of the editors of VS Code also uses; the text editor
-gets the selection of the editor. The editor opens a file that the user
+Text Editor", "Reopen in Markdown Preview" and "Reopen in Markdown Editor",
+each in the title of the two other views. Each one opens the file of the
+active editor in its view, in the place of the active editor, with the
+command `reopenActiveEditorWith` of VS Code, which the list of the editors
+of VS Code also uses; the text editor gets the selection of the editor when
+the editor is the active editor. The button of the selected view is a
+command of the extension that does nothing. The editor opens a file that the user
 chose for it, with such a button or with the list of the editors, also when
 the extension does not open the file in it by itself: VS Code gives the tab
 of the other editor of the file the editor before the editor opens, and the
@@ -2017,8 +2019,7 @@ With…" and the buttons in the title of the editor change the view:
 - **Text Editor:** the text editor, with every requirement of this document.
   A file with notes, with the comment of the format, or a paper document of
   nimblescape Markdown Paper shows the clean editing view
-  ([R-TEXT-009](#r-text-009)). Its title has the button "Open as Preview"
-  of VS Code and the button "Reopen in Markdown Editor".
+  ([R-TEXT-009](#r-text-009)).
 - **Markdown Preview** (the custom editor `vscode.markdown.preview.editor`
   of VS Code): the preview of the file in the place of its text editor; for
   a paper document, Markdown Paper shows the pages of its layout. It
@@ -2027,15 +2028,33 @@ With…" and the buttons in the title of the editor change the view:
   [R-PREV-005](#r-prev-005)). It shows no front matter, with the default
   `hide` of the setting `markdown.previewFrontMatter` of VS Code: the Text
   Editor and the Markdown Editor edit the front matter
-  ([decision 59](#decisions)). Its title has the button "Reopen as source
-  file" of VS Code, which opens the Text Editor, and the button "Reopen in
-  Markdown Editor".
+  ([decision 59](#decisions)).
 - **Markdown Editor** (the editor of a whole file of the extension,
   [R-TEXT-010](#r-text-010)): the editor of rendered Markdown with the
   plugins of the notes and of other extensions, for example the plugins of
-  Markdown Paper for a paper document. Its title has the buttons "Reopen in
-  Text Editor" and "Reopen in Markdown Preview", and "Open Text Editor to
-  the Side" ([R-VSC-002](#r-vsc-002)).
+  Markdown Paper for a paper document. Its title also has the button "Open
+  Text Editor to the Side" ([R-VSC-002](#r-vsc-002)).
+
+The title of each view has the buttons of all three views, in the order
+Text Editor, Markdown Preview, Markdown Editor, at the same place in each
+view ([decision 84](#decisions)):
+
+- The buttons of the two other views are "Reopen in Text Editor" (the
+  codicon `file-code`), "Reopen in Markdown Preview" (the codicon
+  `preview`) and "Reopen in Markdown Editor" (the codicon `edit`, a
+  pencil).
+- The button of the selected view stays at its place and shows the same
+  icon cut out of a filled square with round corners, in the icon color of
+  the theme: "Text Editor (Selected View)", "Markdown Preview (Selected
+  View)" or "Markdown Editor (Selected View)". A click on it keeps the
+  view. VS Code gives an extension no checked state for a button of the
+  title, so an icon of the icon font of the extension marks the view. The list
+  of the commands does not offer these three commands.
+- The Markdown Editor of VS Code, which "Reopen Editor With…" still
+  offers, has the three buttons "Reopen in …" without a selected view.
+- VS Code adds its own buttons after them: "Open Preview to the Side" in
+  the text editor, and "Reopen as source file" in the Markdown preview,
+  which opens the Text Editor too. An extension cannot hide them.
 
 The title of each view also has the buttons "Show or Hide Notes"
 ([R-SIDE-006](#r-side-006)) and "Hide Highlights" or "Show Highlights"
@@ -2061,7 +2080,9 @@ The title of each view also has the buttons "Show or Hide Notes"
   user setting `workbench.editorAssociations` or "Set Default for '*.md'"
   of the list chooses another default editor.
 - The buttons of the views come first in the title of each view, in the
-  order of the list. VS Code shows at most eight buttons in the title
+  order of the list. VS Code orders the buttons of one place by their
+  titles after their order, and both titles of the last place come before
+  "Run or Debug…" of VS Code. VS Code shows at most eight buttons in the title
   besides "Split Editor" and moves the others into the menu "…" of the
   title, so the buttons of other extensions never push the buttons of the
   views there.
@@ -3760,6 +3781,14 @@ requirements above follow them.
     `/alert` inserts an alert in both editors, and in the text editor the
     marker stays text. The other choice was the marker as text while the
     cursor is in the first line of the alert.
+84. **All three view buttons in each view, the selected one marked**
+    ([R-PREV-006](#r-prev-006), [R-VSC-002](#r-vsc-002)): the title of each
+    of the three views of a Markdown file has the buttons of the Text
+    Editor, the Markdown Preview and the Markdown Editor, always in this
+    order and at the same place. The button of the selected view stays and
+    shows its icon cut out of a filled square; a click on it keeps the
+    view. The other choice was only the buttons of the two other views,
+    which moved the buttons from view to view.
 
 ---
 

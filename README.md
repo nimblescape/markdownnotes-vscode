@@ -80,7 +80,8 @@ describes each step and where its protection ends.
   the text editor keeps the keys of the layout, shows the problems of the
   front matter with quick fixes, and suggests the values of a key. A Markdown file has three views, "Text
   Editor", "Markdown Preview" and "Markdown Editor", and the title of each
-  view has a button for each of the other two. A diff, for example of the changes in Git,
+  view has the buttons of all three in the same order, the selected view
+  marked with its icon in a filled square. A diff, for example of the changes in Git,
   shows the editor on both sides, with the removed and the new text marked.
   The editor shows what other extensions add to the Markdown preview, for
   example diagrams and math. The setting `renderedEditor` chooses the files

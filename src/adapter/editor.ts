@@ -90,9 +90,9 @@ export interface MarkdownEditorRegistration {
   readonly openTextCommand?: string;
   /**
    * reopenCommands are the IDs of the commands that open the file of the active editor in another of its three views,
-   * in the place of the active editor (R-VSC-002): `editor` in this editor, from the text editor or the Markdown
-   * preview; `text` in the text editor and `preview` in the Markdown preview of VS Code, from this editor. The
-   * package.json of the extension contributes the commands and their buttons in the title of the editor.
+   * in the place of the active editor (R-VSC-002): `editor` in this editor, `text` in the text editor and `preview` in
+   * the Markdown preview of VS Code, each from the two other views. The package.json of the extension contributes the
+   * commands and their buttons in the title of the editor.
    */
   readonly reopenCommands?: { readonly editor?: string; readonly text?: string; readonly preview?: string };
   /**
@@ -447,10 +447,10 @@ export function registerMarkdownEditor(api: VsCode, registration: MarkdownEditor
   if (reopen?.text) {
     disposables.push(
       api.commands.registerCommand(reopen.text, async () => {
-        const panel = panelOf();
+        // From this editor, the text editor gets its selection; from the Markdown preview, no panel is active.
+        const panel = [...panels].find((candidate) => candidate.active);
         const range = panel?.selectedRange();
         await api.commands.executeCommand('reopenActiveEditorWith', 'default');
-        // The text editor gets the selection of the editor.
         if (panel && range) {
           await selectText(api, registration, panel.uri, range);
         }

@@ -371,7 +371,8 @@ note at its place.
 - The button "Open Text Editor to the Side" in the title of the editor opens
   the text editor of the file to the side, with the selection of the editor.
   The buttons "Reopen in Text Editor" and "Reopen in Markdown Preview" open
-  the file in the same place in the other views
+  the file in the same place in the other views; the third button, the
+  pencil in a filled square, marks the editor as the selected view
   ([Three views of a Markdown file](#three-views-of-a-markdown-file)). For a
   file with notes and for a paper, the text editor is the
   [clean editing view](#clean-editing-view): the front matter and the parts
@@ -1520,11 +1521,20 @@ A Markdown file has three views in the place of its editor. The list of the
 editors at the right end of the breadcrumbs, "Reopen Editor With…", and the
 buttons in the title of the editor change the view, in the same place:
 
-| View | What it shows | Buttons to the other views |
+| View | What it shows | Its button in the title |
 | --- | --- | --- |
-| Text Editor | The Markdown text, with all features of this guide. A file with notes or a paper of nimblescape Markdown Paper shows the [clean editing view](#clean-editing-view). | "Open as Preview" (VS Code), "Reopen in Markdown Editor" (a pencil) |
-| Markdown Preview | The file rendered, with the highlights, as in the preview to the side; a paper shows the pages of its layout. A click on a thread keeps the view and scrolls to the note. | "Reopen as source file" (VS Code), "Reopen in Markdown Editor" (a pencil) |
-| Markdown Editor | The [editor of rendered Markdown](#editor-of-rendered-markdown), with the notes and, for a paper, the parts of Markdown Paper. | "Reopen in Text Editor", "Reopen in Markdown Preview" |
+| Text Editor | The Markdown text, with all features of this guide. A file with notes or a paper of nimblescape Markdown Paper shows the [clean editing view](#clean-editing-view). | "Reopen in Text Editor" (a page with `<>`) |
+| Markdown Preview | The file rendered, with the highlights, as in the preview to the side; a paper shows the pages of its layout. A click on a thread keeps the view and scrolls to the note. | "Reopen in Markdown Preview" (a page with blocks) |
+| Markdown Editor | The [editor of rendered Markdown](#editor-of-rendered-markdown), with the notes and, for a paper, the parts of Markdown Paper. | "Reopen in Markdown Editor" (a pencil) |
+
+The title of each view has the three buttons of the views, in the order of
+the table and at the same place in each view. The button of the active view
+stays and shows its icon cut out of a filled square, with the name "Text
+Editor (Selected View)", "Markdown Preview (Selected View)" or "Markdown
+Editor (Selected View)"; a click on it keeps the view. The two other buttons
+open the file in their views. VS Code adds its own buttons after them:
+"Open Preview to the Side" in the text editor, and "Reopen as source file"
+in the Markdown preview, which opens the Text Editor too.
 
 The buttons "Show or Hide Notes" and "Hide Highlights" or "Show Highlights"
 are in the title of each view, and the side view "Notes" lists the notes of

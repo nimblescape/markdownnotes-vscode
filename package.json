@@ -354,6 +354,24 @@
         "icon": "$(preview)"
       },
       {
+        "command": "nimblescape.markdownNotes.textEditorSelected",
+        "title": "Text Editor (Selected View)",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-view-text-selected)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.markdownPreviewSelected",
+        "title": "Markdown Preview (Selected View)",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-view-preview-selected)"
+      },
+      {
+        "command": "nimblescape.markdownNotes.markdownEditorSelected",
+        "title": "Markdown Editor (Selected View)",
+        "category": "Markdown Notes",
+        "icon": "$(nimblescape-view-editor-selected)"
+      },
+      {
         "command": "nimblescape.markdownNotes.previousChange",
         "title": "Previous Change",
         "category": "Markdown Notes",
@@ -415,6 +433,27 @@
           "fontPath": "resources/notes-icons.ttf",
           "fontCharacter": "\\E007"
         }
+      },
+      "nimblescape-view-text-selected": {
+        "description": "Markdown Notes: the button of the selected view \"Text Editor\" in the title of the three views of a Markdown file, the codicon \"file-code\" cut out of a filled square.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E008"
+        }
+      },
+      "nimblescape-view-preview-selected": {
+        "description": "Markdown Notes: the button of the selected view \"Markdown Preview\" in the title of the three views of a Markdown file, the parts of the codicon \"preview\" cut out of a filled square.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E009"
+        }
+      },
+      "nimblescape-view-editor-selected": {
+        "description": "Markdown Notes: the button of the selected view \"Markdown Editor\" in the title of the three views of a Markdown file, the codicon \"edit\" cut out of a filled square.",
+        "default": {
+          "fontPath": "resources/notes-icons.ttf",
+          "fontCharacter": "\\E00A"
+        }
       }
     },
     "menus": {
@@ -457,11 +496,26 @@
         {
           "command": "nimblescape.markdownNotes.reopenInTextEditor",
           "group": "navigation@-3",
-          "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff"
+          "when": "(activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff) || (activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff) || activeCustomEditorId == 'vscode.markdown.editor'"
         },
         {
           "command": "nimblescape.markdownNotes.reopenInMarkdownPreview",
           "group": "navigation@-2",
+          "when": "(activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown) || (activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff) || activeCustomEditorId == 'vscode.markdown.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.textEditorSelected",
+          "group": "navigation@-3",
+          "when": "activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown"
+        },
+        {
+          "command": "nimblescape.markdownNotes.markdownPreviewSelected",
+          "group": "navigation@-2",
+          "when": "activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff"
+        },
+        {
+          "command": "nimblescape.markdownNotes.markdownEditorSelected",
+          "group": "navigation@-1",
           "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff"
         },
         {
@@ -646,11 +700,23 @@
         },
         {
           "command": "nimblescape.markdownNotes.reopenInTextEditor",
-          "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff"
+          "when": "(activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff) || (activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff) || activeCustomEditorId == 'vscode.markdown.editor'"
         },
         {
           "command": "nimblescape.markdownNotes.reopenInMarkdownPreview",
-          "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff"
+          "when": "(activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown) || (activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff) || activeCustomEditorId == 'vscode.markdown.editor'"
+        },
+        {
+          "command": "nimblescape.markdownNotes.textEditorSelected",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.markdownPreviewSelected",
+          "when": "false"
+        },
+        {
+          "command": "nimblescape.markdownNotes.markdownEditorSelected",
+          "when": "false"
         },
         {
           "command": "nimblescape.markdownNotes.previousChange",
