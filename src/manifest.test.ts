@@ -160,6 +160,9 @@ test('the manifest contributes the commands of the side view, of the highlights,
       ...Object.values(publishCommands),
       renumberCommand,
       renderedEditor.openText,
+      renderedEditor.reopenEditor,
+      renderedEditor.reopenText,
+      renderedEditor.reopenPreview,
       renderedEditor.previousChange,
       renderedEditor.nextChange,
     ].sort(),
@@ -170,7 +173,8 @@ test('the editor of a whole file is the default editor of the Markdown files, al
   expect(manifest.contributes.customEditors).toEqual([
     {
       viewType: renderedEditor.viewType,
-      displayName: 'nimblescape Markdown Notes',
+      // The list of the editors of VS Code names it as the view "Markdown Editor" of the file (R-VSC-002).
+      displayName: 'Markdown Editor',
       selector: [{ filenamePattern: '*.md' }, { filenamePattern: '*.markdown' }],
       priority: { textEditor: 'default', diffEditor: 'default' },
     },
@@ -182,6 +186,37 @@ test('the editor of a whole file is the default editor of the Markdown files, al
   expect(manifest.contributes.menus.commandPalette).toEqual(expect.arrayContaining([{ command: renderedEditor.openText, when: own }]));
   const command = manifest.contributes.commands.find((item: { command: string }) => item.command === renderedEditor.openText);
   expect(command).toMatchObject({ title: 'Open Text Editor to the Side', icon: '$(go-to-file)' });
+});
+
+/** toEditor is the condition of the button "Reopen in Markdown Editor": the text editor and the Markdown preview of a Markdown file, and the Markdown Editor of VS Code. */
+const toEditor =
+  "(activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown) || (activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff) || activeCustomEditorId == 'vscode.markdown.editor'";
+
+/** fromEditor is the condition of the buttons "Reopen in Text Editor" and "Reopen in Markdown Preview": the editor of a whole file, outside a diff. */
+const fromEditor = `activeCustomEditorId == '${renderedEditor.viewType}' && !${renderedEditor.diffContext}`;
+
+test('a Markdown file has three views, Text Editor, Markdown Preview and Markdown Editor: the list of the editors of VS Code hides the Markdown Editor of VS Code, and the title of each view has the buttons of the two other views (R-VSC-002)', () => {
+  expect(manifest.contributes.configurationDefaults['workbench.editor.hiddenEditorTypes']).toEqual(['vscode.markdown.editor']);
+  // VS Code gives the buttons "Open as Preview" in the text editor and "Reopen as source file" in the Markdown preview.
+  expect(manifest.contributes.menus['editor/title']).toEqual(
+    expect.arrayContaining([
+      { command: renderedEditor.reopenEditor, group: 'navigation@3', when: toEditor },
+      { command: renderedEditor.reopenText, group: 'navigation@3', when: fromEditor },
+      { command: renderedEditor.reopenPreview, group: 'navigation@4', when: fromEditor },
+    ]),
+  );
+  expect(manifest.contributes.menus.commandPalette).toEqual(
+    expect.arrayContaining([
+      { command: renderedEditor.reopenEditor, when: toEditor },
+      { command: renderedEditor.reopenText, when: fromEditor },
+      { command: renderedEditor.reopenPreview, when: fromEditor },
+    ]),
+  );
+  const commandOf = (id: string) => manifest.contributes.commands.find((item: { command: string }) => item.command === id);
+  expect(commandOf(renderedEditor.reopenEditor)).toMatchObject({ title: 'Reopen in Markdown Editor', icon: '$(edit)' });
+  // The icons of VS Code for the text and for the preview of a Markdown file.
+  expect(commandOf(renderedEditor.reopenText)).toMatchObject({ title: 'Reopen in Text Editor', icon: '$(file-code)' });
+  expect(commandOf(renderedEditor.reopenPreview)).toMatchObject({ title: 'Reopen in Markdown Preview', icon: '$(preview)' });
 });
 
 test('a diff with the editor on both sides has the buttons to the previous and to the next change, while the context key of the adapter is true (R-TEXT-010)', () => {
@@ -298,6 +333,9 @@ test('the title of the text editor and of the preview of a Markdown file has the
     { command: usedSnippetCommands.show, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && !${usedSnippetContexts.shown}` },
     { command: usedSnippetCommands.hide, group: 'navigation', when: `editorLangId != markdown && ${usedSnippetContexts.has} && ${usedSnippetContexts.shown}` },
     { command: renderedEditor.openText, group: 'navigation', when: `activeCustomEditorId == '${renderedEditor.viewType}'` },
+    { command: renderedEditor.reopenEditor, group: 'navigation@3', when: toEditor },
+    { command: renderedEditor.reopenText, group: 'navigation@3', when: fromEditor },
+    { command: renderedEditor.reopenPreview, group: 'navigation@4', when: fromEditor },
     { command: renderedEditor.previousChange, group: 'navigation@1', when: renderedEditor.diffContext },
     { command: renderedEditor.nextChange, group: 'navigation@2', when: renderedEditor.diffContext },
   ]);

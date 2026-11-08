@@ -200,6 +200,19 @@ test('a file that the setting does not choose opens in the text editor in the sa
   expect(panel.pluginMessages(pluginName)).toHaveLength(2);
 });
 
+test('the view "Markdown Editor" of a document of the clean editing view is the editor of its file, and the buttons of the three views open the active file in another view in its place (R-VSC-002, R-TEXT-009)', async () => {
+  await fake.activate();
+  // The clean URI of the file file:///folder/a.md (cleanUriOf of src/cleanView.ts).
+  const view = fake.open(text, '/folder/a.md', { scheme: 'markdownnotes', authority: 'file' });
+  const panel = await fake.resolveCustomEditor(renderedEditor.viewType, view);
+  expect(panel.webview.html).toBe('');
+  const [file, viewType] = fake.calls.find(({ command }) => command === 'vscode.openWith')!.args as [{ scheme: string; path: string }, string];
+  expect([file.scheme, file.path, viewType]).toEqual(['file', '/folder/a.md', renderedEditor.viewType]);
+  await fake.run(renderedEditor.reopenPreview);
+  await fake.run(renderedEditor.reopenText);
+  expect(fake.calls.filter(({ command }) => command === 'reopenActiveEditorWith').map(({ args }) => args)).toEqual([['vscode.markdown.preview.editor'], ['default']]);
+});
+
 test('the page gets the scripts of the plugins that other extensions contribute, and other extensions connect their part through the API (R-GEN-012, R-TEXT-010)', async () => {
   const paper = 'nimblescape.nimblescape-markdownpaper';
   fake.extensions.set(paper, { packageJSON: { contributes: { 'nimblescape.markdown.extensions': { editorScripts: ['dist/editorPlugins.js'] } } } });
