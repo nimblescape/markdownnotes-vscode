@@ -8,10 +8,13 @@
  * of the extensions of the Markdown preview of VS Code ([R-VSC-010](../../docs/requirements.md#r-vsc-010)), and the
  * plugins that other extensions contribute ([R-GEN-012](../../docs/requirements.md#r-gen-012)). A plugin with the name of another plugin of the editor
  * is left out, and when the plugins of other extensions stop the start of the editor, the editor starts with the plugins
- * of this extension only.
+ * of this extension only. Go Back and Go Forward after a jump to a place of the file have the keys of VS Code
+ * ([R-TEXT-011](../../docs/requirements.md#r-text-011)); the back and forward buttons of the mouse go to the editor, but
+ * on Windows VS Code gives them to its own Go Back and Go Forward, also over a webview.
  */
 
 import { MarkdownEditor, type MarkdownPlugin } from '@nimblescape/markdowneditor';
+import { platformOf, vscodeJumpKeys } from '@nimblescape/markdownrender/jumps';
 import type { VsCodeConnection } from './connection';
 import { figuresPlugin } from './figuresPlugin';
 import { createNotesPlugin } from './notesPlugin';
@@ -41,6 +44,8 @@ export function withOthers(own: readonly MarkdownPlugin[], others: readonly Mark
  * @param others - The plugins of other extensions.
  */
 export function start(connection: VsCodeConnection, others: readonly MarkdownPlugin[]): MarkdownEditor {
+  const platform = platformOf(navigator);
+  const jumps = { keys: vscodeJumpKeys(platform), mouseButtons: platform !== 'windows' };
   const create = (plugins: MarkdownPlugin[]) =>
     new MarkdownEditor(connection.element, {
       source: connection.source,
@@ -49,6 +54,7 @@ export function start(connection: VsCodeConnection, others: readonly MarkdownPlu
       host: connection.host,
       plugins,
       threadIcons: false,
+      jumps,
     });
   const own = [createNotesPlugin({ comment: true, slashCommands: true }), figuresPlugin, previewPlugin(connection.preview)];
   if (others.length === 0) {

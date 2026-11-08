@@ -59,6 +59,7 @@ import { notesViewId, viewCommands } from './notesViewProtocol';
 import { SelectedNotes } from './selectedNotes';
 import { type SlashCommand, SlashCommands } from './slashCommands';
 import { Snippets } from './snippets';
+import { PlaceLinks } from './placeLinks';
 import { UsedSnippets } from './usedSnippets';
 import { checkedSettings, type Settings, settingsSection } from './settings';
 
@@ -502,6 +503,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     new AddNoteAction(store, viewCommands.newNote, clean).register(),
     ...slash.register(),
     ...new Snippets(clean).register(),
+    new PlaceLinks(clean).register(),
     ...new UsedSnippets().register(),
     ...registerPublishCommands(() => view.activeFile),
     new FootnoteActions(store).register(),

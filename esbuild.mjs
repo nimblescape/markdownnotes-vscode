@@ -62,8 +62,9 @@ for (const bundle of bundles) {
 // editor of an earlier version, dist/codicon.ttf, so that no file of an earlier build stays in the package.
 fs.rmSync('dist/codicon.ttf', { force: true });
 // The editor of a whole file (R-TEXT-010) runs in the page of its custom editor: a bundle for the browser in
-// dist/editor.js with the same editor and the plugin of the notes; it uses the styles of the visual editor.
-for (const name of ['visualEditor', 'editor']) {
+// dist/editor.js with the same editor and the plugin of the notes; it uses the styles of the visual editor. The way
+// back after a jump in the Markdown preview (R-TEXT-011) is a script of the preview: a bundle in dist/previewJumps.js.
+for (const name of ['visualEditor', 'editor', 'previewJumps']) {
   if (production) {
     fs.rmSync(`dist/${name}.js.map`, { force: true });
   }

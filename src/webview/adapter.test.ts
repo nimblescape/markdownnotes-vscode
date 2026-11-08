@@ -341,6 +341,19 @@ describe('the three views of a Markdown file', () => {
     expect(fake.executed[1]).toEqual(['reopenActiveEditorWith', 'vscode.markdown.preview.editor']);
   });
 
+  it('opens the text editor in the place of the Markdown preview without the selection of an editor of the page that is not active', async () => {
+    const { document, panel, connection } = await start(text, { reopenCommands });
+    connection.source.setSelections('page', [{ anchor: 18, head: 9 }]);
+    await panel.settle();
+    // The Markdown preview of the file is the active editor; the editor of the page stays open in another tab.
+    panel.active = false;
+    const editor = fake.textEditor(document);
+    fake.activeTextEditor = editor;
+    await fake.commands.get(reopenCommands.text)?.(document.uri);
+    expect(fake.executed).toEqual([['reopenActiveEditorWith', 'default']]);
+    expect(editor.revealed).toHaveLength(0);
+  });
+
   it('gives the selection of the page to the select of the extension after the text editor opened, in its place and to the side, for a view that takes the place of the text editor', async () => {
     const selected: [unknown, { start: unknown; end: unknown }][] = [];
     const select = (file: unknown, range: { start: unknown; end: unknown }) => {

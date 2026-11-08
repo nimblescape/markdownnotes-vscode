@@ -1108,8 +1108,9 @@ extensions work as for the text editor.
   format, or a paper document ([decision 72](#decisions)).
 - The editor is the view "Markdown Editor" of the three views of a Markdown
   file ([R-PREV-006](#r-prev-006)): the list of the editors of VS Code
-  names it so, and the buttons "Reopen in Text Editor" and "Reopen in
-  Markdown Preview" in its title switch to the other two views.
+  names it so, and its title has the buttons of the three views, with its
+  own button marked as the selected view; the buttons "Reopen in Text
+  Editor" and "Reopen in Markdown Preview" switch to the other two views.
 - The button "Open Text Editor to the Side" in the title of the editor opens
   the text editor of the file to the side, with the selection of the editor:
   for a file with notes, with the comment of the format, or a paper
@@ -1176,7 +1177,7 @@ extensions work as for the text editor.
   the number of a caption, the text of a reference to a figure, a table, a
   listing or a section, and the code block of a listing and the cite of its
   source after its caption. Ctrl+click (Cmd+click on macOS) on a reference
-  goes to its target. The editor of nimblescape Markdown itself hides the
+  goes to its target, and Go Back returns ([R-TEXT-011](#r-text-011)). The editor of nimblescape Markdown itself hides the
   markers of the values of the front matter ([R-XREF-004](#r-xref-004)) and
   keeps a value with its markers read-only when the front matter has its
   key, with Ctrl+click to the input of the key in the form of the front
@@ -1207,6 +1208,68 @@ nimblescape Markdown,
 Ctrl+click on text that is no reference selects its block, as in other
 editors of rendered text; the next typed text replaces the block, and Undo
 brings it back.
+
+### R-TEXT-011
+
+**Jumps in the file and the way back.** In each of the three views of a
+Markdown file ([R-PREV-006](#r-prev-006)), a link to a place of the file
+itself goes to that place, and Go Back returns to the place of the link
+([decision 85](#decisions)):
+
+- The links are a link `[text](#id)` to the anchor of HTML with that ID or
+  name, for example the anchor of a caption of a figure, a table or a
+  listing or of a section ([R-XREF-001](#r-xref-001)), or of an entry of
+  the reference list of nimblescape Markdown Paper, else to the
+  heading with that GitHub ID, also the second heading with the same text
+  with the suffix `-1`; a footnote reference, which goes to its definition;
+  and the label of a footnote definition, which goes to its first
+  reference. A footnote goes there where the view shows its definition:
+  while the side view shows the standard footnotes
+  ([R-FOOT-001](#r-foot-001)), the clean editing view hides their
+  definitions, as those of the notes, and the cursor on a reference selects
+  the footnote in the side view. The entries of a table of contents and of the lists of
+  figures, tables and listings, the cross references and the citations are
+  such links. A link in code is text.
+- **Text Editor:** Ctrl+click (Cmd+click on macOS) on a link goes to its
+  target, in the clean editing view ([R-TEXT-009](#r-text-009)) and in the
+  text editor of a file. The extension gives the link of the whole link
+  text, with the target in the file itself, so that VS Code opens it as a
+  navigation, as a link to a heading of its Markdown extension: Go Back and
+  Go Forward of VS Code return through the places, with their keys, the
+  buttons in the title bar of VS Code and the back and forward buttons of
+  the mouse. In the clean editing view, a link to an anchor that the view
+  hides goes to the start of the line of the anchor, for example of its
+  caption.
+- **Markdown Editor:** Ctrl+click on a link goes to its target, and
+  Ctrl+click on a reference of the plugin of the figures goes to what it
+  names ([R-TEXT-010](#r-text-010)); the editor keeps the place of the
+  link (the jumps of the editor of nimblescape Markdown,
+  [R-EDIT-014](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-014)).
+  Go Back and Go Forward return through the places, with the keys of Go
+  Back and Go Forward of VS Code, with the back and forward buttons of the
+  mouse, and with the buttons "Go Back" and "Go Forward" in the toolbar of
+  the editor, which show after the first jump.
+- **Markdown Preview:** a click on a link that moves the preview keeps the
+  place before the click (the way back in a rendered page of nimblescape
+  Markdown,
+  [R-REN-004](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-ren-004)),
+  also in the pages of a paper document of Markdown Paper. Go Back and Go
+  Forward return through the places, with the keys of VS Code, with the
+  back and forward buttons of the mouse, and with the buttons "Back" and
+  "Forward" at the bottom right of the preview, which show while there is
+  a place in their direction. The places belong to the file of the preview
+  and stay when VS Code loads the preview again, for example for a change
+  of the selected note.
+
+The keys of Go Back and Go Forward of VS Code are Ctrl+Alt+- and
+Ctrl+Shift+- on Linux, Alt+Left and Alt+Right on Windows, and Ctrl+- and
+Ctrl+Shift+- on macOS, and the keys Browser Back and Browser Forward on
+each platform. In the Markdown Editor and in the preview, a key without a
+place in its direction goes on to VS Code, which goes back to the editor of
+before. Limits: the buttons Go Back and Go Forward in the title bar of
+VS Code use the history of VS Code, which holds no place inside the
+Markdown Editor or the preview, and on Windows VS Code takes the back and
+forward buttons of the mouse for its history in every view.
 
 ### R-VIEW-001
 
@@ -1272,12 +1335,13 @@ example from a button of its own.
 
 The buttons of the three views of a Markdown file
 ([R-PREV-006](#r-prev-006)) are commands of the adapter too: "Reopen in
-Markdown Editor" in the text editor and in the Markdown preview, and
-"Reopen in Text Editor" and "Reopen in Markdown Preview" in the editor.
-Each one opens the file of the active editor in the other view, in the
-place of the active editor, with the command `reopenActiveEditorWith` of VS
-Code, which the list of the editors of VS Code also uses; the text editor
-gets the selection of the editor. The editor opens a file that the user
+Text Editor", "Reopen in Markdown Preview" and "Reopen in Markdown Editor",
+each in the title of the two other views. Each one opens the file of the
+active editor in its view, in the place of the active editor, with the
+command `reopenActiveEditorWith` of VS Code, which the list of the editors
+of VS Code also uses; the text editor gets the selection of the editor when
+the editor is the active editor. The button of the selected view is a
+command of the extension that does nothing. The editor opens a file that the user
 chose for it, with such a button or with the list of the editors, also when
 the extension does not open the file in it by itself: VS Code gives the tab
 of the other editor of the file the editor before the editor opens, and the
@@ -2037,8 +2101,7 @@ With…" and the buttons in the title of the editor change the view:
 - **Text Editor:** the text editor, with every requirement of this document.
   A file with notes, with the comment of the format, or a paper document of
   nimblescape Markdown Paper shows the clean editing view
-  ([R-TEXT-009](#r-text-009)). Its title has the button "Open as Preview"
-  of VS Code and the button "Reopen in Markdown Editor".
+  ([R-TEXT-009](#r-text-009)).
 - **Markdown Preview** (the custom editor `vscode.markdown.preview.editor`
   of VS Code): the preview of the file in the place of its text editor; for
   a paper document, Markdown Paper shows the pages of its layout. It
@@ -2047,15 +2110,33 @@ With…" and the buttons in the title of the editor change the view:
   [R-PREV-005](#r-prev-005)). It shows no front matter, with the default
   `hide` of the setting `markdown.previewFrontMatter` of VS Code: the Text
   Editor and the Markdown Editor edit the front matter
-  ([decision 59](#decisions)). Its title has the button "Reopen as source
-  file" of VS Code, which opens the Text Editor, and the button "Reopen in
-  Markdown Editor".
+  ([decision 59](#decisions)).
 - **Markdown Editor** (the editor of a whole file of the extension,
   [R-TEXT-010](#r-text-010)): the editor of rendered Markdown with the
   plugins of the notes and of other extensions, for example the plugins of
-  Markdown Paper for a paper document. Its title has the buttons "Reopen in
-  Text Editor" and "Reopen in Markdown Preview", and "Open Text Editor to
-  the Side" ([R-VSC-002](#r-vsc-002)).
+  Markdown Paper for a paper document. Its title also has the button "Open
+  Text Editor to the Side" ([R-VSC-002](#r-vsc-002)).
+
+The title of each view has the buttons of all three views, in the order
+Text Editor, Markdown Preview, Markdown Editor, at the same place in each
+view ([decision 84](#decisions)):
+
+- The buttons of the two other views are "Reopen in Text Editor" (the
+  codicon `file-code`), "Reopen in Markdown Preview" (the codicon
+  `preview`) and "Reopen in Markdown Editor" (the codicon `edit`, a
+  pencil).
+- The button of the selected view stays at its place and shows the same
+  icon cut out of a filled square with round corners, in the icon color of
+  the theme: "Text Editor (Selected View)", "Markdown Preview (Selected
+  View)" or "Markdown Editor (Selected View)". A click on it keeps the
+  view. VS Code gives an extension no checked state for a button of the
+  title, so an icon of the icon font of the extension marks the view. The list
+  of the commands does not offer these three commands.
+- The Markdown Editor of VS Code, which "Reopen Editor With…" still
+  offers, has the three buttons "Reopen in …" without a selected view.
+- VS Code adds its own buttons after them: "Open Preview to the Side" in
+  the text editor, and "Reopen as source file" in the Markdown preview,
+  which opens the Text Editor too. An extension cannot hide them.
 
 The title of each view also has the buttons "Show or Hide Notes"
 ([R-SIDE-006](#r-side-006)) and "Hide Highlights" or "Show Highlights"
@@ -2081,7 +2162,9 @@ The title of each view also has the buttons "Show or Hide Notes"
   user setting `workbench.editorAssociations` or "Set Default for '*.md'"
   of the list chooses another default editor.
 - The buttons of the views come first in the title of each view, in the
-  order of the list. VS Code shows at most eight buttons in the title
+  order of the list. VS Code orders the buttons of one place by their
+  titles after their order, and both titles of the last place come before
+  "Run or Debug…" of VS Code. VS Code shows at most eight buttons in the title
   besides "Split Editor" and moves the others into the menu "…" of the
   title, so the buttons of other extensions never push the buttons of the
   views there.
@@ -2091,6 +2174,8 @@ The title of each view also has the buttons "Show or Hide Notes"
   editing view is the editor of its file.
 - In each view, the side view follows the file, and a click on a thread
   keeps the view ([R-SIDE-007](#r-side-007)).
+- In each view, a link to a place of the file goes there, and Go Back
+  returns to the link ([R-TEXT-011](#r-text-011)).
 
 ### R-PREV-007
 
@@ -3781,6 +3866,24 @@ requirements above follow them.
     `/alert` inserts an alert in both editors, and in the text editor the
     marker stays text. The other choice was the marker as text while the
     cursor is in the first line of the alert.
+84. **All three view buttons in each view, the selected one marked**
+    ([R-PREV-006](#r-prev-006), [R-VSC-002](#r-vsc-002)): the title of each
+    of the three views of a Markdown file has the buttons of the Text
+    Editor, the Markdown Preview and the Markdown Editor, always in this
+    order and at the same place. The button of the selected view stays and
+    shows its icon cut out of a filled square; a click on it keeps the
+    view. The other choice was only the buttons of the two other views,
+    which moved the buttons from view to view.
+85. **The way back after a jump in all three views**
+    ([R-TEXT-011](#r-text-011)): a link to a place of the file itself, such
+    as an entry of a table of contents, a cross reference, a citation or a
+    footnote, goes there in the Text Editor, the Markdown Preview and the
+    Markdown Editor, and Go Back returns to the link. The Text Editor uses
+    the history of VS Code itself. The Markdown Editor and the preview are
+    pages of their own, whose places the history of VS Code does not hold,
+    so they keep their places themselves, go back and forward with the keys
+    of Go Back and Go Forward of VS Code and the buttons of the mouse, and
+    show buttons for it. A key without a place goes on to VS Code.
 86. **A click on a highlight opens the side view** ([R-SIDE-007](#r-side-007),
     [R-NOTE-006](#r-note-006), [R-PREV-003](#r-prev-003),
     [R-TEXT-010](#r-text-010)): a click with the mouse on a highlight, in the
