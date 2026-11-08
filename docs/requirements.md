@@ -995,6 +995,17 @@ file at once, and keeps each note at its text:
   tags through the text editor of the view ([R-GEN-012](#r-gen-012)). Text
   that only shows hidden parts, such as a fence that opens a code block,
   goes into the file. "Open File with Markup" edits the tags by hand.
+- The read-only parts look read-only ([decision 80](#decisions)): each
+  generated part, and with rules each fence of the front matter, each key
+  of the schema up to its colon and the lines of each read-only key, has
+  the gray background of the theme color
+  `nimblescapeMarkdownNotes.readOnlyBackground`, a part of a line with
+  round corners and a block, such as the code block of a listing or the
+  table of contents of a paper, on its whole lines. The hover of a part
+  says why it is read-only. The themes of high contrast also show the
+  dotted frame of the theme color `nimblescapeMarkdownNotes.readOnlyBorder`.
+  A theme or the setting `workbench.colorCustomizations` can change both
+  colors.
 - A save of the view saves the file, with the format on save
   ([R-FMT-001](#r-fmt-001)) and the comment of the format
   ([R-NOTE-007](#r-note-007)); a change of the file from elsewhere, for
@@ -1158,7 +1169,13 @@ extensions work as for the text editor.
   ([R-FM-007](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-fm-007)).
   The user changes a part through what it comes from, and the formatter
   writes it again on save. The clean editing view keeps the same parts
-  read-only ([R-TEXT-009](#r-text-009)). Text typed
+  read-only ([R-TEXT-009](#r-text-009)). The read-only parts and the
+  read-only values of the form of the front matter have the same gray
+  background as in the clean editing view, the theme color
+  `nimblescapeMarkdownNotes.readOnlyBackground` as the token
+  `--nsmd-readonly`
+  ([R-EDIT-011](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-011),
+  [decision 80](#decisions)). Text typed
   after the anchor at the end of a caption or a heading goes before the
   anchor, an anchor stays at the end of its caption or heading when an edit
   replaces the text before it, and the comment of a listing goes with its
@@ -3660,6 +3677,17 @@ requirements above follow them.
     slash typed on the text in both editors. The other choice was `/note` and
     the other commands of the notes only in the text editor, and the
     commands of the blocks only in the editor of a whole file.
+80. **The read-only parts have a gray background in both editors**
+    ([R-TEXT-009](#r-text-009), [R-TEXT-010](#r-text-010)): in the clean
+    editing view the generated parts and the parts of the front matter that
+    its rules keep have a gray background, with the reason in their hover;
+    the editor of a whole file shows its generated parts and the read-only
+    values of the form of the front matter with the same gray. The color
+    is a theme color of the extension, by default a transparent gray, 10 %
+    black in light themes and 10 % white in dark themes, as VS Code shows
+    preformatted text, so that it fits each theme; the themes of high
+    contrast add a dotted frame. The other choice was no mark,
+    so that a read-only part showed only when an edit went back.
 
 ---
 

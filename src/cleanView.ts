@@ -42,11 +42,11 @@
 import * as vscode from 'vscode';
 import { registerFrontMatterEditing } from './frontMatterEditing';
 import { highlightStyles } from './noteEditor';
-import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, hidesTyped, isPaperDocument, type MarkerFinder, type Options, type Projection, project } from './notes/clean';
+import { applyClean, type BlockFinder, cleanLines, editOptions, endsHighlight, hidesTyped, isPaperDocument, type MarkerFinder, type Options, type Projection, project, toClean } from './notes/clean';
 import { frontMatterEnd } from './notes/doctype';
-import { type FrontMatterRules, keepsRules } from './notes/frontMatterRules';
+import { type FrontMatterRules, keepsRules, readOnlyParts } from './notes/frontMatterRules';
 import { colorIndexOf, noteColors } from './notes/colors';
-import { findGenerated, type GeneratedFinder, type GeneratedPart, keepsGenerated } from './notes/generated';
+import { findGenerated, type GeneratedFinder, type GeneratedPart, keepsGenerated, rangesOf } from './notes/generated';
 import type { SelectedNotes } from './selectedNotes';
 
 /** cleanScheme is the scheme of the documents of the clean editing view. */
@@ -63,6 +63,27 @@ export const frontMatterKept = 'The keys of the schema of the front matter and t
  * as the number of a caption or the text of a reference.
  */
 export const generatedReadOnly = 'The formatter writes this part, so it is read-only in the clean editing view. Change what it comes from, and the save writes it again.';
+
+/**
+ * readOnlyColors are the colors of the read-only parts in the clean editing view and in the Markdown Editor
+ * ([R-TEXT-009](../docs/requirements.md#r-text-009)), which the extension contributes to the themes: a gray background,
+ * and a dotted frame in the themes of high contrast.
+ */
+export const readOnlyColors = { background: 'nimblescapeMarkdownNotes.readOnlyBackground', border: 'nimblescapeMarkdownNotes.readOnlyBorder' } as const;
+
+/**
+ * readOnlyStyle returns the style of the read-only parts in the clean editing view: the background of the theme color
+ * of read-only parts, with round corners on a part of a line, and the dotted frame of the themes of high contrast.
+ * @param wholeLine - Tells whether the style is for blocks of whole lines.
+ */
+const readOnlyStyle = (wholeLine: boolean): vscode.DecorationRenderOptions => ({
+  isWholeLine: wholeLine,
+  backgroundColor: new vscode.ThemeColor(readOnlyColors.background),
+  borderRadius: wholeLine ? undefined : '3px',
+  outlineColor: new vscode.ThemeColor(readOnlyColors.border),
+  outlineStyle: 'dotted',
+  outlineWidth: '1px',
+});
 
 /**
  * tagByHand is the message of the status bar after an edit that typed or pasted a tag that the clean editing view
@@ -330,6 +351,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
   private readonly highlights = (['shown', 'faint', 'strong'] as const).map((kind) =>
     noteColors.map((color) => vscode.window.createTextEditorDecorationType(highlightStyles(color)[kind])),
   );
+  /** readOnly holds the decorations of the read-only parts: of parts of lines, and of blocks of whole lines. */
+  private readonly readOnly = { parts: vscode.window.createTextEditorDecorationType(readOnlyStyle(false)), lines: vscode.window.createTextEditorDecorationType(readOnlyStyle(true)) };
   /** log is the output channel of the view, which names each edit that the view could not keep in step. */
   private readonly log = vscode.window.createOutputChannel('Markdown Notes: Clean Editing View');
   /** finders are the finders of the blocks that other extensions hide (R-GEN-012). */
@@ -640,6 +663,8 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
       }),
       vscode.window.tabGroups.onDidChangeTabs(() => this.switchLater()),
       this.selected.onDidChange(() => this.decorateAll()),
+      // The rules of the front matter give its read-only parts.
+      this.rulesChanges.event(() => this.decorateAll()),
       vscode.window.onDidChangeTextEditorSelection((event) => {
         const mirror = this.ready.get(event.textEditor.document.uri.toString());
         if (!mirror?.typing) {
@@ -661,7 +686,7 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     this.fileChanges.dispose();
     this.rulesChanges.dispose();
     this.log.dispose();
-    for (const type of this.highlights.flat()) {
+    for (const type of [...this.highlights.flat(), this.readOnly.parts, this.readOnly.lines]) {
       type.dispose();
     }
   }
@@ -1405,7 +1430,10 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     this.decorateAll();
   }
 
-  /** decorateAll shows the highlights of the notes in the visible text editors of the clean documents. */
+  /**
+   * decorateAll shows the highlights of the notes and the read-only parts in the visible text editors of the clean
+   * documents.
+   */
   private decorateAll(): void {
     for (const editor of vscode.window.visibleTextEditors) {
       const key = editor.document.uri.toString();
@@ -1424,8 +1452,36 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
           }
         }
         this.highlights.forEach((types, kind) => types.forEach((type, color) => editor.setDecorations(type, ranges[kind][color])));
+        const readOnly = current ? this.readOnlyOf(mirror, editor.document) : { parts: [], lines: [] };
+        editor.setDecorations(this.readOnly.parts, readOnly.parts);
+        editor.setDecorations(this.readOnly.lines, readOnly.lines);
       });
     }
+  }
+
+  /**
+   * readOnlyOf returns the read-only parts of a clean document that its text shows, with the reason in their hover
+   * ([R-TEXT-009](../docs/requirements.md#r-text-009)): the generated parts, and the parts of the front matter that its
+   * rules keep. A part that the clean text hides shows nothing.
+   * @param mirror - The link of the clean document.
+   * @param document - The clean document.
+   */
+  private readOnlyOf(mirror: Mirror, document: vscode.TextDocument): { parts: vscode.DecorationOptions[]; lines: vscode.DecorationOptions[] } {
+    const text = mirror.projection.text;
+    const result = { parts: [] as vscode.DecorationOptions[], lines: [] as vscode.DecorationOptions[] };
+    const add = (parts: readonly GeneratedPart[], message: string): void => {
+      const hoverMessage = new vscode.MarkdownString(message);
+      for (const range of rangesOf(text, parts)) {
+        const from = toClean(mirror.projection, range.from);
+        const to = toClean(mirror.projection, range.to);
+        if (to > from) {
+          (range.lines ? result.lines : result.parts).push({ range: new vscode.Range(document.positionAt(from), document.positionAt(to)), hoverMessage });
+        }
+      }
+    };
+    add(this.generatedOf(text), generatedReadOnly);
+    add(readOnlyParts(text, mirror.rules), frontMatterKept);
+    return result;
   }
 
   /**

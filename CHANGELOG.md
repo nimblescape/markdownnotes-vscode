@@ -227,6 +227,11 @@ The first version.
   key. The parts that the formatter writes, such as the number of a caption,
   the text of a reference, the code block of a listing and the parts that
   other extensions name, are read-only in the view as in the editor. The
+  read-only parts have a gray background in the view and in the editor,
+  the theme colors `nimblescapeMarkdownNotes.readOnlyBackground` and, in
+  the themes of high contrast, the dotted frame
+  `nimblescapeMarkdownNotes.readOnlyBorder`; the hover says why a part is
+  read-only. The
   tags that the view hides come only from the slash commands and the
   formatter: a tag that the user types or pastes goes back. A paper
   of nimblescape Markdown Paper,
