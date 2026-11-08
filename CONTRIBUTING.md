@@ -918,8 +918,8 @@ extension changes, so the extension runs the command
 while the Markdown extension is active: no Markdown preview is open before,
 and the command would start that extension.
 
-The Markdown Editor of VS Code (`vscode.markdown.editor`) has no extension
-point for this: it renders with `@vscode/markdown-editor` and no markdown-it
+The visual editor of VS Code (`vscode.markdown.editor`), which VS Code names
+"Markdown Editor", has no extension point for this: it renders with `@vscode/markdown-editor` and no markdown-it
 plugin, its comments come from the proposed API `agentEditorComments`, and
 its only contribution point is `markdown.codeBlockEditorProviders` for code
 blocks ([R-GEN-001](docs/requirements.md#r-gen-001)). The mode "Markdown
@@ -929,8 +929,15 @@ styles and the script, as the preview to the side does, and
 ([R-PREV-006](docs/requirements.md#r-prev-006)). The side view follows the
 active tab of both modes (`TabInputCustom` with the `viewType` and the
 `uri`), and a click on a thread keeps the mode: in the preview it selects the
-note with a request to scroll (`data-reveal`), and in the Markdown Editor it
-runs `vscode.openWith` with the selection, which that editor reveals.
+note with a request to scroll (`data-reveal`), and in the visual editor of
+VS Code it runs `vscode.openWith` with the selection, which that editor
+reveals. The view "Markdown Editor" of a Markdown file is the editor of a
+whole file of the extension: `package.json` names it "Markdown Editor" and
+hides the visual editor of VS Code from the list of the editors with its
+default of `workbench.editor.hiddenEditorTypes`; the buttons of the three
+views are commands of the adapter in `src/adapter/editor.ts`
+([R-PREV-006](docs/requirements.md#r-prev-006),
+[R-VSC-002](docs/requirements.md#r-vsc-002)).
 
 ## Unit tests with the editor API
 

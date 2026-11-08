@@ -13,6 +13,11 @@
  * Editor to the Side" in the title of the editor opens the text editor of the file, which is the clean editing view for
  * a file with notes and for a paper document ([R-TEXT-009](../docs/requirements.md#r-text-009), decision 72).
  *
+ * The editor is the view "Markdown Editor" of the three views of a Markdown file, beside "Text Editor" and "Markdown
+ * Preview" (R-VSC-002): the buttons "Reopen in Markdown Editor", "Reopen in Text Editor" and "Reopen in Markdown
+ * Preview" in the title of the editor switch between them, and the list of the editors of VS Code names it "Markdown
+ * Editor". The view "Markdown Editor" of a document of the clean editing view is the editor of its file.
+ *
  * The module connects the plugin of each editor to the extension (src/notes/editorMessages.ts): the selection of the
  * editor, as places in the text of the file, goes to the side view, which selects the thread at the cursor and adds a
  * new note to the selected text, as for a text editor. The selected note of the side view shows strong in the editor,
@@ -26,6 +31,7 @@
 
 import { registerMarkdownEditor, type MarkdownEditorHandle, type PluginConnect, type PluginPanelChannel } from './adapter/editor';
 import * as vscode from 'vscode';
+import { fileOf } from './cleanView';
 import { isPaperDocument } from './notes/clean';
 import { findDoctype } from './notes/doctype';
 import { type ExtensionMessage, pageMessage, pluginName } from './notes/editorMessages';
@@ -33,13 +39,18 @@ import type { SelectedNotes } from './selectedNotes';
 import type { EditorFiles, Settings } from './settings';
 
 /**
- * renderedEditor names the editor: the type of the custom editor, the command of the button of its title, and the
- * commands of the buttons to the previous and to the next change in a diff with the editor on both sides
- * ([R-TEXT-010](../docs/requirements.md#r-text-010)), which show while the context key `diffContext` is true.
+ * renderedEditor names the editor: the type of the custom editor, the commands of the buttons of the title of the
+ * editors of a Markdown file (the text editor to the side, and the three views of the file,
+ * [R-VSC-002](../docs/requirements.md#r-vsc-002)), and the commands of the buttons to the previous and to the next
+ * change in a diff with the editor on both sides ([R-TEXT-010](../docs/requirements.md#r-text-010)), which show while
+ * the context key `diffContext` is true.
  */
 export const renderedEditor = {
   viewType: 'nimblescape.markdownNotes.editor',
   openText: 'nimblescape.markdownNotes.openTextEditor',
+  reopenEditor: 'nimblescape.markdownNotes.reopenInMarkdownEditor',
+  reopenText: 'nimblescape.markdownNotes.reopenInTextEditor',
+  reopenPreview: 'nimblescape.markdownNotes.reopenInMarkdownPreview',
   previousChange: 'nimblescape.markdownNotes.previousChange',
   nextChange: 'nimblescape.markdownNotes.nextChange',
   diffContext: 'nimblescape.markdownNotes.editor.diff',
@@ -97,12 +108,15 @@ export class RenderedEditors implements vscode.Disposable {
    * @param settingsOf - Returns the settings of a document.
    * @param selected - The selected note of each document.
    * @param comment - Adds a note to the selected text of an editor, for the button "Comment" of its format bar.
+   * @param select - Selects a range of a file in its text editor that the editor opened, which can become the clean
+   * editing view ([R-TEXT-009](../docs/requirements.md#r-text-009)).
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly selected: SelectedNotes,
     private readonly comment: () => Thenable<unknown>,
+    private readonly select?: (file: vscode.Uri, range: vscode.Range) => Thenable<void>,
   ) {}
 
   /** register registers the editor and the listeners of the selected notes. */
@@ -114,7 +128,12 @@ export class RenderedEditors implements vscode.Disposable {
       // The styles of the editor of rendered Markdown and of its adapter, which the visual editor of the side view uses too.
       styles: [vscode.Uri.joinPath(dist, 'visualEditor.css')],
       opens: (document) => this.opens(document),
+      // The editor of a document of the clean editing view is the editor of its file (R-TEXT-009).
+      fileOf: (document) => fileOf(document),
       openTextCommand: renderedEditor.openText,
+      reopenCommands: { editor: renderedEditor.reopenEditor, text: renderedEditor.reopenText, preview: renderedEditor.reopenPreview },
+      // The text editor of a file with notes or of a paper becomes the clean editing view, which gets the selection.
+      select: this.select,
       nextChangeCommand: renderedEditor.nextChange,
       previousChangeCommand: renderedEditor.previousChange,
       plugins: { [pluginName]: (channel) => this.connect(channel) },

@@ -32,11 +32,13 @@ afterEach(async () => {
 /**
  * start opens a page of the preview with a body and the script.
  * @param body - The HTML of the body, as the preview shows the rendered file.
+ * @param before - Changes the page before the script runs.
  */
-const start = (body: string) => {
+const start = (body: string, before?: (window: Window) => void) => {
   const window = new Window();
   windows.push(window);
   window.document.body.innerHTML = body;
+  before?.(window);
   const registry = new Map<string, FakeHighlight>();
   // window.CSS of happy-dom is a new object at each read, so the page gets its own.
   Object.defineProperty(window, 'CSS', { value: { highlights: registry }, configurable: true });
@@ -99,4 +101,56 @@ test('with the pages of nimblescape Markdown Paper the script paints the notes i
   page.document.body.append(pages);
   page.window.dispatchEvent(new page.window.Event('nimblescape-paper-rendered'));
   expect(page.painted()).toEqual({ 'nimblescape-note-3': ['paged text'] });
+});
+
+test('a request to scroll to the selected note waits for the pages of nimblescape Markdown Paper, and then scrolls the pages', () => {
+  const scrolled: string[] = [];
+  const selected = ' data-selected="true" data-reveal="1"';
+  const page = start(`<div class="markdown-body"><div class="nimblescape-paper" hidden data-paper="{}"></div><p data-line="2">The ${edges('aaaa', 'text', selected)}.</p></div>`, (window) => {
+    window.Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.closest('.nimblescape-paper-pages') ? 'pages' : 'content');
+    };
+  });
+  // VS Code loaded the page again: the content is there, the pages are not.
+  page.window.dispatchEvent(new page.window.Event('load'));
+  expect(scrolled).toEqual([]);
+  const pages = page.document.createElement('div');
+  pages.className = 'nimblescape-paper-pages';
+  pages.innerHTML = `<div class="pagedjs_page"><div class="pagedjs_page_content"><p data-line="2">The ${edges('aaaa', 'paged text', selected)}.</p></div></div>`;
+  page.document.querySelector('.markdown-body')!.before(pages);
+  page.window.dispatchEvent(new page.window.Event('nimblescape-paper-rendered'));
+  expect(scrolled).toEqual(['pages']);
+  // The same request scrolls only once, also after the next pages.
+  page.window.dispatchEvent(new page.window.Event('nimblescape-paper-rendered'));
+  expect(scrolled).toEqual(['pages']);
+});
+
+test('a request to scroll to the selected note of another document scrolls at once', () => {
+  const scrolled: string[] = [];
+  start(`<div class="markdown-body"><p data-line="2">The ${edges('aaaa', 'text', ' data-selected="true" data-reveal="4"')}.</p></div>`, (window) => {
+    window.Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.getAttribute('data-note') ?? this.className);
+    };
+  });
+  expect(scrolled).toEqual(['note-aaaa']);
+});
+
+test('the frame of the selected note in the zoomed pages of nimblescape Markdown Paper stands at the text, in a browser without the standardized zoom', () => {
+  const selected = ' data-selected="true"';
+  const page = start(
+    `<div class="nimblescape-paper-pages" style="zoom: 0.5"><div class="pagedjs_page"><div class="pagedjs_page_content"><p data-line="2">The ${edges('aaaa', 'paged text', selected)}.</p></div></div></div>`,
+    (window) => {
+      // The browser of VS Code gives the rectangles of the text in the coordinates of the zoomed pages.
+      Object.defineProperty(window.Range.prototype, 'getClientRects', { configurable: true, value: () => [{ left: 100, top: 200, right: 160, bottom: 220, width: 60, height: 20 }] });
+      Object.defineProperty(window.Element.prototype, 'getBoundingClientRect', {
+        configurable: true,
+        value: function (this: { classList: { contains(name: string): boolean } }) {
+          const box = this.classList.contains('pagedjs_page_content') ? { left: 0, top: 0, right: 1000, bottom: 1000 } : { left: 0, top: 0, right: 0, bottom: 0 };
+          return { ...box, x: box.left, y: box.top, width: box.right - box.left, height: box.bottom - box.top };
+        },
+      });
+    },
+  );
+  const style = page.document.querySelector('.nimblescape-note-frame')?.getAttribute('style');
+  expect(style).toBe('left: 49px; top: 99px; width: 32px; height: 12px;');
 });

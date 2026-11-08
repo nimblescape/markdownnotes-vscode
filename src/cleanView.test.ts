@@ -374,6 +374,46 @@ test('shows a text editor of a file with notes as the view, in its group and at 
   expect(real.text).toBe(text);
 });
 
+test('selects a range of the file in the view that takes the place of the text editor that the editor of a whole file opened, also while the switch runs (R-VSC-002)', async () => {
+  const { CleanView } = await import('./cleanView');
+  const { SelectedNotes } = await import('./selectedNotes');
+  const real = fake.open(text);
+  const editor = new FakeEditor(real, 0, 1);
+  const tab: FakeTab = { input: new FakeTabInputText(real.uri), isPreview: false };
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  fake.tabGroups.push({ viewColumn: 1, tabs: [tab], activeTab: tab });
+  const view = new CleanView(() => true, new SelectedNotes());
+  view.register();
+  // The editor gives the selection before the text editor became the view: the cursor of the text editor is at 0.
+  const start = text.indexOf('teams');
+  await view.select(real.uri as never, new FakeRange(real.positionAt(start), real.positionAt(start + 5)) as never);
+  const shown = fake.activeEditor;
+  expect(shown.document.uri.scheme).toBe('markdownnotes');
+  const document = shown.document as unknown as FakeDocument;
+  expect(shown.selection.anchor).toEqual(document.positionAt(clean.indexOf('teams')));
+  expect(shown.selection.active).toEqual(document.positionAt(clean.indexOf('teams') + 5));
+  expect(shown.revealed).toHaveLength(1);
+});
+
+test('selects a range of a file without notes in its own text editor, which stays', async () => {
+  const { CleanView } = await import('./cleanView');
+  const { SelectedNotes } = await import('./selectedNotes');
+  const plain = '# Title\n\nText.\n';
+  const real = fake.open(plain);
+  const editor = new FakeEditor(real, 0, 1);
+  const tab: FakeTab = { input: new FakeTabInputText(real.uri) };
+  fake.editors.push(editor);
+  fake.activeEditor = editor;
+  fake.tabGroups.push({ viewColumn: 1, tabs: [tab], activeTab: tab });
+  const view = new CleanView(() => true, new SelectedNotes());
+  view.register();
+  await view.select(real.uri as never, new FakeRange(real.positionAt(9), real.positionAt(13)) as never);
+  expect(fake.activeEditor).toBe(editor);
+  expect(editor.selection.anchor).toEqual(real.positionAt(9));
+  expect(editor.selection.active).toEqual(real.positionAt(13));
+});
+
 test('shows a paper document without notes as the view too, with its front matter read-only (R-TEXT-009, decision 61)', async () => {
   const { frontMatterReadOnly } = await import('./cleanView');
   const paperText = '---\nlayout: pht/thesis\ntitle: A paper\n---\n\nA text without notes.\n';

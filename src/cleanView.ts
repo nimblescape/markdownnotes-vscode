@@ -204,6 +204,9 @@ const entryOf = (projection: Projection): Entry => ({ clean: projection.clean, t
 /** historySize is the number of the texts that the history of a view keeps. */
 const historySize = 200;
 
+/** selectTime is the time in milliseconds in which select waits for the text editor of a file or its view. */
+const selectTime = 2000;
+
 /**
  * replacement returns the smallest replacement that turns one text into another: the range in the old text and the new
  * text of it.
@@ -638,6 +641,43 @@ export class CleanView implements vscode.FileSystemProvider, vscode.Disposable {
     }
     const tab = vscode.window.tabGroups.all.find((group) => group.viewColumn === editor.viewColumn)?.activeTab;
     return tab?.input instanceof vscode.TabInputText && tab.input.uri.toString() === key;
+  }
+
+  /**
+   * select selects a range of a file in the active text editor of the file, which an editor of the whole file opened
+   * with the selection of its page ([R-VSC-002](../docs/requirements.md#r-vsc-002)): in the view, when the text editor
+   * becomes the view, at the places of the range in the clean text. The text editor becomes the view after it opened,
+   * before the editor can give it the selection, so select waits for the switch, at most selectTime.
+   * @param file - The URI of the file.
+   * @param range - The range in the file.
+   */
+  async select(file: vscode.Uri, range: vscode.Range): Promise<void> {
+    const key = file.toString();
+    const view = cleanUriOf(file).toString();
+    const until = Date.now() + selectTime;
+    for (;;) {
+      await this.switched?.pass;
+      const editor = vscode.window.activeTextEditor;
+      const uri = editor?.document.uri.toString();
+      if (editor && uri === view) {
+        const start = this.toClean(file, range.start);
+        const end = this.toClean(file, range.end);
+        if (start && end) {
+          editor.selection = new vscode.Selection(start, end);
+          editor.revealRange(new vscode.Range(start, end), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+        }
+        return;
+      }
+      if (editor && uri === key && !this.becomesView(editor)) {
+        editor.selection = new vscode.Selection(range.start, range.end);
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+        return;
+      }
+      if (Date.now() >= until) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
   }
 
   /** openWithMarkup opens the file of the active clean document itself, at the same place, beside the view in its group. */

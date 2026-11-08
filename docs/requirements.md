@@ -47,15 +47,18 @@ changes no other part of a Markdown file than the parts of a note: its
 definition, its reference and its start marker, and the comment of the format
 at the top of a file with notes ([R-NOTE-007](#r-note-007)).
 
-The Markdown Editor of VS Code (the visual editor `vscode.markdown.editor`)
-offers extensions no stable API to show or edit content there: it renders
+The visual editor of VS Code (`vscode.markdown.editor`, which VS Code names
+"Markdown Editor" too) offers extensions no stable API to show or edit
+content there: it renders
 with its own engine, `@vscode/markdown-editor`, which takes no markdown-it
 plugin; its comments come from the proposed API `agentEditorComments`, which
 only extensions of VS Code may use; and its only contribution point is
 `markdown.codeBlockEditorProviders` for code blocks. Until VS Code offers a
-stable API, the extension does not show notes in the Markdown Editor
-([R-GEN-002](#r-gen-002)). The notes stay in the file there as they are, and
-the side view works with it ([R-PREV-006](#r-prev-006)).
+stable API, the extension does not show notes in the visual editor of VS
+Code ([R-GEN-002](#r-gen-002)), and the view "Markdown Editor" of a
+Markdown file is the editor of a whole file of the extension instead
+([R-PREV-006](#r-prev-006)). The notes stay in the file there as they are,
+and the side view works with it.
 
 ### R-GEN-002
 
@@ -1001,6 +1004,10 @@ extensions work as for the text editor.
   "Reopen Editor With" of VS Code always offers the text editor, which is
   the clean editing view for a file with notes, with the comment of the
   format, or a paper document ([decision 72](#decisions)).
+- The editor is the view "Markdown Editor" of the three views of a Markdown
+  file ([R-PREV-006](#r-prev-006)): the list of the editors of VS Code
+  names it so, and the buttons "Reopen in Text Editor" and "Reopen in
+  Markdown Preview" in its title switch to the other two views.
 - The button "Open Text Editor to the Side" in the title of the editor opens
   the text editor of the file to the side, with the selection of the editor:
   for a file with notes, with the comment of the format, or a paper
@@ -1138,15 +1145,36 @@ page and its part in the extension.
 
 ### R-VSC-002
 
-**Text editor and save.** A button must open the text editor of the same
-file to the side. Ctrl+S saves the file; the format on save
-([R-FMT-001](#r-fmt-001)) runs, and the editor takes over the changed
+**Text editor, the three views and save.** A button must open the text
+editor of the same file to the side. Ctrl+S saves the file; the format on
+save ([R-FMT-001](#r-fmt-001)) runs, and the editor takes over the changed
 blocks.
 
 The button is in the title of the editor; the extension
 contributes it with a command, which the adapter registers. The text editor
 opens with the selection of the editor. The page may also open it, for
 example from a button of its own.
+
+The buttons of the three views of a Markdown file
+([R-PREV-006](#r-prev-006)) are commands of the adapter too: "Reopen in
+Markdown Editor" in the text editor and in the Markdown preview, and
+"Reopen in Text Editor" and "Reopen in Markdown Preview" in the editor.
+Each one opens the file of the active editor in the other view, in the
+place of the active editor, with the command `reopenActiveEditorWith` of VS
+Code, which the list of the editors of VS Code also uses; the text editor
+gets the selection of the editor. The editor opens a file that the user
+chose for it, with such a button or with the list of the editors, also when
+the extension does not open the file in it by itself: VS Code gives the tab
+of the other editor of the file the editor before the editor opens, and the
+adapter takes such a change of a tab in the last 5 seconds as the choice of
+the user. A document that only shows a file, for example a document of the
+clean editing view, opens the editor of the file itself (the option
+`fileOf` of the registration). A view that takes the place of the text
+editor, for example the clean editing view of a file with notes or of a
+paper ([R-TEXT-009](#r-text-009)), gets the selection of the editor at the
+same text from the extension after the text editor opened (the option
+`select` of the registration), for the button to the side and for "Reopen
+in Text Editor".
 
 ### R-VSC-003
 
@@ -1342,9 +1370,9 @@ bar only; the user can still move the view as any view of VS Code. The view
 is the only place of the text of the notes ([R-GEN-009](#r-gen-009)). It
 shows the threads of the active Markdown file, each with the answers
 rendered as Markdown, with author and date. The active Markdown file is the
-file of the active text editor, or of the active tab in the mode "Markdown
-Preview" or "Markdown Editor" of VS Code ([R-PREV-006](#r-prev-006)), also
-of a clean editing view ([R-TEXT-009](#r-text-009)); another editor keeps
+file of the active text editor, or of the active tab in the view "Markdown
+Preview" or "Markdown Editor" ([R-PREV-006](#r-prev-006)) or in the visual
+editor of VS Code ([R-GEN-001](#r-gen-001)), also of a clean editing view ([R-TEXT-009](#r-text-009)); another editor keeps
 the file of the view. The selected thread is the note at the cursor of the
 text editor, or the note that the user clicked in the preview
 ([R-PREV-003](#r-prev-003)).
@@ -1512,8 +1540,8 @@ selection that the view and the text share ([decision 25](#decisions)):
     Markdown files; with the setting off, the text editor goes to the note
     at once. A click or a key in the text editor stops the scroll. The
     preview scrolls smoothly unless the system asks for less motion;
-  - in the mode "Markdown Editor" of VS Code, that editor selects the text
-    of the highlight.
+  - in the visual editor of VS Code ([R-GEN-001](#r-gen-001)), that editor
+    selects the text of the highlight.
 
   A move of the cursor into a highlight selects its thread, also with the
   keys, and the view scrolls to it; a double click on a highlight opens the
@@ -1816,25 +1844,48 @@ Preview" of earlier versions are dropped.
 
 ### R-PREV-006
 
-**Modes of a Markdown file.** VS Code 1.143 shows a Markdown file in one of
-three modes, which the switch in the title of its editor changes:
+**The three views of a Markdown file.** A Markdown file has three views in
+the place of its editor ([decision 73](#decisions)). The list of the
+editors at the right end of the breadcrumbs of VS Code, "Reopen Editor
+With…" and the buttons in the title of the editor change the view:
 
 - **Text Editor:** the text editor, with every requirement of this document.
-- **Markdown Preview** (the custom editor `vscode.markdown.preview.editor`):
-  the preview of the file in the place of its text editor. It renders with
-  the markdown-it plugin, the styles and the script of the extension, as the
-  preview to the side does ([R-PREV-001](#r-prev-001) to
-  [R-PREV-005](#r-prev-005)). Its title has the buttons "Show or Hide Notes"
-  ([R-SIDE-006](#r-side-006)) and "Hide Highlights" or "Show Highlights"
-  ([R-GEN-011](#r-gen-011)).
-- **Markdown Editor** (the custom editor `vscode.markdown.editor`): the
-  visual editor, which shows no notes and no highlights
-  ([R-GEN-001](#r-gen-001)). Its title has the buttons "Show or Hide Notes"
-  and "Hide Highlights" or "Show Highlights", and the side view shows the
-  notes of the file.
+  A file with notes, with the comment of the format, or a paper document of
+  nimblescape Markdown Paper shows the clean editing view
+  ([R-TEXT-009](#r-text-009)). Its title has the button "Open as Preview"
+  of VS Code and the button "Reopen in Markdown Editor".
+- **Markdown Preview** (the custom editor `vscode.markdown.preview.editor`
+  of VS Code): the preview of the file in the place of its text editor; for
+  a paper document, Markdown Paper shows the pages of its layout. It
+  renders with the markdown-it plugin, the styles and the script of the
+  extension, as the preview to the side does ([R-PREV-001](#r-prev-001) to
+  [R-PREV-005](#r-prev-005)). Its title has the button "Reopen as source
+  file" of VS Code, which opens the Text Editor, and the button "Reopen in
+  Markdown Editor".
+- **Markdown Editor** (the editor of a whole file of the extension,
+  [R-TEXT-010](#r-text-010)): the editor of rendered Markdown with the
+  plugins of the notes and of other extensions, for example the plugins of
+  Markdown Paper for a paper document. Its title has the buttons "Reopen in
+  Text Editor" and "Reopen in Markdown Preview", and "Open Text Editor to
+  the Side" ([R-VSC-002](#r-vsc-002)).
 
-In each mode, the side view follows the file, and a click on a thread keeps
-the mode ([R-SIDE-007](#r-side-007)).
+The title of each view also has the buttons "Show or Hide Notes"
+([R-SIDE-006](#r-side-006)) and "Hide Highlights" or "Show Highlights"
+([R-GEN-011](#r-gen-011)).
+
+- The list of the editors at the right end of the breadcrumbs shows only
+  these three views. The extension hides the visual editor of VS Code
+  ([R-GEN-001](#r-gen-001)) there with its default of the setting
+  `workbench.editor.hiddenEditorTypes` of VS Code, and names its own editor
+  "Markdown Editor". VS Code adds the name of the extension to an editor of
+  an extension: "Markdown Editor - nimblescape Markdown Notes". "Reopen
+  Editor With…" still offers the visual editor of VS Code.
+- A button or an entry of the list opens the view in the place of the
+  active editor, also for a file that the setting `renderedEditor` does not
+  open in the Markdown Editor by itself. The Markdown Editor of a clean
+  editing view is the editor of its file.
+- In each view, the side view follows the file, and a click on a thread
+  keeps the view ([R-SIDE-007](#r-side-007)).
 
 ### R-PREV-007
 
@@ -1880,9 +1931,20 @@ opens the side view, and "Add Note" above selected text
   address of "Add Note" in the pages, which the user sees, and finds them
   again after the event `nimblescape-paper-rendered` of each new set of
   pages.
+- A click on a thread of the side view scrolls the pages to the highlight of
+  its note and shows it selected ([R-SIDE-007](#r-side-007)). VS Code loads
+  the page of the preview again for each change of the selected note, and
+  Markdown Paper hides the content until the new pages show; the request to
+  scroll waits for the pages, which Markdown Paper shows at the place of the
+  pages of before.
 - The frame of a selected highlight covers only the text area of each page,
   `.pagedjs_page_content`: a highlight over two pages leaves out the
   margins, the footer and the header between them.
+- The frame of a selected highlight and the button "Add Note" stand at their
+  text also when the pages are smaller than a page (the CSS property `zoom`
+  of Markdown Paper): the browser of VS Code gives the rectangles of the text
+  in the pages in the coordinates of the pages, so the script multiplies them
+  by the zoom.
 - "Add Note" leaves out the soft hyphens (U+00AD) of the hyphenation of the
   pages, which the Markdown text does not have.
 - The PDF has no notes: the renderer of Markdown Paper makes it without the
@@ -2774,7 +2836,7 @@ notes:
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-11-04. The
+Hannes decided these questions from 2026-10-28 to 2026-11-08. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -3377,6 +3439,18 @@ requirements above follow them.
     hidden, as the editor does. Only "Open File with Markup" shows the file
     with its markup. The other choice was the text of the file with its
     markup beside the editor.
+73. **The three views of a Markdown file** ([R-PREV-006](#r-prev-006),
+    [R-TEXT-010](#r-text-010), [R-VSC-002](#r-vsc-002)): a Markdown file has
+    three views: "Text Editor", the clean editing view for a file with notes
+    or a paper document; "Markdown Preview", the preview of the file, for a
+    paper document the pages of its layout; and "Markdown Editor", the
+    editor of rendered Markdown of Notes, with the plugins of Paper for a
+    paper document. The list of the editors of VS Code shows only these
+    three, and the title of each view has a button for each of the two other
+    views. The extension hides the visual editor of VS Code from the list
+    and names its own editor "Markdown Editor". The other choice was the
+    list with the visual editor of VS Code as "Markdown Editor" and the
+    editor of the extension as a fourth entry "nimblescape Markdown Notes".
 
 ---
 
