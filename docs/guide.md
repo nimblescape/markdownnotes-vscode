@@ -374,8 +374,9 @@ note at its place.
   the file in the same place in the other views
   ([Three views of a Markdown file](#three-views-of-a-markdown-file)). For a
   file with notes and for a paper, the text editor is the
-  [clean editing view](#clean-editing-view): the front matter stays
-  read-only and the markup of the notes stays hidden, as in the editor.
+  [clean editing view](#clean-editing-view): the front matter and the parts
+  that the formatter writes stay read-only and the markup of the notes stays
+  hidden, as in the editor.
 - A save of the editor saves the file, with the format on save
   ([Formatter](#formatter)).
 - The editor hides the anchors of the [figures, tables and links to
@@ -460,6 +461,18 @@ into the file at once, and each note stays at its text:
   `mp get`, change it too. Text after the
   closing `---` can be edited as usual, and Undo goes over an edit that went
   back.
+- The parts that the formatter writes are read-only in the view too, as in
+  the editor of rendered Markdown: the number of a caption, the text of a
+  reference between its square brackets, the code block of a listing, a
+  value of the front matter in the text, and the parts of nimblescape
+  Markdown Paper, such as its citations, the entries of its reference list
+  and its generated lists. An edit inside such a part, also a digit typed
+  right after the number of a caption, goes back, and the status bar says
+  that the formatter writes the part. Delete a whole reference or caption
+  as usual, and type new lines before or after the code block of a listing.
+  You change a part through what it comes from, for example the caption,
+  the heading, the source file or the front matter, and the save writes it
+  again. "Format Document" in the view writes the parts too.
 - A save of the view saves the file, with the format on save and the comment
   of the format. "Don't Save" at the close of the view brings the file back
   to its text on disk. While the editor of rendered Markdown shows the file

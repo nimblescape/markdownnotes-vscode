@@ -154,11 +154,25 @@ addNoteRules(parser);
 parser.core.ruler.disable(['linkify', 'replacements', 'smartquotes', 'text_join']);
 
 /**
+ * parsed holds the tokens of the last texts, from the newest: the steps of a format and of the clean editing view read
+ * one text several times. The callers only read the tokens.
+ */
+const parsed: { text: string; tokens: Token[] }[] = [];
+
+/**
  * parse returns the tokens of a Markdown text, as the Markdown preview reads it. The parsing takes every reference of
- * the form of a note, also without a note, for the warnings. The formatter uses the tokens too.
+ * the form of a note, also without a note, for the warnings. The formatter uses the tokens too. The tokens of one of
+ * the last texts come from a cache; the callers must not change them.
  * @param lines - The lines of the Markdown text.
  */
-export const parse = (lines: readonly string[]): Token[] => parser.parse(lines.join('\n'), { [allReferences]: true });
+export function parse(lines: readonly string[]): Token[] {
+  const text = lines.join('\n');
+  const index = parsed.findIndex((entry) => entry.text === text);
+  const entry = index >= 0 ? parsed.splice(index, 1)[0] : { text, tokens: parser.parse(text, { [allReferences]: true }) };
+  parsed.unshift(entry);
+  parsed.length = Math.min(parsed.length, 8);
+  return entry.tokens;
+}
 
 /** textParents are the tokens before an inline token whose text can hold the reference of a note. */
 export const textParents = new Set(['paragraph_open', 'heading_open', 'th_open', 'td_open']);

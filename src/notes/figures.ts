@@ -310,6 +310,9 @@ const numberedText = String.raw`([^[\]\n]*?\S)(\s+)([A-Z]?\d+(?:\.\d+)*)`;
 /** linkSearch matches a link to a place of the file with a word and a number as its text, such as `[Table 1](#tab-x)`. */
 const linkSearch = new RegExp(String.raw`\[${numberedText}\]\(#([^()\s]+)\)`, 'g');
 
+/** numberedLink tells quickly whether a line can hold a link with a word and a number as its text. */
+const numberedLink = new RegExp(String.raw`\[${numberedText}\]\(#`);
+
 /** numberedLinkText matches the whole text of a link with a word and a number, such as `Table 1`, with the word. */
 export const numberedLinkText = new RegExp(`^${numberedText}$`);
 
@@ -429,7 +432,7 @@ export function numberLinks(lines: readonly string[]): string[] {
  */
 export function numberPlaces(lines: readonly string[]): { line: number; start: number; end: number }[] {
   const captions = lines.some((line) => captionHead.test(line));
-  const links = lines.some((line) => line.includes('](#'));
+  const links = lines.some((line) => line.includes('](#') && numberedLink.test(line));
   if (!captions && !links) {
     return [];
   }

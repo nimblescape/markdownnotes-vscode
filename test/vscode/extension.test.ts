@@ -3,7 +3,7 @@
 // Markdown files of a temporary folder, and check the notes and their highlights (R-NOTE-004, R-NOTE-006), the comment
 // of the format on a save (R-NOTE-007), the collapsed notes (R-TEXT-005), the side view and the buttons of the highlights
 // (R-SIDE-001, R-GEN-011), the link of /ref and a value of the front matter in the clean editing view (R-XREF-001,
-// R-XREF-004), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
+// R-XREF-004), the generated parts that the clean editing view keeps read-only (R-TEXT-009), the light bulb action and the shortcut of "Add Note" (R-EDIT-006), the formatter and its
 // format on save of a file with notes (R-FMT-001), the current code of the listings on a save (R-CODE-002), a listing in
 // the clean editing view (R-CODE-001), the snippets of a source file (R-CODE-003), the commands of the eye that hide the
 // notes from other viewers (R-HIDE-002), the copy of a file without its notes (R-HIDE-004), and the highlights of the Markdown preview of VS Code (R-PREV-001 to
@@ -282,6 +282,32 @@ describe('nimblescape Markdown Notes', () => {
     await waitFor(() => (view.document.getText() === paper ? true : undefined), 'the front matter as it was');
     await view.edit((edit) => edit.insert(view.document.positionAt(paper.indexOf('A text')), 'Now '));
     await waitFor(() => (real()?.getText() === paper.replace('A text', 'Now A text') ? true : undefined), 'the change in the file');
+  });
+
+  it('keeps the generated parts read-only in the clean editing view, and lets "Format Document" of the view write them (R-TEXT-009, decision 74)', async () => {
+    const file = vscode.Uri.file(path.join(folder, `test-${++count}.md`));
+    const text = `Figure 3: A cat<a id="fig-cat"></a>\n\n![A cat](cat.png)\n\nSee [Figure 3](#fig-cat) here.\n\n${note}`;
+    fs.writeFileSync(file.fsPath, text);
+    await vscode.commands.executeCommand('vscode.open', file);
+    const view = await viewOf(file);
+    const real = () => vscode.workspace.textDocuments.find((document) => document.uri.toString() === file.toString());
+    const before = view.document.getText();
+    // A digit typed after the number of the caption, and a word typed into the text of the reference, go back.
+    for (const [at, insert] of [[before.indexOf('3:') + 1, '0'], [before.indexOf('3](') - 1, ' new']] as const) {
+      assert.ok(await view.edit((edit) => edit.insert(view.document.positionAt(at), insert)));
+      await waitFor(() => (view.document.getText() === before ? true : undefined), 'the generated parts as they were');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    assert.equal(view.document.getText(), before);
+    assert.equal(real()?.getText(), text);
+    // The text of the caption goes into the file.
+    await view.edit((edit) => edit.insert(view.document.positionAt(before.indexOf('A cat')), 'Still '));
+    await waitFor(() => (real()?.getText().startsWith('Figure 3: Still A cat<a id="fig-cat"></a>\n') ? true : undefined), 'the change of the caption in the file');
+    // "Format Document" of the view writes the number of the caption.
+    await vscode.window.showTextDocument(view.document, view.viewColumn);
+    await vscode.commands.executeCommand('editor.action.formatDocument');
+    await waitFor(() => (real()?.getText().startsWith('Figure 1: Still A cat<a id="fig-cat"></a>\n') ? true : undefined), 'the number of the format in the file');
+    assert.ok(view.document.getText().startsWith('Figure 1: Still A cat\n'), view.document.getText());
   });
 
   it('hides the notes of a file from other viewers and shows them again with the commands of the eye, while the clean editing view keeps its text (R-HIDE-001 to R-HIDE-003)', async () => {
