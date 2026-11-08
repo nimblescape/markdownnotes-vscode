@@ -215,7 +215,11 @@ The first version.
   the notes markup, which behaves as in a file without
   notes, and the text editor of such a file beside the editor is the view
   too; the extension writes each change into the file and keeps each note
-  at its text, also for Undo, and the save of the view saves the file. Its
+  at its text, also for Undo, and the save of the view saves the file. The
+  formatter formats the text of the file, with its hidden parts, never the
+  text of the view: "Format Document" and the format on save of the view
+  give the view the formatted file, and the tab of the view shows no dot
+  after its save. Its
   Markdown preview shows the highlights, and the images and the style sheets
   of `markdown.styles` as the preview of the file. "Open File with Markup" in
   the Command Palette opens the file itself. The front matter is text in the

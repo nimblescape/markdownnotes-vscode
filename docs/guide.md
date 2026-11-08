@@ -486,6 +486,10 @@ into the file at once, and each note stays at its text:
   You change a part through what it comes from, for example the caption,
   the heading, the source file or the front matter, and the save writes it
   again. "Format Document" in the view writes the parts too.
+- "Format Document" and the format on save format the whole file with its
+  hidden parts, also the parts of Markdown Paper, such as the table of
+  contents, and the view shows the result. After a save, the tab of the view
+  shows no dot.
 - The read-only parts have a gray background, in the view and in the editor
   of rendered Markdown: the parts that the formatter writes, such as the
   table of contents of a paper, and in the front matter of a paper the
@@ -1674,8 +1678,7 @@ you can remove them from your settings.
   changes of the view only, not a change of the side view, such as a new,
   changed or deleted note or footnote. "Open File with Markup" and Undo there take it back. The warnings of
   the notes show in the Problems view only, the left edge shows no changes of
-  git, and a hidden highlight does not show under the pointer. "Format Document"
-  formats the text of the view; the save formats the whole file. An edit
+  git, and a hidden highlight does not show under the pointer. An edit
   that opens a comment or a code block over a note changes how the file
   reads, and the view then shows the markup that is no longer a note, until
   Undo. Its Markdown preview does not show an image of HTML (`<img>`) from

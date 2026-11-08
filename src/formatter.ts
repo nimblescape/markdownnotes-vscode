@@ -18,10 +18,17 @@
  * ([R-GEN-012](../docs/requirements.md#r-gen-012)), for example nimblescape
  * Markdown Paper for its citations, so that one formatter formats the notes and
  * the parts of the other extension in one edit. A step runs after the steps of
- * the notes on the text of a file; in the clean editing view, it runs with the
- * save of the file. When a step changes the text, the steps of the notes and
- * the other steps run again, at most three times, so that one format is
- * enough.
+ * the notes on the text of a file. When a step changes the text, the steps of
+ * the notes and the other steps run again, at most three times, so that one
+ * format is enough.
+ *
+ * The formatter never formats the clean text of the clean editing view
+ * ([R-TEXT-009](../docs/requirements.md#r-text-009)), which lacks the hidden
+ * parts of the file, such as the anchors of the captions, the markers of the
+ * generated lists and the database of the sources: the formatter would write
+ * them a second time. "Format Document" of the view formats the text of its
+ * file and gives the change of the clean text, and the save of the view saves
+ * its file, whose own save formats it.
  *
  * The formatter writes the current code of the source of each listing of a
  * file ([R-CODE-002](../docs/requirements.md#r-code-002)): it reads the file of
@@ -80,20 +87,20 @@ export class FormatSteps {
   }
 
   /**
-   * run returns the lines of a document after the steps that format it. A step that fails, or that returns no lines,
+   * run returns the lines of a file after the steps that format it. A step that fails, or that returns no lines,
    * leaves the lines as they are.
-   * @param document - The document.
+   * @param file - The URI of the file.
    * @param lines - The lines, formatted by the steps of the notes.
    */
-  run(document: vscode.TextDocument, lines: string[]): string[] {
-    if (document.uri.scheme === cleanScheme) {
+  run(file: vscode.Uri, lines: string[]): string[] {
+    if (file.scheme === cleanScheme) {
       return lines;
     }
     let changed = lines;
     for (const step of this.steps) {
-      if (applies(step, changed, document.uri)) {
+      if (applies(step, changed, file)) {
         try {
-          const formatted = step.format(changed, document.uri);
+          const formatted = step.format(changed, file);
           if (Array.isArray(formatted) && formatted.every((line) => typeof line === 'string')) {
             changed = [...formatted];
           }
@@ -192,23 +199,23 @@ export function listingFilesOf(file: vscode.Uri, lines: readonly string[]): (pat
 }
 
 /**
- * saveEdits returns the edits of a Markdown document before its save, or none: the format, and the comment of the
- * format of the notes at the top of the file when it has none or one of an older text
- * ([R-NOTE-007](../docs/requirements.md#r-note-007)), in one edit. A document whose comment names a newer version of
- * the format gets no comment.
- * @param document - The document.
- * @param changes - The changes that the document gets.
+ * formattedLines returns the lines of a Markdown file after its changes before a save: the format, and the comment of
+ * the format of the notes at the top of the file when it has none or one of an older text
+ * ([R-NOTE-007](../docs/requirements.md#r-note-007)). A file whose comment names a newer version of the format gets no
+ * comment.
+ * @param file - The URI of the file.
+ * @param lines - The lines of the file.
+ * @param changes - The changes that the file gets.
  * @param steps - The steps of the formatter of other extensions, which run after the steps of the notes.
  */
-export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, steps?: FormatSteps): vscode.TextEdit[] {
-  const lines = document.getText().split(/\r\n|\r|\n/);
-  const options = { source: sourceOf(document.uri) };
+function formattedLines(file: vscode.Uri, lines: string[], changes: SaveChanges, steps?: FormatSteps): string[] {
+  const options = { source: sourceOf(file) };
   let changed = changes.format ? formatMarkdown(lines, options) : lines;
   // A step of another extension can write what the steps of the notes read, such as the markers of a generated list,
   // whose captions then get their anchors (R-GEN-016); the steps run again while they change the text, at most three
   // times, so that one format gives the text that the next format keeps.
   for (let round = 0; changes.format && steps && round < 3; round++) {
-    const stepped = steps.run(document, changed);
+    const stepped = steps.run(file, changed);
     if (stepped.join('\n') === changed.join('\n')) {
       break;
     }
@@ -218,10 +225,19 @@ export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, s
     }
   }
   const comment = changes.comment && newerFormat(changed) === undefined ? doctypeEdit(changed, true, hiddenForm(changed) === true) : undefined;
-  if (comment) {
-    changed = applyEdit(changed, comment);
-  }
-  return editsBetween(document, lines, changed);
+  return comment ? applyEdit(changed, comment) : changed;
+}
+
+/**
+ * saveEdits returns the edits of a Markdown document before its save, or none: the format, and the comment of the
+ * format of the notes (formattedLines), in one edit.
+ * @param document - The document.
+ * @param changes - The changes that the document gets.
+ * @param steps - The steps of the formatter of other extensions, which run after the steps of the notes.
+ */
+export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, steps?: FormatSteps): vscode.TextEdit[] {
+  const lines = document.getText().split(/\r\n|\r|\n/);
+  return editsBetween(document, lines, formattedLines(document.uri, lines, changes, steps));
 }
 
 /**
@@ -230,6 +246,46 @@ export function saveEdits(document: vscode.TextDocument, changes: SaveChanges, s
  * @param steps - The steps of the formatter of other extensions.
  */
 export const formatEdits = (document: vscode.TextDocument, steps?: FormatSteps): vscode.TextEdit[] => saveEdits(document, { format: true, comment: false }, steps);
+
+/**
+ * formatText returns the formatted text of a Markdown file, with its line breaks, as "Format Document" formats it.
+ * @param text - The text of the file.
+ * @param file - The URI of the file.
+ * @param steps - The steps of the formatter of other extensions.
+ */
+export function formatText(text: string, file: vscode.Uri, steps?: FormatSteps): string {
+  const lines = text.split(/\r\n|\r|\n/);
+  const changed = formattedLines(file, lines, { format: true, comment: false }, steps);
+  if (changed.length === lines.length && changed.every((line, index) => line === lines[index])) {
+    return text;
+  }
+  return changed.join(text.includes('\r\n') ? '\r\n' : '\n');
+}
+
+/**
+ * ViewFormats is the format of the documents of the clean editing view, which show a file without its hidden parts.
+ */
+export interface ViewFormats {
+  /**
+   * fileOf returns the document of the file of a document of the view, when it is open.
+   * @param document - The document of the view.
+   */
+  fileOf(document: vscode.TextDocument): vscode.TextDocument | undefined;
+  /**
+   * formatOf returns the edits of "Format Document" of a document of the view: the text of its file formatted, as the
+   * change of the clean text.
+   * @param document - The document of the view.
+   * @param format - Returns the formatted text of a file.
+   */
+  formatOf(document: vscode.TextDocument, format: (text: string, file: vscode.Uri) => string): vscode.TextEdit[];
+  /**
+   * savesWithChanges tells the view that the next save of a document of it gives its file the changes before a save:
+   * a save that is no automatic save after a delay and no "Save without Formatting", which run no changes before the
+   * save of the document. It returns false for a save of the document as it is, which follows a save of its file.
+   * @param document - The document of the view.
+   */
+  savesWithChanges(document: vscode.TextDocument): boolean;
+}
 
 /**
  * changesOnSave returns the changes of a document before its save: of a Markdown document, the changes that the
@@ -255,35 +311,37 @@ export function changesOnSave(document: vscode.TextDocument, reason: vscode.Text
 
 /**
  * registerFormatter registers the formatter of Markdown documents for "Format Document", and the changes of a
- * document before its save: its format, and the comment of the format of the notes.
+ * document before its save: its format, and the comment of the format of the notes. A document of the clean editing
+ * view formats the text of its file through the view, also before its save when its file gets the format on save; its
+ * save saves the file, which gets the changes before its save then.
  * @param extension - The identifier of this extension, the default formatter of Markdown.
  * @param wanted - Returns the changes that the settings of the extension and the notes of a document ask for.
  * @param steps - The steps of the formatter of other extensions.
- * @param formats - Gets the edits of the formatter for a document before VS Code applies them, so that the clean
- * editing view lets the format write the generated parts.
+ * @param views - The format of the documents of the clean editing view.
  */
-export const registerFormatter = (
-  extension: string,
-  wanted: (document: vscode.TextDocument) => SaveChanges,
-  steps?: FormatSteps,
-  formats: (document: vscode.TextDocument, edits: readonly vscode.TextEdit[]) => void = () => undefined,
-): vscode.Disposable[] => [
+export const registerFormatter = (extension: string, wanted: (document: vscode.TextDocument) => SaveChanges, steps?: FormatSteps, views?: ViewFormats): vscode.Disposable[] => [
   vscode.languages.registerDocumentFormattingEditProvider(
     { language: 'markdown' },
     {
-      provideDocumentFormattingEdits: (document) => {
-        const edits = formatEdits(document, steps);
-        formats(document, edits);
-        return edits;
-      },
+      provideDocumentFormattingEdits: (document) =>
+        document.uri.scheme === cleanScheme ? (views?.formatOf(document, (text, file) => formatText(text, file, steps)) ?? []) : formatEdits(document, steps),
     },
   ),
   vscode.workspace.onWillSaveTextDocument((event) => {
+    if (event.document.uri.scheme === cleanScheme) {
+      // The save of the view saves its file with the changes before its save, after the format of the file in the view,
+      // so that the save of the file changes nothing that the view shows.
+      const file = views?.fileOf(event.document);
+      if (views && event.reason !== vscode.TextDocumentSaveReason.AfterDelay && views.savesWithChanges(event.document)) {
+        if (file && changesOnSave(file, event.reason, extension, wanted).format) {
+          event.waitUntil(Promise.resolve(views.formatOf(event.document, (text, uri) => formatText(text, uri, steps))));
+        }
+      }
+      return;
+    }
     const changes = changesOnSave(event.document, event.reason, extension, wanted);
     if (changes.format || changes.comment) {
-      const edits = saveEdits(event.document, changes, steps);
-      formats(event.document, edits);
-      event.waitUntil(Promise.resolve(edits));
+      event.waitUntil(Promise.resolve(saveEdits(event.document, changes, steps)));
     }
   }),
 ];
