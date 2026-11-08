@@ -773,7 +773,8 @@ selection for a copy or a change of the text stays as it is.
 
 In the Markdown preview, to the side or in the mode "Markdown Preview":
 select the text with the mouse. When you release the mouse button, a button
-"Add Note" shows above the selected text; click it. The selected text must
+"Add Note" shows above the selected text; click it, or right-click the
+selected text and choose "Add Note" in the context menu. The selected text must
 stay in one paragraph, heading, list item or table cell, and text in a code
 block shows no button. The preview shows the text without the markup of
 Markdown, so the extension finds the selected text in the file by its letters

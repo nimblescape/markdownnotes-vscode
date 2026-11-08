@@ -18,7 +18,7 @@ import * as path from 'node:path';
 import * as esbuild from 'esbuild';
 import { expect, test, vi } from 'vitest';
 import { cleanCommands } from './cleanView';
-import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath } from './extension';
+import { deselectPath, extensionId, footnoteCommands, footnotesContext, highlightCommands, highlightsContext, openPath, previewAddCommand, previewAddKey } from './extension';
 import { renumberCommand } from './footnoteActions';
 import { deleteCommands, markerContexts } from './noteEditor';
 import { formContext, notesViewId, viewCommands } from './notesViewProtocol';
@@ -159,6 +159,7 @@ test('the manifest contributes the commands of the side view, of the highlights,
       usedSnippetCommands.keep,
       ...Object.values(publishCommands),
       renumberCommand,
+      previewAddCommand,
       renderedEditor.openText,
       renderedEditor.reopenEditor,
       renderedEditor.reopenText,
@@ -167,6 +168,17 @@ test('the manifest contributes the commands of the side view, of the highlights,
       renderedEditor.nextChange,
     ].sort(),
   );
+});
+
+test('the context menu of the Markdown preview, to the side and in the mode "Markdown Preview", has "Add Note" while the script of the preview gives the link of selected text, and the list of the commands has not (R-PREV-008)', () => {
+  const command = manifest.contributes.commands.find((entry: { command: string }) => entry.command === previewAddCommand);
+  expect(command).toEqual({ command: previewAddCommand, title: 'Add Note', category: 'Markdown Notes' });
+  expect(manifest.contributes.menus['webview/context']).toEqual([
+    { command: previewAddCommand, group: 'nimblescape@1', when: `(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && ${previewAddKey}` },
+  ]);
+  expect(manifest.contributes.menus.commandPalette).toContainEqual({ command: previewAddCommand, when: 'false' });
+  // The script of the preview names the same key.
+  expect(fs.readFileSync(path.join(__dirname, '..', 'media', 'markdownPreview.js'), 'utf8')).toContain(`const menuAddKey = '${previewAddKey}';`);
 });
 
 test('the editor of a whole file is the default editor of the Markdown files, also in a diff, which the setting renderedEditor chooses, and its title has the button "Open Text Editor to the Side" (R-TEXT-010)', () => {

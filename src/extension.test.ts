@@ -94,6 +94,7 @@ test('the activation registers the commands, the side view and the handler of li
       ...Object.values(usedSnippetCommands),
       ...Object.values(publishCommands),
       renumberCommand,
+      extension.previewAddCommand,
       renderedEditor.openText,
       renderedEditor.reopenEditor,
       renderedEditor.reopenText,
@@ -276,6 +277,29 @@ test('the export ends the page of an open document that can have notes with the 
   expect(md.render('Text.\n', { currentDocument: new FakeUri('file', '/folder/b.md') })).toBe('<p>Text.</p>\n');
   const version = fake.open('Text.\n', '/folder/a.md', { scheme: 'git' });
   expect(md.render('Text.\n', { currentDocument: version.uri })).toBe('<p>Text.</p>\n');
+});
+
+test('the command "Add Note" of the context menu of the preview opens the editor of a new note for the link of "Add Note" in the context of the menu, and nothing for another link (R-PREV-008)', async () => {
+  const document = fake.open(note);
+  const { extension } = await fake.activate();
+  const view = fake.resolveView(notesViewId);
+  fake.signIn = 'carl';
+  await view.send({ type: 'ready' });
+  await settle();
+  const add = (query: Record<string, string>, path = extension.addPath) => `vscode://${extension.extensionId}${path}?${new URLSearchParams({ document: document.uri.toString(), ...query }).toString()}`;
+  const before = view.messages.length;
+  // VS Code passes the keys of data-vscode-context of the page, with its own keys, to the command.
+  await fake.run(extension.previewAddCommand, { webview: 'markdown.preview', [extension.previewAddKey]: add({ line: '2', before: 'The text of ', text: 'the page.' }) });
+  await settle();
+  expect(view.messages.slice(before).filter((message) => message.type !== 'state')).toEqual([{ type: 'line', line: 2, highlight: 'the page.' }, { type: 'new' }]);
+  // A menu without the key, a link of another path or of another extension open nothing.
+  const count = view.messages.length;
+  await fake.run(extension.previewAddCommand, { webview: 'markdown.preview' });
+  await fake.run(extension.previewAddCommand, undefined);
+  await fake.run(extension.previewAddCommand, { [extension.previewAddKey]: add({ line: '2', before: '', text: 'The' }, extension.openPath) });
+  await fake.run(extension.previewAddCommand, { [extension.previewAddKey]: `vscode://other.extension/add?line=2&text=The&document=${encodeURIComponent(document.uri.toString())}` });
+  await settle();
+  expect(view.messages.length).toBe(count);
 });
 
 test('"Hide Highlights" turns the setting off in the settings that decide the value, and "Show Highlights" turns it on without opening the side view (R-GEN-011)', async () => {

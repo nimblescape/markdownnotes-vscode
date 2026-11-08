@@ -8,8 +8,8 @@ answer a note and each other, so each note is a thread with a tree of
 replies. The side view "Notes" shows the threads next to their highlights in
 the text editor, and is the editor of the notes. You add a note by selecting
 text and choosing "Add Note": in the light bulb at the selected text, with a
-shortcut, in the context menu, or with the button above the selected text of
-the Markdown preview. Every change goes back into the footnote in
+shortcut, in the context menu of the text editor or of the Markdown preview,
+or with the button above the selected text of the Markdown preview. Every change goes back into the footnote in
 the file, with the GitHub login of the author.
 
 ![VS Code with the extension: on the left, the text editor with the highlights of two collapsed notes in blue and green, and the list of the light bulb at the selected text with Add Note at the top; on the right, the side view Notes with the list of the two threads, the selected blue thread at its top with a frame, and the dimmed green thread](https://raw.githubusercontent.com/nimblescape/markdownnotes-vscode/main/docs/images/notes.png)
@@ -170,9 +170,9 @@ describes each step and where its protection ends.
   Note": in the light bulb at the selected text or with Ctrl+. (Cmd+. on a
   Mac), with Shift+Alt+N (Cmd+K N on a Mac), in the context menu of the text
   editor, or with "Add Note" (`+`) in the title of the side view. In the
-  Markdown preview, the button "Add Note" shows above the selected text. Each
-  opens the editor of the new note in the side view, where you choose its
-  color.
+  Markdown preview, the button "Add Note" shows above the selected text, and
+  "Add Note" is also in the context menu of the selected text. Each opens the
+  editor of the new note in the side view, where you choose its color.
   Nothing shows by itself over the selected text, and there is no note
   without highlighted text.
 - **The text stays readable.** A Markdown file with notes opens in the clean

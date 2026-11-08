@@ -1991,6 +1991,14 @@ Preview" of VS Code, also of the clean editing view
   [R-EDIT-006](#r-edit-006)), with the selected text in its title. The tab of
   the preview keeps its mode. The button stays hidden until the user selects
   other text.
+- The context menu of the preview (right click) has "Add Note" for the same
+  selected text, with the same result as the button, as the context menu of
+  the text editor has. When the menu opens, the script of the preview puts
+  the link of "Add Note" for the selected text into the context of the menu
+  of VS Code (the key `nimblescapeNotesAdd` of `data-vscode-context` of the
+  body), and the command of the menu opens only a link of "Add Note" of the
+  extension. Without selected text that a note can highlight, the menu has
+  no "Add Note".
 - The preview shows the text without the markup of Markdown and HTML, so the
   extension finds the selected text in the file by its letters and digits,
   after the text of its block before it (`src/notes/rendered.ts`). Text that
@@ -2005,8 +2013,8 @@ Built in step 40.
 pages of a paper document in the Markdown preview of VS Code, and the
 functions of the notes work in the pages as in the preview of any other
 file: the highlights, the click that selects a note, the double click that
-opens the side view, and "Add Note" above selected text
-([R-PREV-001](#r-prev-001) to [R-PREV-008](#r-prev-008)).
+opens the side view, and "Add Note" above selected text and in the context
+menu ([R-PREV-001](#r-prev-001) to [R-PREV-008](#r-prev-008)).
 
 - The script of Markdown Paper copies the content of the preview into its
   pages in the element `.nimblescape-paper-pages` and hides the content
@@ -3573,6 +3581,12 @@ requirements above follow them.
     citations, so they can be selected in the pages. The other choice was
     that a click on such a link opens the link, and the note is selected only
     through the side view.
+77. **The context menu of the preview has "Add Note"**
+    ([R-PREV-008](#r-prev-008)): a right click on selected text in the
+    Markdown preview, also on the pages of a paper, shows "Add Note" in the
+    context menu, as in the context menu of the text editor, and opens the
+    editor of the new note in the side view, as the button above the selected
+    text does. The other choice was the button above the selected text only.
 
 ---
 
