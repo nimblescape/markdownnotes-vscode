@@ -103,7 +103,11 @@
       },
       "workbench.editor.hiddenEditorTypes": [
         "vscode.markdown.editor"
-      ]
+      ],
+      "workbench.editorAssociations": {
+        "*.md": "nimblescape.markdownNotes.editor",
+        "*.markdown": "nimblescape.markdownNotes.editor"
+      }
     },
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
@@ -143,8 +147,8 @@
           }
         ],
         "priority": {
-          "textEditor": "default",
-          "diffEditor": "default"
+          "textEditor": "option",
+          "diffEditor": "option"
         }
       }
     ],
@@ -425,17 +429,17 @@
         },
         {
           "command": "nimblescape.markdownNotes.reopenInMarkdownEditor",
-          "group": "navigation@3",
+          "group": "navigation@-1",
           "when": "(activeEditor == workbench.editors.files.textFileEditor && resourceLangId == markdown) || (activeCustomEditorId == 'vscode.markdown.preview.editor' && !activeCustomEditorTextDiff) || activeCustomEditorId == 'vscode.markdown.editor'"
         },
         {
           "command": "nimblescape.markdownNotes.reopenInTextEditor",
-          "group": "navigation@3",
+          "group": "navigation@-3",
           "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff"
         },
         {
           "command": "nimblescape.markdownNotes.reopenInMarkdownPreview",
-          "group": "navigation@4",
+          "group": "navigation@-2",
           "when": "activeCustomEditorId == 'nimblescape.markdownNotes.editor' && !nimblescape.markdownNotes.editor.diff"
         },
         {

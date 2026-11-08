@@ -185,8 +185,8 @@ The first version.
   paper.
   It is the view "Markdown Editor" of the three views of a Markdown file,
   beside "Text Editor" and "Markdown Preview": the list of the editors of
-  VS Code shows only these three, and the title of each view has a button
-  for each of the two other views. The text editor gets the cursor of the
+  VS Code shows only these three, in this order, and the title of each view
+  has a button for each of the two other views, first in the title. The text editor gets the cursor of the
   editor, also as the clean editing view.
   The setting `nimblescape.markdownNotes.renderedEditor` chooses the files
   that open in it: `all` (the default), `notesAndPapers` or `none`. The

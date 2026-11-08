@@ -1515,11 +1515,20 @@ buttons in the title of the editor change the view, in the same place:
 
 The buttons "Show or Hide Notes" and "Hide Highlights" or "Show Highlights"
 are in the title of each view, and the side view "Notes" lists the notes of
-the file in each view. The list of the editors names the Markdown Editor
-"Markdown Editor - nimblescape Markdown Notes", because VS Code adds the
-name of the extension to an editor of an extension. A button or the list
+the file in each view. The list of the editors shows the views in the
+order of the table, and names the Markdown Editor "Markdown Editor -
+nimblescape Markdown Notes", because VS Code adds the name of the extension
+to the editor of every extension that is not part of VS Code; the label of
+the list shows "Markdown Editor" while it is active. A button or the list
 opens the Markdown Editor also for a file that the setting `renderedEditor`
-does not open in it by itself.
+does not open in it by itself. The buttons of the views come first in the
+title of each view: VS Code shows at most eight buttons there and moves the
+others into the menu "…" of the title.
+
+The Markdown Editor opens a Markdown file and its changes by default,
+because the extension sets a default of the setting
+`workbench.editorAssociations` of VS Code. "Set Default for '*.md'" in the
+list, or that setting in the user settings, chooses another default.
 
 VS Code has a visual editor of its own, which it names "Markdown Editor"
 too. The extension hides it from the list of the editors; "Reopen Editor
