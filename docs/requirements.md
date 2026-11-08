@@ -2037,7 +2037,7 @@ With…" and the buttons in the title of the editor change the view:
 
 The title of each view has the buttons of all three views, in the order
 Text Editor, Markdown Preview, Markdown Editor, at the same place in each
-view ([decision 83](#decisions)):
+view ([decision 84](#decisions)):
 
 - The buttons of the two other views are "Reopen in Text Editor" (the
   codicon `file-code`), "Reopen in Markdown Preview" (the codicon
@@ -2166,10 +2166,11 @@ menu ([R-PREV-001](#r-prev-001) to [R-PREV-008](#r-prev-008)).
   `.pagedjs_page_content`: a highlight over two pages leaves out the
   margins, the footer and the header between them.
 - The frame of a selected highlight and the button "Add Note" stand at their
-  text also when the pages are smaller than a page (the CSS property `zoom`
-  of Markdown Paper): the browser of VS Code gives the rectangles of the text
-  in the pages in the coordinates of the pages, so the script multiplies them
-  by the zoom.
+  text at every zoom of the pages, smaller or larger than the paper (the CSS
+  property `zoom` of Markdown Paper): the browser of VS Code gives the
+  rectangles of the text in the pages in the coordinates of the pages, so the
+  script multiplies them by the zoom, and places them again after the event
+  `nimblescape-paper-zoomed` of each change of the zoom.
 - "Add Note" leaves out the soft hyphens (U+00AD) of the hyphenation of the
   pages, which the Markdown text does not have.
 - The PDF has no notes: the renderer of Markdown Paper makes it without the
@@ -3768,7 +3769,19 @@ requirements above follow them.
     buttons of the views come first in the title of each view. The other
     choice was the priority `default`, which puts the editor before the text
     editor in the list.
-83. **All three view buttons in each view, the selected one marked**
+83. **GitHub alerts stay rendered in the editor of a whole file**
+    ([R-EDIT-008](#r-edit-008);
+    [R-EDIT-013](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-013)
+    of nimblescape Markdown): a GitHub alert, such as `> [!NOTE]`, shows as
+    its box with the name of its kind as its title, for example "Note", also
+    while the user edits its text. The title is fixed: it comes from the
+    marker of the alert, which stays in the file, and the user cannot change
+    a piece of it in the editor of a whole file; Backspace at the start of
+    the text removes the whole marker, so that the alert becomes a quote.
+    `/alert` inserts an alert in both editors, and in the text editor the
+    marker stays text. The other choice was the marker as text while the
+    cursor is in the first line of the alert.
+84. **All three view buttons in each view, the selected one marked**
     ([R-PREV-006](#r-prev-006), [R-VSC-002](#r-vsc-002)): the title of each
     of the three views of a Markdown file has the buttons of the Text
     Editor, the Markdown Preview and the Markdown Editor, always in this

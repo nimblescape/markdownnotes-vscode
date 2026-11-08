@@ -441,7 +441,7 @@ const glyphOf = (font: Buffer, character: number): { glyph: number; size: number
 
 test('the buttons of the highlights show a highlighter pen, the buttons of the footnotes a plus with the number 1 and a numbered list, the form of the notes an eye, and the selected view its icon in a filled square, of the icon font of the extension, which follows the icon color of the theme (R-GEN-011, R-FOOT-001, R-HIDE-002, R-VSC-002)', () => {
   // The highlighter pen is the icon of the highlights (decision 26); the eye is the icon of the hidden notes (R-HIDE-002);
-  // the buttons of the three views mark the selected view (decision 83).
+  // the buttons of the three views mark the selected view (decision 84).
   const font = 'resources/notes-icons.ttf';
   const icons = {
     'highlights-show': 0xe001,
