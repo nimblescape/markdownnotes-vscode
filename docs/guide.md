@@ -476,7 +476,8 @@ into the file at once, and each note stays at its text:
 - The parts that the formatter writes are read-only in the view too, as in
   the editor of rendered Markdown: the number of a caption, the text of a
   reference between its square brackets, the code block of a listing, a
-  value of the front matter in the text, and the parts of nimblescape
+  value of the front matter that the formatter copies into the text below
+  the front matter, and the parts of nimblescape
   Markdown Paper, such as its citations, the entries of its reference list
   and its generated lists. An edit inside such a part, also a digit typed
   right after the number of a caption, goes back, and the status bar says

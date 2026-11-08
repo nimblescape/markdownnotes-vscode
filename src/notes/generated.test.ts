@@ -56,6 +56,11 @@ describe('findGenerated', () => {
     expect(findGenerated(text.split('\n'))).toEqual([]);
   });
 
+  test('finds no part in the front matter, whose values the clean editing view edits by its own rules', () => {
+    const text = ['---', 'title: A paper', 'note: "[Table 1](#tab-grades)"', '---', '', 'Table 1: Grades<a id="tab-grades"></a>', '', '| Grade |', '| --- |', '| 1 |'].join('\n');
+    expect(findGenerated(text.split('\n'))).toEqual([{ line: 5, start: 6, end: 7 }]);
+  });
+
   test('finds the number of a caption in a quote', () => {
     const text = ['> Abbildung 12: Ein Bild', '>', '> ![Bild](bild.png)'].join('\n');
     expect(texts(text, findGenerated(text.split('\n')))).toEqual(['12']);
