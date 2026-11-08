@@ -109,6 +109,28 @@
         "*.markdown": "nimblescape.markdownNotes.editor"
       }
     },
+    "colors": [
+      {
+        "id": "nimblescapeMarkdownNotes.readOnlyBackground",
+        "description": "Background of the read-only parts of a file with notes in the text editor and in the Markdown Editor: the parts that the formatter writes, such as the numbers of captions, the references and the table of contents, and the parts of the front matter that its rules keep.",
+        "defaults": {
+          "light": "#0000001A",
+          "dark": "#FFFFFF1A",
+          "highContrast": "#FFFFFF26",
+          "highContrastLight": "#0000001A"
+        }
+      },
+      {
+        "id": "nimblescapeMarkdownNotes.readOnlyBorder",
+        "description": "Dotted frame of the read-only parts of a file with notes in the text editor and in the Markdown Editor. Only the themes of high contrast show it by default.",
+        "defaults": {
+          "light": "#00000000",
+          "dark": "#00000000",
+          "highContrast": "contrastBorder",
+          "highContrastLight": "contrastBorder"
+        }
+      }
+    ],
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
       "./media/markdownPreview.css"

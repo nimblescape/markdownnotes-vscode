@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { findGenerated, type GeneratedPart, keepsGenerated } from './generated';
+import { findGenerated, type GeneratedPart, keepsGenerated, rangesOf } from './generated';
 
 /** paper is a file with each kind of generated part. */
 const paper = [
@@ -131,5 +131,15 @@ describe('keepsGenerated', () => {
 
   test('keeps each edit of a file without generated parts', () => {
     expect(keepsGenerated('A text', 'A new text', [])).toBe(true);
+  });
+});
+
+describe('rangesOf', () => {
+  test('gives a part of a line and a block of whole lines as ranges of the text, a block without the line break of its last line, and leaves out a part outside the text', () => {
+    const text = 'One line\r\n```\r\ncode\r\n```\r\nend';
+    expect(rangesOf(text, [{ line: 0, start: 4, end: 8 }, { first: 1, last: 3 }, { line: 9, start: 0, end: 1 }, { first: 3, last: 9 }])).toEqual([
+      { from: 4, to: 8, lines: false },
+      { from: 10, to: 24, lines: true },
+    ]);
   });
 });

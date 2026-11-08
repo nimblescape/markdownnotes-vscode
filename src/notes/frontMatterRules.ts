@@ -19,6 +19,7 @@
  * The module uses no API of VS Code.
  */
 
+import type { Block, Marker } from './clean';
 import { checkFrontMatter, frontMatterOf, type FrontMatterFormat, type JsonSchema, type JsonSchemaObject, readFrontMatter, schemaAt, typeOf } from '@nimblescape/markdowntext';
 
 /** FrontMatterRules are the rules of the front matter of a file that another extension gives. */
@@ -229,6 +230,37 @@ export function keepsRules(before: string, after: string, rules: FrontMatterRule
     }
   }
   return was.every((key, index) => !readOnly.has(key.key) || blockOf(kept, key) === blockOf(changed, matched[index]));
+}
+
+/**
+ * readOnlyParts returns the parts of the front matter of a text that every edit keeps as they are with its rules, so
+ * that the clean editing view marks them as read-only: of a YAML front matter its two fences, each key of the schema up
+ * to its colon, and the lines of each read-only key with its value; a front matter in TOML or JSON as a whole. Without
+ * rules (null), and while the rules load (undefined), there are none.
+ * @param text - The text of the file.
+ * @param rules - The rules of the front matter, null without rules, or undefined while they load.
+ */
+export function readOnlyParts(text: string, rules: FrontMatterRules | null | undefined): Array<Marker | Block> {
+  const head = rules ? headOf(text) : undefined;
+  if (!rules || !head) {
+    return [];
+  }
+  if (head.format !== 'yaml') {
+    return [{ first: 0, last: head.end - 1 }];
+  }
+  const { named, readOnly } = keysOf(rules);
+  const parts: Array<Marker | Block> = [
+    { first: 0, last: 0 },
+    { first: head.end - 1, last: head.end - 1 },
+  ];
+  for (const key of head.keys) {
+    if (readOnly.has(key.key)) {
+      parts.push({ first: key.line, last: key.last });
+    } else if (named.includes(key.key)) {
+      parts.push({ line: key.line, start: 0, end: key.prefix.length });
+    }
+  }
+  return parts;
 }
 
 /**
