@@ -1308,6 +1308,12 @@ package.json: `markdown.markdownItPlugins`, with a function
   of emoji or math between `$`, shows nothing in the editor: the paragraph
   shows the text as it is written. A script that needs other parts of the
   Markdown preview may not work.
+- A plugin adds no syntax a second time
+  ([R-REN-002](https://github.com/nimblescape/markdown/blob/main/docs/rendering.md#r-ren-002)):
+  a rule that it adds with the name of a rule of the renderer does not work.
+  So the footnotes of "Markdown Footnotes" ([R-GEN-008](#r-gen-008)) change
+  nothing in the editor: each definition of a footnote stays a block of the
+  editor in its place, and an inline footnote `^[text]` stays text.
 - The setting `previewExtensions` turns these extensions off in the editor.
   The default is `true`.
 
