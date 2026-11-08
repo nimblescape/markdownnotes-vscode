@@ -2165,10 +2165,11 @@ menu ([R-PREV-001](#r-prev-001) to [R-PREV-008](#r-prev-008)).
   `.pagedjs_page_content`: a highlight over two pages leaves out the
   margins, the footer and the header between them.
 - The frame of a selected highlight and the button "Add Note" stand at their
-  text also when the pages are smaller than a page (the CSS property `zoom`
-  of Markdown Paper): the browser of VS Code gives the rectangles of the text
-  in the pages in the coordinates of the pages, so the script multiplies them
-  by the zoom.
+  text at every zoom of the pages, smaller or larger than the paper (the CSS
+  property `zoom` of Markdown Paper): the browser of VS Code gives the
+  rectangles of the text in the pages in the coordinates of the pages, so the
+  script multiplies them by the zoom, and places them again after the event
+  `nimblescape-paper-zoomed` of each change of the zoom.
 - "Add Note" leaves out the soft hyphens (U+00AD) of the hyphenation of the
   pages, which the Markdown text does not have.
 - The PDF has no notes: the renderer of Markdown Paper makes it without the
@@ -3768,6 +3769,18 @@ requirements above follow them.
     buttons of the views come first in the title of each view. The other
     choice was the priority `default`, which puts the editor before the text
     editor in the list.
+83. **GitHub alerts stay rendered in the editor of a whole file**
+    ([R-EDIT-008](#r-edit-008);
+    [R-EDIT-013](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-013)
+    of nimblescape Markdown): a GitHub alert, such as `> [!NOTE]`, shows as
+    its box with the name of its kind as its title, for example "Note", also
+    while the user edits its text. The title is fixed: it comes from the
+    marker of the alert, which stays in the file, and the user cannot change
+    a piece of it in the editor of a whole file; Backspace at the start of
+    the text removes the whole marker, so that the alert becomes a quote.
+    `/alert` inserts an alert in both editors, and in the text editor the
+    marker stays text. The other choice was the marker as text while the
+    cursor is in the first line of the alert.
 85. **A click on a highlight opens the side view** ([R-SIDE-007](#r-side-007),
     [R-NOTE-006](#r-note-006), [R-PREV-003](#r-prev-003),
     [R-TEXT-010](#r-text-010)): a click with the mouse on a highlight, in the
