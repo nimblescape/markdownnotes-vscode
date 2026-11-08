@@ -357,7 +357,13 @@ export function activate(context: vscode.ExtensionContext): Api {
   const showsHighlights = (document: vscode.Uri | undefined): boolean => readSettings(document).showHighlights;
   const clean = new CleanView(showsHighlights, selected, (document) => readSettings(document).showFootnotes);
   const editor = new NoteEditor(store, showsHighlights, selected, (shown) => clean.becomesView(shown));
-  const rendered = new RenderedEditors(context.extensionUri, readSettings, selected, () => vscode.commands.executeCommand(viewCommands.newNote));
+  const rendered = new RenderedEditors(
+    context.extensionUri,
+    readSettings,
+    selected,
+    () => vscode.commands.executeCommand(viewCommands.newNote),
+    (file, range) => clean.select(file, range),
+  );
   store.waitBeforeWrites((uri) => clean.switchedOf(uri));
   const steps = new FormatSteps();
   const view = new NotesView(context.extensionUri, store, githubLogin, renderMarkdown, readSettings, selected, clean);

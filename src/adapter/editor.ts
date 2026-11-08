@@ -95,6 +95,13 @@ export interface MarkdownEditorRegistration {
    */
   readonly reopenCommands?: { readonly editor?: string; readonly text?: string; readonly preview?: string };
   /**
+   * select gives the selection of the page, as a range of the file, to the text editor of the file that the commands of
+   * the text editor opened in the active group (R-VSC-002), for example to a view of the file that takes the place of
+   * its text editor, as the clean editing view of Notes does (R-TEXT-009). The default selects the range in the active
+   * text editor of the file.
+   */
+  readonly select?: (file: vscode.Uri, range: vscode.Range) => Thenable<void>;
+  /**
    * showPagesCommand and showEditCommand are the IDs of the commands that switch the active panel to the view "Pages"
    * and back to "Edit" (docs/requirements.md, R-VSC-007); the package.json of the extension contributes the commands
    * and their buttons in the title of the editor, with the context key `<view type>.pages`.
@@ -443,10 +450,8 @@ export function registerMarkdownEditor(api: VsCode, registration: MarkdownEditor
         const range = panel?.selectedRange();
         await api.commands.executeCommand('reopenActiveEditorWith', 'default');
         // The text editor gets the selection of the editor.
-        const editor = api.window.activeTextEditor;
-        if (panel && range && editor?.document.uri.toString() === panel.uri.toString()) {
-          editor.selection = new api.Selection(range.start, range.end);
-          editor.revealRange(range, api.TextEditorRevealType.InCenterIfOutsideViewport);
+        if (panel && range) {
+          await selectText(api, registration, panel.uri, range);
         }
       }),
     );
@@ -503,6 +508,26 @@ export const markdownPreview = 'vscode.markdown.preview.editor';
 
 /** choiceTime is the time in milliseconds in which the editor of a file that the user chose opens. */
 const choiceTime = 5000;
+
+/**
+ * selectText selects a range of a file in the text editor that the command of the text editor opened in the active
+ * group: with the select of the registration, or in the active text editor of the file.
+ * @param api - The API of VS Code.
+ * @param registration - The registration of the editor.
+ * @param file - The URI of the file.
+ * @param range - The range in the file.
+ */
+async function selectText(api: VsCode, registration: MarkdownEditorRegistration, file: vscode.Uri, range: vscode.Range): Promise<void> {
+  if (registration.select) {
+    await registration.select(file, range);
+    return;
+  }
+  const editor = api.window.activeTextEditor;
+  if (editor?.document.uri.toString() === file.toString()) {
+    editor.selection = new api.Selection(range.start, range.end);
+    editor.revealRange(range, api.TextEditorRevealType.InCenterIfOutsideViewport);
+  }
+}
 
 /**
  * tabUri returns the URI of the document of a tab of a text editor or of a custom editor, or undefined.
@@ -873,6 +898,9 @@ class EditorPanel {
     const options: vscode.TextDocumentShowOptions = { viewColumn: this.api.ViewColumn.Beside, preview: false };
     const selection = this.selectedRange();
     await this.api.commands.executeCommand('vscode.openWith', this.document.uri, 'default', selection ? { ...options, selection } : options);
+    if (selection && this.registration.select) {
+      await this.registration.select(this.document.uri, selection);
+    }
   }
 
   /** selectedRange returns the selection of the page as a range of the document, or undefined before the page sent one. */

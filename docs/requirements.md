@@ -1169,7 +1169,12 @@ of the other editor of the file the editor before the editor opens, and the
 adapter takes such a change of a tab in the last 5 seconds as the choice of
 the user. A document that only shows a file, for example a document of the
 clean editing view, opens the editor of the file itself (the option
-`fileOf` of the registration).
+`fileOf` of the registration). A view that takes the place of the text
+editor, for example the clean editing view of a file with notes or of a
+paper ([R-TEXT-009](#r-text-009)), gets the selection of the editor at the
+same text from the extension after the text editor opened (the option
+`select` of the registration), for the button to the side and for "Reopen
+in Text Editor".
 
 ### R-VSC-003
 

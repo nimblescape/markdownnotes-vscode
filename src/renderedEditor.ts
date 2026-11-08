@@ -108,12 +108,15 @@ export class RenderedEditors implements vscode.Disposable {
    * @param settingsOf - Returns the settings of a document.
    * @param selected - The selected note of each document.
    * @param comment - Adds a note to the selected text of an editor, for the button "Comment" of its format bar.
+   * @param select - Selects a range of a file in its text editor that the editor opened, which can become the clean
+   * editing view ([R-TEXT-009](../docs/requirements.md#r-text-009)).
    */
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly settingsOf: (document: vscode.Uri | undefined) => Settings,
     private readonly selected: SelectedNotes,
     private readonly comment: () => Thenable<unknown>,
+    private readonly select?: (file: vscode.Uri, range: vscode.Range) => Thenable<void>,
   ) {}
 
   /** register registers the editor and the listeners of the selected notes. */
@@ -129,6 +132,8 @@ export class RenderedEditors implements vscode.Disposable {
       fileOf: (document) => fileOf(document),
       openTextCommand: renderedEditor.openText,
       reopenCommands: { editor: renderedEditor.reopenEditor, text: renderedEditor.reopenText, preview: renderedEditor.reopenPreview },
+      // The text editor of a file with notes or of a paper becomes the clean editing view, which gets the selection.
+      select: this.select,
       nextChangeCommand: renderedEditor.nextChange,
       previousChangeCommand: renderedEditor.previousChange,
       plugins: { [pluginName]: (channel) => this.connect(channel) },

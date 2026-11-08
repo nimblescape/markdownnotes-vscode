@@ -341,6 +341,31 @@ describe('the three views of a Markdown file', () => {
     expect(fake.executed[1]).toEqual(['reopenActiveEditorWith', 'vscode.markdown.preview.editor']);
   });
 
+  it('gives the selection of the page to the select of the extension after the text editor opened, in its place and to the side, for a view that takes the place of the text editor', async () => {
+    const selected: [unknown, { start: unknown; end: unknown }][] = [];
+    const select = (file: unknown, range: { start: unknown; end: unknown }) => {
+      selected.push([file, range]);
+      return Promise.resolve();
+    };
+    const { document, panel, connection } = await start(text, { reopenCommands, openTextCommand: 'test.openText', select: select as never });
+    connection.source.setSelections('page', [{ anchor: 18, head: 9 }]);
+    await panel.settle();
+    const editor = fake.textEditor(document);
+    fake.activeTextEditor = editor;
+    await fake.commands.get(reopenCommands.text)?.(document.uri);
+    expect(fake.executed).toEqual([['reopenActiveEditorWith', 'default']]);
+    // The extension selects the range, not the adapter.
+    expect(editor.selection).toBeUndefined();
+    await fake.commands.get('test.openText')?.(document.uri);
+    expect(fake.executed[1]?.[0]).toBe('vscode.openWith');
+    expect(selected).toHaveLength(2);
+    for (const [file, range] of selected) {
+      expect(file).toBe(document.uri);
+      expect(range.start).toEqual({ line: 2, character: 0 });
+      expect(range.end).toEqual({ line: 2, character: 9 });
+    }
+  });
+
   it('opens the editor of the file itself for a document that only shows the file, from the button and from the list of the editors of VS Code', async () => {
     register({ reopenCommands, fileOf: fileOf as never, opens: () => false });
     const file = fake.open(text);
