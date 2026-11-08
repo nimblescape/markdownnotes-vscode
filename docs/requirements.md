@@ -3747,6 +3747,18 @@ requirements above follow them.
     buttons of the views come first in the title of each view. The other
     choice was the priority `default`, which puts the editor before the text
     editor in the list.
+83. **GitHub alerts stay rendered in the editor of a whole file**
+    ([R-EDIT-008](#r-edit-008);
+    [R-EDIT-013](https://github.com/nimblescape/markdown/blob/main/docs/editor.md#r-edit-013)
+    of nimblescape Markdown): a GitHub alert, such as `> [!NOTE]`, shows as
+    its box with the name of its kind as its title, for example "Note", also
+    while the user edits its text. The title is fixed: it comes from the
+    marker of the alert, which stays in the file, and the user cannot change
+    a piece of it in the editor of a whole file; Backspace at the start of
+    the text removes the whole marker, so that the alert becomes a quote.
+    `/alert` inserts an alert in both editors, and in the text editor the
+    marker stays text. The other choice was the marker as text while the
+    cursor is in the first line of the alert.
 
 ---
 
