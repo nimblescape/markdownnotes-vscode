@@ -21,9 +21,11 @@ import { findListings } from './listings';
 
 /**
  * GeneratedPart is a generated part of a file: a part of a line, by the index of the line and its start and end in the
- * line, or a block of whole lines, from its first to its last line.
+ * line, or a block of whole lines, from its first to its last line. A locked part, such as an entry of the reference
+ * list or a generated list of nimblescape Markdown Paper, which the formatter writes from other places of the file,
+ * the user cannot delete at all, also not as a whole.
  */
-export type GeneratedPart = Marker | Block;
+export type GeneratedPart = (Marker | Block) & { locked?: boolean };
 
 /** GeneratedFinder returns the generated parts of the lines of a file that another extension writes. */
 export type GeneratedFinder = (lines: readonly string[]) => readonly GeneratedPart[];
@@ -86,11 +88,15 @@ function changesOf(from: string, to: string): Change[] {
   return [change(startFirst, sameEnd(most - startFirst)), change(sameStart(most - endFirst), endFirst)];
 }
 
-/** PartRange is a generated part as a range of the text: from its start to its end, and whether it is a block of whole lines. */
+/**
+ * PartRange is a generated part as a range of the text: from its start to its end, whether it is a block of whole lines,
+ * and whether it is locked.
+ */
 export interface PartRange {
   from: number;
   to: number;
   lines: boolean;
+  locked?: boolean;
 }
 
 /**
@@ -106,11 +112,12 @@ export function rangesOf(text: string, parts: readonly GeneratedPart[]): PartRan
     starts.push(starts[starts.length - 1] + line.length + 1);
   }
   return parts.flatMap((part): PartRange[] => {
+    const locked = part.locked === true ? { locked: true } : {};
     if ('first' in part) {
-      return part.first >= 0 && part.first <= part.last && part.last < lines.length ? [{ from: starts[part.first], to: starts[part.last] + lines[part.last].replace(/\r$/, '').length, lines: true }] : [];
+      return part.first >= 0 && part.first <= part.last && part.last < lines.length ? [{ from: starts[part.first], to: starts[part.last] + lines[part.last].replace(/\r$/, '').length, lines: true, ...locked }] : [];
     }
     return part.line >= 0 && part.line < lines.length && part.start >= 0 && part.start < part.end && part.end <= lines[part.line].length
-      ? [{ from: starts[part.line] + part.start, to: starts[part.line] + part.end, lines: false }]
+      ? [{ from: starts[part.line] + part.start, to: starts[part.line] + part.end, lines: false, ...locked }]
       : [];
   });
 }
@@ -118,7 +125,8 @@ export function rangesOf(text: string, parts: readonly GeneratedPart[]): PartRan
 /**
  * keepsRange tells whether a change keeps a generated part as it is. Text typed into the part, and a change of a piece
  * of it, change it; a change that takes the whole part removes it, a part of a line only with text around it, so that
- * typing over the part alone changes it. Text typed at the edge of a part of a line becomes a piece of it, such as a
+ * typing over the part alone changes it. A change that takes a piece of a locked part or the whole part changes it,
+ * also with text around it. Text typed at the edge of a part of a line becomes a piece of it, such as a
  * digit after the number of a caption; a change of the text next to it keeps it. A block of whole lines keeps text
  * typed at its edges outside, and keeps its lines: text before it ends with a line break, and text after it starts
  * with one.
@@ -132,7 +140,7 @@ function keepsRange(change: Change, range: PartRange, text: string): boolean {
     return true;
   }
   if (start < range.to && end > range.from) {
-    return start <= range.from && end >= range.to && (start < range.from || end > range.to || range.lines);
+    return !range.locked && start <= range.from && end >= range.to && (start < range.from || end > range.to || range.lines);
   }
   if (!range.lines) {
     return start < end;
@@ -147,7 +155,8 @@ function keepsRange(change: Change, range: PartRange, text: string): boolean {
  * keepsGenerated tells whether an edit of a file keeps each generated part of the file as it is
  * ([R-TEXT-009](../../docs/requirements.md#r-text-009)): text typed into a part or at the edge of a part of a line, or
  * a change of a piece of a part, does not; a change that takes a whole part with text around it, such as the deletion
- * of a caption or of a reference, does. Text typed before a block of whole lines, such as the code block of a listing,
+ * of a caption or of a reference, does, but not for a locked part, such as an entry of the reference list of a paper,
+ * which no edit deletes, also not with the empty lines around it. Text typed before a block of whole lines, such as the code block of a listing,
  * ends with a line break, and text typed after it starts with one. Of the places where typed text can stand, such as
  * `[` before `[`, one that keeps the parts counts.
  * @param before - The text of the file before the edit.

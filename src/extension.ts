@@ -146,7 +146,9 @@ export interface GeneratedParts {
    * find returns the generated parts of a file, which the clean editing view keeps read-only: parts of a line, by the
    * index of the line and the start and the end in it, such as the text of a citation, and blocks of whole lines, from
    * the first to the last line, such as a reference list. Text typed into a part, or a change of a piece of it, goes
-   * back; a change that takes a whole block, or a whole part of a line with text around it, stays.
+   * back; a change that takes a whole block, or a whole part of a line with text around it, stays. A part with
+   * `locked: true`, such as an entry of a reference list or a generated list, goes back also with a change that takes
+   * the whole part.
    * @param lines - The lines of the file.
    */
   find: GeneratedFinder;

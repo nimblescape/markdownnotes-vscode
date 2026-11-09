@@ -430,6 +430,22 @@ describe('the anchors of the figures and tables', () => {
     expect(project(rebuilt).clean).toBe(`${projection.clean.slice(0, start)}\n\n${projection.clean.slice(start)}`);
     expect(rebuilt).toContain('Table: Participants by grade<a id="tab-grades"></a>\n');
   });
+
+  test('go with the deletion of the whole line of their caption, and stay with a caption that the edit writes anew (decision 88)', () => {
+    // Before, the anchor stayed and stood before the first row of the table, which then was no table.
+    const caption = edit(captioned, 'Table: Participants by grade\n\n', 'Table: Participants by grade\n\n'.length, '');
+    expect(caption.clean).toBe(caption.expected);
+    expect(caption.text).not.toContain('<a id="tab-grades"></a>');
+    expect(caption.text).toContain('\n\n| Grade | Participants |\n');
+    const line = edit(captioned, 'Table: Participants by grade', 'Table: Participants by grade'.length, '');
+    expect(line.text).not.toContain('<a id="tab-grades"></a>');
+    const table = edit(captioned, '\n\nTable: Participants by grade', '\n\nTable: Participants by grade\n\n| Grade | Participants |\n| --- | --- |\n| 5 | 12 |'.length, '');
+    expect(table.clean).toBe(table.expected);
+    expect(table.text).not.toContain('<a id="tab-grades"></a>');
+    // A piece of the caption, and a caption written anew over the old one, keep the anchor.
+    expect(edit(captioned, 'Participants by grade', 'Participants'.length, '').text).toContain('Table:  by grade<a id="tab-grades"></a>\n');
+    expect(edit(captioned, 'Table: Participants by grade', 'Table: Participants by grade'.length, 'Table: Grades').text).toContain('Table: Grades<a id="tab-grades"></a>\n');
+  });
 });
 
 describe('the values of the front matter', () => {
@@ -460,6 +476,19 @@ describe('the values of the front matter', () => {
     expect(before.text).toContain('\nNow <wbr><!--{title}-->A paper<!--{/title}--> starts here.\n');
     const deleted = edit(titled, 'A paper starts', 'A paper'.length, '');
     expect(deleted.text).toContain('\n<wbr><!--{title}--><!--{/title}--> starts here.\n');
+    // A deletion that takes the whole value with text around it takes its markers too (decision 88).
+    const sentence = edit(titled, 'A paper starts here.', 'A paper starts here.'.length, '');
+    expect(sentence.clean).toBe(sentence.expected);
+    expect(sentence.text).not.toContain('<!--{title}--><!--{/title}-->');
+    expect(sentence.text.match(/<!--\{title\}-->/g)).toHaveLength(1);
+    const word = edit(titled, 'the paper A paper of', 'the paper A paper'.length, 'it');
+    expect(word.clean).toBe(word.expected);
+    expect(word.text).toContain('This is <wbr><!--[note-7k2q-->it[^note-7k2q] of the plan.');
+    const whole = project(titled);
+    const from = whole.clean.indexOf('\n\nA paper starts');
+    const gone = rebuild(whole, from, whole.clean.length - 1, '')!;
+    expect(project(gone).clean).toBe(whole.clean.slice(0, from) + whole.clean.slice(whole.clean.length - 1));
+    expect(gone.match(/<!--\{title\}-->/g)).toHaveLength(1);
     const replaced = edit(titled, 'A paper of', 'A paper'.length, 'The plan');
     expect(replaced.clean).toBe(replaced.expected);
     expect(replaced.text).toContain('the paper <wbr><!--{title}-->The plan<!--{/title}-->[^note-7k2q] of');
