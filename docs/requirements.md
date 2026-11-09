@@ -2263,11 +2263,14 @@ menu ([R-PREV-001](#r-prev-001) to [R-PREV-008](#r-prev-008)).
   `.pagedjs_page_content`: a highlight over two pages leaves out the
   margins, the footer and the header between them.
 - The frame of a selected highlight and the button "Add Note" stand at their
-  text at every zoom of the pages, smaller or larger than the paper (the CSS
-  property `zoom` of Markdown Paper): the browser of VS Code gives the
-  rectangles of the text in the pages in the coordinates of the pages, so the
-  script multiplies them by the zoom, and places them again after the event
-  `nimblescape-paper-zoomed` of each change of the zoom.
+  text at every zoom of the pages, smaller or larger than the paper: Markdown
+  Paper zooms the pages with the CSS transform `scale`, so the rectangles of
+  the text in the pages are in the coordinates of the window, and the script
+  places the frame and the button again after the event
+  `nimblescape-paper-zoomed` of each change of the zoom. When an element
+  around the text has the CSS property `zoom`, the browser of VS Code, which
+  has no standardized zoom, gives the rectangles without this zoom, so the
+  script multiplies them by it.
 - "Add Note" leaves out the soft hyphens (U+00AD) of the hyphenation of the
   pages, which the Markdown text does not have.
 - The PDF has no notes: the renderer of Markdown Paper makes it without the

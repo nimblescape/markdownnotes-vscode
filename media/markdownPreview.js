@@ -73,13 +73,14 @@
 // of before; the content of VS Code holds the new ones, and the script copies
 // them to the ends of the pages (stateAttributes).
 //
-// Markdown Paper zooms the pages with the CSS property `zoom`, smaller or
-// larger than the paper. The browser of VS Code has no standardized zoom: it
-// gives the rectangles of text in the pages in the coordinates of the pages,
-// without their zoom. The script multiplies them by the zoom before it places
-// the frame of the selected note and the button "Add Note", which stand outside
-// the pages, and places them again after the event `nimblescape-paper-zoomed`
-// of each change of the zoom.
+// Markdown Paper zooms the pages with the CSS transform `scale`, smaller or
+// larger than the paper, so the rectangles of text in the pages are in the
+// coordinates of the window. The script places the frame of the selected note
+// and the button "Add Note", which stand outside the pages, at these
+// rectangles, and places them again after the event `nimblescape-paper-zoomed`
+// of each change of the zoom. The browser of VS Code has no standardized zoom:
+// when an element around the text has the CSS property `zoom`, it gives the
+// rectangles without this zoom, so the script multiplies them by it (scaleOf).
 
 // @ts-check
 
