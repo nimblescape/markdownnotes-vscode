@@ -28,8 +28,11 @@
  *
  * An edit keeps every hidden part of the file: deleted text never deletes a
  * note, and a note goes away only with its button in the side view. Only the
- * comment of a listing and the link of its caption go when an edit deletes the
- * text around them, with the code block or the caption. Text typed
+ * hidden tags of a part that the edit takes away go with it, so that no tag
+ * stays without its text: the comment of a listing and the link of its caption
+ * when an edit deletes the text around them, with the code block or the
+ * caption, the markers of a value of the front matter with the whole value,
+ * and the anchor of a caption with the whole caption. Text typed
  * at the edge of a highlight stays outside the highlight. Each edit of the
  * file is checked: the clean text of the new file must be the clean text with
  * the edit, so that the two texts never drift apart.
@@ -424,18 +427,25 @@ export interface Result {
 }
 
 /**
- * goneParts returns the indexes of the hidden parts that an edit of the clean text takes away: the comment of a listing
- * and the link of a caption when the edit deletes the text on both sides of them. The `[` and the `](…)` of a link go
- * together, so that no half of a link stays.
+ * goneParts returns the indexes of the hidden parts that an edit of the clean text takes away, so that no hidden tag
+ * stays without the text that it belongs to: the comment of a listing and the link of a caption when the edit deletes
+ * the text on both sides of them; the markers of a value of the front matter when the edit takes the whole value with
+ * text around it, or the text on both sides of an empty value; and the anchor of a caption when the edit deletes its
+ * whole line up to the anchor, for example the whole caption. The `[` and the `](…)` of a link go together, so that
+ * no half of a link stays, and so do the two markers of a value.
  * @param projection - The projection of the file.
  * @param start - The offset of the start of the edit in the clean text.
  * @param end - The offset of the end of the edit in the clean text.
+ * @param insert - The new text of the edit; an anchor goes only with a deletion, and stays with a caption that the
+ *   edit writes anew.
  */
-function goneParts(projection: Projection, start: number, end: number): Set<number> {
+function goneParts(projection: Projection, start: number, end: number, insert: string): Set<number> {
   const inside = (index: number): boolean => start < projection.at[index] && projection.at[index] < end;
   const gone = new Set<number>();
   const opens: number[] = [];
+  let field: number | undefined;
   projection.hidden.forEach((part, index) => {
+    const at = projection.at[index];
     if (part.kind === 'listing' && inside(index)) {
       gone.add(index);
     } else if (part.kind === 'captionStart') {
@@ -444,6 +454,20 @@ function goneParts(projection: Projection, start: number, end: number): Set<numb
       const open = opens.pop();
       if (open !== undefined && (inside(open) || inside(index))) {
         gone.add(open).add(index);
+      }
+    } else if (part.kind === 'fieldStart') {
+      field = index;
+    } else if (part.kind === 'fieldEnd' && field !== undefined) {
+      const from = projection.at[field];
+      const takes = from < at ? start <= from && at <= end && (start < from || at < end) : inside(field);
+      if (takes) {
+        gone.add(field).add(index);
+      }
+      field = undefined;
+    } else if (part.kind === 'anchor' && insert === '' && start < end && at <= end) {
+      const lineStart = projection.clean.lastIndexOf('\n', at - 1) + 1;
+      if (start <= lineStart) {
+        gone.add(index);
       }
     }
   });
@@ -464,8 +488,9 @@ function goneParts(projection: Projection, start: number, end: number): Set<numb
  * file, the next places in both directions are tried. When no place keeps the clean text, because a definition would
  * stand in a line of text or a paragraph break would split a highlight, the file is written anew from the clean text
  * with the edit ([rebuild](#rebuild)). Typed text at the start or the end of the caption of a listing goes into its
- * link. The comment of a listing and the link of a caption that the edit deletes the text on both sides of go
- * ([goneParts](#goneparts)).
+ * link. The comment of a listing and the link of a caption that the edit deletes the text on both sides of go, the
+ * markers of a value that the edit takes whole with text around it, and the anchor of a caption whose whole line the
+ * edit deletes ([goneParts](#goneparts)).
  * @param projection - The projection of the file.
  * @param start - The offset of the start of the edit in the clean text.
  * @param end - The offset of the end of the edit in the clean text.
@@ -475,7 +500,7 @@ function goneParts(projection: Projection, start: number, end: number): Set<numb
 export function applyClean(projection: Projection, start: number, end: number, insert: string, continues = false): Result {
   const { text, hidden } = projection;
   const expected = projection.clean.slice(0, start) + insert + projection.clean.slice(end);
-  const gone = goneParts(projection, start, end);
+  const gone = goneParts(projection, start, end, insert);
   const kept = projection.at.flatMap((at, index) => (at >= start && at <= end && !gone.has(index) ? [hidden[index]] : []));
   const prefix = text.slice(0, beforeRun(projection, start));
   const suffix = text.slice(afterRun(projection, end));
@@ -594,12 +619,17 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     }
     definitions.set(note.label, lines.slice(note.start.line, note.end.line + 1).join('\n'));
   }
+  const gone = goneParts(projection, start, end, insert);
+  /** goneAt are the offsets in the file of the hidden parts that the edit takes away. */
+  const goneAt = new Set([...gone].map((index) => projection.hidden[index].start));
   for (const anchor of anchorsOf(lines)) {
+    if (goneAt.has(starts[anchor.line] + anchor.start)) {
+      continue;
+    }
     // An anchor stays after the references and the start markers at its place.
     const at = moved(toClean(projection, starts[anchor.line] + anchor.start), 'reference', start, end, insert.length);
     inline.push({ at, order: 4, text: lines[anchor.line].slice(anchor.start, anchor.end) });
   }
-  const gone = goneParts(projection, start, end);
   const opens: { at: number; text: string }[] = [];
   projection.hidden.forEach((part, index) => {
     const text = projection.text.slice(part.start, part.end);
@@ -631,6 +661,9 @@ export function rebuild(projection: Projection, start: number, end: number, inse
     inline.push({ at, order: 3, text: lines[marker.line].slice(marker.start, marker.end) });
   }
   for (const field of findFields(lines)) {
+    if (goneAt.has(starts[field.line] + field.start)) {
+      continue;
+    }
     // The markers of a value move as the start marker and the reference of a note; an empty value keeps its order.
     const open = moved(toClean(projection, starts[field.line] + field.start), 'marker', start, end, insert.length);
     const close = Math.max(open, moved(toClean(projection, starts[field.line] + field.valueEnd), 'reference', start, end, insert.length));

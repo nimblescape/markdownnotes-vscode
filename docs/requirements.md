@@ -297,7 +297,9 @@ Markdown file with notes without this extension knowing anything of papers:
     generated list with its markers. Text typed into a part or at the edge of
     a part of a line, and a change of a piece of a part, go back; a change
     that takes a whole block, or a whole part of a line with text around it,
-    stays.
+    stays. A part with `locked: true`, such as an entry of the reference list
+    or a generated list, goes back also with a change that takes the whole
+    part ([decision 88](#decisions)).
   - `registerFrontMatterSchema({ schemaOf(file, text), onDidChange })`: the
     rules of the front matter of a file in the clean editing view
     ([R-TEXT-009](#r-text-009), [decision 75](#decisions)): `schemaOf`
@@ -978,7 +980,16 @@ file at once, and keeps each note at its text:
   part. A change that
   takes a whole part with text around it, such as the deletion of a
   reference or of a caption, stays, and so do whole lines typed before or
-  after a block, such as the code block of a listing. The user changes a
+  after a block, such as the code block of a listing. The hidden tags of a
+  part that such a change takes go with it, so that no tag stays without
+  its text ([decision 88](#decisions)): the markers of a value of the front
+  matter with the whole value, the anchor of a caption with its whole line,
+  and the comment and the link of a listing with its code block and its
+  caption. A locked part, which another extension names through the API,
+  such as an entry of the reference list or a generated list of
+  nimblescape Markdown Paper, stays also with a change that takes the whole
+  part: such a change goes back as a whole, also a selection over several
+  entries and the empty lines between them. The user changes a
   part through what it comes from, and the save writes it again
   ([R-GEN-016](#r-gen-016)). "Format Document" of the view writes the
   parts too. No such part lies in the front matter, whose own rules stand
@@ -3162,7 +3173,7 @@ notes:
 
 ## Decisions
 
-Hannes decided these questions from 2026-10-28 to 2026-11-08. The
+Hannes decided these questions from 2026-10-28 to 2026-11-09. The
 requirements above follow them.
 
 1. **Storage of answers** ([R-NOTE-004](#r-note-004)): one note holds the
@@ -3920,6 +3931,17 @@ requirements above follow them.
     VS Code shows them, and the file `keybindings.json` of the user, and
     gives the keys to the pages. The other choice was to keep the default
     keys and to ask the user to bind the same keys a second time.
+88. **No deletion takes a piece of a locked part or of its hidden tags**
+    ([R-TEXT-009](#r-text-009), [R-GEN-012](#r-gen-012)): the entries of
+    the reference list and the generated lists of a paper are locked. In
+    the Text Editor and in the Markdown Editor, no edit deletes them, also
+    not a selection over several entries and the empty lines between them;
+    the edit goes back as a whole, and the save writes them from the
+    citations and the headings. A deletion that takes another generated
+    part whole takes its hidden tags with it: the markers of a value of the
+    front matter and the anchor of a caption whose whole line goes, as the
+    Markdown Editor deletes them with their text. The other choice was to
+    delete locked parts as a whole, with their hidden tags.
 
 ---
 

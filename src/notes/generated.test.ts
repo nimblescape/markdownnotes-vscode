@@ -132,14 +132,36 @@ describe('keepsGenerated', () => {
   test('keeps each edit of a file without generated parts', () => {
     expect(keepsGenerated('A text', 'A new text', [])).toBe(true);
   });
+
+  test('takes back each change that takes a piece of a locked part or the whole part, also with the empty lines between the parts (decision 88)', () => {
+    // The entries of a reference list, as nimblescape Markdown Paper names them: each a locked block of whole lines.
+    const list = ['# References', '', '<a id="a"></a>A. (2020). One.', '', '<a id="b"></a>B. (2021). Two.', '', 'After.'].join('\n');
+    const blocks = [
+      { first: 2, last: 2 },
+      { first: 4, last: 4 },
+    ];
+    const entries: GeneratedPart[] = blocks.map((block) => ({ ...block, locked: true }));
+    const keeps = (from: string, to: string): boolean => keepsGenerated(list, list.replace(from, to), entries);
+    // The deletion of the text of the entries over the empty lines, which kept their anchors, and of the whole entries.
+    expect(keeps('A. (2020). One.\n\n<a id="b"></a>B. (2021). Two.', '<a id="b"></a>')).toBe(false);
+    expect(keeps('\n<a id="a"></a>A. (2020). One.\n\n<a id="b"></a>B. (2021). Two.\n', '')).toBe(false);
+    expect(keeps('# References\n\n<a id="a"></a>A. (2020). One.\n\n', '')).toBe(false);
+    expect(keeps('<a id="b"></a>B. (2021). Two.\n\n', '')).toBe(false);
+    // Text around the entries, and whole lines next to them, stay.
+    expect(keeps('After.', 'Then.')).toBe(true);
+    expect(keeps('# References', '# Literature')).toBe(true);
+    expect(keeps('\n\nAfter.', '\n\nNew.\n\nAfter.')).toBe(true);
+    // The same blocks without the lock go as a whole.
+    expect(keepsGenerated(list, list.replace('<a id="b"></a>B. (2021). Two.\n\n', ''), blocks)).toBe(true);
+  });
 });
 
 describe('rangesOf', () => {
   test('gives a part of a line and a block of whole lines as ranges of the text, a block without the line break of its last line, and leaves out a part outside the text', () => {
     const text = 'One line\r\n```\r\ncode\r\n```\r\nend';
-    expect(rangesOf(text, [{ line: 0, start: 4, end: 8 }, { first: 1, last: 3 }, { line: 9, start: 0, end: 1 }, { first: 3, last: 9 }])).toEqual([
+    expect(rangesOf(text, [{ line: 0, start: 4, end: 8 }, { first: 1, last: 3, locked: true }, { line: 9, start: 0, end: 1 }, { first: 3, last: 9 }])).toEqual([
       { from: 4, to: 8, lines: false },
-      { from: 10, to: 24, lines: true },
+      { from: 10, to: 24, lines: true, locked: true },
     ]);
   });
 });
